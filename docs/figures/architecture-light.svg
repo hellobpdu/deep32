@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="426" viewBox="0 0 1000 426" role="img" aria-labeledby="t d">
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="426" viewBox="0 0 1000 426" role="img" aria-labelledby="t d">
 <title id="t">Deep32 architecture</title>
 <desc id="d">At question time an agent (Claude Code or Codex) calls an MCP gateway with eleven tools; the gateway calls the search engine, which combines keyword search, semantic search, fusion and reranking, a section reader, identifier lookup and a quote check, and uses GPU services for embeddings and reranking. At build time sources are ingested, built into an immutable index generation and validated against a labeled question set before the engine serves it.</desc>
 <metadata><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description rdf:about=""><dc:title>Deep32 architecture</dc:title><dc:creator>Jeffrey A. Cummings</dc:creator><dc:rights>Copyright (C) 2026 Jeffrey A. Cummings</dc:rights><dc:source>https://github.com/hellobpdu/deep32</dc:source></rdf:Description></rdf:RDF></metadata>

@@ -17,7 +17,7 @@ Answers are built from a local corpus of RFCs and Cisco documentation, with ever
   <a href="https://orcid.org/0009-0003-8091-4637"><img alt="ORCID 0009-0003-8091-4637" src="https://img.shields.io/badge/ORCID-0009--0003--8091--4637-a6ce39?style=flat-square&amp;logo=orcid&amp;logoColor=white"></a>
 </p>
 
-[Background](#background) · [Architecture](#architecture) · [Retrieval](#retrieval-pipeline) · [Tools](#mcp-tools) · [Protocol](#answer-protocol) · [Corpus](#corpus) · [Evaluation](#evaluation) · [Roadmap](#roadmap) · [Limitations](#limitations)
+[Background](#background) · [Architecture](#architecture) · [Retrieval](#retrieval-pipeline) · [Tools](#mcp-tools) · [Protocol](#answer-protocol) · [Corpus](#corpus) · [Evaluation](#evaluation) · [Hardware](#hardware) · [Roadmap](#roadmap) · [Limitations](#limitations)
 
 </div>
 
@@ -28,11 +28,11 @@ Answers are built from a local corpus of RFCs and Cisco documentation, with ever
 
 If you've studied for any Cisco certification (or at the very least attempted to browse their technical paper repo...) you understand the pain involved in trying to find current information. Yes, as an engineer, you should be able to locate your own sources. I think over the past few years, though, it has become more "get thrown to the wolves" than most professions. Which is fine.....up to a point.
 
-With the advent of modern generative AI (things like Claude, ChatGPT, etc...) modern engineers have become very comfortable using these services to find answers (R.I.P. stack overflow, you stingy bastard...), learn new information, or plan/implement/troubleshoot an active production deployment. Unfortunately, even with the flagship models, the results are moderate at best and at worst downright dangerous (if you've never tried arguing with an engineer that uses generative AI instead of reading documentation, I envy you). That being said...Artificial Intelligence (more broadly, Large Language Models and associated algorithms) can be EXTREMELY useful in research+development, in fields much more complex than network engineering and security.
+With the advent of modern generative AI (things like Claude, ChatGPT, etc...) modern engineers have become very comfortable using these services to find answers (R.I.P. Stack Overflow, you stingy bastard...), learn new information, or plan/implement/troubleshoot an active production deployment. Unfortunately, even with the flagship models, the results are moderate at best and at worst downright dangerous (if you've never tried arguing with an engineer that uses generative AI instead of reading documentation, I envy you). That being said...Artificial Intelligence (more specifically, Large Language Models and associated algorithms) can be EXTREMELY useful in research+development, in fields much more complex than network engineering and security.
 
-So, I got to thinking. What if you had a local agentic flagship model (something like Opus or Mythos, or even GPT 6.1 Sol) via your terminal of choice (claude code or codex, for example) and hooked it up to a local RAG system? If you don't know what RAG is...don't worry, I didn't either before last year. It stands for, "Retrieval-Augmented Generation" and is based in a local database of documentation, instead of being trained on general user input. I began experimenting with this, and a few months (and many iterations later....), we have Deep32. But, what is it about LLMs that makes networking in particular so difficult to understand for them?
+So, I got to thinking. What if you had an agentic flagship model (something like Opus or Mythos, or even GPT 6.1 Sol) via your terminal of choice (Claude Code or Codex, for example) and hooked it up to a local RAG system? If you don't know what RAG is...don't worry, I didn't either before last year. It stands for, "Retrieval-Augmented Generation" and is based in a local database of documentation, instead of relying on whatever the model remembers from its training. I began experimenting with this, and a few months (and many iterations later....), we have Deep32. But, what is it about LLMs that makes networking in particular so difficult to understand for them?
 
-If you've ever read an RFC, you know that they're updated constantly (as are most engineering white papers, configuration guides, technical notes...ad nauseam). Networking in particular is a consistently evolving field, and LLMs (simply speaking) have an extremely difficult time catching up. LLMs are (more or less) fluent in understanding the fundamentals of things like routing protocols, but are often wrong on the specifics (the devil is in the details). The answer may originally READ fine and may cite a relevant source, but...eventually you'll notice that a timer or a default is off. Maybe the command syntax in an output doesn't precisely match the version of Cisco IOS XE you're using. With a field as granular as this, it becomes inherently hard to tell what should or should not be done without actually opening the source documentation. Most of the errors I see fall into four groups:
+If you've ever read an RFC, you know that they're constantly being updated and obsoleted by newer ones (as are most engineering white papers, configuration guides, technical notes...ad nauseam). Networking in particular is a consistently evolving field, and LLMs (simply speaking) have an extremely difficult time catching up. LLMs are (more or less) fluent in understanding the fundamentals of things like routing protocols, but are often wrong on the specifics (the devil is in the details). The answer may originally READ fine and may cite a relevant source, but...eventually you'll notice that a timer or a default is off. Maybe the command syntax in an output doesn't precisely match the version of Cisco IOS XE you're using. With a field as granular as this, it becomes inherently hard to tell what should or should not be done without actually opening the source documentation. Most of the errors I see fall into four groups:
 
 | Error | Example | What Deep32 does |
 |---|---|---|
@@ -41,7 +41,7 @@ If you've ever read an RFC, you know that they're updated constantly (as are mos
 | Command from the wrong release | Syntax from one software train given for another | Each passage carries its platform and release, and a search can prefer or cap a release |
 | Invented quotation | "The RFC states ..." followed by text that is not in the RFC | String-matches every quotation against the source section |
 
-The rest of the design follows from that table. The agent gets no documents up front and is told to answer only from passages it retrieves, or to say that the corpus does not cover the question. Quotation checking is string matching against the stored text, with no model in the loop. Everything that goes into an answer is versioned, from document hashes up to whole index generations, so one build can be compared with the next and rolled back. Retrieval runs entirely on local hardware. The LLM is the only hosted part.
+Every one of those is checkable. So the agent gets no documents up front and is told to answer only from passages it retrieves (or to say the corpus doesn't cover the question). Quotes get string-matched against the stored text, with no model in the loop for that part. Everything that goes into an answer is versioned, from document hashes up to whole index generations, so I can compare one build with the next and roll back when I break something. Retrieval runs entirely on my own hardware. The LLM is the only hosted piece.
 
 ## Architecture
 
@@ -51,17 +51,32 @@ The rest of the design follows from that table. The agent gets no documents up f
   <img alt="Architecture diagram. Query path: agent, MCP gateway, search engine, GPU services. Build path: sources, ingest, build, validate, producing the index generation the engine serves." src="docs/figures/architecture-light.svg" width="100%">
 </picture>
 
-There are five components. Four sit in the query path and the fifth, the build pipeline, runs when the corpus changes.
+If you've never looked inside one of these, a RAG system is less exotic than it sounds. There's a search engine (two of them, really...more on that below), a pile of documents, and an LLM that only gets to answer from what the search hands back. The rest of the diagram is plumbing.
 
-| Component | Role | Built with |
+Five components. Four are in the query path; the build pipeline runs when the corpus changes.
+
+| Component | Role |
+|---|---|
+| Agent | Runs the [answer protocol](#answer-protocol) and writes the answer. Claude Code and Codex today; any MCP client can call the gateway. |
+| Gateway | MCP server for the eleven [tools](#mcp-tools). Stateless. Its server instructions tell the client to treat all tool output as untrusted document text. |
+| Engine | Hybrid search, section reader, identifier lookup, quotation check. Serves one index generation at a time. |
+| GPU services | Embedding and cross-encoder reranking. If this node is down, search falls back to BM25 and the response is marked degraded. |
+| Build pipeline | Builds and validates [index generations](#index-generations) from the source documents. |
+
+The gateway is the boring part. It holds no documents, checks the token, passes the call to the engine and passes the result back. It also tells the client up front that everything a tool returns is document text, and that nothing in there should be followed as an instruction (prompt injection through a PDF is a real thing, unfortunately).
+
+For the people who want version numbers (I know you're out there), this is what's running as of November 2026:
+
+| Layer | Software | Detail |
 |---|---|---|
-| Agent | Runs the [answer protocol](#answer-protocol) and writes the answer. I use Claude Code and Codex. Any MCP client can call the gateway. | Model Context Protocol |
-| Gateway | MCP server for the eleven [tools](#mcp-tools). Stateless, with one bearer token per client. Its server instructions tell the client to treat all tool output as untrusted document text. | Python, MCP |
-| Engine | Hybrid search, section reader, identifier lookup and quotation check. Serves one index generation at a time. | Python, FastAPI, SQLite FTS5, Qdrant |
-| GPU services | Embedding and cross-encoder reranking. If this node is down the engine falls back to BM25 and marks the response as degraded. | Text Embeddings Inference, `jina-embeddings-v5-text-small`, `jina-reranker-v3.5` |
-| Build pipeline | Builds and validates [index generations](#index-generations) from the source documents. | Python, git |
-
-In my deployment these run on three machines on a Tailscale network, with HTTPS between services.
+| Gateway | Python 3.14, MCP SDK 2.2 | Streamable HTTP at `/mcp`, stateless, JSON responses. IP allow-list, then bearer token, compared in constant time. |
+| Search API | Python 3.12, FastAPI 0.141, uvicorn 0.54 | REST under `/v2`, bearer token. 2 searches run at once, 16 wait, the rest get `503` with `Retry-After`. |
+| Keyword index | SQLite FTS5 | `unicode61` tokenizer, diacritics removed. BM25 over passage text (weight 1.0) and heading path (weight 2.0). |
+| Vector index | Qdrant 1.19 | 1024 dimensions, cosine, float32, HNSW at Qdrant defaults. One collection per index generation. |
+| Embeddings | Text Embeddings Inference 1.9, `jina-embeddings-v5-text-small` | float32, last-token pooling |
+| Reranker | `jina-reranker-v3.5` | Cross-encoder, fp16 on CUDA, model revision pinned |
+| OS | Ubuntu 26.04 LTS (engine, gateway), Ubuntu 24.04 under WSL2 (GPU) | |
+| Network | Tailscale | HTTPS between services |
 
 ## Retrieval pipeline
 
@@ -71,47 +86,77 @@ In my deployment these run on three machines on a Tailscale network, with HTTPS 
   <img alt="Retrieval pipeline diagram. Queries go to BM25 and dense search in parallel; results are fused, the top 15 are reranked, identical passages are folded, and 32 hits are returned in three tiers." src="docs/figures/pipeline-light.svg" width="100%">
 </picture>
 
+Why two searches? Because each one is bad at what the other is good at. BM25 is plain keyword matching, the same idea search engines have used for decades. Give it `timers bgp` or "RFC 4271" and it finds that exact string. Describe a problem in your own words and it struggles, because the documentation doesn't phrase things the way you did. Dense search is the reverse: it turns text into vectors and matches on meaning, so a vague question still lands near the right section...and then it will sail right past an exact identifier that BM25 would have nailed. So I run both and merge the lists. On my test set BM25 alone puts a correct passage first 71% of the time, dense alone 78%, and the two together 82%.
+
+The merge is reciprocal rank fusion, which is about as simple as these things get. A passage scores 1/(60 + rank) in each list it appears in, and the scores are added. There's no attempt to compare a BM25 score with a cosine similarity (they aren't on the same scale), and anything both searches liked ends up near the top.
+
+Then comes the reranker, which is a second and much slower model. It reads the question and one candidate passage together and scores how well that passage answers it. That's too expensive to run over the whole corpus, so it only sees the top 15 of the fused list. It is the biggest single improvement in the pipeline (82% to 95.5% at rank 1) and also the biggest single cost, at about 400 ms of a 542 ms search. I tried a faster one and it was worse (see [Things that did not work](#things-that-did-not-work)).
+
 | Stage | What happens | Setting |
 |---|---|---|
 | Plan | A `search_many` call takes several queries at once. Identifiers such as RFC numbers and command names go in as BM25 queries, paraphrases as dense queries. | 1 to 8 queries |
-| Keyword | BM25 over SQLite FTS5 | 50 candidates per query |
-| Semantic | 1024-dimension vectors, cosine distance, no quantization. Each passage is embedded with its document title and heading path. | 50 candidates per query |
-| Fuse | Reciprocal rank fusion | k = 60, top 30 kept |
-| Rerank | Cross-encoder, each candidate scored against the query that retrieved it | top 15 |
-| Fold | Cisco repeats text across books and releases. Passages with identical text are merged into one hit, and the other locations are listed in `also_in`. | exact text match |
-| Deliver | 32 hits in three tiers of 8, 8 and 16, with a shorter text window in each tier. Every hit is centered on its best-matching line and has a reference to the full section. | 2,400 / 800 / 250 characters |
+| Keyword | FTS5 BM25 over passage text and heading path, with headings weighted 2x | 50 candidates per query |
+| Semantic | The query is embedded as `Query: {text}`. Passages were embedded as `Document: {title}`, `Section: {heading path}`, then the text. | 50 candidates per query |
+| Fuse | Weighted reciprocal rank fusion, both legs at weight 1.0 | k = 60, top 30 kept |
+| Rerank | Cross-encoder, each candidate scored against the query that retrieved it. The reranker sees a 1,600-character window centered on the candidate's best-matching text. | top 15 (top 10 per query in `search_many`) |
+| De-duplicate | Passages with identical text fold into one hit, and the other locations are listed in `also_in`. A passage that overlaps a better-ranked hit in the same file by half or more is dropped. | text compared after case and punctuation are normalized |
+| Deliver | 32 hits in three tiers | below |
 
-The 32 in the name is this result size, and the strip under the logo is one result drawn to scale.
+Cisco documentation repeats itself...a lot. The same paragraph shows up in the book for one release and again in the book for the next, and without some cleanup a slice of your top 8 is the same text twice. So identical passages get folded into one hit that lists everywhere else the text lives.
 
-Hit@1 by stage, on the 696-question set described under [Evaluation](#evaluation):
+The last step is deciding how much to hand back. An agent can use more than 8 passages, but 32 full ones is a lot of tokens to pay for on every single search. So the result comes in three sizes: the best 8 in full, the next 8 trimmed, and 16 more as short pointers the agent can open if one looks promising. That's the 32 in the name, and the strip under the logo is one result drawn to scale.
 
-| BM25 only | Dense only | Fused | Fused + reranked |
-|:---:|:---:|:---:|:---:|
-| 0.710 | 0.783 | 0.822 | 0.956 |
+| Tier | Ranks | Text window | Order |
+|:---:|:---:|---|---|
+| 1 | 1 to 8 | up to 2,400 characters | reranked |
+| 2 | 9 to 16 | up to 800 characters | reranked through rank 15 |
+| 3 | 17 to 32 | up to 250 characters | fusion order |
 
-Every response has a `degraded` field listing any backend it needed and could not use. BM25 has no external dependency and always answers. The dense leg and the reranker sit behind circuit breakers (three failures open the breaker for 30 seconds, then one trial call), so search stays up through a GPU outage at lower quality, and the agent can see that it happened.
+Every hit is centered on its best-matching line. Tier 2 and 3 hits carry a reference for reading the full section.
+
+The knobs, for when the defaults aren't what you want:
+
+| Option | Values | Effect |
+|---|---|---|
+| `mode` | `hybrid`, `bm25`, `dense` | Which legs run |
+| `rerank` | `auto`, `on`, `off` | Cross-encoder on or off |
+| `limit` | 1 to 30 | An exact number of hits in place of the 32-hit result |
+| `max_chars` | 200 to 4,000, default 2,400 | Text window per hit |
+| `doc_type`, `docs` | a collection, a list of document keys | Restricts the search. Also the only way to reach an opt-in collection. |
+| `release_max` | `17.9` | Skips documents from a newer release on the same major line |
+| `prefer_release` | `["17.9"]` | Among identical copies of a passage, shows the copy from this release |
+| `include_obsolete` | default true | False drops obsoleted RFCs |
+
+The GPU box is also my desktop, which makes it the part most likely to be off, rebooting or busy. The engine handles that about the way a routing protocol handles a dead neighbor. Three failed calls in a row and the dense leg is declared down, searches stop waiting on it, and one trial call is let through every 30 seconds until it answers. Until then BM25 carries the traffic alone, and every response has a `degraded` field naming anything it needed and could not use.
+
+| Failure | Search behavior | `degraded` |
+|---|---|---|
+| Embedding server or Qdrant | BM25 answers alone. After 3 consecutive failures a circuit breaker opens for 30 seconds and the dense leg is skipped without waiting on a timeout, then one trial call. | `dense` |
+| Reranker | Fused order is returned without reranking. Same breaker settings. | `reranker` |
+| Structured indexes | Hits come back without RFC status | `kb` |
+| Section index | Hits carry the passage's own text and no section reference | `structure` |
 
 ## MCP tools
 
-The gateway exposes eleven tools. All of them return source material or metadata. There is no tool that generates text.
+MCP (Model Context Protocol) is just the standard way of handing an agent a set of tools. Deep32 hands it eleven, and you'll notice that none of them writes an answer. They search, fetch sections, look up identifiers and check quotes. Writing the answer is the agent's job, and it has to do that from what these return.
 
-| Tool | Returns |
-|---|---|
-| `search_rag` | One hybrid, BM25 or dense search. Each hit has a citation, its section path, the RFC's status and a text window centered on the best-matching passage. |
-| `search_many` | Up to 8 searches fused into one ranked list. Each query keeps its best passage in the result. |
-| `get_outline` | A document's section tree |
-| `get_section` | Full text of a section, paged, with the neighboring sections |
-| `grep_corpus` | Literal or bounded regular-expression search over the source text |
-| `find_command` | CLI index entries: syntax, task steps, examples and show output. IOS abbreviations are accepted. |
-| `lookup_id` | Resolves an identifier: RFC and section numbers, BCP and STD numbers, IANA registry values, protocol terms, CLI commands, PowerShell cmdlets |
-| `lookup_rfc` | RFC Editor metadata: status, obsoletes, obsoleted-by, updates, errata |
-| `verify_quote` | Whether a quotation appears in a section: `exact`, `normalized` or `not_found` |
-| `list_documents` | The corpus catalog |
-| `rag_status` | Health: index generation, corpus fingerprint, counts, backend and breaker state |
+| Tool | Returns | Arguments worth knowing |
+|---|---|---|
+| `search_rag` | Ranked passages for one query. Each hit has a citation, section path, RFC status and a text window. | the request options above |
+| `search_many` | Up to 8 queries fused into one ranked list. Each query keeps its best passage. | per-query `mode` and `weight` |
+| `get_outline` | Section tree of a document | `depth` 1 to 6, `under` for one chapter |
+| `get_section` | Full text of a section with its neighbors | paged, up to 100,000 characters per call |
+| `grep_corpus` | Matching lines with document, line number and section | literal by default, bounded regex optional, up to 200 matches, 3-second budget |
+| `find_command` | CLI index rows: command, kind, mode, location, platform, release | IOS abbreviations accepted. `release` ranks entries at or below it first. |
+| `lookup_id` | What an identifier is and where it is defined | RFC and section numbers, BCP and STD numbers, IANA code points, CLI commands, glossary terms, PowerShell cmdlets, API operations |
+| `lookup_rfc` | Status, obsoletes, obsoleted-by, updates, errata | optional section text |
+| `verify_quote` | `exact`, `normalized` or `not_found`, with the location | quotation of 3 to 4,000 characters |
+| `list_documents` | Catalog: key, type, release, RFC status, size, title | optional collection |
+| `rag_status` | Index generation, corpus fingerprint, counts, backend and breaker state | |
 
 ## Answer protocol
 
-The agent's instructions are a fixed procedure:
+Tools don't help if the model skips them and answers from memory anyway (which it will happily do if you let it). So the agent works from a fixed procedure. It reads like a checklist because it is one.
 
 1. Look up every identifier (RFC number, LSA type, path attribute, CLI command) with `lookup_id` or `find_command` before using it.
 2. Run one `search_many` call with three to six queries, restricted to one collection where the question allows it.
@@ -121,17 +166,17 @@ The agent's instructions are a fixed procedure:
 6. Compare the RFC text with the vendor's documented behavior and defaults, and report any difference.
 7. If the corpus does not cover the question, say so.
 
-`verify_quote` returns one of three results:
-
-| Result | Meaning | Effect |
+| `verify_quote` result | Meaning | Effect |
 |---|---|---|
 | `exact` | Character-for-character match | Quotation can be used |
 | `normalized` | Matches after collapsing whitespace, RFC page breaks and hyphenation | Quotation can be used |
 | `not_found` | No match in that section | Quotation is dropped and the agent goes back to the section |
 
+`normalized` exists because RFCs are plain text with hard line breaks and (in the older ones) page footers. A sentence that is one line in your head can be two lines with a page break through the middle in the file, and that shouldn't count as a misquote.
+
 ### Example: BGP keepalive and hold timers
 
-The usual answer to "what are the BGP default timers" is 60 and 180 seconds. These are the tool results for that question from my deployment on 14 November 2026.
+Ask for the BGP default timers and the usual answer is 60 and 180 seconds. Here is what the tools return for that question (my deployment, 14 November 2026).
 
 | # | Call | Result |
 |:---:|---|---|
@@ -142,20 +187,28 @@ The usual answer to "what are the BGP default timers" is 60 and 180 seconds. The
 | 5 | `verify_quote`, same section:<br>"Interval (in seconds) after not receiving a keepalive message that the software declares a peer dead. The default is 180 seconds." | `exact` |
 | 6 | `verify_quote` in RFC 4271, section 10:<br>"The suggested default value for the HoldTime is 180 seconds." | `not_found` |
 
-RFC 4271 section 10 suggests a hold time of 90 seconds and a keepalive of one third of that, so 30 seconds. Cisco IOS and IOS XE default to 60 and 180. "60 and 180" is therefore correct for Cisco and wrong as a statement about the RFC, and call 6 shows that the 180-second sentence does not appear in section 10 at all.
+So "60 and 180" is correct for Cisco IOS and IOS XE, and wrong as a statement about the RFC, which suggests 90 seconds with keepalives at a third of that. Note call 6. The 180-second sentence is not in section 10 at all, and the check says so.
 
 ## Corpus
+
+What's in it and, just as important, which version. A configuration guide for one IOS XE release and the guide for the next can say different things, so every document carries its platform and release, and a search can be told to prefer a release or to stop at one.
 
 | Collection | Documents | Contents |
 |---|:---:|---|
 | IETF RFCs | 365 | RFC text plus RFC Editor status, relations and errata |
-| Cisco documentation | 489 | 263 TechNotes, 126 configuration guides, 48 command references, 17 API guides, 15 validated designs, 14 white papers, 3 MIBs, 3 release notes. Covers IOS XE, SD-WAN, Catalyst Center, ISE and Secure Client. |
+| Cisco documentation | 489 | IOS XE, SD-WAN, Catalyst Center, ISE and Secure Client |
 | PowerShell (opt-in) | 241 | Windows PowerShell 5.1 reference, 7.x differences, Windows networking modules |
 | System (opt-in) | rebuilt per release | Deep32's own source, configuration and design notes, so that it can answer questions about itself |
 
-Opt-in collections are searched only when a query names them, which keeps PowerShell help text out of routing results.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/figures/corpus-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="docs/figures/corpus-light.svg">
+  <img alt="Bar chart of documents by kind. IETF: 365 RFCs. Cisco: 263 TechNotes, 126 configuration guides, 48 command references, 17 API guides, 15 validated designs, 14 white papers, 3 MIBs, 3 release notes. PowerShell: 156 about topics, 40 conceptual articles, 28 cmdlet reference documents, 14 on 7.x differences, 3 other." src="docs/figures/corpus-light.svg" width="100%">
+</picture>
 
-Each build also produces structured indexes for the lookup tools:
+Opt-in collections are searched only when a query names them, which keeps PowerShell help text out of routing results. They also get their own FTS5 table, because BM25 statistics computed over one shared table still counted the rows a filter had excluded.
+
+Search is the wrong tool for some questions. Whether RFC 1771 is still current, or what the exact syntax of a command is, are lookups, and answering them with a search query is how you get something plausible and wrong. So each build also produces plain lookup tables:
 
 | Index | Size | Source |
 |---|---|---|
@@ -165,50 +218,139 @@ Each build also produces structured indexes for the lookup tools:
 | CLI index | about 150,000 command entries with mode, platform and release | Command references and configuration guides |
 | Feature history | 2,578 entries | Vendor feature tables |
 
-Every document has a manifest entry with its source URL, SHA-256, platform, release, license terms and a redistribution flag. This repository contains no vendor text. The Cisco documents belong to Cisco.
+Every document has a manifest entry. This is the one for RFC 4271:
+
+```json
+{
+  "doc_key": "rfc4271",
+  "title": "A Border Gateway Protocol 4 (BGP-4)",
+  "doc_type": "rfc",
+  "doc_kind": "rfc",
+  "path": "rfc/rfc4271.txt",
+  "source_url": "https://www.rfc-editor.org/rfc/rfc4271.txt",
+  "page_url": "https://www.rfc-editor.org/rfc/rfc4271.html",
+  "platform": null,
+  "release": null,
+  "release_note": null,
+  "sha256": "98b851146abcd56ecbb398dd1a818bcde2dcac6fde3d901c423d988f86eaab76",
+  "bytes": 222702,
+  "license": "IETF RFC; IETF Trust Legal Provisions (BCP 78): may be copied and distributed in full without modification",
+  "terms_url": "https://trustee.ietf.org/license-info",
+  "redistribute": true,
+  "near_duplicate_of": []
+}
+```
+
+This repository contains no vendor text. The Cisco documents belong to Cisco.
 
 ## Index generations
 
-An index is never modified in place. Each build produces a new generation, and the engine serves one generation at a time.
+I treat the index the way you'd treat a production config, which means nobody edits the running one and hopes for the best. Every corpus change builds a complete new index beside the old one (a "generation"), and the engine serves one generation at a time. The new one has to prove itself against the test set before the engine is pointed at it, and if the check after the switch fails, the engine goes back to the previous generation by itself. It's the same idea as typing `reload in 5` before you touch an ACL on a router three states away.
 
-A generation is a self-contained directory holding a snapshot of the sources, the SQLite store (FTS5 index and section map), the vectors, the structured indexes and a build report.
+```
+<generation>/
+  sources/            corpus snapshot as built: manifest.json, <collection>/*.txt, kb/*.json
+  config/             dense.json, retrieval.json, serving.json for this generation
+  sqlite/rag.db       documents, passages, sections, FTS5 tables
+  kb/kb.sqlite        RFC index, errata, IANA, CLI, glossary, feature history
+  BUILD_REPORT.json
+  VALIDATION.json     gate result
+  logs/               retrieval traces
+```
 
-Document and passage IDs are derived from SHA-256 hashes of the content, so an unchanged passage keeps its ID from one build to the next and its embedding is reused. One corpus update embedded 904 new passages and reused 62,617 existing vectors.
+The vectors live in a Qdrant collection named after the generation.
 
-Before a new generation is served, it is run against the labeled question set and compared with the current generation query by query. The gate allows zero net regressions: a build that loses one question without gaining one elsewhere fails.
+| Identifier | Derivation |
+|---|---|
+| Document ID | `doc_` + SHA-256 of the source file |
+| Passage ID | `chk_` + SHA-256 of the document hash, the passage's position and its text |
+| Vector point ID | UUIDv5 of the passage ID |
 
-Switching generations is one setting and a service restart. Old generations stay on disk, so rolling back is the same operation pointed at the previous one. The evaluation that runs after a switch rolls back automatically if it does not pass.
+A passage whose ID and embedding text are unchanged reuses its vector from the previous generation. One corpus update embedded 904 new passages and reused 62,617 existing vectors.
 
-Document conversion runs in a sandbox with no network access. Converted text has to pass a quality gate before it can be built, which includes a scan for instruction-like lines (what a prompt injection planted in a document would look like). Anything the scan flags is reviewed by hand.
+What a document goes through on the way in, and what can stop it:
+
+| Step | What happens | Gate |
+|---|---|---|
+| Convert | HTML and PDF to plain text, in a sandbox with no network access | |
+| Check | Quality checks, plus a scan for instruction-like lines (what a prompt injection planted in a document would look like) | Zero failures. Flagged lines are reviewed by hand. |
+| Manifest | Hash, source URL, platform, release, license and redistribution flag for every document | |
+| Build | Chunking, FTS5 tables, section index, embeddings, structured indexes | Build report |
+| Validate | The labeled question set is run against the new generation and the current one, and compared query by query | Zero net regressions: losing one question without gaining one elsewhere fails |
+| Switch | One setting and a service restart, with a smoke test before and after | The evaluation that follows must pass, or the switch rolls back automatically |
+
+Old generations stay on disk, so a rollback is the same switch pointed at the previous one.
 
 ## Evaluation
 
-So far I have measured retrieval only. Answer accuracy has not been measured.
+What's measured so far is retrieval: does the right passage come back, and how high. Whether the final answer is right has not been measured. That's next, and it's the measurement I built this to make.
 
-The test set is 696 questions on enterprise routing, switching, VPN, SD-WAN, network services and access control. Each question is labeled with the passages that answer it.
+If you don't speak information retrieval: hit@1 is how often the top result is a correct passage, and hit@8 is how often a correct passage is anywhere in the top 8. The agent reads the whole top 8, so hit@8 tells you whether the answer CAN be right, and hit@1 tells you how much digging it takes.
 
-| Measure | Result |
+| Test set | |
+|---|---|
+| Questions | 726: 696 with an answer in the corpus, 30 without |
+| Topics | Enterprise routing, switching, VPN, SD-WAN, network services, access control |
+| Relevance labels | 9,209 text spans across 463 documents: 5,175 written with the questions, 2,094 copied to identical passages in sibling documents, 1,940 added by judging retrieved passages |
+| How it was built | Questions and first labels were generated per topic by an LLM pipeline (an author and an adversarial verifier). Judged labels are audited blind; the last two audits agreed on 22 of 27 and 15 of 16 items. |
+| Relevance rule | A hit counts when it comes from the labeled document and its passage contains the labeled span |
+| Repeatability | Three runs over one week returned identical metrics |
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/figures/stages-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="docs/figures/stages-light.svg">
+  <img alt="Chart of the share of 696 questions whose first relevant passage is at rank 1 and within the top 8, by pipeline stage, with median search time. BM25 only: 0.710, 0.928, 125 ms. Dense only: 0.783, 0.970, 122 ms. Fused: 0.822, 0.983, 140 ms. Fused and reranked: 0.955, 0.991, 542 ms." src="docs/figures/stages-light.svg" width="100%">
+</picture>
+
+All 696 answerable questions, through the gateway, 2 November 2026. Counts in parentheses.
+
+| Metric | Fused + reranked | Fused only |
+|---|:---:|:---:|
+| hit@1 | 0.955 (665) | 0.822 (572) |
+| hit@3 | 0.983 | 0.934 |
+| hit@8 | 0.991 (690) | 0.983 (684) |
+| MRR@10 | 0.970 | 0.882 |
+| delivery@8 | 0.909 | 0.904 |
+
+delivery@8 is the share of labeled answer spans that arrive intact in the delivered text window, out of those present in the retrieved passages. Paired over the 696 questions, reranking wins 102 and loses 9 at hit@1. At hit@8 it wins 6 and loses none.
+
+Rank of the first relevant passage in each list's top 30:
+
+| List | Rank 1 | Top 8 | Top 15 | Top 30 | Not in top 30 |
+|---|:---:|:---:|:---:|:---:|:---:|
+| BM25 | 494 | 646 | 666 | 687 | 9 |
+| Dense | 545 | 675 | 688 | 692 | 4 |
+| Fused | 572 | 684 | 690 | 693 | 3 |
+| Fused + reranked | 665 | 690 | 690 | 693 | 3 |
+
+BM25 or dense has a relevant passage in its top 30 for 694 of the 696 questions. For 6 questions the fused top 15, which is all the reranker sees, has nothing relevant.
+
+The 31 misses at rank 1 were judged afterward:
+
+| Cause | Questions |
 |---|:---:|
-| Correct passage ranked first (hit@1) | 0.956 |
-| Correct passage in the top 8 (hit@8) | 0.991 |
-| Median time for one search through the gateway | about 0.57 s |
+| Label gap: the rank-1 passage answers the question but had no label | 7 |
+| The reranker put another passage above a relevant one in its pool | 21 |
+| A relevant passage was retrieved, but fusion left it outside the reranker's top 15 | 3 |
 
-The hit@1 figure is conservative. Some top-ranked passages have not been judged yet and are counted as misses; depending on how those are judged, the real value is between 0.956 and 0.983. All of these numbers are from October and November 2026 on my deployment. I will re-measure on the released corpus and publish those results with it.
+That leaves 24 real misses, which would be 672 of 696 (0.966) with the labels corrected. I'm reporting 0.955 until the label set is frozen again. The generation serving today has the same 31 and the same 6.
 
-Next is answer-level evaluation: a fixed set of protocol questions, answered once with the verification steps enabled and once with them disabled, and scored against the sources.
+And yes, seven of those "misses" were my answer key being wrong while the system returned a passage that does answer the question. Keep that in mind for every number on this page, the good ones included.
 
 ## Things that did not work
 
-- Adding a second IOS XE release line made hit@1 drop from 0.824 to 0.754. It turned out that 234 of the 694 questions in the test set at the time had their answer passage repeated verbatim in one of the new books, where it had no label, so correct hits were being scored as misses. Duplicate passages are now folded into one hit (the Fold stage above).
-- Larger chunks scored worse. Hit@1 fell from 0.956 to 0.935 and fewer answer passages were delivered intact, so the smaller chunk size stayed.
-- A faster reranker lost 10 questions at hit@1 once its new top hits had been judged. I kept the slower one.
-- Two HNSW builds from identical vectors can differ on a question or two, which is enough to trip a zero-regression gate. New generations now clone the previous index snapshot and add to it.
-- A late-interaction (ColBERT) retriever is implemented but is not part of the served pipeline. Its first run was OOM-killed because the search library packed about 30,700 candidates into a single 31 GiB tensor. Capping the batch size fixed that.
-- Check that Tailscale has a direct path between nodes. Relayed through DERP, node-to-node latency was 70 to 157 ms. Direct, it is 1 to 2 ms.
+A few things that cost me time, in case they save you some.
+
+- Adding a second IOS XE release line dropped hit@1 from 0.824 to 0.754, which looked like a disaster. It was the test set. 234 of the 694 questions (at the time) had their answer passage repeated word for word in one of the new books, where it had no label, so correct hits were being scored as misses. Duplicates now fold into one hit. Before that, about 4% of top-8 slots (231 of 5,808 in one run) were a copy of a passage already in the list.
+- Bigger chunks scored worse. Hit@1 went from 0.955 to 0.935 and fewer answer passages were delivered intact, so the small chunks stayed.
+- A faster reranker cost 10 questions at hit@1 once its new top hits had been judged. I kept the slow one.
+- Two HNSW builds from the same vectors can disagree on a question or two. That is enough to trip a zero-regression gate, so new generations clone the previous index snapshot and add to it.
+- There is a late-interaction (ColBERT) retriever in the code that isn't part of the served pipeline. Its first run got OOM-killed, because the search library packed about 30,700 candidates into one 31 GiB tensor. Capping the batch size fixed that.
+- Check that Tailscale has a direct path between your nodes. Relayed through DERP, node-to-node latency was 70 to 157 ms. Direct, it's 1 to 2 ms.
 
 ## Hardware
 
-This is what it runs on today. Median search time through the gateway is about 0.57 s.
+The whole thing runs on hardware I already had. The server is a 2013 Xeon box that doesn't have AVX2, the gateway is a thin client with no fan, and the GPU is one consumer card in the desktop I use for everything else.
 
 | Node | Hardware | Runs |
 |---|---|---|
@@ -216,9 +358,20 @@ This is what it runs on today. Median search time through the gateway is about 0
 | Gateway | Fanless thin client (Pentium Silver, no AVX) | MCP gateway |
 | GPU and agent | Desktop PC with one 11 GB NVIDIA card, models under WSL2 | Embeddings, reranker, the agent |
 
+Latency through the gateway, one client, 2 November 2026. The two searches are quick (about 125 ms each, and that includes the trip through the gateway). The reranker is where the time goes, at about 400 ms of every reranked search.
+
+| Search | p50 | p95 | Searches |
+|---|:---:|:---:|:---:|
+| Hybrid + rerank, 8 hits | 521 ms | 656 ms | 696 |
+| Hybrid + rerank, 30 hits | 542 ms | 682 ms | 696 |
+| Hybrid, rerank off, 30 hits | 140 ms | 201 ms | 696 |
+| BM25 only, 30 hits | 125 ms | 185 ms | 696 |
+| Dense only, 30 hits | 122 ms | 145 ms | 696 |
+| `search_many`, 3 queries, 8 hits | 778 ms | 1,120 ms | 70 |
+
 ## Release plan
 
-The plan is three disk images covered by one signed manifest. Details may change before release.
+Right now this is one deployment in my house. The plan is to make it something you can install without me, and without any of my keys, logins or network baked in. That means three disk images covered by one signed manifest (details may change before release).
 
 | Image | Kind | Contents |
 |---|---|---|
@@ -245,11 +398,13 @@ The plan is three disk images covered by one signed manifest. Details may change
 
 ## Limitations
 
+What this doesn't do, so that nobody finds out the hard way:
+
 - A verified quotation shows that the text is in the source. It says nothing about whether the reasoning built on it is sound.
-- Answers are limited to what the corpus covers.
+- Answers are limited to what the corpus covers, and the corpus is Cisco documentation plus RFCs. Other vendors aren't in it.
 - Answer accuracy has not been measured (see [Evaluation](#evaluation)).
-- The corpus is Cisco documentation and RFCs. Other vendors are not covered.
-- The LLM is hosted, so the question and the retrieved passages are sent to the model provider. Everything else stays local.
+- The test set was generated with an LLM pipeline, and its labels have gaps: 7 of the 31 recorded misses at rank 1 turned out to be missing labels.
+- The LLM is hosted, so the question and the retrieved passages go to the model provider. Everything else stays local.
 - A cited answer still needs to be tested in a lab before a change goes into production.
 
 ## Verifying
