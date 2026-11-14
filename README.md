@@ -7,7 +7,7 @@
 </picture>
 
 Retrieval-augmented question answering for network and security engineering.<br>
-Answers are built from a local corpus of RFCs and Cisco documentation, and every quotation is string-matched against the source before it is used.
+Answers are built from a local corpus of RFCs and Cisco documentation, with every quotation being string-matched against the source before it is used.
 
 <p>
   <a href="#roadmap"><img alt="Status: pre-release" src="https://img.shields.io/badge/status-pre--release-9a6700?style=flat-square"></a>
