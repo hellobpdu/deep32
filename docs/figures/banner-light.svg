@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1000" height="172" viewBox="0 0 1000 172" role="img" aria-labeledby="t d">
 <title id="t">Deep32</title>
-<desc id="d">The Deep32 wordmark above a strip of 32 cells in three sizes: the deep search result drawn to scale.</desc>
+<desc id="d">The Deep32 wordmark above a strip of 32 cells in three sizes: one 32-hit search result drawn to scale.</desc>
 <metadata><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description rdf:about=""><dc:title>Deep32</dc:title><dc:creator>Jeffrey A. Cummings</dc:creator><dc:rights>Copyright (C) 2026 Jeffrey A. Cummings</dc:rights><dc:source>https://github.com/hellobpdu/deep32</dc:source></rdf:Description></rdf:RDF></metadata>
 <style>.s{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans',Helvetica,Arial,sans-serif}.m{font-family:ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,'Liberation Mono',monospace}</style>
 <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 1L9.5 5L0 9z" fill="#59636e"/></marker></defs>
@@ -37,5 +37,5 @@
 <rect x="695.6" y="112" width="3" height="9" rx="2" fill="#0969da" fill-opacity="0.34"/>
 <rect x="700.6" y="112" width="3" height="9" rx="2" fill="#0969da" fill-opacity="0.34"/>
 <rect x="705.6" y="112" width="3" height="9" rx="2" fill="#0969da" fill-opacity="0.34"/>
-<text x="501" y="152" class="m" font-size="11.5" font-weight="400" fill="#59636e" text-anchor="middle" letter-spacing="2">EVIDENCE-FIRST QUESTION ANSWERING FOR NETWORK AND SECURITY ENGINEERING</text>
+<text x="501" y="152" class="m" font-size="11.5" font-weight="400" fill="#59636e" text-anchor="middle" letter-spacing="2">RETRIEVAL-AUGMENTED QUESTION ANSWERING FOR NETWORK AND SECURITY ENGINEERING</text>
 </svg>

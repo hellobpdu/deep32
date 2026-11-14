@@ -1,11 +1,11 @@
 cff-version: 1.2.0
 message: "If you use or refer to Deep32, please cite it as below."
 type: software
-title: "Deep32: Evidence-first question answering for network and security engineering"
+title: "Deep32: Retrieval-augmented question answering for network and security engineering"
 abstract: >-
   Deep32 answers network and security engineering questions from a local, versioned corpus of RFCs and vendor
-  documentation. A language-model agent is given evidence tools over the Model Context Protocol and a fixed
-  protocol: resolve every identifier, read whole sections, check the standing of every RFC cited, and verify
+  documentation. An LLM agent is given search and lookup tools over the Model Context Protocol and a fixed
+  procedure: look up every identifier, read whole sections, check the status of every RFC cited, and verify
   every quotation against the source text before answering.
 authors:
   - family-names: Cummings

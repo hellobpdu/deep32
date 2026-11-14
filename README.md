@@ -6,135 +6,128 @@
   <img alt="Deep32" src="docs/figures/banner-light.svg" width="100%">
 </picture>
 
-**Deep32 answers network and security engineering questions from evidence, not from memory.**<br>
-Every claim cites a passage. Every quotation is checked against the source text.<br>
-When the standard and the vendor disagree, the answer says so.
+Retrieval-augmented question answering for network and security engineering.<br>
+Answers are built from a local corpus of RFCs and Cisco documentation, and every quotation is string-matched against the source before it is used.
 
 <p>
   <a href="#roadmap"><img alt="Status: pre-release" src="https://img.shields.io/badge/status-pre--release-9a6700?style=flat-square"></a>
-  <a href="#evidence-tools"><img alt="Interface: Model Context Protocol" src="https://img.shields.io/badge/interface-Model_Context_Protocol-0969da?style=flat-square"></a>
+  <a href="#mcp-tools"><img alt="Interface: Model Context Protocol" src="https://img.shields.io/badge/interface-Model_Context_Protocol-0969da?style=flat-square"></a>
   <a href="#retrieval-pipeline"><img alt="Retrieval: BM25, dense, rerank" src="https://img.shields.io/badge/retrieval-BM25_%2B_dense_%2B_rerank-1a7f37?style=flat-square"></a>
   <a href="#verifying"><img alt="Signed with OpenPGP" src="https://img.shields.io/badge/signed-OpenPGP-8250df?style=flat-square"></a>
-  <a href="https://orcid.org/0009-0003-8091-4637"><img alt="ORCID 0009-0003-8091-4637" src="https://img.shields.io/badge/ORCID-0009--0003--8091--4637-a6ce39?style=flat-square&logo=orcid&amp;logoColor=white"></a>
+  <a href="https://orcid.org/0009-0003-8091-4637"><img alt="ORCID 0009-0003-8091-4637" src="https://img.shields.io/badge/ORCID-0009--0003--8091--4637-a6ce39?style=flat-square&amp;logo=orcid&amp;logoColor=white"></a>
 </p>
 
-[Why](#why) · [Architecture](#architecture) · [Retrieval](#retrieval-pipeline) · [Tools](#evidence-tools) · [Protocol](#answer-protocol) · [Corpus](#corpus) · [Evaluation](#evaluation) · [Roadmap](#roadmap) · [Limits](#scope-and-limits)
+[Background](#background) · [Architecture](#architecture) · [Retrieval](#retrieval-pipeline) · [Tools](#mcp-tools) · [Protocol](#answer-protocol) · [Corpus](#corpus) · [Evaluation](#evaluation) · [Roadmap](#roadmap) · [Limitations](#limitations)
 
 </div>
 
 > [!NOTE]
-> **Pre-release.** Deep32 runs today as a private deployment. This repository will hold the design notes first, then the code and signed release images. Nothing here is installable yet. The numbers on this page were measured on that deployment.
+> Pre-release. I run Deep32 on my own hardware and nothing in this repository is installable yet. Design notes will go up first, then the code and signed release images. The numbers on this page come from my deployment.
 
-## Why
+## Background
 
-A language model answers a protocol question fluently whether or not it knows the answer. In network and security engineering the wrong answers have recognizable shapes, and they end up in configurations.
+LLMs are fluent about routing protocols and often wrong on the details. The answer reads fine and may cite an RFC, but a timer or a default is off, and it is hard to tell without opening the document. Most of the errors I see fall into four groups.
 
-| The failure | An example | The check |
+| Error | Example | What Deep32 does |
 |---|---|---|
-| A vendor default recalled as the standard | "BGP's hold time is 180 seconds." That is Cisco's default. RFC 4271 suggests 90. | Standard and vendor text are retrieved and compared as separate sources |
-| An obsolete document cited as current | RFC 1771 quoted for BGP-4, years after RFC 4271 replaced it | The standing of every cited RFC is looked up: status, obsoleted-by, errata |
-| The right command on the wrong release | Syntax from one software train presented for another | Passages carry their platform and release, and a search can prefer or cap a release |
-| A quotation nobody wrote | "The RFC states…" followed by text that is not in it | Every quotation is matched against the source section before it is used |
+| Vendor default given as the standard | "BGP hold time is 180 seconds." That is the Cisco default; RFC 4271 suggests 90. | Retrieves RFC text and vendor text as separate sources and compares them |
+| Obsolete RFC cited as current | RFC 1771 quoted for BGP-4 after RFC 4271 replaced it | Looks up status, obsoleted-by and errata for every RFC cited |
+| Command from the wrong release | Syntax from one software train given for another | Each passage carries its platform and release, and a search can prefer or cap a release |
+| Invented quotation | "The RFC states ..." followed by text that is not in the RFC | String-matches every quotation against the source section |
 
-Deep32 is built so that each of these has a mechanical check.
-
-1. **The model is a reader, not a source.** It answers from retrieved passages, or it says the corpus does not cover the question.
-2. **Checks are mechanical.** A quotation is verified by matching it against the stored text, not by asking a model whether it looks right.
-3. **Disagreement is a result.** Where an RFC and a vendor document differ, both are reported, each with its citation.
-4. **Everything is versioned.** Documents carry hashes, passages carry content-derived ids, and an index is an immutable generation that can be compared with the one before it and rolled back.
-5. **It runs on your own hardware.** The corpus, the indexes and the retrieval models are local. Only the language model is hosted.
+The rest of the design follows from that table. The agent gets no documents up front and is told to answer only from passages it retrieves, or to say that the corpus does not cover the question. Quotation checking is string matching against the stored text, with no model in the loop. Everything that goes into an answer is versioned, from document hashes up to whole index generations, so one build can be compared with the next and rolled back. Retrieval runs entirely on local hardware. The LLM is the only hosted part.
 
 ## Architecture
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/figures/architecture-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="docs/figures/architecture-light.svg">
-  <img alt="Deep32 architecture: an agent calls an MCP gateway, the gateway calls the search and evidence engine, the engine uses GPU services for embeddings and reranking; a build pipeline produces the immutable index generation the engine serves." src="docs/figures/architecture-light.svg" width="100%">
+  <img alt="Architecture diagram. Query path: agent, MCP gateway, search engine, GPU services. Build path: sources, ingest, build, validate, producing the index generation the engine serves." src="docs/figures/architecture-light.svg" width="100%">
 </picture>
 
-Five parts and two paths. One path runs when a question is asked, the other when the corpus changes.
+There are five components. Four sit in the query path and the fifth, the build pipeline, runs when the corpus changes.
 
-| Part | What it does | Built with |
+| Component | Role | Built with |
 |---|---|---|
-| **Agent** | Asks, reads and writes the answer under the [answer protocol](#answer-protocol). Claude Code and Codex today. Any MCP client can call the gateway. | Model Context Protocol |
-| **Gateway** | Publishes the eleven [evidence tools](#evidence-tools). Stateless, one bearer token per client. Tells the client that everything it returns is document text, never instructions. | Python, MCP |
-| **Engine** | Hybrid search, section reader, identifier lookup and quote check. Serves one immutable index generation at a time. | Python, FastAPI, SQLite FTS5, Qdrant |
-| **GPU services** | Embeddings and cross-encoder reranking. If they are down, the engine still answers with keyword search and reports what it could not use. | Text Embeddings Inference, `jina-embeddings-v5-text-small`, `jina-reranker-v3.5` |
-| **Build pipeline** | Turns source documents into a validated [generation](#index-generations). | Python, git |
+| Agent | Runs the [answer protocol](#answer-protocol) and writes the answer. I use Claude Code and Codex. Any MCP client can call the gateway. | Model Context Protocol |
+| Gateway | MCP server for the eleven [tools](#mcp-tools). Stateless, with one bearer token per client. Its server instructions tell the client to treat all tool output as untrusted document text. | Python, MCP |
+| Engine | Hybrid search, section reader, identifier lookup and quotation check. Serves one index generation at a time. | Python, FastAPI, SQLite FTS5, Qdrant |
+| GPU services | Embedding and cross-encoder reranking. If this node is down the engine falls back to BM25 and marks the response as degraded. | Text Embeddings Inference, `jina-embeddings-v5-text-small`, `jina-reranker-v3.5` |
+| Build pipeline | Builds and validates [index generations](#index-generations) from the source documents. | Python, git |
 
-In the reference deployment these run on three machines joined by a private WireGuard overlay (Tailscale), with HTTPS between the services.
+In my deployment these run on three machines on a Tailscale network, with HTTPS between services.
 
 ## Retrieval pipeline
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/figures/pipeline-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="docs/figures/pipeline-light.svg">
-  <img alt="Deep32 retrieval pipeline: queries go to keyword and semantic search in parallel, results are fused, the top 15 are reranked, identical passages are folded, and 32 hits are delivered in three tiers." src="docs/figures/pipeline-light.svg" width="100%">
+  <img alt="Retrieval pipeline diagram. Queries go to BM25 and dense search in parallel; results are fused, the top 15 are reranked, identical passages are folded, and 32 hits are returned in three tiers." src="docs/figures/pipeline-light.svg" width="100%">
 </picture>
 
 | Stage | What happens | Setting |
 |---|---|---|
-| **Plan** | One call carries 1 to 8 queries. Identifiers go in as keyword queries, paraphrases as semantic queries. | `search_many` |
-| **Keyword** | BM25 over SQLite FTS5 | 50 candidates per query |
-| **Semantic** | 1024-dimension vectors, cosine distance, no quantization. A passage is embedded together with its document title and heading path. | 50 candidates per query |
-| **Fuse** | Reciprocal rank fusion | k = 60, 30 kept |
-| **Rerank** | A cross-encoder scores each candidate against the query that found it | top 15 |
-| **Fold** | The same passage often appears in several books and releases. Copies with identical text fold into one hit that lists the others. | `also_in` |
-| **Deliver** | 32 hits in three tiers: 8 full passages, 8 shorter ones and 16 pointers. Each is centered on its best-matching line and carries a reference for reading the whole section. | 2,400 / 800 / 250 characters |
+| Plan | A `search_many` call takes several queries at once. Identifiers such as RFC numbers and command names go in as BM25 queries, paraphrases as dense queries. | 1 to 8 queries |
+| Keyword | BM25 over SQLite FTS5 | 50 candidates per query |
+| Semantic | 1024-dimension vectors, cosine distance, no quantization. Each passage is embedded with its document title and heading path. | 50 candidates per query |
+| Fuse | Reciprocal rank fusion | k = 60, top 30 kept |
+| Rerank | Cross-encoder, each candidate scored against the query that retrieved it | top 15 |
+| Fold | Cisco repeats text across books and releases. Passages with identical text are merged into one hit, and the other locations are listed in `also_in`. | exact text match |
+| Deliver | 32 hits in three tiers of 8, 8 and 16, with a shorter text window in each tier. Every hit is centered on its best-matching line and has a reference to the full section. | 2,400 / 800 / 250 characters |
 
-The 32 in the name is that last row. The strip under the wordmark is one deep result drawn to scale.
+The 32 in the name is this result size, and the strip under the logo is one result drawn to scale.
 
-**Each stage earns its place.** Share of 696 labeled questions whose correct passage is ranked first:
+Hit@1 by stage, on the 696-question set described under [Evaluation](#evaluation):
 
-| Keyword alone | Semantic alone | Fused | Fused and reranked |
+| BM25 only | Dense only | Fused | Fused + reranked |
 |:---:|:---:|:---:|:---:|
-| 0.710 | 0.783 | 0.822 | **0.956** |
+| 0.710 | 0.783 | 0.822 | 0.956 |
 
-**It degrades in the open.** Every response carries a `degraded` list: the backends that answer needed and could not use. Keyword search always answers. The semantic leg and the reranker sit behind circuit breakers (three failures open a breaker for 30 seconds, then one trial call), so a GPU outage costs quality, not availability, and the agent is told.
+Every response has a `degraded` field listing any backend it needed and could not use. BM25 has no external dependency and always answers. The dense leg and the reranker sit behind circuit breakers (three failures open the breaker for 30 seconds, then one trial call), so search stays up through a GPU outage at lower quality, and the agent can see that it happened.
 
-## Evidence tools
+## MCP tools
 
-The gateway gives the agent eleven tools and nothing else. There is no "answer this" tool: the agent has to find the evidence.
+The gateway exposes eleven tools. All of them return source material or metadata. There is no tool that generates text.
 
-| Tool | What it returns |
+| Tool | Returns |
 |---|---|
-| `search_rag` | One hybrid, keyword or semantic search. Each hit has a citation, its section path, the RFC's standing and a text window centered on the best-matching passage. |
-| `search_many` | Up to 8 searches fused into one ranked list. Every query keeps its best passage in the result. |
+| `search_rag` | One hybrid, BM25 or dense search. Each hit has a citation, its section path, the RFC's status and a text window centered on the best-matching passage. |
+| `search_many` | Up to 8 searches fused into one ranked list. Each query keeps its best passage in the result. |
 | `get_outline` | A document's section tree |
-| `get_section` | The full text of a section, paged, with its neighbors |
+| `get_section` | Full text of a section, paged, with the neighboring sections |
 | `grep_corpus` | Literal or bounded regular-expression search over the source text |
-| `find_command` | The CLI index: syntax, task steps, examples and show output. Abbreviations work (`sh ip ospf nei`). |
+| `find_command` | CLI index entries: syntax, task steps, examples and show output. IOS abbreviations are accepted. |
 | `lookup_id` | Resolves an identifier: RFC and section numbers, BCP and STD numbers, IANA registry values, protocol terms, CLI commands, PowerShell cmdlets |
-| `lookup_rfc` | RFC Editor metadata: status, obsoletes and obsoleted-by, updates, errata |
+| `lookup_rfc` | RFC Editor metadata: status, obsoletes, obsoleted-by, updates, errata |
 | `verify_quote` | Whether a quotation appears in a section: `exact`, `normalized` or `not_found` |
 | `list_documents` | The corpus catalog |
-| `rag_status` | Live health: generation, corpus fingerprint, counts, backend and breaker state |
+| `rag_status` | Health: index generation, corpus fingerprint, counts, backend and breaker state |
 
 ## Answer protocol
 
-The agent works to a fixed protocol.
+The agent's instructions are a fixed procedure:
 
-1. **Resolve every identifier.** RFC numbers, LSA types, path attributes, CLI commands: looked up with `lookup_id` and `find_command`, never recalled.
-2. **Search once, widely.** One `search_many` call with three to six queries, inside one collection when the question belongs to one.
-3. **Read whole sections.** `get_outline`, then `get_section`, including the Restrictions and Defaults sections nearby. A search hit is a pointer, not evidence.
-4. **Check standing.** `lookup_rfc` for every RFC cited. An obsoleted RFC is never presented as current, and errata are read.
-5. **Verify every quotation.** `verify_quote` before a quotation is used.
-6. **Compare the sources.** RFC text against vendor behavior and defaults. Differences are reported, not smoothed over.
-7. **Say what is missing.** If the corpus does not cover it, the answer says so.
+1. Look up every identifier (RFC number, LSA type, path attribute, CLI command) with `lookup_id` or `find_command` before using it.
+2. Run one `search_many` call with three to six queries, restricted to one collection where the question allows it.
+3. Read the full section with `get_outline` and `get_section`, plus any Restrictions or Defaults section next to it. Search hits are only for locating text.
+4. Run `lookup_rfc` on every RFC cited, to catch obsoleted documents and read the errata.
+5. Run `verify_quote` on every quotation.
+6. Compare the RFC text with the vendor's documented behavior and defaults, and report any difference.
+7. If the corpus does not cover the question, say so.
 
-| Verdict | Meaning | Consequence |
+`verify_quote` returns one of three results:
+
+| Result | Meaning | Effect |
 |---|---|---|
-| `exact` | The quotation appears character for character | It may be quoted |
-| `normalized` | It matches once whitespace, RFC page breaks and hyphenation are collapsed | It may be quoted |
-| `not_found` | It does not appear in that section | The quotation is dropped and the claim is re-read |
+| `exact` | Character-for-character match | Quotation can be used |
+| `normalized` | Matches after collapsing whitespace, RFC page breaks and hyphenation | Quotation can be used |
+| `not_found` | No match in that section | Quotation is dropped and the agent goes back to the section |
 
-### Worked example
+### Example: BGP keepalive and hold timers
 
-**Question.** What are BGP's default keepalive and hold timers?
+The usual answer to "what are the BGP default timers" is 60 and 180 seconds. These are the tool results for that question from my deployment on 14 November 2026.
 
-The answer most often given from memory is "60 and 180 seconds". The tool results below are real, from the reference deployment on 14 November 2026.
-
-| # | Check | Result |
+| # | Call | Result |
 |:---:|---|---|
 | 1 | `lookup_rfc 4271` | Draft Standard. Obsoletes RFC 1771. Updated by twelve later RFCs. 16 errata on record, none against section 10. |
 | 2 | `verify_quote` in RFC 4271, section 10:<br>"The suggested default value for the HoldTime is 90 seconds." | `normalized`<br>The sentence breaks across lines 5008 and 5009 of the RFC text. |
@@ -143,48 +136,50 @@ The answer most often given from memory is "60 and 180 seconds". The tool result
 | 5 | `verify_quote`, same section:<br>"Interval (in seconds) after not receiving a keepalive message that the software declares a peer dead. The default is 180 seconds." | `exact` |
 | 6 | `verify_quote` in RFC 4271, section 10:<br>"The suggested default value for the HoldTime is 180 seconds." | `not_found` |
 
-**Answer.** The standard and the implementation differ. RFC 4271, section 10, suggests a hold time of 90 seconds and a keepalive of one third of it, which is 30 seconds. Cisco IOS and IOS XE default to a keepalive of 60 seconds and a hold time of 180 seconds. Both statements are quoted from their sources, and the answer names which is which.
-
-Row 6 is the point of the system. The sentence a model is most likely to remember is one the RFC never wrote, and the check rejects it.
+RFC 4271 section 10 suggests a hold time of 90 seconds and a keepalive of one third of that, so 30 seconds. Cisco IOS and IOS XE default to 60 and 180. "60 and 180" is therefore correct for Cisco and wrong as a statement about the RFC, and call 6 shows that the 180-second sentence does not appear in section 10 at all.
 
 ## Corpus
 
-| Collection | Documents | What is in it |
+| Collection | Documents | Contents |
 |---|:---:|---|
-| **IETF RFCs** | 365 | RFC text, with RFC Editor status, relations and errata |
-| **Cisco documentation** | 489 | 263 TechNotes, 126 configuration guides, 48 command references, 17 API guides, 15 validated designs, 14 white papers, 3 MIBs and 3 release notes, for IOS XE, SD-WAN, Catalyst Center, ISE and Secure Client |
-| **PowerShell** | 241 | Windows PowerShell 5.1 reference, the 7.x differences and the Windows networking modules. Opt-in. |
-| **System** | rebuilt per release | Deep32's own source, configuration and design notes, so it can answer questions about itself. Opt-in. |
+| IETF RFCs | 365 | RFC text plus RFC Editor status, relations and errata |
+| Cisco documentation | 489 | 263 TechNotes, 126 configuration guides, 48 command references, 17 API guides, 15 validated designs, 14 white papers, 3 MIBs, 3 release notes. Covers IOS XE, SD-WAN, Catalyst Center, ISE and Secure Client. |
+| PowerShell (opt-in) | 241 | Windows PowerShell 5.1 reference, 7.x differences, Windows networking modules |
+| System (opt-in) | rebuilt per release | Deep32's own source, configuration and design notes, so that it can answer questions about itself |
 
-An opt-in collection is searched only when a query names it, so PowerShell help never competes with routing text.
+Opt-in collections are searched only when a query names them, which keeps PowerShell help text out of routing results.
 
-Beside the passages, each build derives structured indexes that the lookup tools read:
+Each build also produces structured indexes for the lookup tools:
 
 | Index | Size | Source |
 |---|---|---|
 | RFC index | 9,842 RFCs with status and relations | RFC Editor |
 | Errata | 1,217 records | RFC Editor |
 | IANA registries | 2,366 entries | IANA |
-| CLI index | about 150,000 command entries with mode, platform and release | The command references and configuration guides |
+| CLI index | about 150,000 command entries with mode, platform and release | Command references and configuration guides |
 | Feature history | 2,578 entries | Vendor feature tables |
 
-Every document has a manifest entry: source URL, SHA-256, platform, release, license terms and a redistribution flag. Vendor documents remain the property of their publishers, and this repository holds no vendor text.
+Every document has a manifest entry with its source URL, SHA-256, platform, release, license terms and a redistribution flag. This repository contains no vendor text. The Cisco documents belong to Cisco.
 
 ## Index generations
 
-The corpus changes. Answers must not change by accident, so an index is never edited in place.
+An index is never modified in place. Each build produces a new generation, and the engine serves one generation at a time.
 
-- **Immutable generations.** A build produces a self-contained generation: a snapshot of the sources, the SQLite store with its keyword index and section map, the vectors, the structured indexes and a build report. The engine serves exactly one.
-- **Content-derived ids.** Document and passage ids come from SHA-256 hashes of their content. An unchanged passage keeps its id across builds, so its embedding is reused. One corpus update embedded 904 new passages and reused 62,617.
-- **A gate before serving.** A new generation is replayed against the labeled question set and compared with the serving one, question by question. The gate has zero slack: one question lost and not won back fails it.
-- **Switch and rollback.** Serving a generation is one setting. Earlier generations stay on disk, so a rollback is the same switch in reverse, and the evaluation that follows a switch rolls back by itself on anything but a pass.
-- **Clean inputs.** Conversion runs in a sandbox with no network. Converted text has to pass a quality gate before it can enter a build, including a scan for instruction-like lines, which is how a prompt injection planted in a document would look. Flagged lines are graded by a person.
+A generation is a self-contained directory holding a snapshot of the sources, the SQLite store (FTS5 index and section map), the vectors, the structured indexes and a build report.
+
+Document and passage IDs are derived from SHA-256 hashes of the content, so an unchanged passage keeps its ID from one build to the next and its embedding is reused. One corpus update embedded 904 new passages and reused 62,617 existing vectors.
+
+Before a new generation is served, it is run against the labeled question set and compared with the current generation query by query. The gate allows zero net regressions: a build that loses one question without gaining one elsewhere fails.
+
+Switching generations is one setting and a service restart. Old generations stay on disk, so rolling back is the same operation pointed at the previous one. The evaluation that runs after a switch rolls back automatically if it does not pass.
+
+Document conversion runs in a sandbox with no network access. Converted text has to pass a quality gate before it can be built, which includes a scan for instruction-like lines (what a prompt injection planted in a document would look like). Anything the scan flags is reviewed by hand.
 
 ## Evaluation
 
-Retrieval is measured. Answer accuracy is not measured yet.
+So far I have measured retrieval only. Answer accuracy has not been measured.
 
-**Measured.** 696 questions on enterprise routing, switching, VPN, SD-WAN, network services and access control, each labeled with the passages that answer it.
+The test set is 696 questions on enterprise routing, switching, VPN, SD-WAN, network services and access control. Each question is labeled with the passages that answer it.
 
 | Measure | Result |
 |---|:---:|
@@ -192,59 +187,68 @@ Retrieval is measured. Answer accuracy is not measured yet.
 | Correct passage in the top 8 (hit@8) | 0.991 |
 | Median time for one search through the gateway | about 0.57 s |
 
-hit@1 is a lower bound. A top hit that nobody has judged yet counts as a miss, and judging those would put the figure between 0.956 and 0.983. Measured in October and November 2026 on the private reference deployment. The release will be measured again on its own corpus, and those numbers will be published with it.
+The hit@1 figure is conservative. Some top-ranked passages have not been judged yet and are counted as misses; depending on how those are judged, the real value is between 0.956 and 0.983. All of these numbers are from October and November 2026 on my deployment. I will re-measure on the released corpus and publish those results with it.
 
-**Planned.** The experiment this project exists for: a fixed set of protocol questions answered with the verification steps on and off, and scored for correctness against the sources.
+Next is answer-level evaluation: a fixed set of protocol questions, answered once with the verification steps enabled and once with them disabled, and scored against the sources.
 
-## Reference deployment
+## Things that did not work
 
-Nothing here needs a data center. The reference system answers in about half a second on a server that is more than ten years old, a thin client and one consumer graphics card.
+- Adding a second IOS XE release line made hit@1 drop from 0.824 to 0.754. It turned out that 234 of the 694 questions in the test set at the time had their answer passage repeated verbatim in one of the new books, where it had no label, so correct hits were being scored as misses. Duplicate passages are now folded into one hit (the Fold stage above).
+- Larger chunks scored worse. Hit@1 fell from 0.956 to 0.935 and fewer answer passages were delivered intact, so the smaller chunk size stayed.
+- A faster reranker lost 10 questions at hit@1 once its new top hits had been judged. I kept the slower one.
+- Two HNSW builds from identical vectors can differ on a question or two, which is enough to trip a zero-regression gate. New generations now clone the previous index snapshot and add to it.
+- A late-interaction (ColBERT) retriever is implemented but is not part of the served pipeline. Its first run was OOM-killed because the search library packed about 30,700 candidates into a single 31 GiB tensor. Capping the batch size fixed that.
+- Check that Tailscale has a direct path between nodes. Relayed through DERP, node-to-node latency was 70 to 157 ms. Direct, it is 1 to 2 ms.
+
+## Hardware
+
+This is what it runs on today. Median search time through the gateway is about 0.57 s.
 
 | Node | Hardware | Runs |
 |---|---|---|
-| Engine | A 2013 dual-socket Xeon server (AVX, no AVX2), as one virtual machine | Search API, SQLite, Qdrant |
-| Gateway | A fanless thin client (Pentium Silver, no AVX) | MCP gateway |
-| GPU and agent | A desktop PC with one 11 GB NVIDIA card, the models under WSL2 | Embeddings, reranker, the agent |
+| Engine | 2013 dual-socket Xeon server (AVX, no AVX2), as one virtual machine | Search API, SQLite, Qdrant |
+| Gateway | Fanless thin client (Pentium Silver, no AVX) | MCP gateway |
+| GPU and agent | Desktop PC with one 11 GB NVIDIA card, models under WSL2 | Embeddings, reranker, the agent |
 
 ## Release plan
 
-The release is planned as three images, verified against one signed manifest. This is a plan and may change.
+The plan is three disk images covered by one signed manifest. Details may change before release.
 
-| Image | Kind | Holds |
+| Image | Kind | Contents |
 |---|---|---|
-| **SYSTEM** | Bootable installer | A workstation node on OpenBSD: the engine and the gateway, a desktop with an Ask window and an offline reference library |
-| **CONTENT** | Data | A ready-built index generation, the corpus blocks that may be redistributed and the content of the reference library |
-| **GPU** | Bootable, and importable into WSL2 or Docker | Ubuntu with CUDA: the embeddings server, the reranker and the index builder |
+| SYSTEM | Bootable installer | Workstation node on OpenBSD: the engine and gateway, plus a desktop with an Ask window and an offline reference library |
+| CONTENT | Data | A prebuilt index generation, the corpus blocks that can be redistributed, and the reference library content |
+| GPU | Bootable, also importable into WSL2 or Docker | Ubuntu with CUDA: the embedding server, the reranker and the index builder |
 
-- No key, token or sign-in ships on any image. Each install makes its own.
-- Every node joins the installer's own Tailscale network. The design is the same on one machine as on several.
-- One install matrix drives the hardware check, the install plan and the test record.
-- Claude Code and Codex are the first agents. An OpenAI-compatible adapter for a locally served model is designed and comes later.
+- No keys, tokens or logins are shipped on any image. Each install generates its own.
+- Every node joins the installer's own Tailscale network. The layout is the same whether the nodes share one machine or sit on several.
+- A single install matrix drives the hardware check, the install plan and the test record.
+- Claude Code and Codex are supported first. An OpenAI-compatible adapter for locally served models is designed and will follow.
 
 ## Roadmap
 
-- [x] Hybrid retrieval engine, gateway and evidence tools, in private use
-- [x] Quotation checks and RFC standing checks
+- [x] Hybrid retrieval engine, gateway and MCP tools, in private use
+- [x] Quotation checks and RFC status checks
 - [x] Gated index generations with rollback
 - [x] Retrieval evaluation on a labeled question set
-- [ ] Design document: the architecture and the verification method
+- [ ] Design document covering the architecture and the verification method
 - [ ] Answer-level evaluation with verification on and off
 - [ ] Code release
 - [ ] Signed release images
 - [ ] Archived releases with a DOI
 
-## Scope and limits
+## Limitations
 
-- **A verified quotation proves the text is in the source.** It does not prove the reasoning built on it.
-- **The corpus bounds the answers.** Outside it, the right answer is "not covered".
-- **Answer accuracy is unmeasured.** The figures above are for retrieval.
-- **One vendor and the IETF.** The corpus holds Cisco documentation and RFCs. Other vendors' behavior is out of scope today.
-- **The language model is hosted.** The question and the retrieved passages go to the model's provider. Everything else stays local.
-- **It is not a lab.** A cited answer is a reason to test a change, not a replacement for testing it.
+- A verified quotation shows that the text is in the source. It says nothing about whether the reasoning built on it is sound.
+- Answers are limited to what the corpus covers.
+- Answer accuracy has not been measured (see [Evaluation](#evaluation)).
+- The corpus is Cisco documentation and RFCs. Other vendors are not covered.
+- The LLM is hosted, so the question and the retrieved passages are sent to the model provider. Everything else stays local.
+- A cited answer still needs to be tested in a lab before a change goes into production.
 
 ## Verifying
 
-Commits are signed with this OpenPGP key. Tags and release manifests will be too.
+Commits are signed with this OpenPGP key. Tags and release manifests will be signed with it too.
 
 ```
 B205 B406 5486 27AA BF52  50D8 A078 C5F2 5D02 5DD6
@@ -256,14 +260,14 @@ gpg --fingerprint B205B406548627AABF5250D8A078C5F25D025DD6
 git verify-commit HEAD
 ```
 
-The key is published on [keys.openpgp.org](https://keys.openpgp.org/search?q=B205B406548627AABF5250D8A078C5F25D025DD6). Release images will ship with a detached signature over their manifest and a verifier that checks the signer's fingerprint, not only that a signature exists.
+The key is on [keys.openpgp.org](https://keys.openpgp.org/search?q=B205B406548627AABF5250D8A078C5F25D025DD6). Release images will come with a detached signature over the manifest, and the verifier checks the signer's fingerprint as well as the signature.
 
 ## Citing
 
 ```bibtex
 @software{cummings_deep32,
   author = {Cummings, Jeffrey A.},
-  title  = {Deep32: Evidence-first question answering for network and security engineering},
+  title  = {Deep32: Retrieval-augmented question answering for network and security engineering},
   year   = {2026},
   url    = {https://github.com/hellobpdu/deep32},
   note   = {Pre-release}
@@ -274,12 +278,12 @@ A DOI will be added with the first archived release.
 
 ## License
 
-No license is granted yet. The first release will carry the PolyForm Noncommercial License 1.0.0 for code and CC BY-NC 4.0 for documentation. Third-party software, models and documents keep their own terms. The two retrieval models named above are published by Jina AI under CC BY-NC 4.0.
+No license has been granted yet. The first release will use the PolyForm Noncommercial License 1.0.0 for code and CC BY-NC 4.0 for documentation. Third-party software, models and documents keep their own terms. Both Jina models are licensed CC BY-NC 4.0.
 
 ## Author
 
-**Jeffrey A. Cummings** · [ORCID 0009-0003-8091-4637](https://orcid.org/0009-0003-8091-4637) · [jacummings@acm.org](mailto:jacummings@acm.org) · [@hellobpdu](https://github.com/hellobpdu)
+Jeffrey A. Cummings · [ORCID 0009-0003-8091-4637](https://orcid.org/0009-0003-8091-4637) · [jacummings@acm.org](mailto:jacummings@acm.org) · [@hellobpdu](https://github.com/hellobpdu)
 
-Security reports are welcome by email, encrypted to the key above.
+Send security reports by email, encrypted to the key above.
 
-<sub>Personal work. Not affiliated with or endorsed by my employer. Cisco, IOS and Catalyst are trademarks of Cisco Systems, Inc. Other names belong to their owners. No affiliation or endorsement is implied.</sub>
+<sub>Personal work. Not affiliated with or endorsed by my employer. Cisco, IOS and Catalyst are trademarks of Cisco Systems, Inc. Other names belong to their owners.</sub>
