@@ -10,19 +10,19 @@ Retrieval-augmented question answering for network and security engineering.<br>
 Answers are built from a local corpus of RFCs and Cisco documentation, with every quotation being string-matched against the source before it is used.
 
 <p>
-  <a href="#roadmap"><img alt="Status: pre-release" src="https://img.shields.io/badge/status-pre--release-9a6700?style=flat-square"></a>
+  <a href="#getting-deep32"><img alt="Release: 1.0 this week" src="https://img.shields.io/badge/release-1.0_this_week-9a6700?style=flat-square"></a>
   <a href="#mcp-tools"><img alt="Interface: Model Context Protocol" src="https://img.shields.io/badge/interface-Model_Context_Protocol-0969da?style=flat-square"></a>
   <a href="#retrieval-pipeline"><img alt="Retrieval: BM25, dense, rerank" src="https://img.shields.io/badge/retrieval-BM25_%2B_dense_%2B_rerank-1a7f37?style=flat-square"></a>
   <a href="#verifying"><img alt="Signed with OpenPGP" src="https://img.shields.io/badge/signed-OpenPGP-8250df?style=flat-square"></a>
   <a href="https://orcid.org/0009-0003-8091-4637"><img alt="ORCID 0009-0003-8091-4637" src="https://img.shields.io/badge/ORCID-0009--0003--8091--4637-a6ce39?style=flat-square&amp;logo=orcid&amp;logoColor=white"></a>
 </p>
 
-[Background](#background) · [Architecture](#architecture) · [Retrieval](#retrieval-pipeline) · [Tools](#mcp-tools) · [Protocol](#answer-protocol) · [Corpus](#corpus) · [Evaluation](#evaluation) · [Hardware](#hardware) · [Roadmap](#roadmap) · [Limitations](#limitations)
+[Background](#background) · [Architecture](#architecture) · [Retrieval](#retrieval-pipeline) · [Tools](#mcp-tools) · [Protocol](#answer-protocol) · [Corpus](#corpus) · [Evaluation](#evaluation) · [Hardware](#hardware) · [Getting it](#getting-deep32) · [Limitations](#limitations)
 
 </div>
 
 > [!NOTE]
-> Pre-release. I run Deep32 on my own hardware and nothing in this repository is installable yet. Design notes will go up first, then the code and signed release images. The numbers on this page come from my deployment.
+> Version 1.0 lands this week as three signed images: a workstation, its content, and a GPU pack (see [Getting Deep32](#getting-deep32)). The numbers on this page come from my own deployment.
 
 ## Background
 
@@ -77,6 +77,18 @@ For the people who want version numbers (I know you're out there), this is what'
 | Reranker | `jina-reranker-v3.5` | Cross-encoder, fp16 on CUDA, model revision pinned |
 | OS | Ubuntu 26.04 LTS (engine, gateway), Ubuntu 24.04 under WSL2 (GPU) | |
 | Network | Tailscale | HTTPS between services |
+
+### How the release is laid out
+
+My setup is spread over three boxes because that's the hardware I had lying around. The release packs the same components into three images, and they don't care whether they end up on one machine or several.
+
+| Image | Runs where | What's in it |
+|---|---|---|
+| Workstation | Its own machine (bare metal or a VM), installed from a bootable image | OpenBSD with a CDE desktop. The engine and the gateway run locally, next to the Ask window, the Deep32 Encyclopedia (an offline reference library with its own reader) and a handful of network tools |
+| Content | Read by the Workstation at install and on update | A prebuilt, signed index generation and the encyclopedia's content |
+| GPU pack | Any Linux machine with an NVIDIA card and Docker, or Windows through WSL2 | The embedding server, the reranker and the PDF converter, as containers loaded from the image itself |
+
+The Workstation works without the GPU pack. Search just drops to BM25, the same way it does on my deployment when the GPU node is down. Pair the two and dense search and reranking come back.
 
 ## Retrieval pipeline
 
@@ -369,19 +381,32 @@ Latency through the gateway, one client, 2 November 2026. The two searches are q
 | Dense only, 30 hits | 122 ms | 145 ms | 696 |
 | `search_many`, 3 queries, 8 hits | 778 ms | 1,120 ms | 70 |
 
-## Release plan
+## Getting Deep32
 
-Right now this is one deployment in my house. The plan is to make it something you can install without me, and without any of my keys, logins or network baked in. That means three disk images covered by one signed manifest (details may change before release).
+1.0 isn't on the release page yet. This is how getting it will work once it lands.
+
+The point of the release was something you can install without me, and without any of my keys, logins or network baked in. So it's three images, all covered by one signed checksum list.
 
 | Image | Kind | Contents |
 |---|---|---|
-| SYSTEM | Bootable installer | Workstation node on OpenBSD: the engine and gateway, plus a desktop with an Ask window and an offline reference library |
-| CONTENT | Data | A prebuilt index generation, the corpus blocks that can be redistributed, and the reference library content |
-| GPU | Bootable, also importable into WSL2 or Docker | Ubuntu with CUDA: the embedding server, the reranker and the index builder |
+| Workstation | Bootable installer | OpenBSD with the engine, the gateway, the Ask window, the Deep32 Encyclopedia and the desktop |
+| Content | Data | A prebuilt index generation, the corpus blocks that can be redistributed, and the encyclopedia content |
+| GPU pack | Data, mounted on the host | The GPU services as containers, plus the two ways to start them: Docker on Linux, or WSL2 on Windows |
+
+The images are bigger than GitHub lets a single release file be, so the big ones are split into parts. You don't need to download those by hand. `deep32-get` (on the release page, `.sh` for Linux and `.ps1` for Windows) fetches the parts for the image you ask for, picks up where it left off if your connection drops, checks every hash and the signature, and joins them:
+
+```sh
+./deep32-get.sh disc1             # Workstation image, verified, ready to write to a USB stick
+./deep32-get.sh disc3 --install   # GPU pack: verify, mount and start the containers (Linux, as root)
+```
+
+```powershell
+.\deep32-get.ps1 disc3 --install  # GPU pack through WSL2 on Windows
+```
 
 - No keys, tokens or logins are shipped on any image. Each install generates its own.
+- The GPU pack needs an NVIDIA driver of at least 580.65.06, Docker and the NVIDIA Container Toolkit. If something's missing, it tells you which one in a single sentence and stops before it changes anything. A bootable GPU installer that sets all of that up for you is planned for a later release.
 - Every node joins the installer's own Tailscale network. The layout is the same whether the nodes share one machine or sit on several.
-- A single install matrix drives the hardware check, the install plan and the test record.
 - Claude Code and Codex are supported first. An OpenAI-compatible adapter for locally served models is designed and will follow.
 
 ## Roadmap
@@ -393,7 +418,8 @@ Right now this is one deployment in my house. The plan is to make it something y
 - [ ] Design document covering the architecture and the verification method
 - [ ] Answer-level evaluation with verification on and off
 - [ ] Code release
-- [ ] Signed release images
+- [ ] Signed release images (1.0, this week)
+- [ ] Bootable GPU installer
 - [ ] Archived releases with a DOI
 
 ## Limitations
@@ -421,7 +447,12 @@ gpg --fingerprint B205B406548627AABF5250D8A078C5F25D025DD6
 git verify-commit HEAD
 ```
 
-The key is on [keys.openpgp.org](https://keys.openpgp.org/search?q=B205B406548627AABF5250D8A078C5F25D025DD6). Release images will come with a detached signature over the manifest, and the verifier checks the signer's fingerprint as well as the signature.
+The key is on [keys.openpgp.org](https://keys.openpgp.org/search?q=B205B406548627AABF5250D8A078C5F25D025DD6). Every release has a detached signature over its checksum list. `deep32-get` checks the signer's fingerprint as well as the signature before it trusts a single hash, and you can do the same by hand:
+
+```sh
+gpg --verify SHA256SUMS.sig SHA256SUMS
+sha256sum -c SHA256SUMS
+```
 
 ## Citing
 
@@ -439,7 +470,7 @@ A DOI will be added with the first archived release.
 
 ## License
 
-No license has been granted yet. The first release will use the PolyForm Noncommercial License 1.0.0 for code and CC BY-NC 4.0 for documentation. Third-party software, models and documents keep their own terms. Both Jina models are licensed CC BY-NC 4.0.
+Code is under the PolyForm Noncommercial License 1.0.0 and documentation under CC BY-NC 4.0. The PDF converter is the exception: it uses MinerU and PyMuPDF, both AGPL-3.0, so it lives in its own folder under AGPL-3.0 and its source ships with it. Third-party software, models and documents keep their own terms. Both Jina models are licensed CC BY-NC 4.0.
 
 ## Author
 
