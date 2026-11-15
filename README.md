@@ -41,7 +41,7 @@ If you've ever read an RFC, you know that they're constantly being updated and o
 | Command from the wrong release | Syntax from one software train given for another | Each passage carries its platform and release, and a search can prefer or cap a release |
 | Invented quotation | "The RFC states ..." followed by text that is not in the RFC | String-matches every quotation against the source section |
 
-Every one of those is checkable. So the agent gets no documents up front and is told to answer only from passages it retrieves (or to say the corpus doesn't cover the question). Quotes get string-matched against the stored text, with no model in the loop for that part. Everything that goes into an answer is versioned, from document hashes up to whole index generations, so I can compare one build with the next and roll back when I break something. Retrieval runs entirely on my own hardware. The LLM is the only hosted piece.
+Every one of those is checkable. So the agent gets no documents up front and is told to answer only from passages it retrieves (or to say the corpus doesn't cover the question). Quotes get string-matched against the stored text, with no model in the loop for that part. Everything that goes into an answer is versioned, from document hashes up to whole index generations, so I can compare one build with the next and roll back when I break something. Retrieval runs entirely on hardware you own. The LLM is the only hosted piece.
 
 ## Architecture
 
@@ -53,42 +53,43 @@ Every one of those is checkable. So the agent gets no documents up front and is 
 
 If you've never looked inside one of these, a RAG system is less exotic than it sounds. There's a search engine (two of them, really...more on that below), a pile of documents, and an LLM that only gets to answer from what the search hands back. The rest of the diagram is plumbing.
 
-Five components. Four are in the query path; the build pipeline runs when the corpus changes.
+An install has three parts. The Workstation is the machine you sit at. The Forge is whichever machine has the NVIDIA card. The headend is the PC where your agent (Claude Code or Codex) runs. All three can be the same machine or three different ones, and they find each other over your own Tailscale network.
+
+| Part | Comes from | Runs on | What it does |
+|---|---|---|---|
+| Workstation | The Workstation image (a bootable OpenBSD 8.0 installer), with the Content image imported after first boot | A machine or VM of its own | The CDE desktop, the Ask window, the Deep32 Encyclopedia and its reader, the search engine and the MCP gateway. It holds the index and does the keyword and vector search itself |
+| Forge | The GPU pack, loaded into Docker on Linux or into WSL2 on Windows | Any machine with a supported NVIDIA card | Turns each query into a vector, reranks the candidates, converts PDFs when you add documents, and can rebuild the index from the corpus blocks |
+| Headend | Deep32 Connect on Windows, or a single MCP entry on any OS | Wherever Claude Code or Codex already runs | The agent. It calls the gateway's tools itself, and it also answers whatever gets typed into the Ask window |
+
+Inside those parts, five components do the work:
 
 | Component | Role |
 |---|---|
-| Agent | Runs the [answer protocol](#answer-protocol) and writes the answer. Claude Code and Codex today; any MCP client can call the gateway. |
-| Gateway | MCP server for the eleven [tools](#mcp-tools). Stateless. Its server instructions tell the client to treat all tool output as untrusted document text. |
-| Engine | Hybrid search, section reader, identifier lookup, quotation check. Serves one index generation at a time. |
-| GPU services | Embedding and cross-encoder reranking. If this node is down, search falls back to BM25 and the response is marked degraded. |
-| Build pipeline | Builds and validates [index generations](#index-generations) from the source documents. |
+| Agent | Runs the [answer protocol](#answer-protocol) and writes the answer. Claude Code and Codex in 1.0; any MCP client can call the gateway. |
+| Gateway | MCP server for the eleven [tools](#mcp-tools), on the Workstation. Stateless. Its server instructions tell the client to treat all tool output as untrusted document text. |
+| Engine | Hybrid search, section reader, identifier lookup, quotation check, on the Workstation. Serves one index generation at a time. |
+| Forge services | Query embedding and cross-encoder reranking. If the Forge can't be reached, search falls back to BM25 and the response is marked degraded. |
+| Build pipeline | Builds and validates [index generations](#index-generations). Every release ships a prebuilt one on the Content image; the Forge can build new ones from the corpus blocks. |
 
 The gateway is the boring part. It holds no documents, checks the token, passes the call to the engine and passes the result back. It also tells the client up front that everything a tool returns is document text, and that nothing in there should be followed as an instruction (prompt injection through a PDF is a real thing, unfortunately).
 
-For the people who want version numbers (I know you're out there), this is what's running as of November 2026:
+There are two ways an agent gets at all this. The first is plain MCP: the agent calls the gateway's tools while it works, which is how Claude Code and Codex use Deep32 for their own research. The second is the Ask window on the Workstation. You type a question there, it goes over the paired link to a small relay on the headend, the relay starts the agent with the research skill, the agent's searches come back to the Workstation's gateway, and the answer streams into the Ask window. The relay ships for Windows in 1.0.
+
+Nothing here trusts the network by itself. Every part joins your tailnet with your own Tailscale sign-in, and no image carries a key or an auth token. On top of that, each install makes its own tokens, and the parts pair with a short code typed on both sides (SPAKE2, RFC 9382), so being on the tailnet isn't enough to use a service.
+
+For the people who want version numbers (I know you're out there), this is what 1.0 ships:
 
 | Layer | Software | Detail |
 |---|---|---|
-| Gateway | Python 3.14, MCP SDK 2.2 | Streamable HTTP at `/mcp`, stateless, JSON responses. IP allow-list, then bearer token, compared in constant time. |
-| Search API | Python 3.12, FastAPI 0.141, uvicorn 0.54 | REST under `/v2`, bearer token. 2 searches run at once, 16 wait, the rest get `503` with `Retry-After`. |
+| Workstation OS | OpenBSD 8.0 | CDE desktop, signed updates |
+| Gateway | Python 3.14, MCP SDK 2.2 | Streamable HTTP at `/mcp`, stateless, JSON responses. Bearer token made at install, compared in constant time. |
+| Search API | Python 3.12, FastAPI, uvicorn | REST under `/v2`, bearer token. 2 searches run at once, 16 wait, the rest get `503` with `Retry-After`. |
 | Keyword index | SQLite FTS5 | `unicode61` tokenizer, diacritics removed. BM25 over passage text (weight 1.0) and heading path (weight 2.0). |
-| Vector index | Qdrant 1.19 | 1024 dimensions, cosine, float32, HNSW at Qdrant defaults. One collection per index generation. |
-| Embeddings | Text Embeddings Inference 1.9, `jina-embeddings-v5-text-small` | float32, last-token pooling |
-| Reranker | `jina-reranker-v3.5` | Cross-encoder, fp16 on CUDA, model revision pinned |
-| OS | Ubuntu 26.04 LTS (engine, gateway), Ubuntu 24.04 under WSL2 (GPU) | |
-| Network | Tailscale | HTTPS between services |
-
-### How the release is laid out
-
-My setup is spread over three boxes because that's the hardware I had lying around. The release packs the same components into three images, and they don't care whether they end up on one machine or several.
-
-| Image | Runs where | What's in it |
-|---|---|---|
-| Workstation | Its own machine (bare metal or a VM), installed from a bootable image | OpenBSD with a CDE desktop. The engine and the gateway run locally, next to the Ask window, the Deep32 Encyclopedia (an offline reference library with its own reader) and a handful of network tools |
-| Content | Read by the Workstation at install and on update | A prebuilt, signed index generation and the encyclopedia's content |
-| GPU pack | Any Linux machine with an NVIDIA card and Docker, or Windows through WSL2 | The embedding server, the reranker and the PDF converter, as containers loaded from the image itself |
-
-The Workstation works without the GPU pack. Search just drops to BM25, the same way it does on my deployment when the GPU node is down. Pair the two and dense search and reranking come back.
+| Vector search | Exact scan of a flat index | 1024 dimensions, cosine, float32. A small C kernel with one fixed order of operations, so every amd64 machine ranks the same way. |
+| Embeddings | Text Embeddings Inference 1.9, `jina-embeddings-v5-text-small` | On the Forge. float32, last-token pooling, model revision pinned |
+| Reranker | `jina-reranker-v3.5` | On the Forge. Cross-encoder, model revision pinned |
+| PDF converter | MinerU 4.0.7 and PyMuPDF | On the Forge, under AGPL-3.0, source included |
+| Network | Tailscale | Your own tailnet, HTTPS between parts |
 
 ## Retrieval pipeline
 
@@ -139,11 +140,11 @@ The knobs, for when the defaults aren't what you want:
 | `prefer_release` | `["17.9"]` | Among identical copies of a passage, shows the copy from this release |
 | `include_obsolete` | default true | False drops obsoleted RFCs |
 
-The GPU box is also my desktop, which makes it the part most likely to be off, rebooting or busy. The engine handles that about the way a routing protocol handles a dead neighbor. Three failed calls in a row and the dense leg is declared down, searches stop waiting on it, and one trial call is let through every 30 seconds until it answers. Until then BM25 carries the traffic alone, and every response has a `degraded` field naming anything it needed and could not use.
+The Forge is usually somebody's desktop with a graphics card in it, which makes it the part most likely to be off, rebooting or busy (mine certainly is). The engine handles that about the way a routing protocol handles a dead neighbor. Three failed calls in a row and the dense leg is declared down, searches stop waiting on it, and one trial call is let through every 30 seconds until it answers. Until then BM25 carries the traffic alone, and every response has a `degraded` field naming anything it needed and could not use.
 
 | Failure | Search behavior | `degraded` |
 |---|---|---|
-| Embedding server or Qdrant | BM25 answers alone. After 3 consecutive failures a circuit breaker opens for 30 seconds and the dense leg is skipped without waiting on a timeout, then one trial call. | `dense` |
+| Forge's embedding server, or the vector index | BM25 answers alone. After 3 consecutive failures a circuit breaker opens for 30 seconds and the dense leg is skipped without waiting on a timeout, then one trial call. | `dense` |
 | Reranker | Fused order is returned without reranking. Same breaker settings. | `reranker` |
 | Structured indexes | Hits come back without RFC status | `kb` |
 | Section index | Hits carry the passage's own text and no section reference | `structure` |
@@ -265,12 +266,13 @@ I treat the index the way you'd treat a production config, which means nobody ed
   config/             dense.json, retrieval.json, serving.json for this generation
   sqlite/rag.db       documents, passages, sections, FTS5 tables
   kb/kb.sqlite        RFC index, errata, IANA, CLI, glossary, feature history
+  dense/              vectors.f32 and points.bin: the flat vector index the Workstation scans
   BUILD_REPORT.json
   VALIDATION.json     gate result
   logs/               retrieval traces
 ```
 
-The vectors live in a Qdrant collection named after the generation.
+On the Workstation the vectors sit beside the generation as one flat file of float32 rows, searched by an exact scan. When the Forge builds or rebuilds an index, it loads them into a Qdrant collection named after the generation.
 
 | Identifier | Derivation |
 |---|---|
@@ -295,7 +297,7 @@ Old generations stay on disk, so a rollback is the same switch pointed at the pr
 
 ## Evaluation
 
-What's measured so far is retrieval: does the right passage come back, and how high. Whether the final answer is right has not been measured. That's next, and it's the measurement I built this to make.
+What's measured so far is retrieval: does the right passage come back, and how high. Whether the final answer is right has not been measured. That's next, and it's the measurement I built this to make. Everything below was measured on my development setup, which runs the same engine, models and corpus that ship in 1.0.
 
 If you don't speak information retrieval: hit@1 is how often the top result is a correct passage, and hit@8 is how often a correct passage is anywhere in the top 8. The agent reads the whole top 8, so hit@8 tells you whether the answer CAN be right, and hit@1 tells you how much digging it takes.
 
@@ -362,15 +364,18 @@ A few things that cost me time, in case they save you some.
 
 ## Hardware
 
-The whole thing runs on hardware I already had. The server is a 2013 Xeon box that doesn't have AVX2, the gateway is a thin client with no fan, and the GPU is one consumer card in the desktop I use for everything else.
+None of this needs new hardware. I built and tested it on a 2013 Xeon without AVX2 and one consumer graphics card, and that's roughly the floor. The full details, including which graphics cards work and how to lay things out on one machine or several, are in [docs/HARDWARE.md](docs/HARDWARE.md).
 
-| Node | Hardware | Runs |
+| Layout | Minimum | Recommended |
 |---|---|---|
-| Engine | 2013 dual-socket Xeon server (AVX, no AVX2), as one virtual machine | Search API, SQLite, Qdrant |
-| Gateway | Fanless thin client (Pentium Silver, no AVX) | MCP gateway |
-| GPU and agent | Desktop PC with one 11 GB NVIDIA card, models under WSL2 | Embeddings, reranker, the agent |
+| Workstation alone (keyword search only) | 64-bit Intel or AMD with virtualisation; 6 threads and 12 GB on the host; 60 GB free | As below |
+| Workstation and Forge on one machine | 8 threads and 32 GB; an NVIDIA card of compute capability 7.5 or newer with 6 GB; 160 GB free | 12 or more threads, 32 GB or more, an AVX2 processor and an RTX 20 series or newer card |
+| Forge alone | 4 threads and 16 GB on the host; a card as above; 100 GB free | As above |
+| Headend | Any PC that runs Claude Code or Codex | Windows, for the Ask window's relay in 1.0 |
 
-Latency through the gateway, one client, 2 November 2026. The two searches are quick (about 125 ms each, and that includes the trip through the gateway). The reranker is where the time goes, at about 400 ms of every reranked search.
+The Forge also needs an NVIDIA driver of 580.65.06 or newer, Docker and the NVIDIA Container Toolkit (on Windows, WSL2 handles that side). The Workstation has no model of its own, so without a Forge it searches on keywords only.
+
+How fast is it? Here's what my development setup measured through the gateway, one client, 2 November 2026. It runs the same engine and models as 1.0, on the old Xeon and the 11 GB card. The two searches are quick (about 125 ms each, and that includes the trip through the gateway). The reranker is where the time goes, at about 400 ms of every reranked search.
 
 | Search | p50 | p95 | Searches |
 |---|:---:|:---:|:---:|
