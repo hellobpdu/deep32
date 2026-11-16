@@ -58,10 +58,10 @@ def prepare(stage, kit, docker, wsl, output, epoch):
             raise ValueError('pack media output overlaps an input')
     safe_members(stage / 'payload')
     verify_manifest(stage / 'payload', stage / 'PAYLOAD.json')
-    for archive in (docker, wsl):
+    for archive, limit in ((docker, _thin.LIMIT), (wsl, _thin.WSL_LIMIT)):
         regular(archive)
-        if archive.stat().st_size >= _thin.LIMIT:
-            raise ValueError('thin form exceeds the 1 GiB limit')
+        if archive.stat().st_size >= limit:
+            raise ValueError('thin form exceeds its size limit: ' + archive.name)
     runtime = _thin.runtime_members(kit, stage / 'pins.json')
     readme = kit / 'README.txt'
     regular(readme)
@@ -113,7 +113,9 @@ def maps(root, output):
 
 def xorriso_command(output, map_file, epoch):
     stamp = dt.datetime.fromtimestamp(epoch, dt.timezone.utc).strftime('%Y%m%d%H%M%S') + '00'
-    return ['xorriso', '-outdev', str(output), '-iso_level', '3', '-file_size_limit', 'off',
+    # Native xorriso syntax (lead fix 2026-11-16): -iso_level exists only in mkisofs emulation, and
+    # -file_size_limit takes a list that must end with '--'.
+    return ['xorriso', '-outdev', str(output), '-compliance', 'iso_9660_level=3', '-file_size_limit', 'off', '--',
             '-joliet', 'on', '-rockridge', 'on', '-volid', VOLUME,
             '-volume_date', 'all_file_dates', '=' + str(epoch),
             '-volume_date', 'c', stamp, '-volume_date', 'm', stamp,

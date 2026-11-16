@@ -1,7 +1,6 @@
 """Offline builder input, lock, image and payload verification. No downloads."""
 import argparse
 import hashlib
-import importlib.util
 import json
 from pathlib import Path
 import re
@@ -89,28 +88,13 @@ def checked_inputs(stage, kit):
 def context(stage, kit, output):
     config = checked_inputs(stage, kit)
     source = kit / 'containers/builder'
-    # Fail before docker if approved families are missing, without reading queries.
-    spec = importlib.util.spec_from_file_location('builder_eval_sets', source / 'eval_sets.py')
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
+    # Eval data stays operator-provided at runtime, never in a public image.
     evaluation = source / 'engine/rag/core/eval'
-    if evaluation.is_symlink() or not evaluation.is_dir():
-        raise ValueError('builder eval tree must be a regular directory')
-    if any(p.name not in {'eval_v2.py', 'golden'} for p in evaluation.iterdir()):
-        raise ValueError('builder eval tree contains an excluded entry')
-    selected, excluded = mod.release_check(evaluation / 'golden')
-    if excluded:
-        raise ValueError('builder source tree contains excluded eval set names')
-    evaluator = evaluation / 'eval_v2.py'
-    if evaluator.is_symlink() or not evaluator.is_file():
-        raise ValueError('builder evaluator must be a regular file')
-    for directory in selected:
-        members = list(directory.iterdir())
-        if not set(mod.REQUIRED_MEMBERS) <= {p.name for p in members}:
-            raise ValueError('builder neutral eval set is missing a required member')
-        for member in members:
-            if member.is_symlink() or not member.is_file() or member.name.endswith('.env'):
-                raise ValueError('builder neutral eval set has a non-regular member')
+    if (source.is_symlink() or any(p.is_symlink() for p in source.parents)
+            or any(p.is_symlink() for p in source.rglob('*'))):
+        raise ValueError('public builder source must contain no symbolic links')
+    if evaluation.exists() or evaluation.is_symlink():
+        raise ValueError('public builder source must contain no eval tree; supply --eval-root at runtime')
     shutil.copytree(source, output)
     shutil.copytree(stage / 'payload/wheelhouse/builder', output / 'wheelhouse')
     shutil.copytree(stage / 'builder/debs', output / 'debs')

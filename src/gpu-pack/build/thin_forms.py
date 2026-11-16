@@ -7,6 +7,9 @@ from pathlib import Path
 import tarfile
 
 LIMIT = 1024 ** 3
+# The WSL form is Canonical's clean Ubuntu base (about 1.13 GiB unpacked for 24.04.5) plus the runtime kit, so it
+# gets its own ceiling; both limits still refuse any form that carries payload images (lead fix 2026-11-16).
+WSL_LIMIT = 2 * 1024 ** 3
 
 
 def runtime_files(kit):
@@ -57,12 +60,12 @@ def kit_size(kit):
                 tar_member_bytes=sum(tar_bytes(p.stat().st_size) for p in files))
 
 
-def write_size_report(output):
+def write_size_report(output, limit=LIMIT):
     with tarfile.open(output, 'r:') as archive:
         files = [dict(path=m.name, size=m.size, kind='file' if m.isfile() else 'link' if m.issym() or m.islnk() else 'directory')
                  for m in archive.getmembers()]
     value = dict(format='deep32-thin-form-files/1', bytes=output.stat().st_size,
-                 limit_bytes=LIMIT, files=files)
+                 limit_bytes=limit, files=files)
     output.with_suffix('.files.json').write_text(json.dumps(value, sort_keys=True, indent=2) + '\n', encoding='ascii', newline='\n')
 
 

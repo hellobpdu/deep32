@@ -99,6 +99,10 @@ the original small check set): they catch a broken build, a wrong index or lost 
 P1 quality gates are compare_v2's.
 
 Exit status: 0 every gate passed, 1 a gate failed (see VALIDATION.json), 2 refused.
+
+With --no-eval, only quality evaluation and its dependent comparisons are skipped. Build completeness,
+served-root, SQLite/FTS integrity, child health, every status gate and legacy search remain required. The report
+records "quality validation skipped: no eval sets supplied". Supply --eval-root to run the unchanged quality gates.
 """
 from __future__ import annotations
 
@@ -106,6 +110,8 @@ import argparse
 import concurrent.futures as cf
 import contextlib
 import hashlib
+import http.client
+import importlib.util
 import json
 import os
 import re
@@ -131,7 +137,9 @@ for extra in (REPO / "src", REPO / "eval"):
     if str(extra) not in sys.path:
         sys.path.insert(0, str(extra))
 
-import eval_v2 as ev  # noqa: E402  vendored, stdlib only (eval/eval_v2.py)
+# The evaluator is loaded only for an explicitly requested quality run. A structural validation never imports
+# operator code, even if an evaluator happens to be importable in the calling environment.
+ev = None
 from rag_core.config import load_config  # noqa: E402
 from rag_core.db import DEFAULT_FTS  # noqa: E402
 
@@ -153,6 +161,7 @@ OVERRIDE_KEYS = (
 REFUSED_URL = "http://127.0.0.1:9"
 DEFAULT_PORT = 18765
 DEFAULT_MINIMUMS = {"hit@1": 0.35, "hit@8": 0.70}
+SKIPPED_MESSAGE = "quality validation skipped: no eval sets supplied"
 LOG_TAIL_LINES = 40
 # seconds between two /v2/status reads while the root loads (deep32-engine caches a round of probes for 5 s)
 READY_POLL_SECONDS = 1.0
@@ -172,6 +181,52 @@ T0 = time.monotonic()
 
 class Refused(Exception):
     """Validation cannot start. Raised before the child starts or anything is written."""
+
+
+class CoreHttp:
+    """Loopback client for the non-quality gates; independent of the optional evaluator."""
+
+    def __init__(self, url: str, token: str, timeout: float = 120.0, retries_503: int = 2):
+        parsed = urllib.parse.urlsplit(url)
+        if parsed.scheme != "http" or parsed.hostname != "127.0.0.1" or parsed.username or parsed.password:
+            raise ValueError("validator HTTP client requires loopback")
+        self.port, self.token, self.timeout = parsed.port, token, timeout
+        self.retries_503 = retries_503
+
+    def request(self, method: str, path: str, body: dict[str, Any] | None = None):
+        started = time.monotonic()
+        retries = 0
+        encoded = None if body is None else json.dumps(body).encode("utf-8")
+        headers = {"Authorization": "Bearer " + self.token, "Content-Type": "application/json"}
+        while True:
+            conn = http.client.HTTPConnection("127.0.0.1", self.port, timeout=self.timeout)
+            try:
+                conn.request(method, path, body=encoded, headers=headers)
+                response = conn.getresponse()
+                status, data = response.status, response.read()
+            finally:
+                conn.close()
+            if status != 503 or retries >= self.retries_503:
+                return status, data, (time.monotonic() - started) * 1000, retries
+            retries += 1
+            time.sleep(0.25)
+
+    def json(self, method: str, path: str, body: dict[str, Any] | None = None):
+        status, data, milliseconds, _ = self.request(method, path, body)
+        if status != 200:
+            raise OSError(f"{path} answered HTTP {status}")
+        result = json.loads(data)
+        if not isinstance(result, dict):
+            raise ValueError("validator endpoint must return a JSON object")
+        return result, milliseconds
+
+    def close(self):
+        pass
+
+
+def backend_errors():
+    """The evaluator's HTTP exception exists only when quality inputs are supplied."""
+    return (OSError, ValueError) + ((ev.BackendError,) if ev is not None else ())
 
 
 def log(message: str) -> None:
@@ -428,7 +483,7 @@ def wait_ready(proc: subprocess.Popen, http: ev.Http, timeout: float, no_dense: 
         try:
             status, _ = http.json("GET", "/v2/status")
             why = not_ready(status, no_dense)
-        except (OSError, ev.BackendError, ValueError) as exc:
+        except backend_errors() as exc:
             why = f"/v2/status: {type(exc).__name__}: {str(exc)[:160]}"
         if why is None:
             return status, True, "ready", polls
@@ -968,13 +1023,40 @@ def run_many_plan(url: str, token: str, plan: list[dict[str, Any]], identity: di
 # ---------------------------------------------------------------- main
 
 
+def load_evaluator(root: Path):
+    """Load the explicit operator evaluator without changing validation gates."""
+    if root.is_symlink() or not root.is_dir() or any(p.is_symlink() for p in root.parents):
+        raise Refused("supplied eval root must be a regular directory")
+    source = root / "eval_v2.py"
+    if source.is_symlink() or not source.is_file():
+        raise Refused("supplied eval root has no regular eval_v2.py")
+    spec = importlib.util.spec_from_file_location("eval_v2", source)
+    module = importlib.util.module_from_spec(spec)
+    # Dataclass decorators in evaluator code resolve the module by this name.
+    previous = sys.modules.get("eval_v2")
+    sys.modules["eval_v2"] = module
+    try:
+        spec.loader.exec_module(module)
+    except BaseException:
+        if previous is None:
+            sys.modules.pop("eval_v2", None)
+        else:
+            sys.modules["eval_v2"] = previous
+        raise
+    return module
+
+
 def parse_args(argv: list[str] | None) -> argparse.Namespace:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--root", required=True, help="the built root to validate (never the served one)")
     ap.add_argument("--port", type=int, default=DEFAULT_PORT, help="loopback port for the child (0: a free one)")
     ap.add_argument("--golden", default="known_items",
                     help="golden set: a name under eval/golden (known_items, the generated known-item set; neutral, "
-                         "the hand-made check set) or a directory")
+                          "the hand-made check set) or a directory")
+    ap.add_argument("--eval-root", type=Path,
+                    help="operator-provided directory containing eval_v2.py; quality gates remain unchanged")
+    ap.add_argument("--no-eval", action="store_true",
+                    help="no eval inputs supplied: retain build, integrity, status and legacy-search gates")
     ap.add_argument("--no-dense", action="store_true", help="serve BM25 only; never contact TEI, Qdrant or rerank")
     ap.add_argument("--expect-generation")
     ap.add_argument("--expect-fingerprint")
@@ -1013,19 +1095,32 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
 
 
 def main(argv: list[str] | None = None) -> int:
+    global ev
     args = parse_args(argv)
     root = Path(args.root).expanduser().resolve()
     try:
+        if args.no_eval and (args.eval_root is not None or args.min or args.eval_out or args.baseline
+                             or args.max_drop or args.replay or args.many_plan or args.golden != "known_items"):
+            raise Refused("--no-eval cannot be combined with quality-evaluation options")
+        if not args.no_eval and args.eval_root is not None:
+            ev = load_evaluator(args.eval_root)
+        elif not args.no_eval and ev is None:
+            if (REPO / "eval/eval_v2.py").is_file():
+                ev = load_evaluator(REPO / "eval")
+            else:
+                raise Refused("quality evaluator is missing; supply --eval-root")
         check_not_served(root)
         if not (root / "sqlite" / "rag.db").is_file():
             raise Refused(f"{root} holds no sqlite/rag.db: not a built root")
         report_file = report_name(args.report_name)
-        floors = parse_minimums(args.min)
+        floors = {} if args.no_eval else parse_minimums(args.min)
         expected, build_report = expectations(args, root)
-        try:
-            golden = ev.load_golden(args.golden)
-        except (ev.GoldenError, OSError, ValueError) as exc:
-            raise Refused(f"golden set {args.golden}: {exc}") from None
+        golden = None
+        if not args.no_eval:
+            try:
+                golden = ev.load_golden(args.golden)
+            except (ev.GoldenError, OSError, ValueError) as exc:
+                raise Refused(f"golden set {args.golden}: {exc}") from None
         port = args.port or free_port()
         check_port(port)
         if args.max_drop and not args.baseline:
@@ -1034,7 +1129,7 @@ def main(argv: list[str] | None = None) -> int:
             drops = cv.parse_limits(args.max_drop)
         except cv.BadInput as exc:
             raise Refused(str(exc)) from None
-        baseline = load_baseline(args.baseline, golden)
+        baseline = None if args.no_eval else load_baseline(args.baseline, golden)
         if args.replay_concurrency < 1 or (args.replay_concurrency != 1 and not args.replay):
             raise Refused(f"--replay-concurrency {args.replay_concurrency}: a number of calls (1 or more) of a "
                           "--replay")
@@ -1056,7 +1151,7 @@ def main(argv: list[str] | None = None) -> int:
         "started_at": now(),
         "no_dense": args.no_dense,
         "expected": expected,
-        "golden": golden.meta(),
+        "golden": None if golden is None else golden.meta(),
         "gates": gates.items,
     }
     with contextlib.suppress(subprocess.CalledProcessError, OSError):
@@ -1067,7 +1162,7 @@ def main(argv: list[str] | None = None) -> int:
 
     work = Path(tempfile.mkdtemp(prefix="validate-root-"))
     proc: subprocess.Popen | None = None
-    http = ev.Http(url, token, timeout=120.0, retries_503=2)
+    http = (CoreHttp if args.no_eval else ev.Http)(url, token, timeout=120.0, retries_503=2)
     try:
         if build_report is not None:
             gates.check("build_report", build_report.get("status") == "complete"
@@ -1104,63 +1199,67 @@ def main(argv: list[str] | None = None) -> int:
             gates.check("legacy_search", "candidates" in legacy,
                         f"POST /search answered {len(legacy.get('candidates') or [])} candidates")
 
-            log(f"eval: {golden.path.name} ({len(golden.queries)} queries, limit {args.limit}, "
-                f"max_chars {args.max_chars})")
-            report = ev.evaluate(url, token, golden, str(root / "sqlite" / "rag.db"),
-                                 label=f"validate-{expected['generation']}", limit=args.limit,
-                                 max_chars=args.max_chars, concurrency=args.concurrency, load_state="unknown",
-                                 note=f"{VALIDATOR}{' --no-dense' if args.no_dense else ''}")
-            log(ev.summary_line(report))
-            for domain, agg in sorted(report["by_domain"].items()):
-                log(f"eval: {domain:<11} n={agg['n']:<3} hit@1={agg['hit@1']} hit@8={agg['hit@8']}")
-            result["eval"] = eval_summary(report)
-            if args.eval_out:
-                out = Path(args.eval_out)
-                out.mkdir(parents=True, exist_ok=True)
-                path = out / f"{time.strftime('%Y%m%d-%H%M%S')}-{report['label']}.json"
-                path.write_text(json.dumps(report, indent=1), encoding="utf-8")
-                result["eval"]["run_file"] = str(path)
-            eval_gates(gates, report, floors)
-            opt_in_leak_gate(gates, report, status)
-            filter_scope_gate(gates, report)
-            if baseline is not None:
-                this = {"generation": expected["generation"], "golden": golden.meta(), "eval": result["eval"],
-                        "_path": str(root / report_file)}
-                comparison = cv.compare(baseline, this)
-                result["comparison"] = comparison
-                for line in cv.lines(comparison):
-                    log(line)
-                for name, ok, detail in cv.drop_gates(comparison, drops):
-                    gates.check(name, ok, detail)
-            retried_gate(gates, report)
-            found = census(report, args.limit)
-            if found is not None:
-                result["census"] = found
-                log("census: " + " ".join(f"{k}={found[k]}" for k in ("misses", *(b[0] for b in CENSUS_BUCKETS),
-                                                                       "beyond_30"))
-                    + " (the top-8 misses' first relevant hit, by position)")
-            if replay is not None:
-                calls, files = replay
-                reading = reading_paths(report["results"])
-                log(f"replay: {len(calls)} calls of {', '.join(Path(f['path']).name for f in files)} at concurrency "
-                    f"{args.replay_concurrency}; reading probes {[p.split('?')[0] for p in reading] or 'none'}")
-                result["replay"] = {"files": files, **run_replay(url, token, calls, args.replay_concurrency, reading)}
-                for route, s in cv.replay_summary(result["replay"]).items():
-                    log(f"replay: {route} calls={s['calls']} ok={s['n']} p50={s['p50']} p95={s['p95']} "
-                        f"rerank_p50={s['rerank_p50']} truncated={s['truncated']} errors={s['errors']}")
-            if plan is not None:
-                rows, identity = plan
-                log(f"many_plan: {identity['name']} ({len(rows)} search_many, limit {args.limit}, max_chars "
-                    f"{args.max_chars})")
-                many = run_many_plan(url, token, rows, identity, golden, str(root / "sqlite" / "rag.db"),
-                                     args.limit, args.max_chars)
-                result["many_plan"] = many
-                o, lat = many["overall"], many["latency_ms"]
-                log(f"many_plan: n={o['n']} hit@1={o['hit@1']} hit@8={o['hit@8']} ndcg@10={o['ndcg@10']} "
-                    f"found_n@8={o['found_n@8']} p50={lat.get('p50')}ms p95={lat.get('p95')}ms errors={o['n_errors']}")
-                gates.check("many_plan.errors", o["n_errors"] == 0, f"{o['n_errors']} failed search_many")
-                gates.check("many_plan.degraded", o["n_degraded"] == 0,
-                            f"{o['n_degraded']} search_many answers with degraded set")
+            if args.no_eval:
+                result["quality_validation"] = {"status": "skipped", "message": SKIPPED_MESSAGE}
+                log(SKIPPED_MESSAGE)
+            else:
+                log(f"eval: {golden.path.name} ({len(golden.queries)} queries, limit {args.limit}, "
+                    f"max_chars {args.max_chars})")
+                report = ev.evaluate(url, token, golden, str(root / "sqlite" / "rag.db"),
+                                     label=f"validate-{expected['generation']}", limit=args.limit,
+                                     max_chars=args.max_chars, concurrency=args.concurrency, load_state="unknown",
+                                     note=f"{VALIDATOR}{' --no-dense' if args.no_dense else ''}")
+                log(ev.summary_line(report))
+                for domain, agg in sorted(report["by_domain"].items()):
+                    log(f"eval: {domain:<11} n={agg['n']:<3} hit@1={agg['hit@1']} hit@8={agg['hit@8']}")
+                result["eval"] = eval_summary(report)
+                if args.eval_out:
+                    out = Path(args.eval_out)
+                    out.mkdir(parents=True, exist_ok=True)
+                    path = out / f"{time.strftime('%Y%m%d-%H%M%S')}-{report['label']}.json"
+                    path.write_text(json.dumps(report, indent=1), encoding="utf-8")
+                    result["eval"]["run_file"] = str(path)
+                eval_gates(gates, report, floors)
+                opt_in_leak_gate(gates, report, status)
+                filter_scope_gate(gates, report)
+                if baseline is not None:
+                    this = {"generation": expected["generation"], "golden": golden.meta(), "eval": result["eval"],
+                            "_path": str(root / report_file)}
+                    comparison = cv.compare(baseline, this)
+                    result["comparison"] = comparison
+                    for line in cv.lines(comparison):
+                        log(line)
+                    for name, ok, detail in cv.drop_gates(comparison, drops):
+                        gates.check(name, ok, detail)
+                retried_gate(gates, report)
+                found = census(report, args.limit)
+                if found is not None:
+                    result["census"] = found
+                    log("census: " + " ".join(f"{k}={found[k]}" for k in ("misses", *(b[0] for b in CENSUS_BUCKETS),
+                                                                           "beyond_30"))
+                        + " (the top-8 misses' first relevant hit, by position)")
+                if replay is not None:
+                    calls, files = replay
+                    reading = reading_paths(report["results"])
+                    log(f"replay: {len(calls)} calls of {', '.join(Path(f['path']).name for f in files)} at concurrency "
+                        f"{args.replay_concurrency}; reading probes {[p.split('?')[0] for p in reading] or 'none'}")
+                    result["replay"] = {"files": files, **run_replay(url, token, calls, args.replay_concurrency, reading)}
+                    for route, s in cv.replay_summary(result["replay"]).items():
+                        log(f"replay: {route} calls={s['calls']} ok={s['n']} p50={s['p50']} p95={s['p95']} "
+                            f"rerank_p50={s['rerank_p50']} truncated={s['truncated']} errors={s['errors']}")
+                if plan is not None:
+                    rows, identity = plan
+                    log(f"many_plan: {identity['name']} ({len(rows)} search_many, limit {args.limit}, max_chars "
+                        f"{args.max_chars})")
+                    many = run_many_plan(url, token, rows, identity, golden, str(root / "sqlite" / "rag.db"),
+                                         args.limit, args.max_chars)
+                    result["many_plan"] = many
+                    o, lat = many["overall"], many["latency_ms"]
+                    log(f"many_plan: n={o['n']} hit@1={o['hit@1']} hit@8={o['hit@8']} ndcg@10={o['ndcg@10']} "
+                        f"found_n@8={o['found_n@8']} p50={lat.get('p50')}ms p95={lat.get('p95')}ms errors={o['n_errors']}")
+                    gates.check("many_plan.errors", o["n_errors"] == 0, f"{o['n_errors']} failed search_many")
+                    gates.check("many_plan.degraded", o["n_degraded"] == 0,
+                                f"{o['n_degraded']} search_many answers with degraded set")
     except Exception as exc:  # noqa: BLE001 - reported as a failed gate; the child is still stopped below
         gates.check("run", False, f"{type(exc).__name__}: {str(exc)[:300]}")
     finally:

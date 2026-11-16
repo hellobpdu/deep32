@@ -9,10 +9,11 @@ from pathlib import Path
 import re
 import subprocess
 import sys
+import tempfile
 
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from eval_sets import EvalError, check_sets, doc_keys
+from eval_sets import EvalError, SKIPPED_MESSAGE, supplied_sets, doc_keys
 
 SERVED_SETTINGS = (
     "retrieval.grep.regex_engine=true",
@@ -71,6 +72,34 @@ def _generation(value):
         raise BuilderError("invalid generation identifier")
 
 
+def record_quality(root, quality):
+    """Record the quality outcome in the generation's existing build report."""
+    report = Path(root) / "BUILD_REPORT.json"
+    temporary = None
+    try:
+        if report.is_symlink() or not report.is_file():
+            raise BuilderError("served build report must be a regular file")
+        data = json.loads(report.read_text(encoding="utf-8"))
+        if (not isinstance(data, dict) or data.get("status") != "complete"
+                or data.get("failed_steps") or (data.get("documents") or {}).get("failed")):
+            raise BuilderError("only a complete build report can record quality validation")
+        data["quality_validation"] = quality
+        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", newline="\n",
+                                         prefix=".quality-", suffix=".tmp", dir=report.parent,
+                                         delete=False) as stream:
+            temporary = Path(stream.name)
+            json.dump(data, stream, ensure_ascii=True, sort_keys=True, indent=2)
+            stream.write("\n")
+        os.replace(temporary, report)
+    except BuilderError:
+        raise
+    except (OSError, ValueError, TypeError, AttributeError):
+        raise BuilderError("could not record quality validation in the served build report") from None
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+
+
 def build(args, *, runner=subprocess.run, environ=None):
     _generation(args.generation)
     _generation(args.served_generation)
@@ -79,7 +108,15 @@ def build(args, *, runner=subprocess.run, environ=None):
     if args.generation == args.served_generation:
         raise BuilderError("build and served generations must be different")
     engine = Path(args.engine_root)
-    selected, excluded = check_sets(engine / "eval" / "golden", Path(args.kept_manifest))
+    embedded = engine / "eval"
+    if embedded.exists() or embedded.is_symlink():
+        raise BuilderError("builder engine must contain no eval inputs; use --eval-root")
+    eval_root = getattr(args, "eval_root", None)
+    selected, excluded = supplied_sets(Path(eval_root), Path(args.kept_manifest)) if eval_root is not None else ([], [])
+    if eval_root is not None:
+        # Preserve preflight path/link checks before resolving child inputs.
+        eval_root = Path(eval_root).resolve()
+        selected = [directory.resolve() for directory in selected]
     env = child_env(environ)
     completed = []
     def step(name, argv):
@@ -95,6 +132,7 @@ def build(args, *, runner=subprocess.run, environ=None):
     step("derive_root", derive)
     for directory in selected:
         validation = command(args, "validate_root.py", "--root", args.served_root, "--port", "18765",
+                             "--eval-root", eval_root,
                              "--golden", directory, "--expect-generation", args.served_generation,
                              "--expect-fingerprint", args.expect_fingerprint,
                              "--expect-opt-in", "powershell,system", "--report-name",
@@ -105,11 +143,20 @@ def build(args, *, runner=subprocess.run, environ=None):
         if directory.name.endswith("_probe") and not doc_keys(directory / "qrels.jsonl"):
             validation.extend(["--min", "hit@1=off", "--min", "hit@8=off"])
         step("validate_root:" + directory.name, validation)
+    if not selected:
+        step("validate_root:no-eval", command(args, "validate_root.py", "--root", args.served_root,
+             "--port", "18765", "--no-eval", "--expect-generation", args.served_generation,
+             "--expect-fingerprint", args.expect_fingerprint, "--expect-opt-in", "powershell,system",
+             "--report-name", "VALIDATION-structural.json"))
+    quality = {"status": "passed", "eval_sets": [p.name for p in selected]} if selected else {
+        "status": "skipped", "message": SKIPPED_MESSAGE, "eval_sets": []}
+    record_quality(args.served_root, quality)
     step("export_generation", command(args, "export_generation.py", "export", "--root", args.served_root,
          "--expect-generation", args.served_generation, "--expect-fingerprint", args.expect_fingerprint,
          "--out-dir", args.export_dir, "--recipient", args.recipient,
          "--qdrant-url", SERVICE_ENV["RAG_QDRANT_URL"], "--not-served-ok"))
-    return {"steps": completed, "eval_sets": [p.name for p in selected], "excluded_names": excluded}
+    return {"steps": completed, "eval_sets": [p.name for p in selected], "excluded_names": excluded,
+            "quality_validation": quality}
 
 
 def json_argv(value):
@@ -157,6 +204,8 @@ def parser():
         p.add_argument("--served-generation", required=True)
         p.add_argument("--expect-fingerprint", required=True)
         if name == "build":
+            p.add_argument("--eval-root", type=Path,
+                           help="operator-provided runtime mount containing eval_v2.py and golden/; omit to skip quality validation")
             for item in ("corpus-repo", "corpus-ref", "build-root", "served-root", "generation",
                          "kept-manifest", "export-dir", "recipient"):
                 p.add_argument("--" + item, required=True)

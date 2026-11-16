@@ -6,6 +6,7 @@ import io
 import importlib.util
 import json
 import os
+import re
 from pathlib import Path, PurePosixPath
 import tarfile
 
@@ -13,7 +14,74 @@ from provenance import digest
 _spec = importlib.util.spec_from_file_location('rootfs_thin_forms', Path(__file__).with_name('thin_forms.py'))
 _thin = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_thin)
-runtime_members, LIMIT = _thin.runtime_members, _thin.LIMIT
+runtime_members, WSL_LIMIT = _thin.runtime_members, _thin.WSL_LIMIT
+# The standard Linux character devices (Documentation/admin-guide/devices.txt) present in Canonical's clean
+# ubuntu-24.04.5-wsl-amd64.wsl: path -> (major, minor).
+STANDARD_DEVICES = {
+    'dev/null': (1, 3), 'dev/zero': (1, 5), 'dev/full': (1, 7), 'dev/random': (1, 8), 'dev/urandom': (1, 9),
+    'dev/tty': (5, 0), 'dev/console': (5, 1), 'dev/ptmx': (5, 2),
+}
+
+
+# systemd escapes some characters in unit names as \xNN (systemd-escape(1)); Canonical's clean image ships two such
+# units (system-systemd\x2dcryptsetup.slice, system-systemd\x2dveritysetup.slice). A backslash is allowed only in that
+# form and only for unit files directly under the systemd unit directories (lead fix 2026-11-16).
+SYSTEMD_ESCAPED_UNIT = re.compile(r'(?:usr/lib|etc)/systemd/system/[^\\/]*(?:\\x[0-9a-f]{2}[^\\/]*)+', re.ASCII)
+
+
+def _debian_order(char):
+    if char.isdigit():
+        return 0
+    if char.isalpha():
+        return ord(char)
+    if char == '~':
+        return -1
+    return ord(char) + 256
+
+
+def _debian_verrevcmp(a, b):
+    # dpkg's verrevcmp (lib/dpkg/version.c).
+    i = j = 0
+    while i < len(a) or j < len(b):
+        first_diff = 0
+        while (i < len(a) and not a[i].isdigit()) or (j < len(b) and not b[j].isdigit()):
+            ac = _debian_order(a[i]) if i < len(a) else 0
+            bc = _debian_order(b[j]) if j < len(b) else 0
+            if ac != bc:
+                return ac - bc
+            i += 1
+            j += 1
+        while i < len(a) and a[i] == '0':
+            i += 1
+        while j < len(b) and b[j] == '0':
+            j += 1
+        while i < len(a) and a[i].isdigit() and j < len(b) and b[j].isdigit():
+            if not first_diff:
+                first_diff = ord(a[i]) - ord(b[j])
+            i += 1
+            j += 1
+        if i < len(a) and a[i].isdigit():
+            return 1
+        if j < len(b) and b[j].isdigit():
+            return -1
+        if first_diff:
+            return first_diff
+    return 0
+
+
+def _debian_split(version):
+    epoch, _, rest = version.rpartition(':') if ':' in version else ('0', '', version)
+    upstream, _, revision = rest.rpartition('-') if '-' in rest else (rest, '', '')
+    return int(epoch or '0'), upstream, revision
+
+
+def debian_version_compare(a, b):
+    """Return <0, 0 or >0 as Debian version a sorts before, equal to or after b (dpkg semantics)."""
+    ea, ua, ra = _debian_split(a)
+    eb, ub, rb = _debian_split(b)
+    if ea != eb:
+        return ea - eb
+    return _debian_verrevcmp(ua, ub) or _debian_verrevcmp(ra, rb)
 
 
 def safe_name(name):
@@ -21,7 +89,7 @@ def safe_name(name):
         name = name[2:]
     if name in ('', '.'):
         return ''
-    if name.startswith('/') or '..' in PurePosixPath(name).parts or '\\' in name:
+    if name.startswith('/') or '..' in PurePosixPath(name).parts or ('\\' in name and not SYSTEMD_ESCAPED_UNIT.fullmatch(name)):
         raise ValueError('unsafe tar path')
     return name.rstrip('/')
 
@@ -42,7 +110,11 @@ def build(base, payload, output, epoch, kit=None):
             if name in originals:
                 raise ValueError('duplicate rootfs path')
             if not (entry.isfile() or entry.isdir() or entry.issym() or entry.islnk()):
-                raise ValueError('special rootfs member')
+                # Canonical's clean WSL image carries exactly the eight standard character devices below (WSL mounts
+                # its own /dev over them at boot). Allow those, with their standard numbers, and nothing else
+                # (lead fix 2026-11-16).
+                if not (entry.ischr() and STANDARD_DEVICES.get(name) == (entry.devmajor, entry.devminor)):
+                    raise ValueError('special rootfs member')
             if entry.islnk():
                 safe_name(entry.linkname)
             if (name.startswith(('home/', 'var/lib/tailscale/', 'var/lib/deep32-forge/')) and entry.isfile() and entry.size) or name.startswith('etc/ssh/ssh_host_'):
@@ -89,10 +161,13 @@ def build(base, payload, output, epoch, kit=None):
             profile = importlib.util.module_from_spec(profile_spec)
             profile_spec.loader.exec_module(profile)
             package_pins = profile.packages(pins)
+        # A pinned package already in Canonical's base at an OLDER version is upgraded to the pin from the payload's
+        # signed repositories by install-packages.sh (simulated first). A NEWER base version would need a downgrade
+        # and stays refused (lead fix 2026-11-16).
         for item in package_pins:
             name, version = item.split('=', 1)
-            if name in installed and installed[name] != version:
-                raise ValueError('WSL package version differs: ' + name)
+            if name in installed and debian_version_compare(installed[name], version) > 0:
+                raise ValueError('WSL base package is newer than its pin (would need a downgrade): ' + name)
         additions = {}
         for relative, path in runtime_members(kit, pins_path).items():
             additions['opt/deep32-forge/' + relative] = (path,
@@ -141,10 +216,10 @@ def build(base, payload, output, epoch, kit=None):
                 finally:
                     if data is not None:
                         data.close()
-    if output.stat().st_size >= LIMIT:
+    if output.stat().st_size >= WSL_LIMIT:
         output.unlink()
-        raise ValueError('thin WSL form exceeds the 1 GiB limit')
-    _thin.write_size_report(output)
+        raise ValueError('thin WSL form exceeds the 2 GiB limit')
+    _thin.write_size_report(output, WSL_LIMIT)
 
 
 def main():

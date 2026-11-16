@@ -38,9 +38,26 @@ payload/wheelhouse/builder members. Paths are stage-relative POSIX paths,
 sorted as strings. The inventory excludes itself. No other staged file is
 read by builder_inputs.check.
 
-The four approved eval families must be present in engine/rag/core/eval/golden
-before assembly. Missing families refuse image assembly, rather than silently
-producing a builder without the quality gates. Never stage another eval family.
+No eval data or evaluator is included in the public builder image. Image
+assembly refuses an embedded eval tree. Private eval data remains operator input
+until the separate eval dataset release.
+
+Quality validation is optional at runtime. Omit --eval-root to run the structural
+validator (build completion, SQLite/FTS, server health, identity, counts and
+backend status) and continue without quality queries. The served BUILD_REPORT.json
+and structural validation report record exactly:
+
+    quality validation skipped: no eval sets supplied
+
+To run quality gates, provide --eval-root DIR for a read-only runtime directory
+containing exactly eval_v2.py and golden/. golden/ must hold at least one allowed
+family: golden_sc_v1, golden_ise_v1, golden_iseapi_v1 or golden_pwsh_v1*. Each set
+requires MANIFEST.json, qrels.jsonl and queries.jsonl. Excluded, malformed or empty
+supplied data is an error; it never silently selects the skip path. All referenced
+doc_key fields must belong to the kept manifest. No supplied code or data is
+copied into the image or generation export. Place the mount beneath the existing
+kb-work bind mount, for example /var/lib/deep32-forge/kb-work/operator-eval, and
+add --eval-root with that container path to builder-job.sh build.
 
 build/build-images.sh now also calls build/build-builder.sh. The latter can
 run separately with --stage STAGE --out NEW_OUTPUT. It verifies inputs, builds
@@ -93,12 +110,12 @@ The build command is:
 
 Choose new generation names and an expected corpus fingerprint. The command runs
 build_root with dense indexing and powershell,system opt-in; derive_root with
-the production reranker/fold/regex settings; validate_root for every present
-approved neutral set; and export_generation only after successful validation.
-The projected doc_key fields of all sets must be kept. An approved _probe with
-no qrels doc_key fields uses --min hit@1=off --min hit@8=off; all other gates
-remain, and judged sets retain both hit-rate floors. Runtime requires at
-least one approved set; image assembly requires all four families. Child output
+the production reranker/fold/regex settings; validate_root with structural gates and, when supplied, every approved neutral
+set; and export_generation only after successful validation. The projected
+doc_key fields of all supplied sets must be kept. An approved _probe with no
+qrels doc_key fields uses --min hit@1=off --min hit@8=off; all other gates remain,
+and judged sets retain both hit-rate floors. Without supplied eval data only the
+quality query step is skipped; every non-quality validation gate remains. Child output
 is captured and withheld so failures cannot print query or expected-answer text.
 
 ## C3 bundle and signing

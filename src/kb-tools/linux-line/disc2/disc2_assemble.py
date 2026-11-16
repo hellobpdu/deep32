@@ -20,6 +20,7 @@ import subprocess
 
 FORMAT = "deep32-disc2-assembly/1"
 CAP = 1992294400
+XORRISO_WRAPPER_SHA256 = "acc95b4fc6b1d8b719ce8813f770f74fb690aec0f22aec856cadc373ea531508"
 
 
 def digest(path):
@@ -73,8 +74,8 @@ def load(config):
         raise ValueError("Configuration keys or format differ from disc2-config.example.json")
     if set(c["tools"]) != {"disc", "libdata", "gates"}:
         raise ValueError("tools must name disc, libdata and gates directories")
-    if not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", c["release"]):
-        raise ValueError("release must have three numeric components")
+    if not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z]+(?:\.[0-9A-Za-z]+)*)?", c["release"]):
+        raise ValueError("release must have three numeric components (optionally -prerelease)")
     if not isinstance(c["blocks"], list) or len(c["blocks"]) != 4:
         raise ValueError("Supply exactly the four kept corpus blocks")
     if not isinstance(c["accepts_system"], list) or not c["accepts_system"]:
@@ -103,7 +104,11 @@ def load(config):
         if not all(any(token in x for x in c["verify_argv"]) for token in ("{manifest}", "{sig}", "{fingerprint}")):
             raise ValueError("Verifier must bind manifest, signature and fingerprint")
         if c["xorriso_argv"] != ["xorriso"]:
-            raise ValueError("Release assembly uses the installed xorriso")
+            wrapper = Path(__file__).with_name("xorriso-win.py")
+            if not (len(c["xorriso_argv"]) == 4 and c["xorriso_argv"][1:3] == ["-I", "-B"]
+                    and Path(c["xorriso_argv"][3]).resolve() == wrapper.resolve()
+                    and digest(wrapper) == XORRISO_WRAPPER_SHA256):
+                raise ValueError("Release assembly uses the installed xorriso")
         if any(key.startswith("T0117_STUB_") for key in os.environ):
             raise ValueError("Test controls are present in a release environment")
         if "--g15-profile" not in c["scan_args"] or "--marks-scope" not in c["scan_args"]:

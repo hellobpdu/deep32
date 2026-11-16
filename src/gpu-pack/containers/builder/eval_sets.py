@@ -1,4 +1,4 @@
-"""Positive-list neutral eval selection and doc_key-only kept-manifest checks.
+"""Operator-supplied neutral eval selection and doc_key-only manifest checks.
 
 No query or expected-answer value is returned, printed or logged here. Excluded
 directory entries are inspected by name only, never traversed or opened.
@@ -12,6 +12,7 @@ import re
 EXACT_FAMILIES = ("golden_sc_v1", "golden_ise_v1", "golden_iseapi_v1")
 FORBIDDEN = ('smoke', 'secops', 'replay')
 REQUIRED_MEMBERS = ("MANIFEST.json", "qrels.jsonl", "queries.jsonl")
+SKIPPED_MESSAGE = "quality validation skipped: no eval sets supplied"
 KEY_RE = re.compile(r"[a-z0-9][a-z0-9._-]*\Z")
 
 
@@ -103,6 +104,8 @@ def doc_keys(path: Path) -> set[str]:
 
 def check_sets(root: Path, kept_manifest: Path) -> tuple[list[Path], list[str]]:
     selected, excluded = select_sets(root)
+    if excluded:
+        raise EvalError("supplied eval root contains excluded set names")
     kept = doc_keys(kept_manifest)
     if not kept:
         raise EvalError("kept manifest has no doc_key fields")
@@ -113,7 +116,7 @@ def check_sets(root: Path, kept_manifest: Path) -> tuple[list[Path], list[str]]:
         members = sorted(directory.iterdir(), key=lambda p: p.name)
         if not set(REQUIRED_MEMBERS).issubset(p.name for p in members):
             raise EvalError("approved neutral eval set has missing required members")
-        if any(path.is_symlink() or not path.is_file() for path in members):
+        if any(path.is_symlink() or not path.is_file() or path.name.endswith(".env") for path in members):
             raise EvalError("approved neutral eval set members must be regular files")
         found = set()
         for path in members:
@@ -126,3 +129,20 @@ def check_sets(root: Path, kept_manifest: Path) -> tuple[list[Path], list[str]]:
             raise EvalError("approved neutral eval set " + directory.name + " names " + str(len(missing)) +
                             " doc_key fields absent from the kept manifest")
     return selected, excluded
+
+
+def supplied_sets(root: Path, kept_manifest: Path) -> tuple[list[Path], list[str]]:
+    """Require a complete operator eval tree; a supplied empty tree is an error.
+
+    The runtime mount has eval_v2.py and golden/ at its root. No supplied code or
+    data is copied into the public builder image or a generation export.
+    """
+    root = Path(root)
+    if root.is_symlink() or not root.is_dir() or any(p.is_symlink() for p in root.parents):
+        raise EvalError("supplied eval root must be a regular directory")
+    if {p.name for p in root.iterdir()} != {"eval_v2.py", "golden"}:
+        raise EvalError("supplied eval root must contain only eval_v2.py and golden")
+    evaluator = root / "eval_v2.py"
+    if evaluator.is_symlink() or not evaluator.is_file():
+        raise EvalError("supplied evaluator must be a regular file")
+    return check_sets(root / "golden", kept_manifest)
