@@ -131,6 +131,106 @@ _d32tzcheck() {
     grep -qxF "$1" "$_d32list" && ! grep -qxF "$1/" "$_d32list"
 }
 
+# Decimal input only; arithmetic below must never evaluate template or disk text.
+_d32uint() {
+    local _d32n=$1
+    case $_d32n in ''|*[!0-9]*) return 1;; esac
+    while [ "${_d32n#0}" != "$_d32n" ]; do _d32n=${_d32n#0}; done
+    [ -n "$_d32n" ] || _d32n=0
+    [ "${#_d32n}" -le 18 ] || return 1
+    D32_UINT=$_d32n
+}
+
+_d32sizebytes() {
+    local _d32size=$1 _d32n _d32unit _d32factor
+    _d32n=${_d32size%?}; _d32unit=${_d32size#"$_d32n"}
+    case $_d32unit in
+    K) _d32factor=1024;; M) _d32factor=1048576;;
+    G) _d32factor=1073741824;; T) _d32factor=1099511627776;;
+    *) return 1;;
+    esac
+    _d32uint "$_d32n" || return 1
+    [ "$D32_UINT" -le "$((9223372036854775807 / _d32factor))" ] || return 1
+    D32_SIZE_BYTES=$((D32_UINT * _d32factor))
+}
+
+# The exact template copied into the guided ramdisk is the sizing authority.
+_d32minimum() {
+    local _d32line _d32mount _d32size _d32share _d32extra _d32min _d32max
+    local _d32bytes _d32count=0 _d32seen=' '
+    D32_MIN_BYTES=0
+    [ -r "${D32_ROOT-}/disklabel.ship" ] || return 1
+    while IFS= read -r _d32line || [ -n "$_d32line" ]; do
+        read -r _d32mount _d32size _d32share _d32extra <<EOF
+$_d32line
+EOF
+        case $_d32mount in ''|'#'*) continue;; swap|/*) ;; *) return 1;; esac
+        case $_d32mount in *[!A-Za-z0-9_./-]*) return 1;; esac
+        case $_d32seen in *" $_d32mount "*) return 1;; esac
+        _d32seen="$_d32seen$_d32mount "
+        [ -z "$_d32extra" ] || return 1
+        case $_d32share in
+        '') ;;
+        *%) _d32uint "${_d32share%?}" || return 1
+            [ "$D32_UINT" -ge 1 ] && [ "$D32_UINT" -le 100 ] || return 1;;
+        *) return 1;;
+        esac
+        _d32min=$_d32size
+        case $_d32size in
+        *-*) _d32min=${_d32size%%-*}; _d32max=${_d32size#*-}
+            case $_d32max in '*') ;; *) _d32sizebytes "$_d32max" || return 1;; esac;;
+        esac
+        _d32sizebytes "$_d32min" || return 1
+        _d32bytes=$D32_SIZE_BYTES
+        case $_d32size in
+        *-*) case $_d32max in '*') ;; *) _d32sizebytes "$_d32max" || return 1
+            [ "$D32_SIZE_BYTES" -ge "$_d32bytes" ] || return 1;; esac;;
+        esac
+        [ "$D32_MIN_BYTES" -le "$((9223372036854775807 - _d32bytes))" ] || return 1
+        D32_MIN_BYTES=$((D32_MIN_BYTES + _d32bytes))
+        _d32count=$((_d32count + 1))
+    done <"${D32_ROOT-}/disklabel.ship"
+    [ "$_d32count" -gt 0 ] && [ "$D32_MIN_BYTES" -gt 0 ]
+}
+
+_d32diskbytes() {
+    local _d32label _d32line _d32value _d32sectors= _d32sectorbytes=
+    local _d32nsectors=0 _d32nbytes=0
+    _d32label=$(disklabel "$1" 2>/dev/null) || return 1
+    while IFS= read -r _d32line; do
+        case $_d32line in
+        'total sectors:'*) _d32value=${_d32line#*:}
+            read -r _d32value <<EOF
+$_d32value
+EOF
+            _d32uint "$_d32value" || return 1
+            _d32sectors=$D32_UINT; _d32nsectors=$((_d32nsectors + 1));;
+        'bytes/sector:'*) _d32value=${_d32line#*:}
+            read -r _d32value <<EOF
+$_d32value
+EOF
+            _d32uint "$_d32value" || return 1
+            _d32sectorbytes=$D32_UINT; _d32nbytes=$((_d32nbytes + 1));;
+        esac
+    done <<EOF
+$_d32label
+EOF
+    [ "$_d32nsectors/$_d32nbytes" = 1/1 ] || return 1
+    [ "$_d32sectors" -gt 0 ] && [ "$_d32sectorbytes" -gt 0 ] || return 1
+    [ "$_d32sectors" -le "$((9223372036854775807 / _d32sectorbytes))" ] || return 1
+    D32_DISK_BYTES=$((_d32sectors * _d32sectorbytes))
+}
+
+# GB is decimal; preserve the exact byte value without printf or rounding.
+_d32gb() {
+    local _d32whole=$(($1 / 1000000000)) _d32fraction=$(($1 % 1000000000))
+    D32_GB=$_d32whole
+    [ "$_d32fraction" != 0 ] || return 0
+    while [ "${#_d32fraction}" -lt 9 ]; do _d32fraction=0$_d32fraction; done
+    while [ "${_d32fraction%0}" != "$_d32fraction" ]; do _d32fraction=${_d32fraction%0}; done
+    D32_GB=$_d32whole.$_d32fraction
+}
+
 _d32ask() {
     local _d32field=$1 _d32question=$2 _d32a= _d32ok _d32list
     _d32waiting 'answer the install questions on the console of this machine'
@@ -175,6 +275,7 @@ _d32ask() {
 _d32resp() {
     local _d32question=$1 _d32default=${2-} _d32field _d32value _d32part _d32duid
     local _d32candidates= _d32count=0 _d32disk _d32valid=0 _d32changed=0
+    local _d32auto=0 _d32confirm _d32diskgb _d32mingb
     _d32load || return 1
     case $resp in
     @SET:*@)
@@ -195,6 +296,9 @@ _d32resp() {
             _d32ask "$_d32field" "$_d32question" || return 1
         fi;;
     @ROOTDISK:*@)
+        D32_GUIDED_DISK_READY=0
+        _d32minimum || { err_exit 'cannot read the guided disk minimum'; return 1; }
+        _d32gb "$D32_MIN_BYTES"; _d32mingb=$D32_GB
         _d32duid=${resp#@ROOTDISK:}; _d32duid=${_d32duid%@}
         for _d32disk in $(get_dkdevs_root); do
             _d32valid=1
@@ -204,20 +308,43 @@ _d32resp() {
             [ "$_d32valid" = 1 ] || continue
             _d32candidates="$_d32candidates $_d32disk"; _d32count=$((_d32count + 1)); resp=$_d32disk
         done
-        if [ "$D32_SETTINGS_DISC/$D32S_EFF_hw_profile/$_d32count" != present/vm/1 ]; then
-            _d32waiting 'answer the install questions on the console of this machine'
+        [ "$D32_SETTINGS_DISC/$D32S_EFF_hw_profile/$_d32count" != present/vm/1 ] || _d32auto=1
+        if [ "$_d32auto" = 1 ]; then
+            _d32diskbytes "$resp" || { _d32running; err_exit 'cannot read the root disk size'; return 1; }
+            if [ "$D32_DISK_BYTES" -lt "$D32_MIN_BYTES" ]; then
+                _d32gb "$D32_DISK_BYTES"; _d32diskgb=$D32_GB
+                print -r -- "This disk is $_d32diskgb GB; the guided install needs at least $_d32mingb GB." >>"${D32_TTY_OUT:-/dev/tty}"
+                _d32auto=0
+            fi
+        fi
+        if [ "$_d32auto" != 1 ]; then
             {
                 while :; do
-                    echo "" >>"${D32_TTY_OUT:-/dev/tty}"
-                    echo -n "$_d32question " >>"${D32_TTY_OUT:-/dev/tty}"
-                    IFS= read -r resp || { _d32running; return 1; }
-                    if [ "$resp" = '?' ]; then diskinfo $(get_dkdevs) >>"${D32_TTY_OUT:-/dev/tty}" 2>&1; continue; fi
-                    case "$_d32candidates " in *" $resp "*) [ -n "$resp" ] && break;; esac
-                    echo 'That disk cannot be used: type one of the disks listed, or ? for details.' >>"${D32_TTY_OUT:-/dev/tty}"
+                    _d32waiting 'answer the install questions on the console of this machine'
+                    while :; do
+                        echo "" >>"${D32_TTY_OUT:-/dev/tty}"
+                        echo -n "$_d32question " >>"${D32_TTY_OUT:-/dev/tty}"
+                        IFS= read -r resp || { _d32running; return 1; }
+                        if [ "$resp" = '?' ]; then diskinfo $(get_dkdevs) >>"${D32_TTY_OUT:-/dev/tty}" 2>&1; continue; fi
+                        case "$_d32candidates " in *" $resp "*) [ -n "$resp" ] && break;; esac
+                        echo 'That disk cannot be used: type one of the disks listed, or ? for details.' >>"${D32_TTY_OUT:-/dev/tty}"
+                    done
+                    _d32diskbytes "$resp" || { _d32running; err_exit 'cannot read the root disk size'; return 1; }
+                    _d32gb "$D32_DISK_BYTES"; _d32diskgb=$D32_GB
+                    if [ "$D32_DISK_BYTES" -lt "$D32_MIN_BYTES" ]; then
+                        print -r -- "This disk is $_d32diskgb GB; the guided install needs at least $_d32mingb GB." >>"${D32_TTY_OUT:-/dev/tty}"
+                        continue
+                    fi
+                    [ "$D32_SETTINGS_DISC" != present ] || break
+                    print -r -- "Disk $resp is $_d32diskgb GB. The whole disk will be erased." >>"${D32_TTY_OUT:-/dev/tty}"
+                    print -rn -- 'Type the disk name to confirm: ' >>"${D32_TTY_OUT:-/dev/tty}"
+                    IFS= read -r _d32confirm || { _d32running; return 1; }
+                    [ "$_d32confirm" != "$resp" ] || break
                 done
-            } <"${D32_TTY_IN:-/dev/tty}"
-            _d32running
-        fi;;
+            } <"${D32_TTY_IN:-/dev/tty}" || { _d32running; return 1; }
+        fi
+        D32_GUIDED_DISK_READY=1
+        _d32running;;
     @ENCRYPT@)
         if [ "$D32_SETTINGS_DISC" = present ]; then
             resp=no; [ "$D32S_EFF_disk_encryption" != true ] || resp=p
@@ -233,7 +360,26 @@ _d32resp() {
             } <"${D32_TTY_IN:-/dev/tty}"
             _d32running
         fi;;
-    @DEFAULT@) resp=$_d32default;;
+    @DEFAULT@)
+        case $_d32question in
+        'Use (W)hole disk MBR, whole disk (G)PT'*)
+            [ "${D32_GUIDED_DISK_READY-0}" = 1 ] || {
+                err_exit 'the root disk has not been confirmed'; return 1;
+            }
+            [ -n "${DMESGBOOT-}" ] && [ -r "$DMESGBOOT" ] || {
+                err_exit 'cannot read the boot log'; return 1;
+            }
+            # OpenBSD 8.0 md_prep_fdisk's default without an OpenBSD partition.
+            if grep -q -e '^efi0 at bios0' "$DMESGBOOT"; then
+                resp=gpt
+            else
+                case $? in
+                1) resp=whole;;
+                *) err_exit 'cannot read the boot log'; return 1;;
+                esac
+            fi;;
+        *) resp=$_d32default;;
+        esac;;
     @ASK@|@ASKSECRET@)
         _d32value=0
         [ "$resp" != @ASKSECRET@ ] || _d32value=1

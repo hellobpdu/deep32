@@ -5,7 +5,7 @@
 #   @ROOTDISK:<duid>@  the one empty disk of a VM when a settings disc is present; otherwise asked on the console
 #   @ENCRYPT@          from the settings disc (absent: off for hw_profile vm, on for a real machine); without a
 #                      settings disc it is asked on the console
-#   @DEFAULT@          the installer's own default answer
+#   @DEFAULT@          the installer's own default answer; whole disk uses its EFI/BIOS choice, never OpenBSD area
 #   @ASKSECRET@        typed twice on the console, never in a file (the disk passphrase only)
 #   @DUID:<duid>@      the disk carrying that DUID (the install medium)
 # No password is set here: both accounts stay locked until the first start sets them on the console.
@@ -30,6 +30,7 @@ What timezone are you in = @SET:time_zone@
 Which disk is the root disk = @ROOTDISK:@MEDIA_DUID@@
 Encrypt the root disk with a (p)assphrase or (k)eydisk = @ENCRYPT@
 New passphrase = @ASKSECRET@
+(W)hole disk = @DEFAULT@
 URL to autopartitioning template for disklabel = file:///@TEMPLATE@
 Location of sets = disk
 Is the disk partition already mounted = no

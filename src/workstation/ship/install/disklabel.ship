@@ -1,0 +1,13 @@
+/		2G
+swap		16G
+/tmp		4G
+/var		16G
+/usr		10G
+/usr/X11R6	2G
+/usr/local	12G
+/home		16G
+/d32/a		24G-*	30%
+/d32/b		24G-*	30%
+/d32/var	8G-*	10%
+/d32/audit	2G
+/d32/libcontent	16G-*	30%

@@ -220,8 +220,13 @@ def assemble(args):
             # Mechanical inventory only. Editorial release text is left to the lead.
             readme = disc["prefix"] + "-README.md"
             members.append(write_text(readme, "# %s\n\nImage: %s\n\nBytes: %d\n\nSHA256: %s\n\n"
-                                      "Release wording: [lead to supply].\n" % (
-                                          disc["kind"], disc["file"], disc["size"], disc["sha256"])))
+                                      "%s\n" % (
+                                          disc["kind"], disc["file"], disc["size"], disc["sha256"],
+                                          {"disc1": "Disc 1 is the Deep32 Workstation image. ",
+                                           "disc2": "Disc 2 is the Deep32 content image. ",
+                                           "disc3": "Disc 3 is the Deep32 GPU pack image. "}[disc["role"]] +
+                                          "Installation instructions are in INSTALL.md at the root of the source release; "
+                                          "notices are in notices/NOTICE and notices/THIRD-PARTY-NOTICES.md there.")))
             sums = disc["prefix"] + "-SHA256SUMS"
             write_text(sums, sums_text(members))
             public_discs.append({"role": disc["role"], "kind": disc["kind"],

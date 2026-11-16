@@ -170,6 +170,18 @@ raise SystemExit(subprocess.call(command, env=environment))
     def assemble(self, name, pending=False, version="1.0"):
         out = self.root / name
         self.py(name + "-assemble", self.tools / "release_assemble.py", self.assemble_args(out, pending, version))
+        metadata = json.loads((out / "ASSEMBLY.json").read_text(encoding="ascii"))
+        descriptions = {"disc1": "Disc 1 is the Deep32 Workstation image. ",
+                        "disc2": "Disc 2 is the Deep32 content image. ",
+                        "disc3": "Disc 3 is the Deep32 GPU pack image. "}
+        for disc in metadata["discs"]:
+            expected = ("# %s\n\nImage: %s\n\nBytes: %d\n\nSHA256: %s\n\n" % (
+                disc["kind"], disc["file"], disc["size"], disc["sha256"]) +
+                descriptions[disc["role"]] +
+                "Installation instructions are in INSTALL.md at the root of the source release; "
+                "notices are in notices/NOTICE and notices/THIRD-PARTY-NOTICES.md there.\n")
+            self.check(name + "-" + disc["role"] + "-readme-bytes",
+                       (out / disc["readme"]).read_bytes() == expected.encode("ascii"))
         return out
 
     def sign(self, release, name):

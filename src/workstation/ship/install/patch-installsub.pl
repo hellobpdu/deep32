@@ -31,13 +31,13 @@ my $d32_maint = <<'D32_MAINT_KSH';
 d32_maint_key_ok() {
     [ "$#" = 1 ] || return 1
     case $1 in ''|*[![:print:]]*) return 1;; esac
-    printf '%s\n' "$1" | LC_ALL=C grep -Eq '^ssh-ed25519 [A-Za-z0-9+/]{68}={0,2}( [A-Za-z0-9@._-]{1,64})?$'
+    print -r -- "$1" | LC_ALL=C grep -Eq '^ssh-ed25519 [A-Za-z0-9+/]{68}={0,2}( [A-Za-z0-9@._-]{1,64})?$'
 }
 
 _d32maint_choose() {
     local _d32answer= _d32key= _d32line _d32count=0
     D32_MAINT_KEY=
-    printf '%s ' 'Allow root maintenance over SSH with your own key? (off unless you choose it) [no]' >>"${D32_TTY_OUT:-/dev/tty}"
+    print -rn -- 'Allow root maintenance over SSH with your own key? (off unless you choose it) [no] ' >>"${D32_TTY_OUT:-/dev/tty}"
     IFS= read -r _d32answer <"${D32_TTY_IN:-/dev/tty}" || _d32answer=no
     case $_d32answer in y|yes) ;; *) resp=none; return 0;; esac
     # maint_key is a response-file field, separate from C7 version-1 settings.
@@ -48,7 +48,7 @@ _d32maint_choose() {
     done <"${D32_MAINT_RESPONSE:-/tmp/ai/ai.conf.tmp}"
     [ "$_d32count" -le 1 ] || return 1
     case $_d32key in ''|none|'@ASK@')
-        printf '%s ' 'Public ssh key for root account?' >>"${D32_TTY_OUT:-/dev/tty}"
+        print -rn -- 'Public ssh key for root account? ' >>"${D32_TTY_OUT:-/dev/tty}"
         IFS= read -r _d32key <"${D32_TTY_IN:-/dev/tty}" || return 1;;
     esac
     d32_maint_key_ok "$_d32key" || return 1
@@ -63,7 +63,7 @@ _d32maint_carry() {
     [ -n "${D32_MAINT_KEY-}" ] || return 0
     d32_maint_key_ok "$D32_MAINT_KEY" || return 1
     [ ! -e "$_d32record" ] && [ ! -L "$_d32record" ] || return 1
-    (umask 077; printf '%s\n' "$D32_MAINT_KEY" >"$_d32record") || return 1
+    (umask 077; print -r -- "$D32_MAINT_KEY" >"$_d32record") || return 1
     unset D32_MAINT_KEY
 }
 
