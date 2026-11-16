@@ -380,7 +380,7 @@ I built and tested Deep32 on a 2013 Xeon without AVX2 and one consumer graphics 
 
 | Layout | Minimum | Recommended |
 |---|---|---|
-| Workstation alone (keyword search only) | 64-bit Intel or AMD with virtualisation; 6 threads and 12 GB on the host; 60 GB free | As below |
+| Workstation alone (keyword search only) | 64-bit Intel or AMD with virtualisation; 6 threads and 12 GB on the host; 160 GB free (the guided install in this alpha) | As below |
 | Workstation and Forge on one machine | 8 threads and 32 GB; an NVIDIA card of compute capability 7.5 or newer with 6 GB; 160 GB free | 12 or more threads, 32 GB or more, an AVX2 processor and an RTX 20 series or newer card |
 | Forge alone | 4 threads and 16 GB on the host; a card as above; 100 GB free | As above |
 | Headend | Any PC that runs Claude Code or Codex | Windows, for the Ask window's relay in 1.0 |
@@ -499,7 +499,7 @@ Deep32 is archived on Zenodo. [10.5281/zenodo.24272647](https://doi.org/10.5281/
 
 ## License
 
-Code is licensed under AGPL-3.0-or-later and documentation under CC-BY-4.0. See [LICENSING.md](LICENSING.md), [LICENSE](LICENSE) and [LICENSE-DOCS](LICENSE-DOCS) for the grants and full licence texts. Third-party software, models and documents keep their own terms. Both Jina models are licensed CC BY-NC 4.0. Artwork and sounds keep the terms recorded in the asset ledger.
+Code is licensed under AGPL-3.0-or-later and documentation under CC-BY-4.0. See [LICENSING.md](licenses/LICENSING.md), [LICENSE](LICENSE) and [LICENSE-DOCS](licenses/LICENSE-DOCS) for the grants and full licence texts. Third-party software, models and documents keep their own terms. Both Jina models are licensed CC BY-NC 4.0. Artwork and sounds keep the terms recorded in the asset ledger.
 
 The names are the trademarks of their owners, used only to describe compatibility, and Deep32 is not affiliated with or endorsed by them.
 

@@ -65,8 +65,8 @@ import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SRC = os.path.normpath(os.path.join(HERE, "..", ".."))
-PS1 = os.path.join(SRC, "deep32-inventory.ps1")
-SH = os.path.join(SRC, "deep32-inventory.sh")
+PS1 = os.path.join(SRC, "install", "deep32-inventory.ps1")
+SH = os.path.join(SRC, "install", "deep32-inventory.sh")
 FIX = os.path.join(HERE, "fixtures")
 PROBE_ROOT = None
 PROBE_BIN = None

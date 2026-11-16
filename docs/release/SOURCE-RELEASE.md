@@ -6,7 +6,7 @@ src/gpu-pack/containers/converter-agpl; its code shares the project
 AGPL-3.0-or-later licence and its source remains in that folder.
 
 The engine API metadata and gateway version are 1.0.0. The original Python
-package import names are retained. RELEASE.json records the public source
+package import names are retained. docs/release/RELEASE.json records the public source
 identity, model revisions, driver floors and knowledge-base compatibility.
 Its final derived generation and fingerprint fields are deliberately pending
 until the content build is complete.

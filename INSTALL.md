@@ -67,13 +67,13 @@ address or serial number.
 On Windows, in the repository folder:
 
 ```
-powershell -NoProfile -ExecutionPolicy Bypass -File deep32-inventory.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File install/deep32-inventory.ps1
 ```
 
 On Linux or macOS:
 
 ```
-./deep32-inventory.sh
+./install/deep32-inventory.sh
 ```
 
 | Command | Time | What it does |

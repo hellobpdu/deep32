@@ -27,7 +27,7 @@ own licences and notices. Their licence texts and source offers are in
 payload/licences on the GPU disc.
 
 Project documentation, including production-converter/README.md, is licensed
-under CC-BY-4.0; see the repository LICENSE-DOCS for the full legal code.
+under CC-BY-4.0; see the repository licenses/LICENSE-DOCS for the full legal code.
 
 The converter has no network listener. If you change it and let other people use
 your changed version over a network, section 13 of the licence requires you to

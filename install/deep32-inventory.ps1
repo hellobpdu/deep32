@@ -30,14 +30,14 @@ What it does:
   No mode calls a language model or changes anything on the machine.
 
 Usage:
-  powershell -NoProfile -ExecutionPolicy Bypass -File deep32-inventory.ps1 [report] [options]
-  powershell -NoProfile -ExecutionPolicy Bypass -File deep32-inventory.ps1 bench quick [options]
+  powershell -NoProfile -ExecutionPolicy Bypass -File install/deep32-inventory.ps1 [report] [options]
+  powershell -NoProfile -ExecutionPolicy Bypass -File install/deep32-inventory.ps1 bench quick [options]
   Options:
     --json            print one compact JSON object (contract C10) instead of the page
     --net             report only: also check that the sites an install needs answer
                       (HEAD requests) and whether the GitHub CLI is signed in
     --seconds N       bench only: total time, 1 to 600 (default 120)
-    --matrix FILE     install matrix to use (default: install\matrix.json beside this file)
+    --matrix FILE     install matrix to use (default: matrix.json beside this file)
     --facts FILE      report only: skip the probes and judge the facts in FILE (a JSON
                       object with a "facts" member, as this program prints); for tests
     --guard-file FILE bench only: one more gaming-mode state file to obey, besides the
@@ -140,7 +140,7 @@ elseif ($Mode -eq 'bench') {
     if ($null -ne $FactsPath) { Write-Err '--facts belongs to report'; exit 2 }
 }
 else { Write-Err ('unknown mode ' + $Mode); Show-Usage; exit 2 }
-if ($null -eq $MatrixPath) { $MatrixPath = Join-Path $PSScriptRoot 'install\matrix.json' } else { $MatrixPath = Resolve-ArgPath $MatrixPath }
+if ($null -eq $MatrixPath) { $MatrixPath = Join-Path $PSScriptRoot 'matrix.json' } else { $MatrixPath = Resolve-ArgPath $MatrixPath }
 if ($null -ne $FactsPath) { $FactsPath = Resolve-ArgPath $FactsPath }
 if ($null -ne $GuardExtra) { $GuardExtra = Resolve-ArgPath $GuardExtra }
 

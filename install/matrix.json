@@ -204,7 +204,7 @@
     {"id": "is-vm", "when": [["hw.virtual", "eq", true]],
      "text": "This machine is itself a VM: VMs inside it need nested virtualisation"},
     {"id": "in-wsl", "when": [["os.wsl_guest", "eq", true]],
-     "text": "Running inside WSL: run deep32-inventory.ps1 on Windows instead"},
+     "text": "Running inside WSL: run install/deep32-inventory.ps1 on Windows instead"},
     {"id": "hybrid-cores", "when": [["cpu.e_cores", "gt", 0]],
      "text": "Fast and efficient cores: VMs are sized by the fast cores"},
     {"id": "ports-busy", "when": [["ports.busy_count", "gt", 0]],

@@ -26,14 +26,14 @@
 #   Needs bash (3.2 or later, for macOS), awk, sed, tr, df.
 #
 # Usage:
-#   bash deep32-inventory.sh [report] [--json] [--net] [--matrix FILE] [--facts FILE]
-#   bash deep32-inventory.sh bench quick [--seconds N] [--json] [--guard-file FILE]
+#   bash install/deep32-inventory.sh [report] [--json] [--net] [--matrix FILE] [--facts FILE]
+#   bash install/deep32-inventory.sh bench quick [--seconds N] [--json] [--guard-file FILE]
 #   Options:
 #     --json             print one compact JSON object (contract C10) instead of the page
 #     --net              report only: check that the sites an install needs answer (HEAD
 #                        requests) and whether the GitHub CLI is signed in
 #     --seconds N        bench only: total time, 1 to 600 (default 120)
-#     --matrix FILE      install matrix (default: install/matrix.json beside this file)
+#     --matrix FILE      install matrix (default: matrix.json beside this file)
 #     --facts FILE       report only: skip the probes and judge the facts in FILE (a JSON
 #                        object with a "facts" member, as this program prints); for tests
 #     --guard-file FILE  bench only: one more gaming-mode state file to obey, besides the
@@ -136,7 +136,7 @@ case "$MODE" in
     *) err "unknown mode $MODE"; usage >&2; exit 2 ;;
 esac
 SCRIPT_DIR=$(cd "$(dirname "$0")" 2>/dev/null && pwd)
-[ -z "$MATRIX" ] && MATRIX="$SCRIPT_DIR/install/matrix.json"
+[ -z "$MATRIX" ] && MATRIX="$SCRIPT_DIR/matrix.json"
 
 # ------------------------------------------------------------------ small helpers
 have() { command -v "$1" >/dev/null 2>&1; }
@@ -984,7 +984,7 @@ EOF
 probe_windows_shell() {
     # The shell on Windows (Git Bash, MSYS2, Cygwin): only what the POSIX layer shows.
     OS_FAMILY=windows
-    add_note 'shell version on Windows: most probes are unavailable; run deep32-inventory.ps1 for a full report'
+    add_note 'shell version on Windows: most probes are unavailable; run install/deep32-inventory.ps1 for a full report'
     probe_linux_cpu
     if [ -r "$R"/proc/meminfo ]; then
         MEM_TOTAL=$(awk '/^MemTotal:/ { printf "%.1f", $2 / 1048576 }' "$R"/proc/meminfo)

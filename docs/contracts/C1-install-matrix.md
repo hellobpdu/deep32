@@ -90,5 +90,5 @@ runs on every edit.
 - OPEN: no row for the Forge's PDF converter service (loopback 8083 in production). Decides: the builder in stage 4.
 - OPEN: the `disk_gb` figures are placeholders until stages 4 to 6 measure the discs. Decides: the builder.
 
-Sources: `install/matrix.json` 0.3.1 and `deep32-inventory.ps1` (derived facts), as read 2026-11-14;
+Sources: `install/matrix.json` 0.3.1 and `install/deep32-inventory.ps1` (derived facts), as read 2026-11-14;
 C10 (the verdict).

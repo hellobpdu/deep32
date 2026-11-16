@@ -7,7 +7,7 @@ Revisions below saying why and what must be retested. Schema string: `deep32.inv
 
 ## Programs and modes
 
-`deep32-inventory.ps1` (Windows PowerShell 5.1) and `deep32-inventory.sh` (bash 3.2 or later, Linux and
+`install/deep32-inventory.ps1` (Windows PowerShell 5.1) and `install/deep32-inventory.sh` (bash 3.2 or later, Linux and
 macOS) take the same arguments and print the same shapes. Both read `install/matrix.json` (contract C1).
 
 | Command | Does | Time |

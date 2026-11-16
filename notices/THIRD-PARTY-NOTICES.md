@@ -5,7 +5,7 @@ Dependency packages, model weights, container images and third-party media are n
 The dependency references below describe what the build and runtime code use; they do not
 claim that those dependencies or their corresponding sources are distributed here.
 
-Project code and documentation terms are in LICENSING.md. The converter source is under
+Project code and documentation terms are in licenses/LICENSING.md. The converter source is under
 AGPL-3.0-or-later in src/gpu-pack/containers/converter-agpl, with its full licence and source.
 
 The names are the trademarks of their owners, used only to describe compatibility, and Deep32 is not affiliated with or endorsed by them.
@@ -74,8 +74,8 @@ The names are the trademarks of their owners, used only to describe compatibilit
 | jaraco.text | 4.0.0 | https://pypi.org/project/jaraco.text/ | Not included. Not distributed here; upstream licence confirmation belongs to binary/package assembly. | src/gpu-pack/containers/builder/requirements-engine.in:35 |
 | jaraco_context | 6.1.0 | https://pypi.org/project/jaraco_context/ | Not included. Not distributed here; upstream licence confirmation belongs to binary/package assembly. | src/gpu-pack/containers/builder/requirements-engine.in:36 |
 | jaraco_functools | 4.4.0 | https://pypi.org/project/jaraco_functools/ | Not included. Not distributed here; upstream licence confirmation belongs to binary/package assembly. | src/gpu-pack/containers/builder/requirements-engine.in:37 |
-| jinaai/jina-embeddings-v5-text-small-retrieval | revision sha1:6856e76bb72982e58de0620458a4e8b3614da340 | https://huggingface.co/jinaai/jina-embeddings-v5-text-small-retrieval/tree/6856e76bb72982e58de0620458a4e8b3614da340 | Jina AI; CC BY-NC 4.0. Unmodified model reference; weights are not included. | RELEASE.json and source model configuration |
-| jinaai/jina-reranker-v3.5 | revision sha1:e8a93f33f0b22108f8c2364f8484ce3422552fbc | https://huggingface.co/jinaai/jina-reranker-v3.5/tree/e8a93f33f0b22108f8c2364f8484ce3422552fbc | Jina AI; CC BY-NC 4.0. Unmodified model reference; weights and remote model code are not included. | RELEASE.json and source model configuration |
+| jinaai/jina-embeddings-v5-text-small-retrieval | revision sha1:6856e76bb72982e58de0620458a4e8b3614da340 | https://huggingface.co/jinaai/jina-embeddings-v5-text-small-retrieval/tree/6856e76bb72982e58de0620458a4e8b3614da340 | Jina AI; CC BY-NC 4.0. Unmodified model reference; weights are not included. | docs/release/RELEASE.json and source model configuration |
+| jinaai/jina-reranker-v3.5 | revision sha1:e8a93f33f0b22108f8c2364f8484ce3422552fbc | https://huggingface.co/jinaai/jina-reranker-v3.5/tree/e8a93f33f0b22108f8c2364f8484ce3422552fbc | Jina AI; CC BY-NC 4.0. Unmodified model reference; weights and remote model code are not included. | docs/release/RELEASE.json and source model configuration |
 | jinja2 | 3.1.6 | https://pypi.org/project/jinja2/ | Not included. Not distributed here; upstream licence confirmation belongs to binary/package assembly. | src/gpu-pack/containers/builder/requirements-engine.in:38 |
 | joblib | 1.6.0 | https://pypi.org/project/joblib/ | Not included. Not distributed here; upstream licence confirmation belongs to binary/package assembly. | src/gpu-pack/containers/builder/requirements-engine.in:39 |
 | jsonschema | 4.26.0 | https://pypi.org/project/jsonschema/ | Not included. The selected upstream package licence applies; no dependency files are distributed here. | gateway dependency closure record for public source snapshot |
@@ -83,7 +83,7 @@ The names are the trademarks of their owners, used only to describe compatibilit
 | jsonschema_specifications | 2025.9.1 | https://pypi.org/project/jsonschema_specifications/ | Not included. Not distributed here; upstream licence confirmation belongs to binary/package assembly. | src/kb-tools/linux-line/compose/requirements-gateway.in:16 |
 | libwebp | external build input | https://developers.google.com/speed/webp | Not included. The selected upstream package licence applies; no dependency files are distributed here. | src/workstation: native build headers and link flags |
 | libzim | external build input | https://openzim.org/ | Not included. The selected upstream package licence applies; no dependency files are distributed here. | src/workstation: native build headers and link flags |
-| lightonai/Agent-ModernColBERT | revision selected by external build input | https://huggingface.co/lightonai/Agent-ModernColBERT | Upstream model terms apply; optional model reference, no weights included. | RELEASE.json and source model configuration |
+| lightonai/Agent-ModernColBERT | revision selected by external build input | https://huggingface.co/lightonai/Agent-ModernColBERT | Upstream model terms apply; optional model reference, no weights included. | docs/release/RELEASE.json and source model configuration |
 | markdown_it_py | 4.2.0 | https://pypi.org/project/markdown_it_py/ | Not included. Not distributed here; upstream licence confirmation belongs to binary/package assembly. | src/gpu-pack/containers/builder/requirements-engine.in:40 |
 | markupsafe | 3.0.3 | https://pypi.org/project/markupsafe/ | Not included. Not distributed here; upstream licence confirmation belongs to binary/package assembly. | src/gpu-pack/containers/builder/requirements-engine.in:41 |
 | maturin | 1.15.0 | https://pypi.org/project/maturin/ | Not included. Not distributed here; upstream licence confirmation belongs to binary/package assembly. | src/gpu-pack/containers/builder/requirements-engine.in:42 |

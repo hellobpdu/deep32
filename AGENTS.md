@@ -74,10 +74,10 @@ the person has seen the plan.
 ### deep32-inventory
 
 ```
-powershell -NoProfile -ExecutionPolicy Bypass -File deep32-inventory.ps1 [report] [--net] [--json]
-powershell -NoProfile -ExecutionPolicy Bypass -File deep32-inventory.ps1 bench quick [--seconds N] [--json]
-./deep32-inventory.sh [report] [--net] [--json]
-./deep32-inventory.sh bench quick [--seconds N] [--json]
+powershell -NoProfile -ExecutionPolicy Bypass -File install/deep32-inventory.ps1 [report] [--net] [--json]
+powershell -NoProfile -ExecutionPolicy Bypass -File install/deep32-inventory.ps1 bench quick [--seconds N] [--json]
+./install/deep32-inventory.sh [report] [--net] [--json]
+./install/deep32-inventory.sh bench quick [--seconds N] [--json]
 ```
 
 Use the `.ps1` on Windows. Run in Git Bash, the shell version refuses its bench (`windows-use-ps1`); run
