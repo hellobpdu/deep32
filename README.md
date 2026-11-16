@@ -18,12 +18,12 @@ Answers are built from a local corpus of RFCs and Cisco documentation, and every
   <a href="https://orcid.org/0009-0003-8091-4637"><img alt="ORCID 0009-0003-8091-4637" src="https://img.shields.io/badge/ORCID-0009--0003--8091--4637-a6ce39?style=flat-square&amp;logo=orcid&amp;logoColor=white"></a>
 </p>
 
-[Background](#background) · [Architecture](#architecture) · [Retrieval](#retrieval-pipeline) · [Tools](#mcp-tools) · [Protocol](#answer-protocol) · [Corpus](#corpus) · [Evaluation](#evaluation) · [Hardware](#hardware) · [Getting it](#getting-deep32) · [Limitations](#limitations)
+[Background](#background) · [Quick start](#quick-start) · [Architecture](#architecture) · [Retrieval](#retrieval-pipeline) · [Tools](#mcp-tools) · [Protocol](#answer-protocol) · [Corpus](#corpus) · [Evaluation](#evaluation) · [Hardware](#hardware) · [Getting it](#getting-deep32) · [Limitations](#limitations)
 
 </div>
 
 > [!NOTE]
-> 0.1.0-alpha.1 is the first public release: the source and the signed Workstation image, with the GPU pack and content images following in the next few days (see [Getting Deep32](#getting-deep32)). The measurements on this page are from my development setup.
+> To install Deep32, see [Quick start](#quick-start). 0.1.0-alpha.1 is the first public release: the source and the signed Workstation image, with the GPU pack and the content image being added to the same release now. The measurements on this page are from my development setup.
 
 <p align="center">
   <img alt="The Deep32 Workstation desktop. The Ask window shows a cited answer about BGP keepalive and hold timers; a network calculator, a text editor and the desktop style menu are open beside it." src="docs/screenshots/workstation-desktop.png" width="100%">
@@ -48,6 +48,50 @@ If you've ever read an RFC, you know that they're constantly being updated and o
 | Invented quotation | "The RFC states ..." followed by text that is not in the RFC | String-matches every quotation against the source section |
 
 All four can be checked mechanically. The agent starts with no documents and answers only from passages it retrieves, or states that the corpus does not cover the question. Quotations are string-matched against the stored text; no model is involved in that check. Every input to an answer is versioned, from document hashes up to whole index generations, so one build can be compared with the next and rolled back. Retrieval runs on your own hardware. The LLM is the only hosted component.
+
+## Quick start
+
+Everything runs from a clone of this repository. The download tool checks every disc against the release key in
+`install/`, so use the copy in the clone rather than one downloaded on its own.
+
+On Linux:
+
+```sh
+git clone https://github.com/hellobpdu/deep32.git && cd deep32
+./install/deep32-inventory.sh                            # what this machine can run; changes nothing
+./src/release-tools/deep32-get.sh disc1                  # Workstation image
+./src/release-tools/deep32-get.sh disc2                  # content image
+sudo ./src/release-tools/deep32-get.sh disc3 --install   # GPU pack: download, verify, start the containers
+```
+
+On Windows, in PowerShell:
+
+```powershell
+git clone https://github.com/hellobpdu/deep32.git; cd deep32
+powershell -NoProfile -ExecutionPolicy Bypass -File install\deep32-inventory.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File src\release-tools\deep32-get.ps1 disc1
+powershell -NoProfile -ExecutionPolicy Bypass -File src\release-tools\deep32-get.ps1 disc2
+powershell -NoProfile -ExecutionPolicy Bypass -File src\release-tools\deep32-get.ps1 disc3 --install
+```
+
+`deep32-get` downloads into `deep32-downloads`, resumes an interrupted download, and checks the signature and
+every hash before it joins a disc. If a disc is not on the release yet, it says so and stops. Then write the
+disc 1 image to a USB stick or attach it to a VM and run the guided install, and import disc 2 from the
+Workstation. [INSTALL.md](INSTALL.md) has the details, the install profiles, the known alpha issues and how to
+connect Claude Code or Codex.
+
+What you need:
+
+| Part | Hardware | Software |
+|---|---|---|
+| Workstation | 64-bit Intel or AMD with virtualisation, 6 threads, 12 GB of memory, 160 GB free | A hypervisor, or a spare machine to install on |
+| GPU pack | NVIDIA card of compute capability 7.5 or newer (RTX 20 series and later) with 6 GB or more; 4 threads, 16 GB of memory, 100 GB free | NVIDIA driver 580.65.06 or newer; Docker and the NVIDIA Container Toolkit on Linux, or WSL2 on Windows |
+| Both on one machine | 8 threads, 32 GB of memory, the card above, 160 GB free | As above |
+| Agent | Any PC | Claude Code or Codex |
+| Download | About 62 GB for the GPU pack | Git and GnuPG; on Linux also curl and Python 3 |
+
+Without a GPU pack the Workstation still works, but searches on keywords only. Card and layout details are in
+[Hardware](#hardware) and [docs/HARDWARE.md](docs/HARDWARE.md).
 
 ## Architecture
 
@@ -421,16 +465,18 @@ The release installs without any of my keys, logins or network settings. It is t
   </tr>
 </table>
 
-The larger images exceed GitHub's size limit for a release file and are split into parts. `deep32-get` (on the release page, `.sh` for Linux and `.ps1` for Windows) downloads the parts for the requested image, resumes an interrupted download, checks every hash and the signature, and joins the parts:
+The larger images exceed GitHub's size limit for a release file and are split into parts. `deep32-get` (in `src/release-tools/`, `.sh` for Linux and `.ps1` for Windows) downloads the parts for the requested image, resumes an interrupted download, checks every hash and the signature, and joins the parts:
 
 ```sh
-./deep32-get.sh disc1             # Workstation image, verified, ready to write to a USB stick
-./deep32-get.sh disc3 --install   # GPU pack: verify, mount and start the containers (Linux, as root)
+./src/release-tools/deep32-get.sh disc1                  # Workstation image, verified, ready to write to a USB stick
+sudo ./src/release-tools/deep32-get.sh disc3 --install   # GPU pack: verify, mount and start the containers (Linux)
 ```
 
 ```powershell
-.\deep32-get.ps1 disc3 --install  # GPU pack through WSL2 on Windows
+powershell -NoProfile -ExecutionPolicy Bypass -File src\release-tools\deep32-get.ps1 disc3 --install  # GPU pack through WSL2
 ```
+
+Run it from a clone of this repository, as in [Quick start](#quick-start): it reads the release key from `install/`.
 
 - No keys, tokens or logins are shipped on any image. Each install generates its own.
 - The guided Workstation install needs a disk of 160 GB or more in this alpha. A smaller layout is planned for the beta.
