@@ -2,7 +2,7 @@
 
 ## What this is
 
-This is the pinned add8 PyMuPDF document conversion chain and its separate command-line adapter. The converter code is licensed under AGPL-3.0-or-later; see ../LICENSE. Project documentation is licensed under CC-BY-4.0; see the repository licenses/LICENSE-DOCS. It prepares a source, converts it to text, cleans the text, applies document rules and writes quality and instruction checks.
+This is the pinned add8 PyMuPDF document conversion chain and its separate command-line adapter. The converter code is licensed under AGPL-3.0-or-later; see ../LICENSE. Project documentation is licensed under CC-BY-4.0; see the repository LICENSE-DOCS. It prepares a source, converts it to text, cleans the text, applies document rules and writes quality and instruction checks.
 
 ## Layout
 

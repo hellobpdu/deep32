@@ -372,7 +372,7 @@ For `uvloop` 0.22.1, `License` declares "MIT License"; its classifiers also name
 
 ## Deep32 code and documentation
 
-Deep32's own code is licensed under AGPL-3.0-or-later. Deep32's documentation is licensed under Creative Commons Attribution 4.0 International (CC BY 4.0). See `LICENSE` and `licenses/LICENSE-DOCS` at the repository root. Third-party material keeps its own terms.
+Deep32's own code is licensed under AGPL-3.0-or-later. Deep32's documentation is licensed under Creative Commons Attribution 4.0 International (CC BY 4.0). See `LICENSE` and `LICENSE-DOCS` at the repository root. Third-party material keeps its own terms.
 
 ## Trademarks and affiliation
 

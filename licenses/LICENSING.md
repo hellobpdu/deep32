@@ -9,7 +9,7 @@ This includes the PDF converter code under src/gpu-pack/containers/converter-agp
 its source and dependency notices remain in that folder.
 
 Deep32 documentation is licensed under Creative Commons Attribution 4.0
-International (SPDX: CC-BY-4.0). The full legal code is in licenses/LICENSE-DOCS and
+International (SPDX: CC-BY-4.0). The full legal code is in LICENSE-DOCS and
 licenses/CC-BY-4.0.txt.
 
 Third-party components and content keep their own licences and notices.

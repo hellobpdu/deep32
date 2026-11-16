@@ -499,7 +499,7 @@ Deep32 is archived on Zenodo. [10.5281/zenodo.24272647](https://doi.org/10.5281/
 
 ## License
 
-Code is licensed under AGPL-3.0-or-later and documentation under CC-BY-4.0. See [LICENSING.md](licenses/LICENSING.md), [LICENSE](LICENSE) and [LICENSE-DOCS](licenses/LICENSE-DOCS) for the grants and full licence texts. Third-party software, models and documents keep their own terms. Both Jina models are licensed CC BY-NC 4.0. Artwork and sounds keep the terms recorded in the asset ledger.
+Code is licensed under AGPL-3.0-or-later and documentation under CC-BY-4.0. See [LICENSING.md](licenses/LICENSING.md), [LICENSE](LICENSE) and [LICENSE-DOCS](LICENSE-DOCS) for the grants and full licence texts. Third-party software, models and documents keep their own terms. Both Jina models are licensed CC BY-NC 4.0. Artwork and sounds keep the terms recorded in the asset ledger.
 
 The names are the trademarks of their owners, used only to describe compatibility, and Deep32 is not affiliated with or endorsed by them.
 
