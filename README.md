@@ -25,6 +25,11 @@ Answers are built from a local corpus of RFCs and Cisco documentation, and every
 > [!NOTE]
 > 0.1.0-alpha.1 is the first public release: the source and the signed Workstation image, with the GPU pack and content images following in the next few days (see [Getting Deep32](#getting-deep32)). The measurements on this page are from my development setup.
 
+<p align="center">
+  <img alt="The Deep32 Workstation desktop. The Ask window shows a cited answer about BGP keepalive and hold timers; a network calculator, a text editor and the desktop style menu are open beside it." src="docs/screenshots/workstation-desktop.png" width="100%">
+</p>
+<p align="center"><sub>My laptop running the Workstation: Ask answering the BGP timer question, with the network calculator and the desktop menus open. My laptop uses the HP-UX CDE look; the alpha installs the Classic look, a reconstruction. Panels that exist only in my private build are blanked in these screenshots.</sub></p>
+
 ## Background
 
 If you've studied for any Cisco certification (or at the very least attempted to browse their technical paper repo...) you understand the pain involved in trying to find current information. Yes, as an engineer, you should be able to locate your own sources. I think over the past few years, though, it has become more "get thrown to the wolves" than most professions. Which is fine.....up to a point.
@@ -202,6 +207,12 @@ The usual answer for the BGP default timers is 60 and 180 seconds. The tools ret
 | 6 | `verify_quote` in RFC 4271, section 10:<br>"The suggested default value for the HoldTime is 180 seconds." | `not_found` |
 
 "60 and 180" is correct for Cisco IOS and IOS XE and incorrect as a statement about the RFC, which suggests a 90-second hold time with keepalives at one third of it. Call 6 is the check rejecting a sentence that does not exist: section 10 has no 180-second figure.
+
+The same question in the Ask window. The answer gives the Cisco and RFC values separately, marks the reasoning behind the 3:1 ratio as inference, and says that the cited sections do not explain why Cisco chose 180 seconds.
+
+<p align="center">
+  <img alt="End of an Ask answer about BGP timers: the reason BGP uses its own keepalives, the 3:1 ratio marked as inference, Cisco 60/180 against the RFC's suggested 90-second hold time, the research line with 15 RAG calls, and four RFC 4271 source links." src="docs/screenshots/ask-bgp-timers.png" width="85%">
+</p>
 
 ## Corpus
 
@@ -398,6 +409,17 @@ The release installs without any of my keys, logins or network settings. It is t
 | Workstation | Bootable installer | OpenBSD with the engine, the gateway, the Ask window, the Deep32 Encyclopedia and the desktop |
 | Content | Data | A prebuilt index generation, the corpus blocks that can be redistributed, and the encyclopedia content |
 | GPU pack | Data, mounted on the host | The GPU services as containers, plus the two ways to start them: Docker on Linux, or WSL2 on Windows |
+
+<table>
+  <tr>
+    <td width="50%"><img alt="The Deep32 Encyclopedia open at the Border Gateway Protocol article, with the article outline on the left and the Internet protocol suite navigation box." src="docs/screenshots/library-article.png"></td>
+    <td width="50%"><img alt="The Pinpointer search panel with the query ospf: a list of matching RFCs, Internet-Drafts and local glossary entries with scope, type and sort controls." src="docs/screenshots/library-search.png"></td>
+  </tr>
+  <tr>
+    <td><sub>The Deep32 Encyclopedia from the content image, open at Border Gateway Protocol (article text from Wikipedia, CC BY-SA 4.0).</sub></td>
+    <td><sub>Pinpointer search for "ospf" across the RFCs, Internet-Drafts and the local glossary.</sub></td>
+  </tr>
+</table>
 
 The larger images exceed GitHub's size limit for a release file and are split into parts. `deep32-get` (on the release page, `.sh` for Linux and `.ps1` for Windows) downloads the parts for the requested image, resumes an interrupted download, checks every hash and the signature, and joins the parts:
 
