@@ -1,0 +1,11 @@
+#!/bin/ksh
+# /usr/local/d32/sbin/d32chat-launch: the launcher rc.d/d32chat names (update 2, desktop lane; U42). PLACEHOLDER.
+# The Ask link (asklink's d32-chatd, the broker behind Deep32 Library's Ask room) is not in this release: Ask stays
+# built but off until it is paired (item 55, Q10), and before any relay is connected the per-class collection
+# ceilings must be enforced on the node (node/asklink/STATUS.md, "Not done / open"). Until the real launcher
+# replaces this file, "rcctl start d32chat" fails with this reason in syslog instead of "No such file". It starts
+# nothing, opens nothing and exits 78 (EX_CONFIG). The service stays disabled (rc.conf.local does not list it).
+msg="d32chat: the Ask link is not in this release; d32chat stays off"
+/usr/bin/logger -t d32chat -p daemon.notice "$msg" 2>/dev/null
+print -u2 -r -- "$msg"
+exit 78

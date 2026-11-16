@@ -1,0 +1,360 @@
+#!/bin/ksh
+# /usr/local/d32/sbin/d32-pairdesk: the pairing screens of the Workstation, in a Terminal, as root (d32-pair opens it
+# through doas). Workstation with Forge and Workstation with relay: this Workstation joins and the person types the
+# code the other machine shows. A headend with this Workstation: this Workstation shows a code (contract C8, the
+# pairing reference deep32-pair).
+#   d32-pairdesk [-forge | -relay | -headend]
+# A code lives only in this process's shell variables and in deep32-pair's standard input: never in an argument, the
+# environment of a command, a file or a log. A shown code is cleared from the screen and from memory when its window
+# of five minutes ends, when the pairing ends and on Ctrl+C. The Terminal keeps no scroll-back (d32-pair).
+LC_ALL=C
+export LC_ALL
+R=${D32_ROOT:-}
+if [ -z "$R" ]; then
+	[ "$(id -u)" = 0 ] || exit 3
+	PATH=/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin
+	PAIR=/usr/local/d32/libexec/deep32-pair
+else
+	[ -n "${D32_PATH:-}" ] || exit 2
+	PATH=$D32_PATH:$PATH
+	PAIR=${D32_PAIR_BIN:-$R/usr/local/d32/libexec/deep32-pair}
+fi
+TEST_WINDOW=${D32_PAIR_WINDOW:-}
+. $R/usr/local/d32/libexec/d32-ui-lib.sh || exit 2
+UIJSON=$R/usr/local/d32/libexec/d32-uijson
+STATE=$R/var/db/d32/net
+NODECONF=$R/etc/d32/node.conf
+WINDOW=300
+[ -n "$R" ] && [ -n "$TEST_WINDOW" ] && WINDOW=$TEST_WINDOW
+TAB='	'
+CR=$(echo x | tr -d '\n' | tr x '\r'; echo .)   # the dot keeps the carriage return through $( ) on every shell
+CR=${CR%.}
+
+mode=${1:-}
+case $mode in ''|-forge|-relay|-headend) ;; *) exit 2 ;; esac
+
+# ---- small helpers ------------------------------------------------------------------------------------------------
+setting() {   # KEY DEFAULT: a value of node.conf (world-readable, no secret in it)
+	S_v=$2
+	if [ -r "$NODECONF" ]; then
+		while IFS= read -r S_l; do
+			case $S_l in "$1="*) S_v=${S_l#*=} ;; esac
+		done < "$NODECONF"
+	fi
+	echo "$S_v"
+}
+release() {
+	S_r=
+	[ -r $R/etc/d32/release ] && read -r S_r S_x < $R/etc/d32/release
+	case $S_r in ''|*[!A-Za-z0-9._+-]*) S_r=D.32 ;; esac
+	echo "$S_r"
+}
+header() {
+	clear 2>/dev/null || echo ""
+	d32ui_fmt pair.head rel "$REL"
+	echo "$D32UI_T"
+	H_u=
+	H_n=${#D32UI_T}
+	while [ $H_n -gt 0 ]; do H_u="$H_u="; H_n=$((H_n - 1)); done
+	echo "$H_u"
+	echo ""
+}
+ask() {   # PROMPT-ID [values]: prompt, then one line into ANSWER
+	d32ui_fmt "$@"
+	echo -n "$D32UI_T"
+	ANSWER=
+	IFS= read -r ANSWER || ANSWER=q
+}
+wait_return() {
+	echo ""
+	ask pair.back
+}
+fields() {   # read d32-uijson lines from standard input into F_<key> (the first value) and the candidate rows
+	F_status= F_ok= F_reason= F_code_reason= F_locked_minutes= F_peer_id= NC=0
+	while IFS='|' read -r F_k F_a F_b F_c F_d F_e F_f; do
+		case $F_k in
+		status) F_status=$F_a ;;
+		ok) F_ok=$F_a ;;
+		reason) F_reason=$F_a ;;
+		code_reason) F_code_reason=$F_a ;;
+		locked_minutes) F_locked_minutes=$F_a ;;
+		peer_id) F_peer_id=$F_a ;;
+		cand|peer)
+			NC=$((NC + 1))
+			eval "C_a_$NC=\$F_a C_b_$NC=\$F_b C_c_$NC=\$F_c C_d_$NC=\$F_d C_e_$NC=\$F_e C_f_$NC=\$F_f" ;;
+		esac
+	done
+}
+why() {   # REASON: the words for a pairing reference reason, in D32UI_T
+	case $1 in
+	locked)	d32ui_fmt pair.why.locked minutes "${F_locked_minutes:-15}" ;;
+	bad-code)
+		d32ui_text "pair.code.why.${F_code_reason:-bad-request}"
+		W_c=$D32UI_T
+		d32ui_fmt pair.why.bad-code
+		D32UI_T="$D32UI_T $W_c" ;;
+	*)	d32ui_text "pair.why.$1"
+		[ "$D32UI_T" = "pair.why.$1" ] && d32ui_text pair.why.internal ;;
+	esac
+}
+forget() {   # every copy of a code this shell holds
+	D32UI_CODE= CODE= INPUT= JSON= D32UI_T= ANSWER= G_code=
+}
+trap 'forget; [ -n "$R" ] && [ -n "${D32_TEST_DUMP:-}" ] && set > "$D32_TEST_DUMP"' EXIT
+
+have_pair() {
+	if [ ! -x "$PAIR" ]; then
+		d32ui_say pair.why.missing
+		wait_return
+		return 1
+	fi
+	return 0
+}
+
+# ---- joining: Forge or relay (this Workstation types the code) --------------------------------------------------
+join() {   # KIND (forge or relay)
+	J_kind=$1
+	d32ui_text "peer.$J_kind"
+	J_peer=$D32UI_T
+	header
+	have_pair || return 0
+	J_out=$("$PAIR" identity --state-dir "$STATE" --node workstation </dev/null 2>/dev/null | "$UIJSON" result)
+	fields_from "$J_out"
+	if [ "$F_ok" != yes ]; then
+		why "$F_reason"; J_w=$D32UI_T
+		d32ui_say pair.fail why "$J_w"
+		wait_return
+		return 0
+	fi
+	J_tr=$(setting transport tailnet)
+	if [ "$J_tr" = loopback ]; then
+		d32ui_say pair.look.loopback peer "$J_peer"
+		J_name=localhost J_addr= J_port= J_dns=
+	else
+		d32ui_say pair.look peer "$J_peer"
+		J_out=$("$PAIR" discover --want "$J_kind" --transport tailnet </dev/null 2>/dev/null | "$UIJSON" candidates)
+		fields_from "$J_out"
+		if [ "$F_status" = not-signed-in ]; then d32ui_say pair.look.signin; wait_return; return 0; fi
+		if [ "$F_status" != ok ]; then d32ui_say pair.look.status; wait_return; return 0; fi
+		if [ "$NC" -eq 0 ]; then d32ui_say pair.look.none peer "$J_peer"; wait_return; return 0; fi
+		echo ""
+		J_i=1
+		while [ $J_i -le $NC ]; do
+			eval "J_n=\$C_a_$J_i J_on=\$C_b_$J_i J_path=\$C_c_$J_i"
+			if [ "$J_on" = yes ]; then d32ui_text pair.online.yes; else d32ui_text pair.online.no; fi
+			J_ont=$D32UI_T
+			d32ui_text "pair.path.$J_path"
+			J_pt=$D32UI_T
+			d32ui_say pair.row n "  $J_i" name "$(pad_to "$J_n" 24)" online "$(pad_to "$J_ont" 8)" path "$J_pt"
+			J_i=$((J_i + 1))
+		done
+		echo ""
+		if [ "$NC" -eq 1 ]; then
+			ask pair.pick.one name "$C_a_1"
+			case $ANSWER in [Yy]*) J_i=1 ;; *) return 0 ;; esac
+		else
+			ask pair.pick peer "$J_peer" n "$NC"
+			case $ANSWER in
+			[1-9]|[1-9][0-9]) J_i=$ANSWER ;;
+			*) return 0 ;;
+			esac
+			[ "$J_i" -le "$NC" ] || return 0
+		fi
+		eval "J_name=\$C_a_$J_i J_addr=\$C_d_$J_i J_port=\$C_e_$J_i J_dns=\$C_f_$J_i"
+	fi
+	echo ""
+	d32ui_say pair.code.ask peer "$J_peer"
+	while :; do
+		ask pair.code.prompt
+		INPUT=$ANSWER
+		ANSWER=
+		case $INPUT in [Qq]) INPUT=; return 0 ;; esac
+		if d32ui_code "$INPUT"; then
+			INPUT=
+			break
+		fi
+		INPUT=
+		d32ui_text "pair.code.why.$D32UI_WHY"
+		J_w=$D32UI_T
+		d32ui_say pair.code.bad why "$J_w"
+	done
+	JSON="{\"kind\": \"$J_kind\", \"code\": \"$D32UI_CODE\", \"transport\": \"$J_tr\", \"state_dir\": \"$STATE\""
+	D32UI_CODE=
+	[ -n "$J_addr" ] && JSON="$JSON, \"address\": \"$J_addr\""
+	case $J_port in [1-9]*) JSON="$JSON, \"port\": $J_port" ;; esac
+	if [ "$J_tr" != loopback ]; then
+		case $J_name in [A-Za-z0-9]*) JSON="$JSON, \"peer_host_name\": \"$J_name\"" ;; esac
+		[ -n "$J_dns" ] && JSON="$JSON, \"peer_dns_name\": \"$J_dns\""
+		JSON="$JSON, \"hosts_file\": \"$R/etc/hosts\""
+	fi
+	JSON="$JSON}"
+	echo ""
+	d32ui_say pair.working name "$J_name"
+	J_out=$(echo "$JSON" | "$PAIR" join 2>/dev/null | "$UIJSON" result)
+	JSON=
+	fields_from "$J_out"
+	if [ "$F_ok" = yes ]; then
+		d32ui_say "pair.ok.$J_kind" name "$J_name"
+		if [ "$J_kind" = forge ] && [ -x $R/usr/local/d32/libexec/d32-forge-enrol ]; then
+			$R/usr/local/d32/libexec/d32-forge-enrol "$F_peer_id" </dev/null >/dev/null 2>&1
+		fi
+	else
+		why "$F_reason"; J_w=$D32UI_T
+		d32ui_say pair.fail why "$J_w"
+	fi
+	wait_return
+}
+
+# ---- showing a code: a headend pairs with this Workstation's gateway ----------------------------------------------
+G_spid=
+G_stop() {
+	[ -n "$G_spid" ] && kill "$G_spid" 2>/dev/null
+	G_spid=
+}
+show() {
+	header
+	have_pair || return 0
+	G_tmp=$(mktemp -d "${TMPDIR:-$R/tmp}/d32pair.XXXXXXXX") || return 0
+	chmod 0700 "$G_tmp"
+	G_out=$("$PAIR" identity --state-dir "$STATE" --node workstation </dev/null 2>/dev/null | "$UIJSON" result)
+	fields_from "$G_out"
+	if [ "$F_ok" != yes ]; then
+		why "$F_reason"; G_w=$D32UI_T
+		d32ui_say pair.fail why "$G_w"
+		rm -rf "$G_tmp"; wait_return; return 0
+	fi
+	G_code=$("$PAIR" new-code </dev/null 2>/dev/null)
+	if ! d32ui_c6_ok pair "$G_code"; then
+		G_code=
+		why internal; G_w=$D32UI_T
+		d32ui_say pair.fail why "$G_w"
+		rm -rf "$G_tmp"; wait_return; return 0
+	fi
+	G_tr=$(setting transport tailnet)
+	G_pub=$(setting publish serve-https)
+	JSON="{\"kind\": \"gateway\", \"code\": \"$G_code\", \"expires_seconds\": $WINDOW, \"attempts\": 1, \"transport\": \"$G_tr\", \"publish\": \"$G_pub\", \"state_dir\": \"$STATE\"}"
+	# no ( ) around the pipeline: $! must be deep32-pair itself (the last command of a background pipeline, in ksh
+	# and bash alike), so that a cancel stops its window; a subshell's pid would leave it listening for five minutes
+	echo "$JSON" | "$PAIR" serve > "$G_tmp/result" 2>/dev/null &
+	G_spid=$!
+	JSON=
+	G_cancel=
+	trap 'G_cancel=1' INT
+	d32ui_group "$G_code"; G_grp=$D32UI_T
+	d32ui_spell "$G_code"; G_spell=$D32UI_T
+	G_code=
+	d32ui_say pair.show.head
+	echo ""
+	G_big=
+	G_r=$G_grp
+	while [ -n "$G_r" ]; do
+		G_c=${G_r%"${G_r#?}"}
+		G_r=${G_r#?}
+		if [ "$G_c" = " " ]; then G_big="$G_big  "; else G_big="$G_big $G_c"; fi
+	done
+	echo "          $G_big"
+	echo ""
+	d32ui_say pair.show.spell spell "$G_spell"
+	echo ""
+	G_t0=$(date +%s)
+	G_left=$WINDOW
+	while :; do
+		d32ui_mmss $G_left
+		d32ui_fmt pair.show.left left "$D32UI_T"
+		echo -n "$CR$D32UI_T  "
+		[ -n "$G_cancel" ] && break
+		kill -0 "$G_spid" 2>/dev/null || break
+		[ $G_left -le 0 ] && break
+		sleep 1
+		G_left=$((WINDOW - ($(date +%s) - G_t0)))
+		[ $G_left -lt 0 ] && G_left=0
+	done
+	trap - INT
+	[ -n "$G_cancel" ] || [ $G_left -le 0 ] && G_stop
+	wait "$G_spid" 2>/dev/null
+	G_spid=
+	G_grp= G_spell= G_big= G_r= G_c=
+	clear 2>/dev/null || echo ""
+	header
+	if [ -n "$G_cancel" ]; then
+		d32ui_say pair.show.cancel
+	else
+		G_res=
+		[ -s "$G_tmp/result" ] && G_res=$("$UIJSON" result < "$G_tmp/result")
+		fields_from "$G_res"
+		if [ "$F_ok" = yes ]; then
+			d32ui_say pair.ok.headend name "${F_peer_id:-?}"
+			if [ -x $R/usr/local/d32/libexec/d32-gateway-enrol ]; then
+				$R/usr/local/d32/libexec/d32-gateway-enrol "$F_peer_id" </dev/null >/dev/null 2>&1
+			fi
+		elif [ "$F_reason" = expired ] || [ $G_left -le 0 ]; then
+			d32ui_say pair.show.expired
+		else
+			why "${F_reason:-internal}"; G_w=$D32UI_T
+			d32ui_say pair.fail why "$G_w"
+		fi
+	fi
+	rm -rf "$G_tmp"
+	wait_return
+}
+
+# ---- paired machines ----------------------------------------------------------------------------------------------
+list() {
+	header
+	have_pair || return 0
+	d32ui_say pair.list.head
+	echo ""
+	L_out=$("$PAIR" peers --state-dir "$STATE" </dev/null 2>/dev/null | "$UIJSON" peers)
+	fields_from "$L_out"
+	if [ "$NC" -eq 0 ]; then
+		d32ui_say pair.list.none
+	else
+		L_i=1
+		while [ $L_i -le $NC ]; do
+			eval "L_k=\$C_a_$L_i L_n=\$C_b_$L_i L_d=\$C_c_$L_i"
+			d32ui_text "peer.$L_k"
+			[ "$D32UI_T" = "peer.$L_k" ] && D32UI_T=$L_k
+			L_kt=$D32UI_T
+			d32ui_say pair.list.row kind "$(pad_to "$L_kt" 12)" name "$(pad_to "$L_n" 24)" when "$L_d"
+			L_i=$((L_i + 1))
+		done
+	fi
+	wait_return
+}
+
+pad_to() {
+	P_s=$1
+	while [ ${#P_s} -lt $2 ]; do P_s="$P_s "; done
+	echo "$P_s"
+}
+# fields_from TEXT: "echo TEXT | fields" would run fields in a subshell in some shells; read through a here-document
+fields_from() {
+	fields <<EOF_FIELDS
+$1
+EOF_FIELDS
+}
+
+# ---- the menu -----------------------------------------------------------------------------------------------------
+REL=$(release)
+case $mode in
+-forge) join forge; exit 0 ;;
+-relay) join relay; exit 0 ;;
+-headend) show; exit 0 ;;
+esac
+while :; do
+	header
+	for M in "F pair.menu.forge" "R pair.menu.relay" "H pair.menu.headend" "P pair.menu.list" "Q pair.menu.quit"; do
+		d32ui_text "${M#* }"
+		echo "  ${M%% *}  $D32UI_T"
+	done
+	echo ""
+	ask pair.choose
+	case $ANSWER in
+	[Ff]) join forge ;;
+	[Rr]) join relay ;;
+	[Hh]) show ;;
+	[Pp]) list ;;
+	[Qq]|'') exit 0 ;;
+	*) d32ui_say pair.choose.again; sleep 1 ;;
+	esac
+done

@@ -1,0 +1,10 @@
+# Deep32 Workstation login class for rc.d d32edge (BASE lane's file, with the shims lane's additions marked +).
+# + stacksize-cur=8M, openfiles 1024/4096: as d32core.
+d32edge:\
+	:datasize=2048M:\
+	:stacksize-cur=8M:\
+	:openfiles-cur=1024:\
+	:openfiles-max=4096:\
+	:coredumpsize=0:\
+	:setenv=PYTHONDONTWRITEBYTECODE=1:\
+	:tc=daemon:

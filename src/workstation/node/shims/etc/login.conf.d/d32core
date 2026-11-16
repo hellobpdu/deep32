@@ -1,0 +1,18 @@
+# Deep32 Workstation login class for rc.d d32core (BASE lane's file, with the shims lane's additions marked +).
+# login.conf(5): /etc/login.conf.d/<class> takes precedence over /etc/login.conf; "tc=" reaches only this file and
+# /etc/login.conf, so each class is complete in itself. rc.subr (8.0) picks the class named after the script.
+# FIX-05 (traces off) and FIX-04 (immutable database) are set here, in a schg file, so no rc.conf.local line can
+# undo them; rc_pre and the launcher both refuse to start without them.
+# + stacksize-cur=8M: the main thread's stack as glibc gives production (the daemon class already says 8M on
+#   OpenBSD 8.0; set explicitly so a change there cannot shrink it). Worker threads get 8 MiB from the launcher.
+# + openfiles 1024/4096: production's soft limit under systemd is 1024; the daemon class's 128 is too few for
+#   uvicorn's connections plus a SQLite connection per search.
+# datasize 4 GiB: production deep32-engine's RSS is about 1.8 GB (core-procs.txt); measured on the node in STATUS.md.
+d32core:\
+	:datasize=4096M:\
+	:stacksize-cur=8M:\
+	:openfiles-cur=1024:\
+	:openfiles-max=4096:\
+	:coredumpsize=0:\
+	:setenv=RAG_TRACE=off,RAG_DB_IMMUTABLE=1,SQLITE_TMPDIR=/var/d32/run/core-tmp,PYTHONDONTWRITEBYTECODE=1:\
+	:tc=daemon:

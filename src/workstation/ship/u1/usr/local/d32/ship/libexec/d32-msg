@@ -1,0 +1,55 @@
+#!/usr/local/dt/bin/dtksh
+# d32-msg [-i|-w|-e] TITLE TEXT...: a small CDE message box (Motif, through dtksh), Deep32/UX update 1 (U16).
+# TITLE goes in the window's title bar; TEXT (the remaining words, joined by spaces; a newline in it starts a new
+# line) is folded at word boundaries to 64 columns; one OK button. -i information (the default), -w warning,
+# -e error. It returns when OK is pressed or the window is closed, so callers put it in the background.
+# Without a display it prints "TITLE: TEXT" on stderr. CDE's dterror.ds takes every argument as the message and
+# titles the box "dt Error"; this replaces it for d32-notyet, d32-look and the Library launcher.
+kind=information
+case ${1:-} in
+-i) shift ;;
+-w) kind=warning; shift ;;
+-e) kind=error; shift ;;
+esac
+title=${1:-Deep32/UX}
+[ $# -gt 0 ] && shift
+text="$*"
+[ -n "$text" ] || text="$title"
+if [ -z "${DISPLAY:-}" ]; then
+	print -u2 -r -- "$title: $text"
+	exit 0
+fi
+folded=$(print -r -- "$text" | /usr/bin/fold -s -w 64 | /usr/bin/sed 's/[[:space:]]*$//')
+
+done_cb() {
+	exit 0
+}
+
+# the centre of the monitor the box belongs on: RandR's primary output, else the first connected one (a laptop
+# panel and a dock monitor are one X screen), else the middle of a 1280x800 screen
+geo=$(/usr/X11R6/bin/xrandr --query 2>/dev/null | /usr/bin/sed -n 's/^[^ ]* connected primary \([0-9]*x[0-9]*+[0-9]*+[0-9]*\).*/\1/p' | /usr/bin/head -1)
+[ -n "$geo" ] || geo=$(/usr/X11R6/bin/xrandr --query 2>/dev/null | /usr/bin/sed -n 's/^[^ ]* connected \([0-9]*x[0-9]*+[0-9]*+[0-9]*\).*/\1/p' | /usr/bin/head -1)
+case $geo in
++([0-9])x+([0-9])++([0-9])++([0-9]))
+	w=${geo%%x*}; r=${geo#*x}; h=${r%%+*}; r=${r#*+}; ox=${r%%+*}; oy=${r#*+}
+	(( cx = ox + w / 2 )); (( cy = oy + h / 2 )) ;;
+*)	cx=640; cy=400 ;;
+esac
+
+# an unmapped 1x1 parent at that centre: Motif centres the dialog over its parent (defaultPosition)
+XtInitialize TOP d32Msg D32Msg
+XtSetValues $TOP x:$cx y:$cy width:1 height:1 mappedWhenManaged:false
+XtRealizeWidget $TOP
+case $kind in
+error) XmCreateErrorDialog DIALOG $TOP d32msg dialogTitle:"$title" messageString:"$folded" ;;
+warning) XmCreateWarningDialog DIALOG $TOP d32msg dialogTitle:"$title" messageString:"$folded" ;;
+*) XmCreateInformationDialog DIALOG $TOP d32msg dialogTitle:"$title" messageString:"$folded" ;;
+esac
+XmMessageBoxGetChild CANCEL $DIALOG DIALOG_CANCEL_BUTTON
+XmMessageBoxGetChild HELP $DIALOG DIALOG_HELP_BUTTON
+XtUnmanageChild $CANCEL
+XtUnmanageChild $HELP
+XtAddCallback $DIALOG okCallback done_cb
+XtAddCallback $DIALOG unmapCallback done_cb
+XtManageChild $DIALOG
+XtMainLoop

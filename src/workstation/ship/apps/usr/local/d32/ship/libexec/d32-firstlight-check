@@ -1,0 +1,57 @@
+#!/bin/ksh
+# d32-firstlight-check: what an installed First light PREVIEW looks like, as root (ship lane). Counts, states and
+# ids only; never document text. Used by the test VM run, and by the owner after his own install.
+print "== Deep32/UX $(cat /etc/d32/release 2>/dev/null) first-light check, $(date)"
+uname -a
+print "securelevel $(sysctl -n kern.securelevel)"
+bioctl softraid0 2>&1 | sed -n '1,4p'
+df -h | sed -n '1,20p'
+print "== services"
+for s in d32core d32edge kiwix_serve portmap dtlogin d32accel d32front d32chat sshd smtpd inetd xenodm; do
+	if rcctl check $s >/dev/null 2>&1; then print "$s up"; else print "$s down"; fi
+done
+print "== service users"
+ps -axo user,command | egrep '^(_d32core|_d32edge|_kiwix-serve) ' | cut -c1-120
+ls -l /var/run/d32/ 2>&1
+print "== RAG (waits for deep32-engine's start, up to 3 minutes)"
+i=0
+while [ $i -lt 18 ] && ! /usr/local/bin/python3.14 -I -B /usr/local/d32/ship/libexec/d32-mcp.py >/dev/null 2>&1; do
+	sleep 10
+	i=$((i + 1))
+done
+/usr/local/bin/python3.14 -I -B /usr/local/d32/ship/libexec/d32-mcp.py --smoke
+/usr/local/d32/ship/libexec/d32-lampd -q && sed 's/^/lamp: /' /var/d32/lamps/rag
+print "== Library"
+if ftp -o /tmp/d32k.$$ http://127.0.0.1:8850/ >/dev/null 2>&1; then print "kiwix: $(wc -c </tmp/d32k.$$ | tr -d ' ') bytes from 127.0.0.1:8850"; else print "kiwix: no answer"; fi
+rm -f /tmp/d32k.$$
+ls /d32/libcontent
+du -sh /d32/a /d32/libcontent /usr/local 2>/dev/null
+print "== listeners (want: loopback, portmap, nothing else)"
+netstat -an -f inet | grep LISTEN
+netstat -an -f inet6 | grep LISTEN
+print "== packs installed"
+for i in /var/db/d32/packs/*/INFO; do
+	print "$(sed -n 's/^name=//p' $i) $(sed -n 's/^files=//p' $i) files $(sed -n 's/^bytes=//p' $i) bytes"
+done
+ls -ld /d32/active /d32/a/gen/p9er-20261102 2>&1
+print "== install log"
+print "$(grep -c . /var/log/d32-site.log) lines; fails: $(grep -c 'D32: fail' /var/log/d32-site.log)"
+tail -3 /var/log/d32-site.log
+print "== no secret in logs or mail"
+n=$(grep -rlE 'RAG_(CORE_API|MCP)_TOKENS?=[0-9a-f]|tskey-' /var/log /var/mail /var/spool/smtpd 2>/dev/null | wc -l | tr -d ' ')
+print "files with a token: $n"
+print "== pf: $(pfctl -sr 2>/dev/null | wc -l | tr -d ' ') rules; pass in: $(pfctl -sr 2>/dev/null | grep -c '^pass in')"
+print "== desktop"
+pgrep -lf dtlogin | head -2
+pgrep -l Xorg | head -2
+# update 1: Xsession sources only executable files (U06: the preview's lamp file was 0644 and never ran)
+for x in /etc/dt/config/Xsession.d/* /usr/local/dt/config/Xsession.d/*; do
+	[ -f "$x" ] || continue
+	[ -x "$x" ] && print "Xsession.d ok: $x" || print "Xsession.d NOT EXECUTABLE (skipped by Xsession): $x"
+done
+print "== network (no NIC at boot; time from the paired hub)"
+print "hostname.* files: $(ls /etc/hostname.* 2>/dev/null | wc -l | tr -d ' ')"
+print "default route: $(route -n show -inet 2>/dev/null | awk '$1 == "default" { print $2; f = 1 } END { if (!f) print "none" }' | tr '\n' ' ')"
+print "ntpd servers: $(sed -n 's/^server[[:space:]]*//p; s/^servers[[:space:]]*//p' /etc/ntpd.conf | tr '\n' ' ')"
+print "pf <ntp>: $(pfctl -t ntp -T show 2>/dev/null | tr -s ' \n' ' ')"
+print "release: $(cat /etc/d32/release 2>/dev/null)"

@@ -1,0 +1,22 @@
+// Exact laptop resources; no drawing or layout code.
+'use strict';
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
+exports.overlay = function(root) {
+  const base = path.resolve(__dirname, '../laptop-look');
+  const data = fs.readFileSync(path.join(base, 'manifest.json'));
+  if (crypto.createHash('sha256').update(data).digest('hex') !== '12f0a2e73a735af8dcc3084cb5b875239efc9b02a906f171f391ae8db2254a2c') throw new Error('laptop-look manifest differs');
+  const rows = JSON.parse(data);
+  // Validate all bytes before the first output change.
+  const validated = rows.map(r => {
+    if (!/^[a-f0-9]{64}$/.test(r.sha256) || !r.path || r.path.startsWith('/') || r.path.split('/').includes('..')) throw new Error('bad laptop path');
+    const b = fs.readFileSync(path.join(base, 'store', r.sha256));
+    if (b.length !== r.bytes || crypto.createHash('sha256').update(b).digest('hex') !== r.sha256) throw new Error('laptop asset differs: ' + r.path);
+    return [r,b];
+  });
+  for (const [r,b] of validated) {
+    root.files = root.files.filter(f => f.rel !== r.path);
+    root.write(r.path, b, { mode:r.mode, owner:'root:wheel', install:'file', licence:r.licence, note:'laptop byte restore' });
+  }
+};

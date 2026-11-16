@@ -1,0 +1,4 @@
+! D32pair: the Deep32 Pairing Terminal (dtterm -name d32pair). No scroll-back, so a code shown in it is gone once the
+! screen is cleared; the rest is the session's dtterm look.
+d32pair*saveLines:	0
+d32pair*scrollBar:	False

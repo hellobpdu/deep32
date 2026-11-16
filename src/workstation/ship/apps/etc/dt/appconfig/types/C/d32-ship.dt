@@ -1,0 +1,151 @@
+# Deep32/UX First light PREVIEW (ship lane): the Library's baked content, until Deep32 Library's own readers land.
+# The theme lane's files stay as generated; these records add actions it does not have and, since update 1,
+# override some of its records. Files in one directory are read in name order and the FIRST record of a name wins
+# (proved on the build VM, 2026-11-06: d32-ship.dt before deep32*.dt and library.dt), so the records below win.
+set DtDbVersion=1.0
+set D32BIN=/d32/active/bin
+set DTBIN=/usr/local/dt/bin
+set NOTYET=/usr/local/d32/ship/libexec/d32-notyet
+
+ACTION D32Library
+{
+  LABEL                Library
+  ICON                 D32lib
+  TYPE                 COMMAND
+  WINDOW_TYPE          NO_STDIO
+  EXEC_HOST            %LocalHost%
+  EXEC_STRING          $D32BIN/d32lib -home
+  DESCRIPTION          The Library baked into this preview: the encyclopedia, Cisco design guides, RFCs and drafts.
+}
+
+ACTION D32Encyclopedia
+{
+  LABEL                Encyclopedia
+  ICON                 D32srch
+  TYPE                 COMMAND
+  WINDOW_TYPE          NO_STDIO
+  EXEC_HOST            %LocalHost%
+  EXEC_STRING          $D32BIN/d32lib
+  DESCRIPTION          Wikipedia's computing and networking articles (Kiwix, 2026-09), offline, in a private browser window.
+}
+
+ACTION D32CiscoPapers
+{
+  LABEL                Cisco Papers
+  ICON                 D32read
+  TYPE                 COMMAND
+  WINDOW_TYPE          NO_STDIO
+  EXEC_HOST            %LocalHost%
+  EXEC_STRING          $DTBIN/dtfile -folder /d32/libcontent/cisco/files/P7
+  DESCRIPTION          Cisco Validated Designs and design guides (view only, personal use). PDFs open in MuPDF.
+}
+
+ACTION D32Rfcs
+{
+  LABEL                RFCs and Drafts
+  ICON                 D32rfc
+  TYPE                 COMMAND
+  WINDOW_TYPE          NO_STDIO
+  EXEC_HOST            %LocalHost%
+  EXEC_STRING          $DTBIN/dtfile -folder /d32/libcontent/ietf
+  DESCRIPTION          Every RFC and current Internet-Draft as text (IETF, 2026-11).
+}
+
+#--------------------------------------------------------------------------------------------------------------
+# Update 1 (U17): double-clicking an RFC text file, a .d32list or a .d32org opens it in the Reader (d32read: the
+# Library's browser window for text). Deep32 Library's own handler for them (Deep32LibraryOpenFile) is not used for Open.
+ACTION D32ReadFile
+{
+  LABEL                Open in Reader
+  ICON                 D32read
+  ARG_TYPE             D32LIST,D32ORG
+  TYPE                 COMMAND
+  WINDOW_TYPE          NO_STDIO
+  EXEC_HOST            %LocalHost%
+  EXEC_STRING          $D32BIN/d32read "%Arg_1%"
+  DESCRIPTION          Open this file in the Reader.
+}
+
+ACTION Open
+{
+  ARG_TYPE             RFCTXT
+  TYPE                 MAP
+  MAP_ACTION           D32ReadFile
+}
+
+ACTION Open
+{
+  ARG_TYPE             D32LIST
+  TYPE                 MAP
+  MAP_ACTION           D32ReadFile
+}
+
+ACTION Open
+{
+  ARG_TYPE             D32ORG
+  TYPE                 MAP
+  MAP_ACTION           D32ReadFile
+}
+
+#--------------------------------------------------------------------------------------------------------------
+# Update 1 (U18): actions whose programs this release does not have open the "not in this release yet" box
+# (d32-notyet) instead of failing silently. Same names, labels and icons as the theme's records; the theme's own
+# records come back by deleting these once the programs ship. Update 2 ships Plan, NEdit and xv (OpenBSD 8.0
+# packages), so D32Plan, D32NEdit, D32NEditFile and D32ImageViewer are the theme's again (deep32.dt).
+ACTION D32Web
+{
+  LABEL                Web Browser
+  ICON                 D32web
+  TYPE                 COMMAND
+  WINDOW_TYPE          NO_STDIO
+  EXEC_HOST            %LocalHost%
+  EXEC_STRING          $NOTYET "Web Browser" "Fathom, the web browser, is not in this release yet. This workstation has no route to the internet: the Library, the encyclopedia and the RAG work offline."
+  DESCRIPTION          Fathom, the web browser, in its own domain (not in this release yet).
+}
+
+ACTION D32Wireshark
+{
+  LABEL                Wireshark
+  ICON                 D32wshk
+  TYPE                 COMMAND
+  WINDOW_TYPE          NO_STDIO
+  EXEC_HOST            %LocalHost%
+  EXEC_STRING          $NOTYET "Wireshark"
+  DESCRIPTION          Wireshark in the lab network domain (not in this release yet).
+}
+
+ACTION D32WiresharkOpen
+{
+  LABEL                Open in Wireshark
+  ICON                 D32wshk
+  ARG_TYPE             PCAP,PCAPNG
+  TYPE                 COMMAND
+  WINDOW_TYPE          NO_STDIO
+  EXEC_HOST            %LocalHost%
+  EXEC_STRING          $NOTYET "Wireshark"
+  DESCRIPTION          Open this capture in Wireshark (not in this release yet).
+}
+
+ACTION D32TrayOpen
+{
+  LABEL                Open Safely
+  ICON                 D32tray
+  ARG_TYPE             D32TRAYWEB
+  TYPE                 COMMAND
+  WINDOW_TYPE          NO_STDIO
+  EXEC_HOST            %LocalHost%
+  EXEC_STRING          $NOTYET "Open Safely"
+  DESCRIPTION          Open this file in the domain it came from (not in this release yet).
+}
+
+# Help: the workstation's guide (INSTALL.md, installed as text) in the Library window; the CDE help volume comes later
+ACTION D32Help
+{
+  LABEL                Deep32 Workstation
+  ICON                 D32help
+  TYPE                 COMMAND
+  WINDOW_TYPE          NO_STDIO
+  EXEC_HOST            %LocalHost%
+  EXEC_STRING          $D32BIN/d32lib -file /usr/local/share/d32/library/INSTALL.txt
+  DESCRIPTION          The guide to this workstation: install, first boot, what works offline, what is not in it yet.
+}

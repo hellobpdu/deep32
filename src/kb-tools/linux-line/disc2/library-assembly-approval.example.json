@@ -1,0 +1,19 @@
+{
+  "format": "deep32-library-assembly-approval/1",
+  "fixture": false,
+  "encyclopaedia": "WAITING_FOR_NATIVE_BUILD_AND_FINAL_GATES",
+  "cuts_reviewed": false,
+  "main_program_name": "lib-e26",
+  "main_parts_sha256": "REPLACE_WITH_MAIN_PARTS_TSV_SHA256",
+  "shelves": {
+    "cisco": "REPLACE_WITH_CISCO_PARTS_TSV_SHA256",
+    "ietf": "REPLACE_WITH_IETF_PARTS_TSV_SHA256",
+    "encyclopaedia": "REPLACE_WITH_CLEARED_ENCYCLOPAEDIA_PARTS_TSV_SHA256"
+  },
+  "evidence": {
+    "main_census": {"path": "REPLACE_WITH_ACTUAL_REPORT", "sha256": "REPLACE_WITH_FULL_SHA256"},
+    "native_zim_validation": {"path": "REPLACE_WITH_ACTUAL_REPORT", "sha256": "REPLACE_WITH_FULL_SHA256"},
+    "final_encyclopaedia_g1_g2": {"path": "REPLACE_WITH_ACTUAL_REPORT", "sha256": "REPLACE_WITH_FULL_SHA256"},
+    "scope_ruling": "Current retained-source conflicts resolved by the lead before ready is recorded"
+  }
+}

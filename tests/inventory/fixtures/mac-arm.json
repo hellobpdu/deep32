@@ -1,0 +1,124 @@
+{
+ "name": "mac-arm",
+ "about": "A MacBook with Apple M2 (4 fast, 4 efficient cores), 16 GB",
+ "facts": {
+  "os": {
+   "family": "macos",
+   "name": "macOS 15.1",
+   "edition": "macos",
+   "version": "15.1",
+   "build": null,
+   "arch": "arm64",
+   "wsl_guest": false
+  },
+  "hw": {
+   "vendor": "Apple",
+   "model": "Mac14,2",
+   "virtual": false
+  },
+  "cpu": {
+   "vendor": "apple",
+   "model": "Apple M2",
+   "family": null,
+   "model_id": null,
+   "stepping": null,
+   "gen": null,
+   "sockets": 1,
+   "cores": 8,
+   "threads": 8,
+   "p_cores": 4,
+   "e_cores": 4,
+   "p_threads": 4,
+   "avx": null,
+   "avx2": null,
+   "avx512f": null
+  },
+  "mem": {
+   "total_gb": 16.0,
+   "installed_gb": null,
+   "free_gb": 5.0
+  },
+  "disks": [
+   {
+    "mount": "/",
+    "size_gb": 460.4,
+    "free_gb": 210.0,
+    "ssd": null
+   }
+  ],
+  "gpus": [
+   {
+    "name": "Apple M2",
+    "vendor": "apple",
+    "mem_gb": null,
+    "driver": null,
+    "cc": null
+   }
+  ],
+  "virt": {
+   "firmware": true,
+   "slat": true,
+   "iommu": null,
+   "hypervisor": false
+  },
+  "hyp": {
+   "hyperv": false,
+   "kvm": false,
+   "proxmox": false,
+   "virtualbox": false,
+   "vmware": false,
+   "libvirt": false
+  },
+  "wsl": null,
+  "docker": {
+   "present": false,
+   "client": null,
+   "nvidia": null
+  },
+  "tools": {
+   "tailscale": "1.76.1",
+   "claude": "2.1.0",
+   "codex": "0.58.0",
+   "gh": "2.62.0"
+  },
+  "ports": {
+   "checked": true,
+   "busy": []
+  },
+  "net": null
+ },
+ "reasoning": [
+  "Classes: arm64 is the arm class (Workstation no, Forge no). Apple graphics: no NVIDIA card.",
+  "Sizing: 4 fast threads (hybrid); 16 GB visible: 16 GB; tier 0.",
+  "Candidates: only headend-only matches macOS; every other profile needs Windows, Linux or ESXi, or a known hardware model.",
+  "headend-only: ready (Claude Code and Codex present, Tailscale present).",
+  "Order: headend-only is an alternative (machines 2) and is the best because no one-machine profile can run here (none matches macOS). Unchanged by the single-machine-first order of matrix 0.3.0.",
+  "Warnings: hybrid-cores."
+ ],
+ "expect": {
+  "best": "headend-only",
+  "fit": "ready",
+  "ranked": [
+   "headend-only"
+  ],
+  "best_missing": [],
+  "best_unknown": [],
+  "best_auto": [],
+  "best_confirm": [],
+  "cpu_class": "arm",
+  "gpu_class": null,
+  "gpu_forge": null,
+  "gpu_mem_tier": null,
+  "tier": 0,
+  "sizes": {
+   "headend-only": {
+    "ws": null,
+    "forge": null
+   }
+  },
+  "ruled_out": [],
+  "warnings": [
+   "hybrid-cores"
+  ]
+ }
+}

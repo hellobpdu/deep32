@@ -1,0 +1,7 @@
+! D32Setup: Deep32 First Start (d32-setup). Colours, shadows and faces come from the session (Style Manager and
+! Desktop Look); only the faces of the step list, the first line and the pairing code are set here.
+D32Setup*steps*fontList:	-dt-interface user-medium-r-normal-m*-*-*-*-*-*-*-iso8859-1
+D32Setup*head.fontList:	-dt-interface system-medium-r-normal-l*-*-*-*-*-*-*-iso8859-1
+D32Setup*code.fontList:	-dt-interface user-bold-r-normal-xxl*-*-*-*-*-*-*-iso8859-1
+D32Setup*address.fontList:	-dt-interface user-medium-r-normal-m*-*-*-*-*-*-*-iso8859-1
+D32Setup*code.marginHeight:	8

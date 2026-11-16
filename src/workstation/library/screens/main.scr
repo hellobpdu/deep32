@@ -1,0 +1,328 @@
+d32scr 1
+# Deep32 Library build 1: the top bar (shared) and the Main screen skeleton.
+# Top bar geometry [c] from the period program seg96 MoveWindow constants (SCREENS.md 5): (0,1) 23x18, (498,1) 63x18,
+# (563,1) 54x18, (619,1) 20x18, a window at x 25, and the band below at y 19, height 39. Which control sits in
+# the 63- and 54-wide slots is [i] (Features and Tools, the period's order "... Go Back, Features, Tools, (i)").
+# Area/Category bar geometry and the Find / Go Back positions are [m] (computed at run time in the original).
+# Colours are ui:<n>, entries of the interface colour table read from the store (artefacts PALETTE.md); a text
+# button without fg/bg takes its record's colour slots, or the control class's defaults.
+# [m] = measured on the reference captures of the real program (artefacts/period95/capture, 16-colour VGA, and
+# capture256, the owner's S3 Trio64 driver at 256 colours, where every interface colour is its table entry exactly):
+# AUTHENTICITY.md in this repo. [m256] marks a value only the 256-colour captures could settle. The captures show where the code's coordinates land: the
+# program's own caption fills rows 0-15 and its work area starts at (1,16), so a [c] (x,y) appears at (x+1,y+16).
+# Full screens therefore say "origin 1 16" and keep the code's work-area coordinates; the caption is "absolute".
+
+block caption
+	# [m] the program's own window caption (not the window manager's): [m256] black row 0 and columns 0 and 639, entry 28 solid
+	# over rows 1-15 from x 1 to 638 (the 16-colour dither had shown black rows 1 and 15 and a pattern from x 2 to
+	# 635), the spaced capitals of the program's name in entry 13, and its own minimise, restore and
+	# close buttons (MAIN_* strips [d], 13x13 frames) at x 590, 605 and 623, frame 0 of each pixel for pixel.
+	control capground
+		kind panel
+		absolute
+		rect 0 0 640 16
+		bg ui:15
+	end
+	control capstrip
+		kind panel
+		absolute
+		rect 1 1 638 15                       # [m256] x 1-638, rows 1-15 (was 2-635, rows 2-14)
+		bg ui:28                              # [m256] entry 28 exactly
+		inactive-bg ui:12                     # [m256] entry 12 while another window is in front (the Find Wizard, the
+		                                      #     Pinpointer, dialogs: 80 of the 256-colour captures, e.g. 15-28); entry
+		                                      #     28 while the Library's main window is the active one (42, e.g. 05, 35)
+	end
+	control captext
+		kind label
+		absolute
+		rect 1 2 637 13                       # [m] letters from x 239 to 398 (centred in x 1-637)
+		label "DEEP32 ENCYCLOPEDIA"               # the program's name, drawn in capitals
+		upper
+		tracking 3                            # [m256] 3 px after every letter, as SetTextCharacterExtra(3) would: every
+		                                      #     glyph of the 17 lands on the capture's columns (capture256 35; 3.1 had
+		                                      #     fitted the 16-colour span 239-398, 1 px off at both ends)
+		text-y 11                             # [m] baseline on row 13 of the frame
+		font ui
+		fg ui:13                              # [m256] entry 13 (the 16-colour capture showed solid VGA grey)
+	end
+	control capmin
+		kind button
+		absolute
+		rect 590 2 13 13                      # [m]
+		strip ui/bitmap/MAIN_MINIMIZE 3       # [d] 39x13 = 3 x 13x13
+		frame normal 0
+		frame pressed 1                       # [i]
+		action iconify
+	end
+	control caprestore
+		kind button
+		absolute
+		rect 605 2 13 13                      # [m]
+		strip ui/bitmap/MAIN_RESTORE 3        # [m256] restore: frame 0 of MAIN_RESTORE matches the capture pixel for pixel
+		frame normal 0                        #     (the 16-colour capture showed only grey squares)
+		frame pressed 1                       # [i] as minimise and close
+		action maximize                       # update 1: the window fills its monitor, the frame enlarged k times (2 on
+		                                      #     1920x1080); pressed again, 640x480 where it was. The glyph stays
+		                                      #     the captures' restore in both states (at 640x480 nothing changes)
+	end
+	control capclose
+		kind button
+		absolute
+		rect 623 2 13 13                      # [m]
+		strip ui/bitmap/MAIN_CLOSE 3          # [d]
+		frame normal 0
+		frame pressed 1                       # [i]
+		action quit                           # [m] Alt+F4 exits at once, with no prompt (capture 85)
+	end
+end
+
+block topbar
+	control barground
+		kind panel
+		rect 0 0 640 19
+		bg ui:15                              # [c] seg96:1e65 paints the bar with the stock black brush
+	end
+	control ebar
+		kind button
+		rect 0 1 23 18                        # [c]
+		strip ui/bitmap/ENCSMALL_BAR 1        # [d] 23x18, the Library control-menu button
+		action menu control                   # build 3 (W0-F0, plan W5): the Control menu, record 12052; W1-CHROME
+		                                      #     draws it as captured
+	end
+	control areabar
+		kind bar
+		rect 25 1 373 18                      # [c] seg96 "a window at x 25", [m256] the area colour from frame x 26 to
+		source category                       #     398 behind the field, a 2-px black gap after ENCSMALL (x 24-25); the
+		                                      #     Category menu drops from its left edge (frame x 26, capture256 06).
+		                                      #     The 16-colour captures showed it 2 px further left (x 24-396)
+		font ui-bold
+		marker
+		text-x 15                             # [m] marker at 5, lettering at 15
+		action menu category
+	end
+	control catfield
+		kind bar
+		rect 193 3 205 16                     # [m256] an inset field inside the area bar: frame x 194-398, rows 19-34,
+		sunken                                #     black top and left edge (capture256 05, 35; 16-colour: 192-396)
+		source subcategory
+		label "Choose a category"
+		bg ui:30                              # without a taxonomy colour only. [m256] the period design's field is the area's
+		                                      #     face, its menu header's colour A, exactly (entry 7 for Art, Language &
+		                                      #     Literature, 25 Geography, 24 Life Science: capture256 05, 35, 123),
+		                                      #     as his colour rules have it. The area bar beside it is a colour
+		                                      #     outside the table, which both drivers dither (AUTHENTICITY.md 16)
+		marker
+		text-x 13                             # [m]
+		action menu category
+	end
+	control find
+		kind button
+		record 10050                          # [d] "|^main_find"
+		rect 400 1 41 18                      # [m] position (capture 05: x 400-440 in the work area); size [d] = one frame
+		strip ui/bitmap/MAIN_FIND 4           # [d] 164x18 = 4 x 41x18
+		frame normal 0                        # [c] frames by state (seg19:14b1, styles 0x80|0x40, type 0x08):
+		frame pressed 1                       #     at rest 0, pressed 1, disabled 2, under the pointer 3
+		frame disabled 2
+		frame hot 3
+		action goto pinpointer                # [m] Find opens the Pinpointer (capture 83); its Wizard button opens the
+		key F2                                #     Find Wizard (captures 09 to 15)
+	end
+	control goback
+		kind button
+		record 10051                          # [d] "|^main_goback"
+		rect 443 1 53 18                      # [m] position (x 443-495); size [d]
+		strip ui/bitmap/MAIN_GOBACK 4         # [d] 212x18 = 4 x 53x18
+		frame normal 0                        # [c] as Find
+		frame pressed 1
+		frame disabled 2
+		frame hot 3
+		action back
+	end
+	# [m256] Features and Tools show no frame at all: entry 14 on all four edges at rest, under the pointer and
+	# pressed (capture256 35, 100-103); the class defaults would give an entry-28 frame and light/dark edges. So they
+	# are flat bars in entry 14 with the black marker at 5 and the lettering at 16, as before.
+	control features
+		kind bar
+		rect 498 1 63 18                      # [c]
+		label "Features"
+		bg ui:14                              # [m256]
+		fg ui:15
+		marker
+		text-x 16                             # [m] marker at 5, lettering at 16
+		action menu features                  # [m256] the Features menu drops from it (captures 39, 101, 140)
+	end
+	control tools
+		kind bar
+		rect 563 1 54 18                      # [c]
+		label "Tools"
+		bg ui:14                              # [m256]
+		fg ui:15
+		marker
+		text-x 16
+		action menu tools                     # [m256] the Tools menu (captures 40, 103, 142)
+	end
+	control info
+		kind button
+		rect 619 1 19 18                      # [c] at x 619; [m] 19 wide: frame x 620-638, as the captures show it,
+		strip ui/bitmap/INFO_BAR 1            # [d] 20x18, the (i) button; its 20th column lies under the window's
+		                                      #     right border (frame x 639, black on every row: draw.c)
+		action menu info                      # [m256] the Information menu drops under it (captures 62, 104, 143)
+	end
+end
+
+menu category
+	record 12000                              # [d] the Category menu header: item height 41, width 168, label colour 15
+	items taxonomy                            # his categories (item 40), not the Library's nine
+	art e26/cat                               # his own CAT strips (category-art lane, 336x41: normal and selected, the
+	                                          #     label baked in as on the Library's), imported by tools/import-category-art.py
+	style ui/bitmap/CAT_PHYS                  # [d] without his art: the original item's frame, his label lettered on it
+	sub category-sub
+end
+
+# The three menus of the top bar, built from their original records: the header gives the colours, item height,
+# width and margin, its item list the labels (strings) or bitmaps and the command ids (records.h). "at" is where the
+# 256-colour captures show them: under their buttons, from row 36. Build 3 (W0-F0): every item names its room's
+# action ("room.atlas"); until the room's module registers it, the item opens the "coming in a later build" box in
+# the Library's dialog style (dialogs.scr) with the argument as its title, word for word as build 2's notice.
+menu features
+	record 12050                              # [d] A 14, B 6, C 15, item height 61, width 63; items |Atlas_icon (261),
+	items record                              #     |Media_icon (260), |TimeL_icon (262), |MindM_icon (1543)
+	at 499 36                                 # [m256] capture 39: x 499-561 from row 36, the strips stacked (63x61)
+	hide 1543                                 # MindMaze: cut by the owner (00-UPDATE item 37); the menu has three items
+	on 261 room.atlas "Atlas"                 # W2-ATLAS
+	on 260 room.gallery "Media Gallery"       # W2-GALLERY
+	on 262 room.timeline "Timeline"           # W2-TIMELINE
+end
+
+menu tools
+	record 12051                              # [d] A 14, B 6, C 15, item height 51, width 54; |Browse_icon (1550),
+	items record                              #     |Dict_icon (1541), |NoteM_icon (1536), |BackL_icon (1538), |WordP_icon (1542)
+	at 564 36                                 # [m256] capture 40: x 564-617 from row 36 (5 strips of 54x51)
+	on 1550 room.browse "Browse Panel"        # W2-TOOLS
+	on 1541 room.dictionary "Dictionary and Thesaurus"
+	on 1536 room.notemark "Notemark"
+	on 1538 room.backlist "Back List"
+	on 1542 room.wordproc "Word Processor"
+end
+
+menu info
+	record 12053                              # [d] A 14, B 13, C 15, item height 16, width 100, margin 10: Help... (1549),
+	items record                              #     a rule, Settings... (1540), About Library... (1545), a rule, Title
+	                                          #     ("Help|help_main": its icon is HELP_MAIN, frame 0 exact at (550,41))
+	                                          #     Screen... (1544), Printer Setup... (1539)
+	at 540 36                                 # [m256] capture 62: x 540-639, rows 36-157 (it covers the border column)
+	on 1544 goto title                        # what exists: the Title Screen
+	on 1549 room.help "Help"                  # W2-FRONTDESK
+	on 1540 room.settings "Settings"
+	on 1545 room.about "About Deep32 Encyclopedia"
+	on 1539 room.printsetup "Printer Setup"
+end
+
+# Pre-wired in build 3 (W0-F0): the other menus the period design's records hold. Their items name the actions of the
+# packages that build them; until then each opens the "coming in a later build" box. W1-CHROME owns their look.
+menu control
+	record 12052                              # [d] the Control menu (ENCSMALL): A 15, B 13, C 31, item height 16, width
+	items record                              #     105; "Minimize" (4868) reads from the item list, "Close Library" does
+	at 1 36                                   #     not yet (records.c reads 1 of the 3 entries: W1-CHROME). [i] under
+	on 4868 iconify                           #     ENCSMALL, as the top bar's menus drop from row 36
+end
+
+menu views
+	record 12070                              # [d] the article's Views menu: bitmap items |viewpt (4757), |viewopt (4758),
+	items record                              #     |viewt (4760), |viewto (4759); A 28, B 13, C 15, item height 35, width 85
+	on 4757 article.view-tp "The Text and Pictures view"       # W2-ARTICLE
+	on 4758 article.view-top "The Text, Outline and Pictures view"
+	on 4760 article.view-t "The Text view"
+	on 4759 article.view-to "The Text and Outline view"
+end
+
+menu article-text
+	record 12075                              # [d] the article's text menu: Copy (2144), Print Article (2148), a rule,
+	items record                              #     |TextSmall (2150), |TextMedium (2151), |TextLarge (2152), a rule, Help (2154)
+	on 2144 article.copy "Copy"               # W2-ARTICLE, W2-TOOLS
+	on 2148 article.print "Print Article"
+	on 2150 article.text-small "Text sizes"
+	on 2151 article.text-medium "Text sizes"
+	on 2152 article.text-large "Text sizes"
+	on 2154 room.help "Help"
+end
+
+menu article-zoom
+	record 1
+	items record
+	item-height 16
+	width 112
+end
+
+menu article-font
+	record 1
+	items record
+	item-height 16
+	width 178
+end
+
+menu window
+	record 12077                              # [d] a window's caption menu: Help (16), a rule, Close (27)
+	items record
+	on 16 room.help "Help"
+	on 27 close
+end
+
+menu window-further
+	record 12087                              # [d] the Further Reading window's caption menu: Help (16), a rule, Close (27)
+	items record
+	on 16 room.help "Help"
+	on 27 close
+end
+
+menu category-sub
+	record 12001                              # [d] a subcategory menu header: item height 21, width 204, label colour
+	items taxonomy-sub                        #     15, rules between items, margin 9; ground and pointer colours are his
+end
+
+screen main
+	prop viewport native-root
+	size 640 463                              # [c] the work area, 640x463
+	origin 1 16                               # [m] where the work area sits in the frame (below the caption)
+	ground ui:15
+	uses caption
+	uses topbar
+	# the period design never shows an empty Main screen (the first run opens article "A", capture 05); ours is laid out as
+	# its article page (article.scr, the "Text, Outline" view): the full-width band, the watermark side, the page.
+	control column
+		kind panel
+		rect 0 58 158 405                     # [m] the watermark side of the page, x 0-157 (capture 35)
+		source watermark                      # the category's engraving behind the column
+		strip wtrmark/bitmap/W_PHYS_9 1
+	end
+	control band
+		kind label
+		rect 0 19 640 39                      # [c] the 39-px band at y 19, [m] the full width (captures 05, 30, 35)
+		font title
+		bg ui:15                              # black band, white title (1995 captures)
+		fg ui:0
+		text-x 4                              # [m] the title's first letter (an "A", no side bearing) starts at x 4 of the band (capture 35)
+		text-y 29                             # [m] baseline 29 px below the band's top
+		label "Deep32 Encyclopedia"
+	end
+	control page
+		kind panel
+		rect 158 58 482 405                   # [m] the text side starts at x 158
+		bg ui:0                               # the white reading surface
+		font body
+		align left
+		label "Choose a category from the Category bar, or click Find to search with the Find Wizard."
+	end
+	control home
+		kind library-home                     # u14 (readability spec S8): the Library home, drawn only where the Main
+		rect 170 100 460 300                  #     screen is native (room_main.c); 640x480 keeps the period design's page
+	end
+	control status
+		kind label
+		rect 170 435 450 20
+		font small
+		fg ui:12                              # [i] a quiet note: the caption bars' dark warm grey
+		align left
+		source taxonomy-status
+	end
+end

@@ -1,0 +1,1618 @@
+{
+ "schema": "deep32-d32library-taxonomy/1",
+ "status": "FINAL",
+ "date": "2026-11-15",
+ "geometry": {
+  "work_area_px": [
+   640,
+   463
+  ],
+  "category_item_px": [
+   168,
+   41
+  ],
+  "subcategory_item_px": [
+   204,
+   21
+  ],
+  "find_wizard_panel_px": [
+   385,
+   342
+  ],
+  "find_wizard_button_px": [
+   170,
+   43
+  ],
+  "category_menu": {
+   "columns": 2,
+   "rows": 10,
+   "order": "column-major"
+  },
+  "find_wizard_category_pages": {
+   "pages": 2,
+   "columns": 2,
+   "rows": 5
+  },
+  "labels": {
+   "button_line_px": {
+    "target": 94,
+    "hard": 117
+   },
+   "area_bar_px": {
+    "hard": 148
+   },
+   "subcategory_px": {
+    "target": 174,
+    "hard": 184
+   },
+   "subcategories_per_column": 17
+  }
+ },
+ "categories": [
+  {
+   "id": "netbasics",
+   "order": 1,
+   "menu": [
+    1,
+    1
+   ],
+   "label": [
+    "Networking",
+    "Fundamentals"
+   ],
+   "bar_label": "Networking Fundamentals",
+   "colour": {
+    "face": "#D9D6C5",
+    "ink": "#6571B4",
+    "face_entry": 14,
+    "ink_entry": 27
+   },
+   "draws_on": [
+    "ietf-areas: INT (IP, ND, addressing), WIT (transport)"
+   ],
+   "subcategories": [
+    {
+     "id": "netbasics.models",
+     "label": "Network Models & Layers"
+    },
+    {
+     "id": "netbasics.media",
+     "label": "Media & Transmission"
+    },
+    {
+     "id": "netbasics.links",
+     "label": "Data Link Protocols"
+    },
+    {
+     "id": "netbasics.ipv4",
+     "label": "IPv4, ICMP & ARP"
+    },
+    {
+     "id": "netbasics.ipv6",
+     "label": "IPv6"
+    },
+    {
+     "id": "netbasics.addressing",
+     "label": "Addressing & Subnetting"
+    },
+    {
+     "id": "netbasics.transport",
+     "label": "Transport Protocols"
+    },
+    {
+     "id": "netbasics.perf",
+     "label": "Performance & Measurement"
+    },
+    {
+     "id": "netbasics.design",
+     "label": "Network Design & Topology"
+    },
+    {
+     "id": "netbasics.people",
+     "label": "People in Networking"
+    }
+   ],
+   "examples": [
+    {
+     "kind": "corpus",
+     "doc_key": "rfc791",
+     "sub": "netbasics.ipv4"
+    },
+    {
+     "kind": "corpus",
+     "doc_key": "rfc8200",
+     "sub": "netbasics.ipv6"
+    },
+    {
+     "kind": "corpus",
+     "doc_key": "rfc4632",
+     "sub": "netbasics.addressing"
+    }
+   ]
+  },
+  {
+   "id": "switching",
+   "order": 2,
+   "menu": [
+    1,
+    2
+   ],
+   "label": [
+    "Switching",
+    "& LANs"
+   ],
+   "bar_label": "Switching & LANs",
+   "colour": {
+    "face": "#B2CB97",
+    "ink": "#23778D",
+    "face_entry": 24,
+    "ink_entry": 23
+   },
+   "subcategories": [
+    {
+     "id": "switching.ethernet",
+     "label": "Ethernet"
+    },
+    {
+     "id": "switching.vlans",
+     "label": "VLANs & Trunking"
+    },
+    {
+     "id": "switching.stp",
+     "label": "Spanning Tree"
+    },
+    {
+     "id": "switching.lag",
+     "label": "Link Aggregation"
+    },
+    {
+     "id": "switching.bridging",
+     "label": "Bridging & L2 Fabrics"
+    },
+    {
+     "id": "switching.discovery",
+     "label": "CDP, LLDP & UDLD"
+    },
+    {
+     "id": "switching.hardware",
+     "label": "Switch Hardware & Stacking"
+    },
+    {
+     "id": "switching.campus",
+     "label": "Campus & LAN Design"
+    }
+   ],
+   "examples": [
+    {
+     "kind": "corpus",
+     "doc_key": "c9300-26x-lyr2",
+     "sub": "switching.vlans"
+    },
+    {
+     "kind": "corpus",
+     "doc_key": "cisco-tn-mst-8021s",
+     "sub": "switching.stp"
+    },
+    {
+     "kind": "corpus",
+     "doc_key": "cisco-tn-cat9k-etherchannel",
+     "sub": "switching.lag"
+    }
+   ]
+  },
+  {
+   "id": "routing",
+   "order": 3,
+   "menu": [
+    1,
+    3
+   ],
+   "label": [
+    "IP Routing"
+   ],
+   "bar_label": "IP Routing",
+   "colour": {
+    "face": "#8DB8CF",
+    "ink": "#23778D",
+    "face_entry": 7,
+    "ink_entry": 23
+   },
+   "draws_on": [
+    "ietf-areas: RTG"
+   ],
+   "subcategories": [
+    {
+     "id": "routing.fundamentals",
+     "label": "Routing Fundamentals"
+    },
+    {
+     "id": "routing.rip",
+     "label": "RIP & Legacy Routing"
+    },
+    {
+     "id": "routing.eigrp",
+     "label": "EIGRP"
+    },
+    {
+     "id": "routing.ospf",
+     "label": "OSPF"
+    },
+    {
+     "id": "routing.isis",
+     "label": "IS-IS"
+    },
+    {
+     "id": "routing.bgp",
+     "label": "BGP"
+    },
+    {
+     "id": "routing.policy",
+     "label": "Route Maps & Redistribution"
+    },
+    {
+     "id": "routing.multicast",
+     "label": "Multicast Routing"
+    },
+    {
+     "id": "routing.mpls",
+     "label": "MPLS & Segment Routing"
+    },
+    {
+     "id": "routing.te",
+     "label": "Traffic Engineering & PCE"
+    },
+    {
+     "id": "routing.convergence",
+     "label": "Convergence & Redundancy"
+    },
+    {
+     "id": "routing.internet",
+     "label": "Internet Routing & Peering"
+    },
+    {
+     "id": "routing.mesh",
+     "label": "Mesh & Ad Hoc Routing"
+    }
+   ],
+   "examples": [
+    {
+     "kind": "corpus",
+     "doc_key": "rfc2328",
+     "sub": "routing.ospf"
+    },
+    {
+     "kind": "corpus",
+     "doc_key": "rfc4271",
+     "sub": "routing.bgp"
+    },
+    {
+     "kind": "corpus",
+     "doc_key": "rfc7868",
+     "sub": "routing.eigrp"
+    },
+    {
+     "kind": "corpus",
+     "doc_key": "cisco-tn-redistribution",
+     "sub": "routing.policy"
+    }
+   ]
+  },
+  {
+   "id": "wan",
+   "order": 4,
+   "menu": [
+    1,
+    4
+   ],
+   "label": [
+    "WAN, VPN",
+    "& SD-WAN"
+   ],
+   "bar_label": "WAN, VPN & SD-WAN",
+   "colour": {
+    "face": "#3892CD",
+    "ink": "#324CCF",
+    "face_entry": 22,
+    "ink_entry": 6
+   },
+   "draws_on": [
+    "ietf-areas: INT (GRE, NHRP), RTG (BGP/MPLS VPNs)"
+   ],
+   "subcategories": [
+    {
+     "id": "wan.circuits",
+     "label": "WAN Circuits & Services"
+    },
+    {
+     "id": "wan.mplsvpn",
+     "label": "MPLS VPNs"
+    },
+    {
+     "id": "wan.gre",
+     "label": "GRE & Tunnels"
+    },
+    {
+     "id": "wan.ipsec",
+     "label": "IPsec & FlexVPN"
+    },
+    {
+     "id": "wan.dmvpn",
+     "label": "DMVPN & NHRP"
+    },
+    {
+     "id": "wan.ravpn",
+     "label": "Remote Access VPN"
+    },
+    {
+     "id": "wan.sdwan",
+     "label": "SD-WAN"
+    },
+    {
+     "id": "wan.edge",
+     "label": "Internet Edge & Cloud Access"
+    }
+   ],
+   "examples": [
+    {
+     "kind": "corpus",
+     "doc_key": "rfc4364",
+     "sub": "wan.mplsvpn"
+    },
+    {
+     "kind": "corpus",
+     "doc_key": "cisco-tn-dmvpn-phase3-redirect",
+     "sub": "wan.dmvpn"
+    },
+    {
+     "kind": "corpus",
+     "doc_key": "sdwan-design-cvd",
+     "sub": "wan.sdwan"
+    },
+    {
+     "kind": "corpus",
+     "doc_key": "iosxe17-rtr-secvpn-cg",
+     "sub": "wan.ipsec"
+    }
+   ]
+  },
+  {
+   "id": "wireless",
+   "order": 5,
+   "menu": [
+    1,
+    5
+   ],
+   "label": [
+    "Wireless",
+    "& Telecom"
+   ],
+   "bar_label": "Wireless & Telecom",
+   "colour": {
+    "face": "#FFD253",
+    "ink": "#EA9123",
+    "face_entry": 16,
+    "ink_entry": 2
+   },
+   "subcategories": [
+    {
+     "id": "wireless.wifi",
+     "label": "Wi-Fi Standards"
+    },
+    {
+     "id": "wireless.controllers",
+     "label": "Controllers & Access Points"
+    },
+    {
+     "id": "wireless.rf",
+     "label": "RF Design & Surveys"
+    },
+    {
+     "id": "wireless.security",
+     "label": "Wireless Security"
+    },
+    {
+     "id": "wireless.cellular",
+     "label": "Cellular & 5G"
+    },
+    {
+     "id": "wireless.devices",
+     "label": "Phones & Mobile Devices"
+    },
+    {
+     "id": "wireless.satellite",
+     "label": "Satellite & Radio Links"
+    },
+    {
+     "id": "wireless.iot",
+     "label": "IoT & Short-Range Radio"
+    },
+    {
+     "id": "wireless.telecom",
+     "label": "Telecom Networks & Carriers"
+    }
+   ],
+   "examples": [
+    {
+     "kind": "corpus",
+     "doc_key": "cisco-tn-dhcp-option43",
+     "sub": "wireless.controllers"
+    },
+    {
+     "kind": "corpus",
+     "doc_key": "cvd-campus-lan-wlan",
+     "sub": "wireless.controllers"
+    }
+   ]
+  },
+  {
+   "id": "dc",
+   "order": 6,
+   "menu": [
+    1,
+    6
+   ],
+   "label": [
+    "Data Centre",
+    "& Fabrics"
+   ],
+   "bar_label": "Data Centre & Fabrics",
+   "colour": {
+    "face": "#A09683",
+    "ink": "#674F39",
+    "face_entry": 13,
+    "ink_entry": 10
+   },
+   "draws_on": [
+    "ietf-areas: RTG (EVPN, LISP), INT (VXLAN context)"
+   ],
+   "subcategories": [
+    {
+     "id": "dc.design",
+     "label": "Data Centre Design"
+    },
+    {
+     "id": "dc.vxlan",
+     "label": "VXLAN & EVPN"
+    },
+    {
+     "id": "dc.sda",
+     "label": "SD-Access & LISP"
+    },
+    {
+     "id": "dc.netvirt",
+     "label": "Network Virtualisation"
+    },
+    {
+     "id": "dc.sdn",
+     "label": "SDN & NFV"
+    },
+    {
+     "id": "dc.lb",
+     "label": "Load Balancing"
+    },
+    {
+     "id": "dc.storage",
+     "label": "Storage Networking"
+    }
+   ],
+   "examples": [
+    {
+     "kind": "corpus",
+     "doc_key": "rfc7348",
+     "sub": "dc.vxlan"
+    },
+    {
+     "kind": "corpus",
+     "doc_key": "rfc7432",
+     "sub": "dc.vxlan"
+    },
+    {
+     "kind": "corpus",
+     "doc_key": "cvd-sda-design",
+     "sub": "dc.sda"
+    }
+   ]
+  },
+  {
+   "id": "netsvc",
+   "order": 7,
+   "menu": [
+    1,
+    7
+   ],
+   "label": [
+    "Network",
+    "Services"
+   ],
+   "bar_label": "Network Services",
+   "colour": {
+    "face": "#EFCFCF",
+    "ink": "#926A94",
+    "face_entry": 4,
+    "ink_entry": 5
+   },
+   "draws_on": [
+    "ietf-areas: INT (DHCP), OPS (NTP), WIT (QoS, AQM), ART (RTP)"
+   ],
+   "subcategories": [
+    {
+     "id": "netsvc.dhcp",
+     "label": "DHCP"
+    },
+    {
+     "id": "netsvc.dns",
+     "label": "DNS"
+    },
+    {
+     "id": "netsvc.ntp",
+     "label": "NTP & Time"
+    },
+    {
+     "id": "netsvc.nat",
+     "label": "NAT"
+    },
+    {
+     "id": "netsvc.qos",
+     "label": "Quality of Service"
+    },
+    {
+     "id": "netsvc.file",
+     "label": "File Transfer & Remote Login"
+    },
+    {
+     "id": "netsvc.voice",
+     "label": "Voice & Video"
+    }
+   ],
+   "examples": [
+    {
+     "kind": "corpus",
+     "doc_key": "rfc2131",
+     "sub": "netsvc.dhcp"
+    },
+    {
+     "kind": "corpus",
+     "doc_key": "rfc5905",
+     "sub": "netsvc.ntp"
+    },
+    {
+     "kind": "corpus",
+     "doc_key": "cisco-tn-nat-order-of-operation",
+     "sub": "netsvc.nat"
+    },
+    {
+     "kind": "corpus",
+     "doc_key": "rfc2474",
+     "sub": "netsvc.qos"
+    }
+   ]
+  },
+  {
+   "id": "mgmt",
+   "order": 8,
+   "menu": [
+    1,
+    8
+   ],
+   "label": [
+    "Management",
+    "& Automation"
+   ],
+   "bar_label": "Management & Automation",
+   "colour": {
+    "face": "#88AC71",
+    "ink": "#52845B",
+    "face_entry": 8,
+    "ink_entry": 9
+   },
+   "draws_on": [
+    "ietf-areas: OPS"
+   ],
+   "subcategories": [
+    {
+     "id": "mgmt.snmp",
+     "label": "SNMP & MIBs"
+    },
+    {
+     "id": "mgmt.logging",
+     "label": "Logging & Syslog"
+    },
+    {
+     "id": "mgmt.flow",
+     "label": "Flow Monitoring"
+    },
+    {
+     "id": "mgmt.telemetry",
+     "label": "Telemetry & Assurance"
+    },
+    {
+     "id": "mgmt.netconf",
+     "label": "NETCONF, RESTCONF & YANG"
+    },
+    {
+     "id": "mgmt.automation",
+     "label": "Automation & Scripting"
+    },
+    {
+     "id": "mgmt.controllers",
+     "label": "Controllers & APIs"
+    },
+    {
+     "id": "mgmt.devices",
+     "label": "Device & Image Management"
+    },
+    {
+     "id": "mgmt.troubleshooting",
+     "label": "Troubleshooting Tools"
+    }
+   ],
+   "examples": [
+    {
+     "kind": "corpus",
+     "doc_key": "rfc6241",
+     "sub": "mgmt.netconf"
+    },
+    {
+     "kind": "corpus",
+     "doc_key": "rfc7950",
+     "sub": "mgmt.netconf"
+    },
+    {
+     "kind": "corpus",
+     "doc_key": "iosxe-179-prog-cg",
+     "sub": "mgmt.netconf"
+    },
+    {
+     "kind": "corpus",
+     "doc_key": "cisco-tn-mdt-yang-suite",
+     "sub": "mgmt.telemetry"
+    }
+   ]
+  },
+  {
+   "id": "internet",
+   "order": 9,
+   "menu": [
+    1,
+    9
+   ],
+   "label": [
+    "Internet",
+    "& the Web"
+   ],
+   "bar_label": "Internet & the Web",
+   "colour": {
+    "face": "#8AB59B",
+    "ink": "#52845B",
+    "face_entry": 25,
+    "ink_entry": 9
+   },
+   "draws_on": [
+    "ietf-areas: ART and WIT"
+   ],
+   "subcategories": [
+    {
+     "id": "internet.http",
+     "label": "HTTP & Web Servers"
+    },
+    {
+     "id": "internet.web",
+     "label": "Browsers & Web Pages"
+    },
+    {
+     "id": "internet.email",
+     "label": "Email & Messaging"
+    },
+    {
+     "id": "internet.formats",
+     "label": "Data Formats"
+    },
+    {
+     "id": "internet.apis",
+     "label": "Web APIs"
+    },
+    {
+     "id": "internet.cdn",
+     "label": "Content Delivery"
+    },
+    {
+     "id": "internet.services",
+     "label": "Websites & Online Services"
+    },
+    {
+     "id": "internet.social",
+     "label": "Social Media & Communities"
+    },
+    {
+     "id": "internet.society",
+     "label": "Internet Culture & Policy"
+    }
+   ],
+   "examples": [
+    {
+     "kind": "corpus",
+     "doc_key": "rfc9110",
+     "sub": "internet.http"
+    },
+    {
+     "kind": "corpus",
+     "doc_key": "rfc8259",
+     "sub": "internet.formats"
+    },
+    {
+     "kind": "corpus",
+     "doc_key": "rfc6265",
+     "sub": "internet.http"
+    },
+    {
+     "kind": "corpus",
+     "doc_key": "rfc8314",
+     "sub": "internet.email"
+    }
+   ]
+  },
+  {
+   "id": "orgs",
+   "order": 10,
+   "menu": [
+    1,
+    10
+   ],
+   "label": [
+    "Standards &",
+    "Organisations"
+   ],
+   "bar_label": "Standards & Organisations",
+   "colour": {
+    "face": "#FFFAB8",
+    "ink": "#DCBA5C",
+    "face_entry": 1,
+    "ink_entry": 17
+   },
+   "subcategories": [
+    {
+     "id": "orgs.bodies",
+     "label": "Standards Bodies"
+    },
+    {
+     "id": "orgs.rfcs",
+     "label": "RFCs & the IETF Process"
+    },
+    {
+     "id": "orgs.governance",
+     "label": "Internet Governance"
+    },
+    {
+     "id": "orgs.agencies",
+     "label": "Government Agencies"
+    },
+    {
+     "id": "orgs.labs",
+     "label": "Research Labs & Universities"
+    },
+    {
+     "id": "orgs.societies",
+     "label": "Societies & Conferences"
+    },
+    {
+     "id": "orgs.opensource",
+     "label": "Open Source & Foundations"
+    },
+    {
+     "id": "orgs.certs",
+     "label": "Certifications & Training"
+    },
+    {
+     "id": "orgs.vendors",
+     "label": "Network & Security Vendors"
+    },
+    {
+     "id": "orgs.hardware",
+     "label": "Computer & Chip Makers"
+    },
+    {
+     "id": "orgs.companies",
+     "label": "Software & Internet Companies"
+    },
+    {
+     "id": "orgs.people",
+     "label": "People in Industry"
+    }
+   ],
+   "examples": [
+    {
+     "kind": "corpus",
+     "doc_key": "rfc2119",
+     "sub": "orgs.rfcs"
+    },
+    {
+     "kind": "corpus",
+     "doc_key": "rfc1930",
+     "sub": "orgs.governance"
+    }
+   ]
+  },
+  {
+   "id": "crypto",
+   "order": 11,
+   "menu": [
+    2,
+    1
+   ],
+   "label": [
+    "Cryptography"
+   ],
+   "bar_label": "Cryptography",
+   "colour": {
+    "face": "#EA9123",
+    "ink": "#674F39",
+    "face_entry": 2,
+    "ink_entry": 10
+   },
+   "draws_on": [
+    "ietf-areas: SEC"
+   ],
+   "subcategories": [
+    {
+     "id": "crypto.ciphers",
+     "label": "Ciphers & Hashes"
+    },
+    {
+     "id": "crypto.pubkey",
+     "label": "Public-Key Cryptography"
+    },
+    {
+     "id": "crypto.pki",
+     "label": "PKI & Certificates"
+    },
+    {
+     "id": "crypto.protocols",
+     "label": "Secure Protocols"
+    },
+    {
+     "id": "crypto.ipsec",
+     "label": "IPsec & IKE"
+    },
+    {
+     "id": "crypto.keymgmt",
+     "label": "Key Management"
+    },
+    {
+     "id": "crypto.pqc",
+     "label": "Post-Quantum Cryptography"
+    },
+    {
+     "id": "crypto.analysis",
+     "label": "Cryptanalysis"
+    },
+    {
+     "id": "crypto.hardware",
+     "label": "Hardware Security"
+    },
+    {
+     "id": "crypto.people",
+     "label": "People in Cryptography"
+    }
+   ],
+   "examples": [
+    {
+     "kind": "corpus",
+     "doc_key": "rfc8446",
+     "sub": "crypto.protocols"
+    },
+    {
+     "kind": "corpus",
+     "doc_key": "rfc7296",
+     "sub": "crypto.ipsec"
+    }
+   ]
+  },
+  {
+   "id": "identity",
+   "order": 12,
+   "menu": [
+    2,
+    2
+   ],
+   "label": [
+    "Identity",
+    "& Access"
+   ],
+   "bar_label": "Identity & Access",
+   "colour": {
+    "face": "#FFFAB8",
+    "ink": "#EA9123",
+    "face_entry": 1,
+    "ink_entry": 2
+   },
+   "subcategories": [
+    {
+     "id": "identity.models",
+     "label": "Access Control Models"
+    },
+    {
+     "id": "identity.credentials",
+     "label": "Credentials & MFA"
+    },
+    {
+     "id": "identity.directory",
+     "label": "Directory Services"
+    },
+    {
+     "id": "identity.federation",
+     "label": "Federation & Single Sign-On"
+    },
+    {
+     "id": "identity.aaa",
+     "label": "RADIUS & TACACS+"
+    },
+    {
+     "id": "identity.dot1x",
+     "label": "802.1X & MAB"
+    },
+    {
+     "id": "identity.ise",
+     "label": "Cisco ISE"
+    },
+    {
+     "id": "identity.trustsec",
+     "label": "TrustSec & Segmentation"
+    },
+    {
+     "id": "identity.zerotrust",
+     "label": "Zero Trust"
+    }
+   ],
+   "examples": [
+    {
+     "kind": "corpus",
+     "doc_key": "rfc2865",
+     "sub": "identity.aaa"
+    },
+    {
+     "kind": "corpus",
+     "doc_key": "rfc8907",
+     "sub": "identity.aaa"
+    },
+    {
+     "kind": "corpus",
+     "doc_key": "ise31-admin-aaa-trustsec",
+     "sub": "identity.trustsec"
+    },
+    {
+     "kind": "corpus",
+     "doc_key": "cvd-ise-zero-trust-network",
+     "sub": "identity.zerotrust"
+    }
+   ]
+  },
+  {
+   "id": "threats",
+   "order": 13,
+   "menu": [
+    2,
+    3
+   ],
+   "label": [
+    "Threats",
+    "& Attacks"
+   ],
+   "bar_label": "Threats & Attacks",
+   "colour": {
+    "face": "#EFCFCF",
+    "ink": "#E43637",
+    "face_entry": 4,
+    "ink_entry": 3
+   },
+   "subcategories": [
+    {
+     "id": "threats.malware",
+     "label": "Malware"
+    },
+    {
+     "id": "threats.vulns",
+     "label": "Vulnerabilities & CVEs"
+    },
+    {
+     "id": "threats.techniques",
+     "label": "Attack Techniques"
+    },
+    {
+     "id": "threats.network",
+     "label": "Network Attacks"
+    },
+    {
+     "id": "threats.web",
+     "label": "Web & Application Attacks"
+    },
+    {
+     "id": "threats.social",
+     "label": "Social Engineering"
+    },
+    {
+     "id": "threats.actors",
+     "label": "Threat Actors & Incidents"
+    },
+    {
+     "id": "threats.intel",
+     "label": "Threat Intelligence"
+    }
+   ],
+   "examples": [
+    {
+     "kind": "corpus",
+     "doc_key": "cisco-tn-ise-blast-radius",
+     "sub": "threats.vulns"
+    },
+    {
+     "kind": "corpus",
+     "doc_key": "cisco-tn-ipsla-responder-sa",
+     "sub": "threats.vulns"
+    },
+    {
+     "kind": "corpus",
+     "doc_key": "rfc6104",
+     "sub": "threats.network"
+    }
+   ]
+  },
+  {
+   "id": "defence",
+   "order": 14,
+   "menu": [
+    2,
+    4
+   ],
+   "label": [
+    "Cyber",
+    "Defence"
+   ],
+   "bar_label": "Cyber Defence",
+   "colour": {
+    "face": "#8AB59B",
+    "ink": "#23778D",
+    "face_entry": 25,
+    "ink_entry": 23
+   },
+   "subcategories": [
+    {
+     "id": "defence.principles",
+     "label": "Security Principles"
+    },
+    {
+     "id": "defence.hardening",
+     "label": "Infrastructure Hardening"
+    },
+    {
+     "id": "defence.l2fhs",
+     "label": "Layer 2 & First-Hop Security"
+    },
+    {
+     "id": "defence.firewalls",
+     "label": "Firewalls & IPS"
+    },
+    {
+     "id": "defence.endpoint",
+     "label": "Endpoint Security"
+    },
+    {
+     "id": "defence.monitoring",
+     "label": "Monitoring & Detection"
+    },
+    {
+     "id": "defence.ir",
+     "label": "Incident Response & Forensics"
+    },
+    {
+     "id": "defence.secdev",
+     "label": "Secure Development"
+    },
+    {
+     "id": "defence.testing",
+     "label": "Security Testing"
+    },
+    {
+     "id": "defence.people",
+     "label": "People in Security"
+    }
+   ],
+   "examples": [
+    {
+     "kind": "corpus",
+     "doc_key": "wp-copp-best-practices",
+     "sub": "defence.hardening"
+    },
+    {
+     "kind": "corpus",
+     "doc_key": "iosxe-hardening-guide",
+     "sub": "defence.hardening"
+    },
+    {
+     "kind": "corpus",
+     "doc_key": "cisco-tn-dai-ipsg",
+     "sub": "defence.l2fhs"
+    }
+   ]
+  },
+  {
+   "id": "policy",
+   "order": 15,
+   "menu": [
+    2,
+    5
+   ],
+   "label": [
+    "Policy &",
+    "Compliance"
+   ],
+   "bar_label": "Policy & Compliance",
+   "colour": {
+    "face": "#DCBA5C",
+    "ink": "#907949",
+    "face_entry": 17,
+    "ink_entry": 11
+   },
+   "subcategories": [
+    {
+     "id": "policy.rmf",
+     "label": "Risk Management Framework"
+    },
+    {
+     "id": "policy.controls",
+     "label": "Security Controls"
+    },
+    {
+     "id": "policy.csf",
+     "label": "Cybersecurity Framework"
+    },
+    {
+     "id": "policy.baselines",
+     "label": "Hardening Baselines"
+    },
+    {
+     "id": "policy.evaluation",
+     "label": "Evaluation & Certification"
+    },
+    {
+     "id": "policy.governance",
+     "label": "Governance & Audit"
+    },
+    {
+     "id": "policy.privacy",
+     "label": "Privacy & Surveillance"
+    },
+    {
+     "id": "policy.law",
+     "label": "Computer Law & Copyright"
+    }
+   ]
+  },
+  {
+   "id": "os",
+   "order": 16,
+   "menu": [
+    2,
+    6
+   ],
+   "label": [
+    "Operating",
+    "Systems"
+   ],
+   "bar_label": "Operating Systems",
+   "colour": {
+    "face": "#969696",
+    "ink": "#6571B4",
+    "face_entry": 29,
+    "ink_entry": 27
+   },
+   "subcategories": [
+    {
+     "id": "os.internals",
+     "label": "OS Concepts & Internals"
+    },
+    {
+     "id": "os.unix",
+     "label": "Unix & BSD"
+    },
+    {
+     "id": "os.linux",
+     "label": "Linux"
+    },
+    {
+     "id": "os.windows",
+     "label": "Microsoft Windows"
+    },
+    {
+     "id": "os.powershell",
+     "label": "Windows PowerShell"
+    },
+    {
+     "id": "os.shells",
+     "label": "Shells & Scripting"
+    },
+    {
+     "id": "os.desktops",
+     "label": "X11 & Desktops"
+    },
+    {
+     "id": "os.netos",
+     "label": "Network Operating Systems"
+    },
+    {
+     "id": "os.mobile",
+     "label": "Mobile Operating Systems"
+    },
+    {
+     "id": "os.embedded",
+     "label": "Embedded Systems & Firmware"
+    },
+    {
+     "id": "os.apps",
+     "label": "Applications & Utilities"
+    },
+    {
+     "id": "os.media",
+     "label": "Media & Creative Software"
+    },
+    {
+     "id": "os.people",
+     "label": "People in Software"
+    }
+   ],
+   "examples": [
+    {
+     "kind": "corpus",
+     "doc_key": "iosxe-cr-fundamentals",
+     "sub": "os.netos"
+    },
+    {
+     "kind": "corpus",
+     "doc_key": "pwsh-ps101",
+     "sub": "os.powershell"
+    },
+    {
+     "kind": "corpus",
+     "doc_key": "ext-systemd-resource-control",
+     "sub": "os.linux"
+    }
+   ]
+  },
+  {
+   "id": "itinfra",
+   "order": 17,
+   "menu": [
+    2,
+    7
+   ],
+   "label": [
+    "Cloud &",
+    "IT Operations"
+   ],
+   "bar_label": "Cloud & IT Operations",
+   "colour": {
+    "face": "#8DB8CF",
+    "ink": "#6571B4",
+    "face_entry": 7,
+    "ink_entry": 27
+   },
+   "subcategories": [
+    {
+     "id": "itinfra.cloud",
+     "label": "Cloud Computing"
+    },
+    {
+     "id": "itinfra.virt",
+     "label": "Virtualisation"
+    },
+    {
+     "id": "itinfra.containers",
+     "label": "Containers & Orchestration"
+    },
+    {
+     "id": "itinfra.servers",
+     "label": "Servers & Hardware"
+    },
+    {
+     "id": "itinfra.storage",
+     "label": "Storage & Backup"
+    },
+    {
+     "id": "itinfra.iac",
+     "label": "Infrastructure as Code"
+    },
+    {
+     "id": "itinfra.observability",
+     "label": "Monitoring & Observability"
+    },
+    {
+     "id": "itinfra.service",
+     "label": "IT Service Management"
+    },
+    {
+     "id": "itinfra.business",
+     "label": "Business & Office Software"
+    },
+    {
+     "id": "itinfra.continuity",
+     "label": "Continuity & Recovery"
+    },
+    {
+     "id": "itinfra.labs",
+     "label": "Labs & Emulation"
+    }
+   ],
+   "examples": [
+    {
+     "kind": "corpus",
+     "doc_key": "ext-proxmox-ve",
+     "sub": "itinfra.virt"
+    },
+    {
+     "kind": "corpus",
+     "doc_key": "ext-docker-update-restart",
+     "sub": "itinfra.containers"
+    },
+    {
+     "kind": "corpus",
+     "doc_key": "ext-cml-2-10-guides",
+     "sub": "itinfra.labs"
+    }
+   ]
+  },
+  {
+   "id": "cs",
+   "order": 18,
+   "menu": [
+    2,
+    8
+   ],
+   "label": [
+    "Computer",
+    "Science"
+   ],
+   "bar_label": "Computer Science",
+   "colour": {
+    "face": "#CFCFCF",
+    "ink": "#969696",
+    "face_entry": 30,
+    "ink_entry": 29
+   },
+   "subcategories": [
+    {
+     "id": "cs.concepts",
+     "label": "Computing Principles & Concepts"
+    },
+    {
+     "id": "cs.algorithms",
+     "label": "Algorithms"
+    },
+    {
+     "id": "cs.datastructures",
+     "label": "Data Structures"
+    },
+    {
+     "id": "cs.theory",
+     "label": "Theory of Computation"
+    },
+    {
+     "id": "cs.information",
+     "label": "Information & Coding Theory"
+    },
+    {
+     "id": "cs.maths",
+     "label": "Mathematics of Computing"
+    },
+    {
+     "id": "cs.languages",
+     "label": "Programming Languages"
+    },
+    {
+     "id": "cs.programming",
+     "label": "Programming & Compilers"
+    },
+    {
+     "id": "cs.softeng",
+     "label": "Software Engineering"
+    },
+    {
+     "id": "cs.scientific",
+     "label": "Scientific Computing"
+    },
+    {
+     "id": "cs.architecture",
+     "label": "Computer Architecture"
+    },
+    {
+     "id": "cs.hardware",
+     "label": "Hardware & Electronics"
+    },
+    {
+     "id": "cs.distributed",
+     "label": "Distributed Systems"
+    },
+    {
+     "id": "cs.people",
+     "label": "People in Computer Science"
+    },
+    {
+     "id": "cs.mathpeople",
+     "label": "People in Theory & Mathematics"
+    }
+   ],
+   "examples": [
+    {
+     "kind": "corpus",
+     "doc_key": "rfc8405",
+     "sub": "cs.algorithms"
+    },
+    {
+     "kind": "corpus",
+     "doc_key": "rfc2992",
+     "sub": "cs.algorithms"
+    }
+   ]
+  },
+  {
+   "id": "ai",
+   "order": 19,
+   "menu": [
+    2,
+    9
+   ],
+   "label": [
+    "AI & Data"
+   ],
+   "bar_label": "AI & Data",
+   "colour": {
+    "face": "#B2CB97",
+    "ink": "#52845B",
+    "face_entry": 24,
+    "ink_entry": 9
+   },
+   "subcategories": [
+    {
+     "id": "ai.ai",
+     "label": "Artificial Intelligence"
+    },
+    {
+     "id": "ai.ml",
+     "label": "Machine Learning"
+    },
+    {
+     "id": "ai.llm",
+     "label": "Language Models & RAG"
+    },
+    {
+     "id": "ai.safety",
+     "label": "AI Safety & Security"
+    },
+    {
+     "id": "ai.datasci",
+     "label": "Data Science & Statistics"
+    },
+    {
+     "id": "ai.databases",
+     "label": "Databases"
+    },
+    {
+     "id": "ai.search",
+     "label": "Search & Retrieval"
+    },
+    {
+     "id": "ai.vision",
+     "label": "Vision & Speech"
+    },
+    {
+     "id": "ai.graphics",
+     "label": "Graphics & HCI"
+    },
+    {
+     "id": "ai.people",
+     "label": "People in AI & Data"
+    }
+   ],
+   "examples": [
+    {
+     "kind": "corpus",
+     "doc_key": "ext-jina-reranker-v3-5",
+     "sub": "ai.search"
+    },
+    {
+     "kind": "corpus",
+     "doc_key": "ext-sqlite-fts5",
+     "sub": "ai.search"
+    },
+    {
+     "kind": "corpus",
+     "doc_key": "ise-dataconnect",
+     "sub": "ai.databases"
+    }
+   ]
+  },
+  {
+   "id": "history",
+   "order": 20,
+   "menu": [
+    2,
+    10
+   ],
+   "label": [
+    "History of",
+    "Computing"
+   ],
+   "bar_label": "History of Computing",
+   "colour": {
+    "face": "#EBEAE1",
+    "ink": "#A09683",
+    "face_entry": 31,
+    "ink_entry": 13
+   },
+   "subcategories": [
+    {
+     "id": "history.calculating",
+     "label": "Calculating Machines"
+    },
+    {
+     "id": "history.early",
+     "label": "Early Computers"
+    },
+    {
+     "id": "history.mainframes",
+     "label": "Mainframes & Minicomputers"
+    },
+    {
+     "id": "history.pcs",
+     "label": "Personal Computers"
+    },
+    {
+     "id": "history.home",
+     "label": "Home Computers & Consoles"
+    },
+    {
+     "id": "history.telecom",
+     "label": "Telegraph & Telephone"
+    },
+    {
+     "id": "history.arpanet",
+     "label": "ARPANET & Early Networks"
+    },
+    {
+     "id": "history.internet",
+     "label": "The Internet Era"
+    },
+    {
+     "id": "history.crypto",
+     "label": "History of Cryptography"
+    },
+    {
+     "id": "history.software",
+     "label": "History of Software & Unix"
+    },
+    {
+     "id": "history.security",
+     "label": "History of Security"
+    },
+    {
+     "id": "history.culture",
+     "label": "Hacker Culture & Folklore"
+    },
+    {
+     "id": "history.pioneers",
+     "label": "Pioneers & Inventors"
+    }
+   ],
+   "examples": [
+    {
+     "kind": "corpus",
+     "doc_key": "rfc854",
+     "sub": "history.arpanet"
+    },
+    {
+     "kind": "corpus",
+     "doc_key": "rfc1058",
+     "sub": "history.arpanet"
+    }
+   ]
+  }
+ ]
+}

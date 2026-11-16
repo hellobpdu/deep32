@@ -1,0 +1,86 @@
+#!/bin/ksh
+# /install.site: Deep32 Workstation site set (BASE lane, D.32.12).
+# OpenBSD's install.sub runs this as "chroot /mnt /install.site" at the end of finish_up: after the sets (site80.tgz
+# included) are extracted, MAKEDEV, installboot and the kernel relink, before "CONGRATULATIONS". A non-zero exit
+# stops the install ("install.site failed"). It runs /etc/d32/site.d/NN-*.sh in order; each prints the line protocol
+# d32setup turns into bars (INSTALLER 1.5): "D32: phase <n> <count> <name>", "D32: item <text>", "D32: fail <text>".
+# Everything is also kept in /var/log/d32-site.log. No secret passes through here.
+set -u
+set -o pipefail
+PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin
+export PATH
+umask 022
+D32_C6_INSTALL=0
+if [ -r /usr/local/d32/libexec/d32-c6.sh ]; then
+    . /usr/local/d32/libexec/d32-c6.sh
+    C6_DIR=/var/run/d32/c6
+    C6_VERSION=$(sed -n '1{s/[[:space:]].*//;p;}' /etc/d32/release 2>/dev/null)
+    C6_NAME=$(hostname -s)
+    if c6_setup workstation stdout; then
+        D32_C6_INSTALL=1
+        c6_adopt /etc/d32-c6.conf || :
+    fi
+fi
+c6i() {
+    [ "$D32_C6_INSTALL" != 1 ] || c6_set install "$@" || :
+    return 0
+}
+log=/var/log/d32-site.log
+: >$log && chmod 600 $log
+
+d32_maint_key_ok() {
+    [ "$#" = 1 ] || return 1
+    case $1 in ''|*[![:print:]]*) return 1;; esac
+    printf '%s\n' "$1" | LC_ALL=C grep -Eq '^ssh-ed25519 [A-Za-z0-9+/]{68}={0,2}( [A-Za-z0-9@._-]{1,64})?$'
+}
+
+d32_maint_install() {
+    typeset root=${D32_ROOT-} record key= extra= conf
+    record=$root/etc/d32-maint-key
+    conf=$root/etc/d32/link.conf
+    [ ! -L "$record" ] || return 1
+    [ -e "$record" ] || return 0
+    [ -f "$record" ] && [ -f "$conf" ] && [ ! -L "$conf" ] || return 1
+    {
+        IFS= read -r key || return 1
+        ! IFS= read -r extra || return 1
+    } <"$record"
+    d32_maint_key_ok "$key" || return 1
+    [ "$(grep -c '^maint_key=' "$conf")" = 1 ] || return 1
+    sed "s|^maint_key=.*|maint_key=$key|" "$conf" >"$conf.new" || return 1
+    chown root:wheel "$conf.new" && chmod 0444 "$conf.new" && mv "$conf.new" "$conf" || return 1
+    rm -f "$record"
+}
+
+hooks=$(ls /etc/d32/site.d/[0-9][0-9]-*.sh | sort)
+count=$(echo $hooks | wc -w | tr -d ' ')
+n=0 rc=0
+print -r -- "D32: start site set $(cat /etc/d32/release), $count hooks" | tee -a $log
+c6i running "msg=installing: $count steps"
+# the BASE hooks must all be there; other lanes add theirs (40-theme, 50-cde ...) between them
+for need in 10-media 20-packages 25-fstab 30-users 60-pf-tables 65-state 70-identity 80-firstboot 95-schg; do
+	if [ ! -f /etc/d32/site.d/$need.sh ]; then
+		print -r -- "D32: fail missing hook $need" | tee -a $log
+		c6i failed error=WS_INSTALL_STEP "msg=missing install step $need"
+		exit 1
+	fi
+done
+for h in $hooks; do
+	n=$((n + 1))
+	name=${h##*/}
+	name=${name%.sh}
+	print -r -- "D32: phase $n $count $name" | tee -a $log
+	c6i running "msg=step $n of $count: $name"
+	if ! { { [ "$name" != 95-schg ] || d32_maint_install; } && /bin/ksh -e "$h"; } 2>&1 | tee -a $log; then
+		print -r -- "D32: fail $name" | tee -a $log
+		c6i failed error=WS_INSTALL_STEP "msg=install step $name failed"
+		rc=1
+		break
+	fi
+done
+if [ $rc -eq 0 ]; then
+	print -r -- "D32: done site set" | tee -a $log
+	c6i done "msg=installed; the machine restarts"
+	rm -f /install.site
+fi
+exit $rc

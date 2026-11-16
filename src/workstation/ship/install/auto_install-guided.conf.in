@@ -1,0 +1,41 @@
+# /auto_install.conf of the Deep32 Workstation medium: the GUIDED install. OpenBSD's own installer runs unattended
+# with these answers (install.sub's _autorespond, extended by ship/install/patch-installsub.pl):
+#   @SET:<field>@      the value from the settings disc (contract C7); without a settings disc, or without that
+#                      field, it is asked on this machine's console
+#   @ROOTDISK:<duid>@  the one empty disk of a VM when a settings disc is present; otherwise asked on the console
+#   @ENCRYPT@          from the settings disc (absent: off for hw_profile vm, on for a real machine); without a
+#                      settings disc it is asked on the console
+#   @DEFAULT@          the installer's own default answer
+#   @ASKSECRET@        typed twice on the console, never in a file (the disk passphrase only)
+#   @DUID:<duid>@      the disk carrying that DUID (the install medium)
+# No password is set here: both accounts stay locked until the first start sets them on the console.
+# No secret and no person's value is in this file.
+Choose your keyboard layout = @SET:keyboard@
+System hostname = @SET:node_name@
+Network interface to configure = done
+DNS domain name = invalid
+Password for root account = *************
+Public ssh key for root account = @MAINT@
+maint_key = @ASK@
+Start sshd(8) by default = no
+Do you expect to run the X Window System = yes
+Do you want the X Window System to be started by xenodm(1) = no
+Change the default console to com0 = no
+Setup a user = @SET:user_name@
+Full name for user = @DEFAULT@
+Password for user = *************
+Public ssh key for user = none
+Allow root ssh login = no
+What timezone are you in = @SET:time_zone@
+Which disk is the root disk = @ROOTDISK:@MEDIA_DUID@@
+Encrypt the root disk with a (p)assphrase or (k)eydisk = @ENCRYPT@
+New passphrase = @ASKSECRET@
+URL to autopartitioning template for disklabel = file:///@TEMPLATE@
+Location of sets = disk
+Is the disk partition already mounted = no
+Which disk contains the install media = @DUID:@MEDIA_DUID@@
+partition has the install sets = a
+Pathname to the sets = 8.0/amd64
+Set name(s) = -comp* -game* +site*
+Checksum test for site80.tgz failed. Continue anyway = yes
+Unverified sets: site80.tgz. Continue without verification = yes

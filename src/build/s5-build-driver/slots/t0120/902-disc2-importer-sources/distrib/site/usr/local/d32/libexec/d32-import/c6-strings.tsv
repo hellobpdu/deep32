@@ -1,0 +1,19 @@
+id	text
+c6.import.disc	looking at disc 2
+c6.import.signature	checking the signature of disc 2
+c6.import.files	checking every file of disc 2
+c6.import.files.n	checking every file of disc 2: {done} of {total} MB
+c6.import.space	checking free space
+c6.import.kb	installing the knowledge base
+c6.import.kb.n	installing the knowledge base: {done} of {total} MB
+c6.import.library	installing the Deep32 Library packs
+c6.import.library.n	installing the Deep32 Library packs: {done} of {total} MB
+c6.import.blocks	keeping the corpus blocks
+c6.import.blocks.n	keeping the corpus blocks: {done} of {total} MB
+c6.import.switch	switching to the new knowledge base and Library
+c6.import.check	checking the new knowledge base and Library
+c6.import.finish	finishing
+c6.import.failed	the import of disc 2 stopped: see Import Report
+c6.import.done	disc 2 {version} imported
+c6.import.current	disc 2 {version} is already in use
+c6.ready	ready

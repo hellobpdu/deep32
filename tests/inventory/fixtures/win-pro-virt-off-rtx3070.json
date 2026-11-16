@@ -1,0 +1,163 @@
+{
+ "name": "win-pro-virt-off-rtx3070",
+ "about": "Windows 11 Pro, i7-10700, 32 GB, RTX 3070 8 GB; virtualisation off in firmware, no Hyper-V, no WSL",
+ "facts": {
+  "os": {
+   "family": "windows",
+   "name": "Windows 11 Pro",
+   "edition": "pro",
+   "version": "23H2",
+   "build": 22631,
+   "arch": "x64",
+   "wsl_guest": false
+  },
+  "hw": {
+   "vendor": "Dell Inc.",
+   "model": "XPS 8940",
+   "virtual": false
+  },
+  "cpu": {
+   "vendor": "intel",
+   "model": "Intel(R) Core(TM) i7-10700 CPU @ 2.90GHz",
+   "family": null,
+   "model_id": null,
+   "stepping": null,
+   "gen": null,
+   "sockets": 1,
+   "cores": 8,
+   "threads": 16,
+   "p_cores": null,
+   "e_cores": 0,
+   "p_threads": null,
+   "avx": true,
+   "avx2": true,
+   "avx512f": false
+  },
+  "mem": {
+   "total_gb": 31.9,
+   "installed_gb": 32,
+   "free_gb": 22.0
+  },
+  "disks": [
+   {
+    "mount": "C:",
+    "size_gb": 476.9,
+    "free_gb": 210.0,
+    "ssd": true
+   },
+   {
+    "mount": "D:",
+    "size_gb": 931.5,
+    "free_gb": 900.0,
+    "ssd": false
+   }
+  ],
+  "gpus": [
+   {
+    "name": "NVIDIA GeForce RTX 3070",
+    "vendor": "nvidia",
+    "mem_gb": 8.0,
+    "driver": "566.36",
+    "cc": "8.6"
+   }
+  ],
+  "virt": {
+   "firmware": false,
+   "slat": true,
+   "iommu": null,
+   "hypervisor": false
+  },
+  "hyp": {
+   "hyperv": false,
+   "kvm": false,
+   "proxmox": false,
+   "virtualbox": false,
+   "vmware": false,
+   "libvirt": false
+  },
+  "wsl": {
+   "present": false,
+   "wsl2_distros": 0
+  },
+  "docker": {
+   "present": false,
+   "client": null,
+   "nvidia": null
+  },
+  "tools": {
+   "tailscale": false,
+   "claude": false,
+   "codex": false,
+   "gh": false
+  },
+  "ports": {
+   "checked": true,
+   "busy": []
+  },
+  "net": null
+ },
+ "reasoning": [
+  "Classes: the i7-10700 has AVX2: modern. The RTX 3070 is rtx30 (Forge yes), usable; 8 GB is tier 8.",
+  "Sizing: 16 threads, 32 GB: tier 2 (tier 3 needs 64 GB). After the host: 14 threads, 28 GB.",
+  "Candidates: win-nvidia, two-machines, headend-only (no-gpu: the card is usable).",
+  "win-nvidia: changes. Missing virt-firmware (off), hyperv, wsl2, agent; Tailscale auto. Size 'both': threads (6, 4) fit 14; memory (16, 16) = 32 > 28 twice, then (12, 16) fits: Workstation (6, 12), Forge (4, 16).",
+  "two-machines: ready. Size (6, 16) and Forge (4, 16). headend-only: changes (agent missing).",
+  "Order (single machine first, matrix 0.3.0; before, it was two-machines, win-nvidia, headend-only): the one-machine win-nvidia can run here (firmware switch, features and a sign-in, no hardware gap), so it is first whatever its fit; then the alternatives (machines 2): ready two-machines, changes headend-only. The best lists missing virt-firmware, hyperv, wsl2, agent (requires order) and Tailscale in auto.",
+  "Warnings: gpu-mem-8."
+ ],
+ "expect": {
+  "best": "win-nvidia",
+  "fit": "changes",
+  "ranked": [
+   "win-nvidia",
+   "two-machines",
+   "headend-only"
+  ],
+  "best_missing": [
+   "virt-firmware",
+   "hyperv",
+   "wsl2",
+   "agent"
+  ],
+  "best_unknown": [],
+  "best_auto": [
+   "tailscale"
+  ],
+  "best_confirm": [],
+  "cpu_class": "modern",
+  "gpu_class": "rtx30",
+  "gpu_forge": "yes",
+  "gpu_mem_tier": "8",
+  "tier": 2,
+  "sizes": {
+   "win-nvidia": {
+    "ws": [
+     6,
+     12
+    ],
+    "forge": [
+     4,
+     16
+    ]
+   },
+   "two-machines": {
+    "ws": [
+     6,
+     16
+    ],
+    "forge": [
+     4,
+     16
+    ]
+   },
+   "headend-only": {
+    "ws": null,
+    "forge": null
+   }
+  },
+  "ruled_out": [],
+  "warnings": [
+   "gpu-mem-8"
+  ]
+ }
+}

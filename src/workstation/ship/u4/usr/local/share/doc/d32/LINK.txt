@@ -1,0 +1,52 @@
+THE DEEP32 LINK
+
+What it does
+
+Whenever one of the wired ports named in /etc/d32/link.conf has a cable,
+the workstation links up by itself, at every boot, with nothing to type:
+
+  - a DHCP address on that port only (never Wi-Fi), and the lease's DNS
+    servers for Tailscale's names only (every other name stays refused);
+  - Tailscale, under the host name set in link.conf: no MagicDNS, no
+    routes, no exit node, no Tailscale SSH, no logs sent to Tailscale;
+  - over the tailnet, to the hub named in link.conf only: Ask's relay
+    (port 7452), the GPU node for meaning search and reranking (GPU_EXT,
+    ports 443 and 8443) and the time. The hub is set when you pair; until
+    then nothing is opened towards any other machine.
+
+The firewall lets nothing else out. Pull the cable and it all goes down;
+plug it back and it comes back within about 10 seconds.
+
+The first time only: the Tailscale login
+
+Tailscale needs one login for this workstation, with your own account. In a
+Terminal:
+
+  doas /usr/local/d32/sbin/d32-link login
+
+It shows the login link: open it in any browser where you are signed in to
+Tailscale and press Connect. "login --qr" also draws a QR code. Until the
+login is done the link is also kept in /var/db/d32link/login-url (root only).
+
+Then, once, in the Tailscale admin console (Machines): find this workstation,
+open its menu and choose "Disable key expiry", so it never asks again.
+
+Every day
+
+  doas /usr/local/d32/sbin/d32-link status     what is up, and why not
+  doas /usr/local/d32/sbin/d32-link off        everything off until the next boot
+  doas /usr/local/d32/sbin/d32-link on         on again now (it also shows the
+                                               login link if one is needed)
+  doas /usr/local/d32/sbin/d32-link disable    off across reboots
+  doas /usr/local/d32/sbin/d32-link enable     automatic again
+
+Each asks your password. With the link off the workstation has no address,
+no default route and nothing in or out.
+
+Elsewhere
+
+It links up on any network where a cable is in, so plug it in only on a
+network where Tailscale is permitted. "doas /usr/local/d32/sbin/d32-link
+disable" keeps it off until you "enable" it again.
+
+Ask pairing (once): see /usr/local/share/doc/d32/ASK.txt.

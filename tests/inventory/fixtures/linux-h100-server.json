@@ -1,0 +1,161 @@
+{
+ "name": "linux-h100-server",
+ "about": "A GPU server: Ubuntu 22.04, two Xeon Platinum 8480+, 2 TB, H100, Docker with the toolkit, no KVM, port 8765 taken",
+ "facts": {
+  "os": {
+   "family": "linux",
+   "name": "Ubuntu 22.04.5 LTS",
+   "edition": "ubuntu",
+   "version": "22.04",
+   "build": null,
+   "arch": "x64",
+   "wsl_guest": false,
+   "kernel": null
+  },
+  "hw": {
+   "vendor": "Supermicro",
+   "model": "SYS-421GE-TNRT",
+   "virtual": false
+  },
+  "cpu": {
+   "vendor": "intel",
+   "model": "Intel(R) Xeon(R) Platinum 8480+",
+   "family": null,
+   "model_id": null,
+   "stepping": null,
+   "gen": null,
+   "sockets": 2,
+   "cores": 112,
+   "threads": 224,
+   "p_cores": null,
+   "e_cores": 0,
+   "p_threads": null,
+   "avx": true,
+   "avx2": true,
+   "avx512f": true
+  },
+  "mem": {
+   "total_gb": 2015.5,
+   "installed_gb": null,
+   "free_gb": 1900.0
+  },
+  "disks": [
+   {
+    "mount": "/",
+    "size_gb": 3500.0,
+    "free_gb": 3000.0,
+    "ssd": true
+   }
+  ],
+  "gpus": [
+   {
+    "name": "NVIDIA H100 80GB HBM3",
+    "vendor": "nvidia",
+    "mem_gb": 79.6,
+    "driver": "550.90.07",
+    "cc": "9.0"
+   }
+  ],
+  "virt": {
+   "firmware": null,
+   "slat": true,
+   "iommu": true,
+   "hypervisor": false
+  },
+  "hyp": {
+   "hyperv": false,
+   "kvm": false,
+   "proxmox": false,
+   "virtualbox": false,
+   "vmware": false,
+   "libvirt": false
+  },
+  "wsl": null,
+  "docker": {
+   "present": true,
+   "client": "27.3.1",
+   "nvidia": true
+  },
+  "tools": {
+   "tailscale": "1.76.6",
+   "claude": false,
+   "codex": false,
+   "gh": false
+  },
+  "ports": {
+   "checked": true,
+   "busy": [
+    8765
+   ]
+  },
+  "net": null
+ },
+ "reasoning": [
+  "Classes: the Xeon Platinum 8480+ has AVX2: modern. 'nvidia h100 80gb hbm3' matches 'h100': hopper (Forge experimental, upstream stable), usable; 79.6 GB is tier 11.",
+  "Sizing: 224 threads; 2015.5 GB visible: 2016 GB; tier 3. After the host: 222 threads, 2012 GB.",
+  "Candidates: linux-nvidia, two-machines, headless, headend-only. no-gpu no longer matches because the card is usable (before, no-gpu sat second here and pushed headless out of the three).",
+  "linux-nvidia: changes. Missing kvm (not installed; this server is not a VM, so it can be added); virt-firmware unknown; headend-elsewhere in confirm. Size 'both': (8, 16) and Forge (8, 32).",
+  "two-machines: ready (this server as the Forge, the Workstation elsewhere). Size (8, 16) and Forge (8, 32).",
+  "headless: changes. Missing ports-engine (8765 busy). Size 'forge': (8, 32). headend-only: changes (agent missing).",
+  "Order (single machine first, matrix 0.3.0; before, it was two-machines, linux-nvidia, headless): the one-machine profiles first, both changes, by rank: linux-nvidia 10, headless 50; then the alternatives (machines 2): ready two-machines (third), changes headend-only (fourth, not shown). The best, linux-nvidia, lists missing kvm, unknown virt-firmware, headend-elsewhere in confirm; Tailscale present.",
+  "Warnings: gpu-experimental, ports-busy."
+ ],
+ "expect": {
+  "best": "linux-nvidia",
+  "fit": "changes",
+  "ranked": [
+   "linux-nvidia",
+   "headless",
+   "two-machines"
+  ],
+  "best_missing": [
+   "kvm"
+  ],
+  "best_unknown": [
+   "virt-firmware"
+  ],
+  "best_auto": [],
+  "best_confirm": [
+   "headend-elsewhere"
+  ],
+  "cpu_class": "modern",
+  "gpu_class": "hopper",
+  "gpu_forge": "experimental",
+  "gpu_mem_tier": "11",
+  "tier": 3,
+  "sizes": {
+   "linux-nvidia": {
+    "ws": [
+     8,
+     16
+    ],
+    "forge": [
+     8,
+     32
+    ]
+   },
+   "headless": {
+    "ws": null,
+    "forge": [
+     8,
+     32
+    ]
+   },
+   "two-machines": {
+    "ws": [
+     8,
+     16
+    ],
+    "forge": [
+     8,
+     32
+    ]
+   }
+  },
+  "ruled_out": [],
+  "warnings": [
+   "gpu-experimental",
+   "ports-busy"
+  ]
+ }
+}

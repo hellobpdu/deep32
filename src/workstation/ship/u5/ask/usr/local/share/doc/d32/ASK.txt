@@ -1,0 +1,118 @@
+ASK DEEP32
+
+Ask runs on this workstation. Claude Code or Codex runs on the PC you pair it
+with (the headend) and searches this workstation's RAG through that PC's
+relay. The relay chooses the actual model.
+
+Connect
+
+The link comes up by itself whenever a wired port has a cable: d32-link takes
+a DHCP address on that port and joins your tailnet, and Ask reaches the relay
+on the paired PC at port 7452 over the tailnet. The first time only,
+Tailscale needs its one-time login; after that every boot reconnects with no
+input. In a Terminal:
+
+  doas /usr/local/d32/sbin/d32-link status    the link, Tailscale and Ask
+  doas /usr/local/d32/sbin/d32-link off       off until the next boot
+  doas /usr/local/d32/sbin/d32-link on        on again now
+
+More in /usr/local/share/doc/d32/LINK.txt.
+
+Pair once
+
+On the PC, install the relay and follow its pairing steps: sign in to Claude
+Code or Codex there, choose the allowed model on that PC, and open a pairing
+window. Choose a pairing password of at least 12 characters or four words and
+type it twice at its masked prompts. The password stays in memory for that
+five-minute window only.
+
+On the workstation, open a normal Terminal as your desktop user and run:
+
+  doas /usr/local/d32/sbin/d32-chatctl pair home
+
+Enter your login password for doas, then the SAME pairing password at the
+separate Pairing password prompt. It does not echo. The command reports when
+it connects and verifies the password and the relay's identity. Wait for the
+paired result on both screens. A second relay pairs as "pair work".
+
+There is one attempt per five-minute window. A failure closes it; open a new
+window on the PC and repeat the command to retry. Three failed windows within
+30 minutes lock pairing for 15 minutes. The password is never saved or logged.
+Never send the pairing password or private keys to an assistant. Existing
+pairings remain valid. An old relay must be updated before a new pairing.
+
+Use Ask
+
+Open the Library subpanel of the front panel and select Ask Deep32, or type
+/usr/local/d32/bin/d32-ask in a terminal.
+
+Type a question and press Return. The answer appears as it arrives. Ctrl+C
+interrupts the current answer. Ctrl+D or /quit closes this conversation.
+
+  /engine claude    choose Claude Code for the NEXT session
+  /engine codex     choose Codex for the NEXT session
+  /new              start that fresh session
+  /status           check the link and pairing
+  /ledger           show this session's RAG call names, outcomes, bytes and times
+  /refs             list the last answer's numbered Library references
+  /open             list those references again
+  /open 2           open reference 2 in the Deep32 Encyclopedia
+  /mods             show the question modifier key
+  /help             show all commands
+
+Every launch starts with Codex unless --engine selects another engine. An
+/engine selection applies to the next session only; later sessions use Codex.
+The engine switch does not change a conversation already open. The model is
+selected on the paired PC. If an interrupted Claude Code session cannot
+continue, use /new. History is off; /history on enables a private history
+file on the workstation. Leave it off for material you should not save.
+
+Modifiers
+
+Add a pipe followed by $letters to a question. Letters combine; /mods shows
+the full key, grouped by search, length, scope and angle. Add +include,
+-exclude, @doc, #release or %platform values after the letters. Double quotes
+keep a phrase together. The status line shows the short summary.
+
+  ospf nssa translator | $hv
+  route maps | $c
+  bgp bestpath | $nr #17.18 %iosxe-router
+
+Ask expands these into instruction sentences for the headend. A Cisco pipe
+without $ (show run | include ospf) stays in the question. Unknown letters,
+stray tokens and an empty question show a local error before a session or
+turn is sent. Modifiers apply to that question only. History, when enabled,
+saves the question as typed.
+
+References in answers
+
+After an answer, the Library lists its references in first-seen order. Use
+/open N with the number shown to open the document and its mapped section. A
+section without an exact mapping opens the document and says 'section not
+mapped'. Missing documents remain in the list as 'not in the Library'.
+Install the matching Library pack and cite map to make them available.
+
+Known compatible terminals also show clickable library: links. dtterm and
+unrecognised terminals use the numbered list and /open N. A terminal must have
+a library: handler configured before clicking can run the launcher; /open N
+runs it directly. References use installed read-only maps and need no network.
+
+Finish or unpair
+
+Close Ask when finished. To revoke trust, log in as root at the text console
+and run:
+
+  /usr/local/d32/sbin/d32-chatctl unpair home
+
+Also remove this workstation's pairing on the PC with the relay's own steps.
+A changed relay certificate needs a deliberate unpair and a new password
+pairing.
+
+If it does not connect
+
+Check the network link, d32-chatctl status at the root console, and the
+relay's local status on the PC. A refused engine is configured and signed in
+on the PC; the workstation never signs in to either model service. Do not
+display or copy token files. The d32-edge-front off command also removes
+Ask's local RAG listener. Ask needs that backend enabled, while the separate
+d32front network service stays disabled.

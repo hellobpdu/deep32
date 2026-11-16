@@ -1,0 +1,140 @@
+{
+ "name": "latitude-5430",
+ "about": "The tested laptop model: i7-1265U (2 fast, 8 efficient cores), 32 GB, Iris Xe",
+ "facts": {
+  "os": {
+   "family": "windows",
+   "name": "Windows 11 Pro",
+   "edition": "pro",
+   "version": "23H2",
+   "build": 22631,
+   "arch": "x64",
+   "wsl_guest": false
+  },
+  "hw": {
+   "vendor": "Dell Inc.",
+   "model": "Latitude 5430",
+   "virtual": false
+  },
+  "cpu": {
+   "vendor": "intel",
+   "model": "12th Gen Intel(R) Core(TM) i7-1265U",
+   "family": null,
+   "model_id": null,
+   "stepping": null,
+   "gen": null,
+   "sockets": 1,
+   "cores": 10,
+   "threads": 12,
+   "p_cores": 2,
+   "e_cores": 8,
+   "p_threads": 4,
+   "avx": true,
+   "avx2": true,
+   "avx512f": false
+  },
+  "mem": {
+   "total_gb": 31.7,
+   "installed_gb": 32,
+   "free_gb": 18.0
+  },
+  "disks": [
+   {
+    "mount": "C:",
+    "size_gb": 476.3,
+    "free_gb": 300.0,
+    "ssd": true
+   }
+  ],
+  "gpus": [
+   {
+    "name": "Intel(R) Iris(R) Xe Graphics",
+    "vendor": "intel",
+    "mem_gb": null,
+    "driver": "31.0.101.5186",
+    "cc": null
+   }
+  ],
+  "virt": {
+   "firmware": true,
+   "slat": true,
+   "iommu": true,
+   "hypervisor": true
+  },
+  "hyp": {
+   "hyperv": true,
+   "kvm": false,
+   "proxmox": false,
+   "virtualbox": false,
+   "vmware": false,
+   "libvirt": false
+  },
+  "wsl": {
+   "present": true,
+   "wsl2_distros": 0
+  },
+  "docker": {
+   "present": false,
+   "client": null,
+   "nvidia": null
+  },
+  "tools": {
+   "tailscale": "1.76.1",
+   "claude": false,
+   "codex": false,
+   "gh": false
+  },
+  "ports": {
+   "checked": true,
+   "busy": []
+  },
+  "net": null
+ },
+ "reasoning": [
+  "Classes: the i7-1265U has AVX2: modern. 'latitude 5430' matches the Latitude 5430 hardware profile. Iris Xe only: no NVIDIA card.",
+  "Sizing: 4 fast threads (2 fast cores, 8 efficient); 32 GB: tier 0 (tier 1 needs 8 threads). After the host: 2 threads, 28 GB: no room for the Workstation VM (4 threads), the Forge alone would fit.",
+  "Candidates: win-nvidia, no-gpu, two-machines, baremetal, headend-only.",
+  "win-nvidia: size-both and gpu-cuda missing: ruled out. no-gpu: size-ws missing: ruled out. two-machines: one-side missing (no Workstation room, no usable card): ruled out.",
+  "baremetal: ready. cpu-supported met; forge-elsewhere and headend-elsewhere in confirm. No size (installed on the machine itself).",
+  "headend-only: changes (agent missing; Tailscale present).",
+  "Order: both possible profiles are alternatives (machines 2: baremetal needs a Forge elsewhere) and every one-machine profile is ruled out by hardware, so ready baremetal is the best, then changes headend-only. Unchanged by the single-machine-first order of matrix 0.3.0."
+ ],
+ "expect": {
+  "best": "baremetal",
+  "fit": "ready",
+  "ranked": [
+   "baremetal",
+   "headend-only"
+  ],
+  "best_missing": [],
+  "best_unknown": [],
+  "best_auto": [],
+  "best_confirm": [
+   "forge-elsewhere",
+   "headend-elsewhere"
+  ],
+  "cpu_class": "modern",
+  "gpu_class": null,
+  "gpu_forge": null,
+  "gpu_mem_tier": null,
+  "tier": 0,
+  "sizes": {
+   "baremetal": {
+    "ws": null,
+    "forge": null
+   },
+   "headend-only": {
+    "ws": null,
+    "forge": null
+   }
+  },
+  "ruled_out": [
+   "win-nvidia",
+   "no-gpu",
+   "two-machines"
+  ],
+  "warnings": [
+   "hybrid-cores"
+  ]
+ }
+}

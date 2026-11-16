@@ -1,0 +1,11 @@
+{
+  "collection": "rag_dense_v1",
+  "vector_size": 1024,
+  "distance": "cosine",
+  "qdrant_url": "http://127.0.0.1:6333",
+  "embedding_url": "http://127.0.0.1:8081/v1/embeddings",
+  "embedding_request_model": "jina-embeddings-v5-text-small",
+  "batch_size": 4,
+  "timeout_seconds": 120,
+  "query_timeout_seconds": 15
+}

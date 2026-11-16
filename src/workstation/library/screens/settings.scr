@@ -1,0 +1,661 @@
+d32scr 1
+# the period design capture256 63. Measured geometry and string IDs are in T-0065 EVIDENCE.md.
+# The caption controls are local because screen blocks are loaded per file.
+screen settings
+	size 491 261
+	origin 72 85
+	over *
+	prop viewport native-centred
+	ground ui:15
+	# Main and Article start at (1,16), giving the measured outer origin (73,101).
+	# Colour 0 represents the whole radio group in the Tab order. Arrows choose its value.
+	prop tab-order "settings-option-0 settings-option-1 settings-option-2 settings-option-3 settings-option-4 settings-option-5 settings-colour-0 settings-word-processor settings-theme settings-ok settings-reset settings-close"
+
+	control settings-caption
+		kind bar
+		rect 1 1 489 15
+		bg ui:27
+		fg ui:0
+		label @13043
+		font ui
+		tracking 3
+		marker
+		text-x 17
+		text-y 12
+	end
+	control settings-close-separator
+		kind panel
+		rect 455 4 1 9
+		bg ui:7
+	end
+	control settings-close
+		kind label
+		rect 456 3 33 11
+		bg ui:27
+		fg ui:31
+		label @6003
+		font ui10
+		align centre
+		text-y 9
+		action settings.close "Close"
+	end
+	control settings-body
+		kind panel
+		rect 1 16 395 244
+		bg ui:28
+	end
+	control settings-button-column
+		kind panel
+		rect 396 16 94 244
+		bg ui:12
+	end
+
+	control settings-check-edge-0
+		kind panel
+		rect 46 40 15 15
+		bg ui:31
+	end
+	control settings-option-0
+		kind toggle
+		rect 47 41 308 13
+		strip ui/bitmap/FINDWIZARD_CHECKBOX 4
+		frame normal 0
+		frame hot 3
+		frame pressed 1
+		frame checked 1
+		frame disabled 2
+		label @14851
+		font ui
+		fg ui:31
+		text-x 23
+		text-y 10
+		action settings.toggle 0
+	end
+	control settings-rule-0
+		kind panel
+		rect 46 57 309 1
+		bg ui:13
+	end
+
+	control settings-check-edge-1
+		kind panel
+		rect 46 60 15 15
+		bg ui:31
+	end
+	control settings-option-1
+		kind toggle
+		rect 47 61 308 13
+		strip ui/bitmap/FINDWIZARD_CHECKBOX 4
+		frame normal 0
+		frame hot 3
+		frame pressed 1
+		frame checked 1
+		frame disabled 2
+		label @14852
+		font ui
+		fg ui:31
+		text-x 23
+		text-y 10
+		action settings.toggle 1
+	end
+	control settings-rule-1
+		kind panel
+		rect 46 77 309 1
+		bg ui:13
+	end
+
+	control settings-check-edge-2
+		kind panel
+		rect 46 80 15 15
+		bg ui:31
+	end
+	control settings-option-2
+		kind toggle
+		rect 47 81 308 13
+		strip ui/bitmap/FINDWIZARD_CHECKBOX 4
+		frame normal 0
+		frame hot 3
+		frame pressed 1
+		frame checked 1
+		frame disabled 2
+		label @14853
+		font ui
+		fg ui:31
+		text-x 23
+		text-y 10
+		action settings.toggle 2
+	end
+	control settings-rule-2
+		kind panel
+		rect 46 97 309 1
+		bg ui:13
+	end
+
+	control settings-check-edge-3
+		kind panel
+		rect 46 100 15 15
+		bg ui:31
+	end
+	control settings-option-3
+		kind toggle
+		rect 47 101 308 13
+		strip ui/bitmap/FINDWIZARD_CHECKBOX 4
+		frame normal 0
+		frame hot 3
+		frame pressed 1
+		frame checked 1
+		frame disabled 2
+		label @14854
+		font ui
+		fg ui:31
+		text-x 23
+		text-y 10
+		action settings.toggle 3
+	end
+	control settings-rule-3
+		kind panel
+		rect 46 117 309 1
+		bg ui:13
+	end
+
+	control settings-check-edge-4
+		kind panel
+		rect 46 120 15 15
+		bg ui:31
+	end
+	control settings-option-4
+		kind toggle
+		rect 47 121 308 13
+		strip ui/bitmap/FINDWIZARD_CHECKBOX 4
+		frame normal 0
+		frame hot 3
+		frame pressed 1
+		frame checked 1
+		frame disabled 2
+		label @14855
+		font ui
+		fg ui:31
+		text-x 23
+		text-y 10
+		action settings.toggle 4
+	end
+	control settings-rule-4
+		kind panel
+		rect 46 137 309 1
+		bg ui:13
+	end
+
+	control settings-check-edge-5
+		kind panel
+		rect 46 140 15 15
+		bg ui:31
+	end
+	control settings-option-5
+		kind toggle
+		rect 47 141 308 13
+		strip ui/bitmap/FINDWIZARD_CHECKBOX 4
+		frame normal 0
+		frame hot 3
+		frame pressed 1
+		frame checked 1
+		frame disabled 2
+		label @14858
+		font ui
+		fg ui:31
+		text-x 23
+		text-y 10
+		action settings.toggle 5
+	end
+	control settings-rule-5
+		kind panel
+		rect 46 157 309 1
+		bg ui:13
+	end
+
+	control settings-jump-label
+		kind label
+		align left
+		rect 46 204 64 14
+		label @14850
+		font ui
+		fg ui:31
+		text-y 11
+	end
+
+	# Paint and storage use nominal RGB. The VGA reference expands 0x80 to 0x82.
+	control settings-swatch-edge-0
+		kind panel
+		rect 46 222 13 13
+		bg ui:13
+		action settings.colour 0
+	end
+	control settings-swatch-0
+		kind panel
+		rect 47 223 11 11
+		bg #000080
+		action settings.colour 0
+	end
+	control settings-colour-0
+		kind radio
+		rect 46 241 12 12
+		strip ui/bitmap/FINDWIZARD_RADIOBUTTON_1 4
+		frame normal 0
+		frame hot 3
+		frame pressed 1
+		frame checked 1
+		frame disabled 2
+		group settings-jump-colour
+		action settings.colour 0
+	end
+
+	control settings-swatch-edge-1
+		kind panel
+		rect 70 222 13 13
+		bg ui:13
+		action settings.colour 1
+	end
+	control settings-swatch-1
+		kind panel
+		rect 71 223 11 11
+		bg #800000
+		action settings.colour 1
+	end
+	control settings-colour-1
+		kind radio
+		rect 70 241 12 12
+		strip ui/bitmap/FINDWIZARD_RADIOBUTTON_1 4
+		frame normal 0
+		frame hot 3
+		frame pressed 1
+		frame checked 1
+		frame disabled 2
+		group settings-jump-colour
+		action settings.colour 1
+	end
+
+	control settings-swatch-edge-2
+		kind panel
+		rect 94 222 13 13
+		bg ui:13
+		action settings.colour 2
+	end
+	control settings-swatch-2
+		kind panel
+		rect 95 223 11 11
+		bg #0000FF
+		action settings.colour 2
+	end
+	control settings-colour-2
+		kind radio
+		rect 94 241 12 12
+		strip ui/bitmap/FINDWIZARD_RADIOBUTTON_1 4
+		frame normal 0
+		frame hot 3
+		frame pressed 1
+		frame checked 1
+		frame disabled 2
+		group settings-jump-colour
+		action settings.colour 2
+	end
+
+	control settings-swatch-edge-3
+		kind panel
+		rect 118 222 13 13
+		bg ui:13
+		action settings.colour 3
+	end
+	control settings-swatch-3
+		kind panel
+		rect 119 223 11 11
+		bg #008000
+		action settings.colour 3
+	end
+	control settings-colour-3
+		kind radio
+		rect 118 241 12 12
+		strip ui/bitmap/FINDWIZARD_RADIOBUTTON_1 4
+		frame normal 0
+		frame hot 3
+		frame pressed 1
+		frame checked 1
+		frame disabled 2
+		group settings-jump-colour
+		action settings.colour 3
+	end
+
+	control settings-swatch-edge-4
+		kind panel
+		rect 142 222 13 13
+		bg ui:13
+		action settings.colour 4
+	end
+	control settings-swatch-4
+		kind panel
+		rect 143 223 11 11
+		bg #FF00FF
+		action settings.colour 4
+	end
+	control settings-colour-4
+		kind radio
+		rect 142 241 12 12
+		strip ui/bitmap/FINDWIZARD_RADIOBUTTON_1 4
+		frame normal 0
+		frame hot 3
+		frame pressed 1
+		frame checked 1
+		frame disabled 2
+		group settings-jump-colour
+		action settings.colour 4
+	end
+
+	control settings-word-processor
+		kind button
+		record 10073
+		rect 201 221 130 21
+		font ui
+		action settings.word-processor "Word Processor"
+	end
+	control settings-ok
+		kind button
+		record 10071
+		rect 409 36 72 21
+		font ui
+		action settings.ok "OK"
+	end
+	control settings-reset
+		kind button
+		record 10072
+		rect 409 67 72 21
+		font ui
+		action settings.reset "Reset"
+	end
+	control settings-theme
+		kind button
+		rect 406 98 78 21
+		font ui
+		label "Appearance..."
+		action settings.theme-open "Appearance"
+	end
+	control settings-theme-current
+		kind label
+		rect 405 124 81 42
+		font small
+		fg ui:0
+		align centre
+		pitch 12
+	end
+end
+
+screen appearance
+	size 510 310
+	origin 65 76
+	over *
+	prop viewport native-centred
+	ground ui:15
+	prop tab-order "appearance-row-0 appearance-row-1 appearance-row-2 appearance-row-3 appearance-row-4 appearance-row-5 appearance-row-6 appearance-row-7 appearance-row-8 appearance-row-9 appearance-use appearance-cancel"
+
+	control appearance-caption
+		kind bar
+		rect 1 1 508 16
+		bg ui:27
+		fg ui:0
+		font ui
+		label "Deep32 Encyclopedia Appearance"
+		text-x 16
+		text-y 12
+		marker
+	end
+	control appearance-body
+		kind panel
+		rect 1 17 508 292
+		bg ui:28
+	end
+	control appearance-theme-label
+		kind label
+		rect 18 27 188 16
+		fg ui:0
+		font ui-bold
+		label "Deep32 Encyclopedia looks"
+		align left
+	end
+	control appearance-preview-label
+		kind label
+		rect 224 27 260 16
+		fg ui:0
+		font ui-bold
+		label "Preview"
+		align left
+	end
+	control appearance-workstations
+		kind label
+		rect 18 141 188 16
+		fg ui:0
+		font ui-bold
+		label "Workstations and contrast"
+		align left
+	end
+	control appearance-edition-chip-rail
+		kind panel
+		rect 17 46 17 94
+		bg ui:14
+	end
+	control appearance-workstation-chip-rail
+		kind panel
+		rect 17 161 17 94
+		bg ui:14
+	end
+	control appearance-row-0
+		kind button
+		rect 38 46 168 18
+		font ui
+		action settings.theme-select 0
+	end
+	control appearance-chip-0
+		kind panel
+		rect 19 49 13 12
+		bg ui:12
+		action settings.theme-select 0
+	end
+	control appearance-row-1
+		kind button
+		rect 38 65 168 18
+		font ui
+		action settings.theme-select 1
+	end
+	control appearance-chip-1
+		kind panel
+		rect 19 68 13 12
+		bg ui:12
+		action settings.theme-select 1
+	end
+	control appearance-row-2
+		kind button
+		rect 38 84 168 18
+		font ui
+		action settings.theme-select 2
+	end
+	control appearance-chip-2
+		kind panel
+		rect 19 87 13 12
+		bg ui:12
+		action settings.theme-select 2
+	end
+	control appearance-row-3
+		kind button
+		rect 38 103 168 18
+		font ui
+		action settings.theme-select 3
+	end
+	control appearance-chip-3
+		kind panel
+		rect 19 106 13 12
+		bg ui:12
+		action settings.theme-select 3
+	end
+	control appearance-row-4
+		kind button
+		rect 38 122 168 18
+		font ui
+		action settings.theme-select 4
+	end
+	control appearance-chip-4
+		kind panel
+		rect 19 125 13 12
+		bg ui:12
+		action settings.theme-select 4
+	end
+	control appearance-row-5
+		kind button
+		rect 38 161 168 18
+		font ui
+		action settings.theme-select 5
+	end
+	control appearance-chip-5
+		kind panel
+		rect 19 164 13 12
+		bg ui:12
+		action settings.theme-select 5
+	end
+	control appearance-row-6
+		kind button
+		rect 38 180 168 18
+		font ui
+		action settings.theme-select 6
+	end
+	control appearance-chip-6
+		kind panel
+		rect 19 183 13 12
+		bg ui:12
+		action settings.theme-select 6
+	end
+	control appearance-row-7
+		kind button
+		rect 38 199 168 18
+		font ui
+		action settings.theme-select 7
+	end
+	control appearance-chip-7
+		kind panel
+		rect 19 202 13 12
+		bg ui:12
+		action settings.theme-select 7
+	end
+	control appearance-row-8
+		kind button
+		rect 38 218 168 18
+		font ui
+		action settings.theme-select 8
+	end
+	control appearance-chip-8
+		kind panel
+		rect 19 221 13 12
+		bg ui:12
+		action settings.theme-select 8
+	end
+	control appearance-row-9
+		kind button
+		rect 38 237 168 18
+		font ui
+		action settings.theme-select 9
+	end
+	control appearance-chip-9
+		kind panel
+		rect 19 240 13 12
+		bg ui:12
+		action settings.theme-select 9
+	end
+	control appearance-sample-outline
+		kind panel
+		rect 224 45 268 148
+		bg ui:15
+	end
+	control appearance-sample-title
+		kind label
+		rect 225 46 266 22
+		font ui-bold
+		label "Encyclopedia"
+		text-x 9
+		text-y 15
+	end
+	control appearance-sample-bar
+		kind label
+		rect 225 68 266 19
+		font ui
+		label "Article  |  Outline"
+		text-x 9
+		text-y 13
+	end
+	control appearance-sample-page
+		kind panel
+		rect 225 87 266 75
+	end
+	control appearance-sample-heading
+		kind label
+		rect 234 93 246 22
+		font serif12
+		label "Article heading"
+		text-x 1
+		text-y 16
+	end
+	control appearance-sample-text
+		kind label
+		rect 234 119 246 28
+		font ui
+		label "Article text and illustrations"
+		text-x 1
+		text-y 15
+	end
+	control appearance-sample-controls
+		kind panel
+		rect 225 162 266 30
+	end
+	control appearance-sample-button
+		kind label
+		rect 234 168 63 17
+		font ui
+		label "Find"
+		align centre
+		text-y 12
+	end
+	control appearance-sample-thumb
+		kind panel
+		rect 309 174 88 7
+	end
+	control appearance-description
+		kind label
+		rect 225 205 260 43
+		fg ui:0
+		font ui
+		align left
+		pitch 13
+	end
+	control appearance-saved
+		kind label
+		rect 225 249 260 16
+		fg ui:0
+		font ui-bold
+		align left
+	end
+	control appearance-note
+		kind label
+		rect 18 276 300 29
+		fg ui:0
+		font small
+		label "Use selects. Settings OK saves. Reopen Deep32 Encyclopedia to apply."
+		align left
+	end
+	control appearance-use
+		kind button
+		rect 335 272 72 22
+		font ui
+		label "Use"
+		action settings.theme-use "Use"
+	end
+	control appearance-cancel
+		kind button
+		rect 419 272 72 22
+		font ui
+		label "Cancel"
+		action close
+	end
+end

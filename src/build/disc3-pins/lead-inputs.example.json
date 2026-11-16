@@ -1,0 +1,36 @@
+{
+  "format": "deep32-forge-pin-lead-inputs/1",
+  "_notes": [
+    "Copy to lead-inputs.json and fill the empty values. Keys starting with _ are ignored.",
+    "An empty value leaves its pins TO-PIN with a reason; nothing is guessed.",
+    "keys.ubuntu and keys.ubuntu-release are built into the resolver with their citations; give them here only to replace them.",
+    "keys.nvidia and keys.tailscale: full 40-hex fingerprints from a source you checked yourself, with that source named.",
+    "production_converter.revision: a 40-hex git commit id for a git checkout, or the git tree id of the reviewed export without .git (git add -A && git write-tree in an initialised scratch copy)."
+  ],
+  "ubuntu_snapshot": "",
+  "kernel_abi": "6.8.0-149",
+  "keys": {
+    "nvidia": {"fingerprints": [], "source": "", "min_sources": 2},
+    "tailscale": {"fingerprints": [], "source": "", "min_sources": 2}
+  },
+  "tei_revision_prefix": "e80ef225",
+  "tei_drop": {
+    "spark121": "release specification section 15 item 24 (lead design call, 2026-11-14): the DGX Spark embeddings class (spark121, an ARM machine) is dropped from the amd64 GPU disc"
+  },
+  "runtime_base": "docker.io/library/python:3.12.14-bookworm",
+  "runtime_base_os": "",
+  "apt_tool_image": "docker.io/library/ubuntu:24.04",
+  "package_versions": {},
+  "models": {
+    "mineru_vlm": {"id": "", "revision": "", "source": ""},
+    "mineru_small": {"id": "", "revision": "", "source": ""}
+  },
+  "pymupdf_version": "",
+  "pymupdf_source": "",
+  "production_converter": {"dir": "", "revision": "", "review": ""},
+  "pairing_helper": {"path": "", "review": ""},
+  "mineru_config": {"path": "", "review": ""},
+  "corresponding_source": ["PyMuPDF", "mineru"],
+  "agpl_path": "",
+  "agpl_sha256": ""
+}

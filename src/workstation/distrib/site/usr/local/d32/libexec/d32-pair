@@ -1,0 +1,33 @@
+#!/bin/ksh
+# /usr/local/d32/libexec/d32-pair: Deep32 Pairing from the desktop. Pairing changes which machines this Workstation
+# trusts, so it runs as root in a small Terminal, after doas asks for the user's password (as Ask's pairing does).
+#   d32-pair [-forge | -relay | -headend]    open the Terminal (the menu, or straight into one kind of pairing)
+# The Terminal keeps no scroll-back, so a code shown in it is gone once the pairing ends and the screen is cleared.
+R=${D32_ROOT:-}
+. $R/usr/local/d32/libexec/d32-ui-lib.sh || exit 2
+DOAS=${D32_DOAS:-/usr/bin/doas}
+mode=${1:-}
+case $mode in
+''|-menu) mode= ;;
+-forge|-relay|-headend) ;;
+*)	echo "usage: d32-pair [-forge | -relay | -headend]" >&2
+	exit 2 ;;
+esac
+if [ "${2:-}" != -in ] && [ -n "${DISPLAY:-}" ] && [ -x /usr/local/dt/bin/dtterm ]; then
+	d32ui_fmt app.pair.title
+	exec /usr/local/dt/bin/dtterm -name d32pair -sl 0 -title "$D32UI_T" -geometry 80x24 \
+		-e $R/usr/local/d32/libexec/d32-pair "${mode:--menu}" -in
+fi
+d32ui_say pair.root
+echo ""
+# Ctrl+C belongs to the pairing (it cancels a shown code); this shell only waits, so it must not die of it
+trap ':' INT
+$DOAS $R/usr/local/d32/sbin/d32-pairdesk $mode
+rc=$?
+if [ $rc -ne 0 ]; then
+	echo ""
+	d32ui_fmt pair.close
+	echo -n "$D32UI_T"
+	read x
+fi
+exit $rc

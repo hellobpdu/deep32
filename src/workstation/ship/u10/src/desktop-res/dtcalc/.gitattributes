@@ -1,0 +1,4 @@
+dtcalc.cat -text
+dtcalc.msg -text
+# Preserve the upstream license verbatim, including its trailing space.
+COPYING -text whitespace=-blank-at-eol

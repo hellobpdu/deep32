@@ -1,0 +1,139 @@
+#!/bin/ksh
+# d32-serial: Deep32 Serial Console (D.32.12u14). A small picker for Cisco console cables:
+# it lists the serial ports attached now, asks for the speed (9600 default, 115200), then runs cu(1).
+# USB adapters come from sysctl hw.ucomnames (ucomN is /dev/cuaUN); built-in ports from the boot dmesg (comN is
+# /dev/cua0N). cu(1) opens the line with exclusive access; /dev/cua* is root:dialer 0660, so the user needs group
+# dialer. Run from the Serial Console action in a dtterm, or from any terminal.
+PATH=/bin:/usr/bin:/sbin:/usr/sbin
+export PATH
+umask 077
+
+SPEEDS="1200 2400 4800 9600 19200 38400 57600 115200 230400"
+
+title()
+{
+	# dtterm and xterm window title
+	[ -t 1 ] && printf '\033]2;%s\007' "$1"
+}
+
+pause()
+{
+	read -r _junk?"Press Enter to continue. " || exit 0
+}
+
+list_ports()
+{
+	set -A PORTS
+	set -A DESCS
+	NPORTS=0
+	for u in $(sysctl -n hw.ucomnames 2>/dev/null | tr ',' ' '); do
+		unit=${u%%:*}
+		unit=${unit#ucom}
+		case $unit in ''|*[!0-9]*) continue ;; esac
+		[ -c /dev/cuaU$unit ] || continue
+		PORTS[NPORTS]=/dev/cuaU$unit
+		DESCS[NPORTS]="USB serial adapter (ucom$unit at ${u#*:})"
+		NPORTS=$((NPORTS + 1))
+	done
+	[ -r /var/run/dmesg.boot ] || return 0
+	for unit in $(sed -n 's/^com\([0-9]\) at .*/\1/p' /var/run/dmesg.boot | sort -u); do
+		[ -c /dev/cua0$unit ] || continue
+		PORTS[NPORTS]=/dev/cua0$unit
+		DESCS[NPORTS]="built-in serial port (com$unit)"
+		NPORTS=$((NPORTS + 1))
+	done
+}
+
+pick_speed()
+{
+	print
+	print "Speed:  1) 9600 (Cisco console default)   2) 115200   or type another speed"
+	while :; do
+		read -r ans?"Speed [9600]: " || exit 0
+		case $ans in
+		''|1) SPEED=9600; return 0 ;;
+		2) SPEED=115200; return 0 ;;
+		q|Q) exit 0 ;;
+		esac
+		for s in $SPEEDS; do
+			[ "$ans" = "$s" ] && { SPEED=$s; return 0; }
+		done
+		print "Not a speed cu can use. Choose one of: $SPEEDS"
+	done
+}
+
+connect()
+{
+	port=$1
+	if [ ! -c "$port" ]; then
+		print "$port is not a serial device."
+		pause
+		return 1
+	fi
+	if [ ! -r "$port" ] || [ ! -w "$port" ]; then
+		print "You cannot open $port: serial lines belong to group dialer."
+		print "An administrator adds you with:  usermod -G dialer $(id -un)   (then log out and in)."
+		pause
+		return 1
+	fi
+	pick_speed
+	name=${port#/dev/}
+	title "Serial Console - $name $SPEED"
+	print
+	print "Connecting to $name at $SPEED 8N1.  Disconnect: Enter then ~.   BREAK: ~#   All escapes: ~?"
+	print
+	cu -d -l "$port" -s "$SPEED"
+	rc=$?
+	title "Serial Console"
+	print
+	print "Disconnected from $name (cu exit $rc)."
+	read -r ans?"Enter = choose again, q = close: " || exit 0
+	case $ans in q|Q) exit 0 ;; esac
+	return 0
+}
+
+title "Serial Console"
+while :; do
+	clear 2>/dev/null
+	print "Deep32 Serial Console"
+	print "Plug in the Cisco console cable (USB end), then choose its port."
+	print
+	list_ports
+	if [ "$NPORTS" -eq 0 ]; then
+		print "  No serial port found yet."
+	else
+		i=0
+		while [ "$i" -lt "$NPORTS" ]; do
+			print "  $((i + 1))) ${PORTS[i]}   ${DESCS[i]}"
+			i=$((i + 1))
+		done
+	fi
+	print
+	print "  Enter = first port, r = look again, m = type a device, q = quit"
+	read -r ans?"Port: " || exit 0
+	case $ans in
+	q|Q)
+		exit 0 ;;
+	r|R)
+		continue ;;
+	m|M)
+		read -r dev?"Device (for example cuaU0): " || exit 0
+		case $dev in
+		/dev/cua[0-9A-Za-z]*) ;;
+		cua[0-9A-Za-z]*) dev=/dev/$dev ;;
+		*) print "Only /dev/cua* serial lines can be used."; pause; continue ;;
+		esac
+		case $dev in */*/*/*|*..*) print "Only /dev/cua* serial lines can be used."; pause; continue ;; esac
+		connect "$dev" ;;
+	'')
+		[ "$NPORTS" -gt 0 ] && connect "${PORTS[0]}" ;;
+	*[!0-9]*)
+		print "Choose a number from the list."; pause ;;
+	*)
+		if [ "$ans" -ge 1 ] && [ "$ans" -le "$NPORTS" ]; then
+			connect "${PORTS[ans - 1]}"
+		else
+			print "Choose a number from the list."; pause
+		fi ;;
+	esac
+done

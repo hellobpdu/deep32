@@ -1,0 +1,163 @@
+{
+ "name": "linux-cloud-t4",
+ "about": "A cloud VM: Ubuntu 22.04, 8 vCPU, 32 GB, Tesla T4, Docker with the toolkit, no KVM",
+ "facts": {
+  "os": {
+   "family": "linux",
+   "name": "Ubuntu 22.04.4 LTS",
+   "edition": "ubuntu",
+   "version": "22.04",
+   "build": null,
+   "arch": "x64",
+   "wsl_guest": false,
+   "kernel": null
+  },
+  "hw": {
+   "vendor": "Google",
+   "model": "Google Compute Engine",
+   "virtual": true
+  },
+  "cpu": {
+   "vendor": "intel",
+   "model": "Intel(R) Xeon(R) CPU @ 2.20GHz",
+   "family": null,
+   "model_id": null,
+   "stepping": null,
+   "gen": null,
+   "sockets": 1,
+   "cores": 4,
+   "threads": 8,
+   "p_cores": null,
+   "e_cores": 0,
+   "p_threads": null,
+   "avx": true,
+   "avx2": true,
+   "avx512f": false
+  },
+  "mem": {
+   "total_gb": 31.4,
+   "installed_gb": null,
+   "free_gb": 28.0
+  },
+  "disks": [
+   {
+    "mount": "/",
+    "size_gb": 96.7,
+    "free_gb": 80.2,
+    "ssd": null
+   }
+  ],
+  "gpus": [
+   {
+    "name": "Tesla T4",
+    "vendor": "nvidia",
+    "mem_gb": 15.0,
+    "driver": "550.90.07",
+    "cc": "7.5"
+   }
+  ],
+  "virt": {
+   "firmware": null,
+   "slat": null,
+   "iommu": null,
+   "hypervisor": true
+  },
+  "hyp": {
+   "hyperv": false,
+   "kvm": false,
+   "proxmox": false,
+   "virtualbox": false,
+   "vmware": false,
+   "libvirt": false
+  },
+  "wsl": null,
+  "docker": {
+   "present": true,
+   "client": "26.1.3",
+   "nvidia": true
+  },
+  "tools": {
+   "tailscale": false,
+   "claude": false,
+   "codex": false,
+   "gh": false
+  },
+  "ports": {
+   "checked": true,
+   "busy": []
+  },
+  "net": null
+ },
+ "reasoning": [
+  "Classes: the Xeon has AVX2: modern. 'tesla t4' is t4 (Forge yes, upstream experimental), usable; 15 GB is tier 11.",
+  "Sizing: 8 threads; 31.4 GB visible: 32 GB; tier 1. After the host: 6 threads, 28 GB.",
+  "Candidates: linux-nvidia, two-machines, headless, headend-only (no-gpu: the card is usable).",
+  "linux-nvidia: changes. Missing kvm (no KVM on this VM) and disk-both (80.2 < 160); virt-slat and virt-firmware unknown; headend-elsewhere in confirm; Tailscale auto. Size 'both': threads (4, 4) need 8 > 6, (4, 2) fit; memory (12, 16) fit 28: Workstation (4, 12), Forge (2, 16).",
+  "two-machines: ready. Size 'each' from tier 1: Workstation (4, 12), Forge (4, 16).",
+  "headless: changes. Missing disk-forge (80.2 < 100). Size 'forge': (4, 16). headend-only: changes (agent missing).",
+  "Order (single machine first, matrix 0.3.0; before, it was two-machines, linux-nvidia, headless): the one-machine profiles first, both changes, by rank: linux-nvidia 10, headless 50; then the alternatives (machines 2): ready two-machines (third), changes headend-only (fourth, not shown). The best, linux-nvidia, lists missing kvm and disk-both (requires order), unknown virt-slat and virt-firmware, Tailscale in auto, headend-elsewhere in confirm.",
+  "Warnings: gpu-upstream-experimental, is-vm (solid-state unknown, so no no-ssd)."
+ ],
+ "expect": {
+  "best": "linux-nvidia",
+  "fit": "changes",
+  "ranked": [
+   "linux-nvidia",
+   "headless",
+   "two-machines"
+  ],
+  "best_missing": [
+   "kvm",
+   "disk-both"
+  ],
+  "best_unknown": [
+   "virt-slat",
+   "virt-firmware"
+  ],
+  "best_auto": [
+   "tailscale"
+  ],
+  "best_confirm": [
+   "headend-elsewhere"
+  ],
+  "cpu_class": "modern",
+  "gpu_class": "t4",
+  "gpu_forge": "yes",
+  "gpu_mem_tier": "11",
+  "tier": 1,
+  "sizes": {
+   "linux-nvidia": {
+    "ws": [
+     4,
+     12
+    ],
+    "forge": [
+     2,
+     16
+    ]
+   },
+   "headless": {
+    "ws": null,
+    "forge": [
+     4,
+     16
+    ]
+   },
+   "two-machines": {
+    "ws": [
+     4,
+     12
+    ],
+    "forge": [
+     4,
+     16
+    ]
+   }
+  },
+  "ruled_out": [],
+  "warnings": [
+   "gpu-upstream-experimental",
+   "is-vm"
+  ]
+ }
+}

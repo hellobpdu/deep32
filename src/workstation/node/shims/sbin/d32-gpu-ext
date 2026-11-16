@@ -1,0 +1,27 @@
+#!/bin/ksh
+# d32-gpu-ext on|off|status: the GPU_EXT setting (root). First light's stand-in for `deep32ctl mode gpu_ext`.
+#   on      write "on" to /etc/d32/state/gpu_ext (FIX-19, root 0600) and start d32accel; the forwarder then checks
+#           the hub's models (id + golden-probe revision) before it forwards anything
+#   off     write "off", stop d32accel (rc_post publishes "off" to /var/d32/run/gpu_ext); deep32-engine then degrades
+#           dense and the reranker, which every answer reports
+#   status  the setting and the forwarder's own verification state
+set -e
+[[ $(id -u) == 0 ]] || { echo "d32-gpu-ext: root only" >&2; exit 1; }
+S=/etc/d32/state/gpu_ext
+case $1 in
+on)	print on >$S; chmod 0600 $S; rcctl -f start d32accel ;;
+off)	print off >$S; chmod 0600 $S; rcctl stop d32accel || true; print off >/var/d32/run/gpu_ext ;;
+status)	print "setting: $(cat $S 2>/dev/null || print off)"
+	if [[ -S /var/run/d32/gpu-embed.sock ]] && rcctl check d32accel >/dev/null 2>&1; then
+		/usr/local/bin/python3.14 -I -c '
+import json, socket, sys
+s = socket.socket(socket.AF_UNIX); s.settimeout(5); s.connect("/var/run/d32/gpu-embed.sock")
+s.sendall(b"GET /d32/status HTTP/1.1\r\nHost: local\r\nConnection: close\r\n\r\n")
+data = b""
+while chunk := s.recv(65536): data += chunk
+print(data.split(b"\r\n\r\n", 1)[1].decode())'
+	else
+		print "d32accel: not running"
+	fi ;;
+*)	echo "usage: d32-gpu-ext on|off|status" >&2; exit 2 ;;
+esac

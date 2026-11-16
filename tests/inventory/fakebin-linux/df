@@ -1,0 +1,13 @@
+#!/bin/sh
+# test stub for run_tests.py's probe test: prints canned output, changes nothing
+# usage: called by deep32-inventory.sh in place of the real command, with its arguments
+# exit codes: 0
+cat <<'EOF'
+Filesystem     1024-blocks      Used  Available Capacity Mounted on
+/dev/nvme0n1p2   976284600 450000000  526284600      47% /
+tmpfs              3256120      2000    3254120       1% /run
+/dev/nvme0n1p1      523248      6220     517028       2% /boot/efi
+/dev/sda1       3906885632 100000000 3806885632       3% /data
+/dev/sdb1        488134656  88134656  400000000      19% /home/someone/big disk
+/dev/loop0           65536     65536          0     100% /snap/core/1
+EOF

@@ -1,0 +1,31 @@
+#!/bin/ksh
+# /usr/local/d32/ship/libexec/d32-look-refresh: once per CDE session, from Xsession.d/0150.d32desktop (update 2,
+# desktop lane; U38, U45). The Desktop Look chooser (d32-look) copies a look profile into the user's home, and those
+# personal copies are read before the system's files, so a fix to a profile file would never reach a user who has
+# chosen a look. This replaces an UNTOUCHED copy, one whose sha256 the list names as an earlier release's, with the
+# profile's current file; a copy the user edited, or one the list does not know, is left exactly as it is.
+# Per user, no root, no network, quiet; it never fails the login (the caller ignores its status).
+# List: /usr/local/d32/ship/share/look-refresh.tsv, "path under $HOME<TAB>sha256 of an earlier version" per line.
+# D32LR_LOOK and D32LR_LIST replace the two paths for the unit test (ship/u2/desktop/tests/look-refresh-test.sh).
+L=${D32LR_LOOK:-/usr/local/share/d32/look}
+T=${D32LR_LIST:-/usr/local/d32/ship/share/look-refresh.tsv}
+[ -n "${HOME:-}" ] && [ "$HOME" != / ] && [ -d "$HOME/.dt" ] && [ -r $T ] || exit 0
+p=$(cat "$HOME/.dt/d32/look" 2>/dev/null)
+case $p in hp|vue) ;; *) p=hp ;; esac
+[ -d $L/$p/user ] || exit 0
+n=0
+while IFS='	' read -r rel old; do
+	case $rel in ''|'#'*) continue ;; esac
+	case $rel in /*|*..*|*[!A-Za-z0-9._/-]*) continue ;; esac
+	f=$HOME/$rel
+	src=$L/$p/user/$rel
+	[ -f "$f" ] && [ ! -L "$f" ] && [ -f "$src" ] || continue
+	[ "$(sha256 -q "$f" 2>/dev/null)" = "$old" ] || continue
+	rm -f "$f.d32new"
+	if cp "$src" "$f.d32new" && chmod 0644 "$f.d32new" && mv -f "$f.d32new" "$f"; then
+		n=$((n + 1))
+	fi
+	rm -f "$f.d32new"
+done <$T
+[ $n -gt 0 ] && print -r -- "d32-look-refresh: $n personal look file(s) brought up to date from the $p profile"
+exit 0

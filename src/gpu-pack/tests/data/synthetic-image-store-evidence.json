@@ -1,0 +1,76 @@
+{
+  "description": "Task-generated image-store shapes; no runtime image metadata.",
+  "python": {
+    "index": {
+      "manifests": [
+        {
+          "digest": "sha256:d1d26dcf7146c5ce0a01a3954992bf4b1bee3e703601e572a6c4a0223c2a33d8"
+        }
+      ],
+      "mediaType": "application/vnd.oci.image.index.v1+json",
+      "schemaVersion": 2
+    },
+    "inspect": {
+      "Id": "sha256:d1d26dcf7146c5ce0a01a3954992bf4b1bee3e703601e572a6c4a0223c2a33d8"
+    },
+    "manifest": [
+      {
+        "Config": "synthetic.json",
+        "Layers": [
+          "blobs/sha256/84c869aa45dd4e6d2d1a48c10670270d0028aec4cf5cf0e11ec1cb353dc7239d",
+          "blobs/sha256/a554f481358e69e9eb2bdac12a3e368193e37730460a636458b3fda3ea31047c",
+          "blobs/sha256/d9bfc3efa7766b3035328dc5d3a7bfa9ea6bc6a1155a232e661930bdc0bb81d0",
+          "blobs/sha256/67974d8c5a1afde95e262be9096b53f2e0b19d4f2e66016ce1c1faa5af8c84f7"
+        ],
+        "RepoTags": [
+          "python:3.12-slim-trixie"
+        ]
+      }
+    ],
+    "members": [
+      "blobs/sha256/d1d26dcf7146c5ce0a01a3954992bf4b1bee3e703601e572a6c4a0223c2a33d8"
+    ]
+  },
+  "qdrant_qdrant": {
+    "index": {
+      "manifests": [
+        {
+          "digest": "sha256:ae71ed73f4d8bbf45b0c736aacfa00dc17429f76b4d2451e76573425c45d14ad"
+        }
+      ],
+      "mediaType": "application/vnd.oci.image.index.v1+json",
+      "schemaVersion": 2
+    },
+    "inspect": {
+      "Id": "sha256:ae71ed73f4d8bbf45b0c736aacfa00dc17429f76b4d2451e76573425c45d14ad"
+    },
+    "manifest": [
+      {
+        "Config": "synthetic.json",
+        "Layers": [
+          "blobs/sha256/84c869aa45dd4e6d2d1a48c10670270d0028aec4cf5cf0e11ec1cb353dc7239d",
+          "blobs/sha256/a554f481358e69e9eb2bdac12a3e368193e37730460a636458b3fda3ea31047c",
+          "blobs/sha256/84c869aa45dd4e6d2d1a48c10670270d0028aec4cf5cf0e11ec1cb353dc7239d",
+          "blobs/sha256/d9bfc3efa7766b3035328dc5d3a7bfa9ea6bc6a1155a232e661930bdc0bb81d0",
+          "blobs/sha256/84c869aa45dd4e6d2d1a48c10670270d0028aec4cf5cf0e11ec1cb353dc7239d",
+          "blobs/sha256/67974d8c5a1afde95e262be9096b53f2e0b19d4f2e66016ce1c1faa5af8c84f7",
+          "blobs/sha256/84c869aa45dd4e6d2d1a48c10670270d0028aec4cf5cf0e11ec1cb353dc7239d",
+          "blobs/sha256/ea5da96703ff4a747fcb468f339ff59d572fd6306558b58e14d7175415f95d4d",
+          "blobs/sha256/84c869aa45dd4e6d2d1a48c10670270d0028aec4cf5cf0e11ec1cb353dc7239d",
+          "blobs/sha256/a8272b0d9cd499349e18291713321d20443d7a69827262fed196a582bccd24aa",
+          "blobs/sha256/84c869aa45dd4e6d2d1a48c10670270d0028aec4cf5cf0e11ec1cb353dc7239d",
+          "blobs/sha256/1b5f2555bb31769ac82bb733527db4c727e48021b9eb9020f2c55bdde9ddf166",
+          "blobs/sha256/84c869aa45dd4e6d2d1a48c10670270d0028aec4cf5cf0e11ec1cb353dc7239d",
+          "blobs/sha256/3e7113349a7c4357537f4bd9f0282e7f124c8488d8eb7f888945afe9f2580a62"
+        ],
+        "RepoTags": [
+          "qdrant/qdrant:v1.19.1"
+        ]
+      }
+    ],
+    "members": [
+      "blobs/sha256/ae71ed73f4d8bbf45b0c736aacfa00dc17429f76b4d2451e76573425c45d14ad"
+    ]
+  },
+  "synthetic": true
+}

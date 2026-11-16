@@ -1,0 +1,297 @@
+#!/bin/ksh
+# d32-dock: Deep32/UX dock and lid policy (update 2, lid and dock lane; ISO-DESIGN 2.8 "Lid and leaving"). Root.
+#
+#   d32-dock attach CLASS NAME    from /etc/hotplug/attach (hotplugd runs it for every device that arrives)
+#   d32-dock detach CLASS NAME    from /etc/hotplug/detach
+#   d32-dock boot                 from /etc/rc.local: docked or not at boot, machdep.lidaction for that state; on
+#                                 the boot whose boot window changed rc.conf.local, hotplugd started and apmd
+#                                 restarted with the new flags (rc read the old file; see start_hotplugd)
+#   d32-dock status               what it sees and why; changes nothing
+#   d32-dock lock [why]           lock the console CDE session (dtaction LockDisplay as its user); also used by
+#                                 /etc/apm/suspend and /etc/apm/hibernate, so a sleep never leaves it open
+#
+# "Docked" means the dock's own NIC (DOCK_MACS, any interface) or one of its USB devices (DOCK_USB_IDS) is present.
+# On the Latitude 5430 that is the WD19's ure0 (RTL8153B, 90:8d:6e:3a:ba:e7), its four Realtek hubs ("Dell dock",
+# 0bda:0487/0413 on the Type-C xHCI, 0bda:5487/5413 on the PCH xHCI) and its two HID functions (413c:b06e/b06f).
+# The USB ids keep working if the BIOS MAC pass-through ever gives ure0 the laptop's own address.
+#
+# On a change of state, under one lock (hotplugd starts a script per event, and a dock brings a burst of them):
+#   - machdep.lidaction becomes LID_DOCKED or LID_UNDOCKED (both 0 in update 2: S0ix hung this laptop; they move
+#     only after a supervised suspend test with the DMC firmware passes, in a later release);
+#   - docked: the console user's screen layout is redone (d32-display dock: the external primary, panel mirrored);
+#   - undocked: the panel is lit again (d32-display undock), then the session is locked (LOCK_ON_UNDOCK).
+# Nothing here touches the network: a new ure0 comes up with no address, as item 56 wants.
+# The console session is the utmp entry on :0 (Xstartup's sessreg) whose user runs dtsession. X work is done as
+# that user (su), never as root; at the login screen nothing is done (dtlogin holds a server grab there; the next
+# login screen's Xsetup lays it out).
+
+PATH=/bin:/usr/bin:/sbin:/usr/sbin:/usr/X11R6/bin
+export PATH
+umask 022
+
+CONF=/etc/d32/dock.conf
+RUN=/var/run/d32/dock
+STATE=$RUN/state
+LOCKD=$RUN/lock
+DISPLAYTOOL=/usr/local/d32/ship/libexec/d32-display
+DTACTION=/usr/local/dt/bin/dtaction
+TAG=d32-dock
+
+DOCK_MACS='90:8d:6e:3a:ba:e7'
+DOCK_USB_IDS='0bda:0487 0bda:0413 0bda:5487 0bda:5413 413c:b06e 413c:b06f'
+LID_DOCKED=0
+LID_UNDOCKED=0
+LOCK_ON_UNDOCK=yes
+LAYOUT_ON_DOCK=yes
+SETTLE=1
+
+log() {
+	logger -t "$TAG" -p daemon.notice -- "$*" 2>/dev/null
+	[ -t 2 ] && print -r -- "$TAG: $*" >&2
+	return 0
+}
+
+die() { log "$*"; exit 1; }
+
+readconf() {
+	[ -r "$CONF" ] || return 0
+	while IFS= read -r _l; do
+		case $_l in ''|'#'*) continue ;; esac
+		_k=${_l%%=*}; _v=${_l#*=}
+		[ "$_k" = "$_l" ] && continue
+		_v=${_v%%#*}
+		_v=$(print -r -- "$_v" | sed -e 's/^[[:blank:]]*//' -e 's/[[:blank:]]*$//' -e 's/^"\(.*\)"$/\1/')
+		case $_k in
+		DOCK_MACS)	case $_v in *[!0-9a-fA-F:\ ]*) ;; *) DOCK_MACS=$_v ;; esac ;;
+		DOCK_USB_IDS)	case $_v in *[!0-9a-fA-F:\ ]*) ;; *) DOCK_USB_IDS=$_v ;; esac ;;
+		LID_DOCKED|LID_UNDOCKED)
+				case $_v in 0|1|2) eval "$_k=\$_v" ;; esac ;;
+		LOCK_ON_UNDOCK|LAYOUT_ON_DOCK)
+				case $_v in yes|no) eval "$_k=\$_v" ;; esac ;;
+		SETTLE)		case $_v in [0-9]) SETTLE=$_v ;; esac ;;
+		esac
+	done <"$CONF"
+}
+
+# Sets found ("docked"|"undocked") and why (what matched).
+detect() {
+	why=''
+	_macs=$(print -r -- "$DOCK_MACS" | tr 'A-F' 'a-f')
+	_nics=$(ifconfig 2>/dev/null | awk -v macs=" $_macs " '
+		/^[^ \t]/ { n = $1; sub(/:$/, "", n); next }
+		$1 == "lladdr" && index(macs, " " tolower($2) " ") { printf "%s %s\n", n, tolower($2) }')
+	[ -n "$_nics" ] && why="nic $(print -r -- "$_nics" | head -n 1)"
+	_usb=$(usbdevs -v 2>/dev/null | awk -v ids=" $(print -r -- "$DOCK_USB_IDS" | tr 'A-F' 'a-f') " '
+		$1 == "addr" { id = tolower($3); next }
+		$1 == "driver:" && index(ids, " " id " ") { printf " %s=%s", $2, id }')
+	[ -n "$_usb" ] && why="${why:+$why;} usb${_usb}"
+	if [ -n "$why" ]; then found=docked; else found=undocked; fi
+}
+
+lockup() {
+	_i=0
+	install -d -o root -g wheel -m 0755 /var/run/d32 2>/dev/null
+	install -d -o root -g wheel -m 0755 "$RUN" || return 1
+	while ! mkdir "$LOCKD" 2>/dev/null; do
+		# A holder never keeps the lock much over a minute (every X step has a time limit; the lock request runs
+		# in the background), so one older than 3 minutes was left by a holder that died. Age, not the holder's
+		# pid: a waiter that reads a pid, finds it gone and removes the directory can remove the NEXT holder's
+		# fresh lock (the burst test caught that). /var/run is emptied at every boot as well.
+		if [ -n "$(find "$LOCKD" -prune -mmin +3 2>/dev/null)" ]; then
+			log "removing a stale lock ($(cat "$LOCKD/pid" 2>/dev/null))"
+			rm -rf "$LOCKD"
+			continue
+		fi
+		_i=$((_i + 1))
+		[ $_i -ge 90 ] && { log "lock busy for 90 s ($(cat "$LOCKD/pid" 2>/dev/null)): event ignored"; return 1; }
+		sleep 1
+	done
+	print "pid $$ since $(date +%s)" >"$LOCKD/pid"
+	return 0
+}
+
+unlock() { rm -rf "$LOCKD"; }
+
+setlid() {	# setlid docked|undocked
+	if [ "$1" = docked ]; then _want=$LID_DOCKED; else _want=$LID_UNDOCKED; fi
+	_have=$(sysctl -n machdep.lidaction 2>/dev/null)
+	[ "$_have" = "$_want" ] && return 0
+	if sysctl machdep.lidaction="$_want" >/dev/null 2>&1; then
+		log "machdep.lidaction $_have -> $_want ($1)"
+	else
+		log "could not set machdep.lidaction=$_want ($1); it stays $_have"
+	fi
+}
+
+# The console session's user, if one is logged in on :0 and runs dtsession; empty otherwise.
+console_user() {
+	_u=$(who 2>/dev/null | awk '$2 == ":0" { print $1; exit }')
+	case $_u in ''|*[!a-z0-9_-]*) return 0 ;; esac
+	pgrep -U "$_u" -x dtsession >/dev/null 2>&1 || return 0
+	print -r -- "$_u"
+}
+
+# as_user USER SECONDS COMMAND...: run an X client on :0 as USER with a clean environment and a time limit.
+as_user() {
+	_u=$1; _s=$2; shift 2
+	_h=$(awk -F: -v u="$_u" '$1 == u { print $6; exit }' /etc/passwd)
+	[ -n "$_h" ] && [ -d "$_h" ] || { log "no home for $_u: skipped $1"; return 1; }
+	if [ "$_u" = root ]; then
+		timeout -k 5 "$_s" env -i PATH=/bin:/usr/bin:/usr/X11R6/bin:/usr/local/bin:/usr/local/dt/bin \
+		    HOME="$_h" USER=root LOGNAME=root DISPLAY=:0 XAUTHORITY="$_h/.Xauthority" "$@"
+	else
+		timeout -k 5 "$_s" su -s /bin/sh "$_u" -c 'h=$1; shift; exec env -i \
+		    PATH=/bin:/usr/bin:/usr/X11R6/bin:/usr/local/bin:/usr/local/dt/bin HOME="$h" USER="$(id -un)" \
+		    LOGNAME="$(id -un)" DISPLAY=:0 XAUTHORITY="$h/.Xauthority" "$@"' d32-dock "$_h" "$@"
+	fi
+}
+
+lock_session() {	# lock_session WHY
+	_cu=$(console_user)
+	if [ -z "$_cu" ]; then
+		log "lock ($1): no CDE session on :0, nothing to lock"
+		return 0
+	fi
+	[ -x "$DTACTION" ] || { log "lock ($1): no dtaction"; return 1; }
+	# In the background: dtaction may wait for dtsession's reply, and a hotplug or apmd hook must not hang on it.
+	(as_user "$_cu" 120 "$DTACTION" LockDisplay >/dev/null 2>&1 &)
+	log "lock ($1): LockDisplay sent for $_cu"
+	return 0
+}
+
+layout() {	# layout dock|undock
+	_cu=$(console_user)
+	[ -n "$_cu" ] || { log "$1: no CDE session on :0; the next login screen lays the screens out"; return 0; }
+	[ -x "$DISPLAYTOOL" ] || return 0
+	as_user "$_cu" 45 "$DISPLAYTOOL" "$1" >/dev/null 2>&1 || log "$1: d32-display did not finish cleanly for $_cu"
+}
+
+# Called with the lock held. $1 = what triggered it.
+evaluate() {
+	detect
+	_old=$(awk 'NR == 1 { print $1 }' "$STATE" 2>/dev/null)
+	if [ "$found" = "$_old" ]; then
+		setlid "$found"
+		return 0
+	fi
+	print -r -- "$found $(date +%s) $1 ${why:-none}" >"$STATE.new" && mv -f "$STATE.new" "$STATE"
+	log "${_old:-unknown} -> $found ($1; ${why:-no dock device})"
+	setlid "$found"
+	[ "$1" = boot ] && return 0
+	if [ "$found" = docked ]; then
+		[ "$LAYOUT_ON_DOCK" = yes ] && layout dock
+	else
+		layout undock
+		[ "$LOCK_ON_UNDOCK" = yes ] && [ -n "$_old" ] && lock_session undock
+	fi
+	return 0
+}
+
+# hotplugd_flags is read by /etc/rc before the boot window (rc.securelevel) runs, so on the boot that installed
+# it rc still has the old NO and does not start hotplugd. rc.local runs later: if rc.conf.local changed during
+# this boot and enables hotplugd, start it here, once. On later boots rc starts it itself (after rc.local).
+start_hotplugd() {
+	[ "$(rcctl get hotplugd flags 2>/dev/null)" = NO ] && return 0
+	pgrep -x hotplugd >/dev/null 2>&1 && return 0
+	_bt=$(sysctl -n kern.boottime 2>/dev/null)
+	_mt=$(stat -f %m /etc/rc.conf.local 2>/dev/null)
+	case $_bt$_mt in ''|*[!0-9]*) return 0 ;; esac
+	[ "$_mt" -gt "$_bt" ] || return 0
+	if rcctl start hotplugd >/dev/null 2>&1; then
+		log "hotplugd started (enabled by an update during this boot)"
+	else
+		log "hotplugd did not start"
+	fi
+}
+
+# The same boot, apmd: rc starts it after rc.local with the flags it read before the boot window (update 1's -A),
+# so the -a of update 2 (ignore the sleep key on AC) would wait for the next boot. If rc.conf.local changed during
+# this boot, wait in the background for rc to start apmd, and restart it once if it runs with other flags.
+apmd_follow() {
+	_bt=$(sysctl -n kern.boottime 2>/dev/null)
+	_mt=$(stat -f %m /etc/rc.conf.local 2>/dev/null)
+	case $_bt$_mt in ''|*[!0-9]*) return 0 ;; esac
+	[ "$_mt" -gt "$_bt" ] || return 0
+	_want=$(rcctl get apmd flags 2>/dev/null)
+	[ "$_want" = NO ] && return 0
+	(
+		_i=0; _p=''
+		while [ $_i -lt 180 ]; do
+			_p=$(pgrep -x apmd 2>/dev/null | head -n 1)
+			[ -n "$_p" ] && break
+			sleep 2; _i=$((_i + 2))
+		done
+		[ -n "$_p" ] || exit 0
+		sleep 2
+		_have=$(ps -o command= -p "$_p" 2>/dev/null | sed -e 's#^[^ ]*##' -e 's/^ *//')
+		[ "$_have" = "$_want" ] && exit 0
+		if rcctl restart apmd >/dev/null 2>&1; then
+			log "apmd restarted with '$_want' (rc had started it with '$_have', read before this boot's update)"
+		else
+			log "apmd restart with '$_want' failed"
+		fi
+	) </dev/null >/dev/null 2>&1 &
+}
+
+status() {
+	detect
+	print "Deep32 dock and lid"
+	if [ -r "$STATE" ]; then
+		read -r _s _t _by _rest <"$STATE"
+		print "  recorded:     $_s since $(date -r "$_t" '+%Y-%m-%d %H:%M:%S' 2>/dev/null) ($_by; $_rest)"
+	else
+		print "  recorded:     nothing yet ($STATE)"
+	fi
+	print "  detected now: $found${why:+ ($why)}"
+	print "  lidaction:    $(sysctl -n machdep.lidaction 2>/dev/null) (policy: docked $LID_DOCKED, undocked $LID_UNDOCKED)"
+	print "  lid:          $(sysctl hw.sensors 2>/dev/null | sed -n 's/.*=\(O[nf]*\) (lid open).*/\1/p' | head -n 1 | sed 's/On/open/;s/Off/closed/')"
+	_hp=no; pgrep -x hotplugd >/dev/null 2>&1 && _hp=yes
+	print "  hotplugd:     running $_hp, flags '$(rcctl get hotplugd flags 2>/dev/null)'"
+	_ap=no; pgrep -x apmd >/dev/null 2>&1 && _ap=yes
+	print "  apmd:         running $_ap, flags '$(rcctl get apmd flags 2>/dev/null)'"
+	_cu=$(console_user)
+	print "  CDE session:  ${_cu:-none on :0}"
+	print "  on undock:    lock $LOCK_ON_UNDOCK; layout on dock $LAYOUT_ON_DOCK"
+}
+
+main() {
+	readconf
+	case ${1:-status} in
+	attach|detach)
+		[ "$(id -u)" = 0 ] || die "$1: root only"
+		_name=${3:-}
+		case $_name in
+		ure[0-9]*|cdce[0-9]*|axe[0-9]*|axen[0-9]*|uhub[0-9]*|uhidev[0-9]*|ugen[0-9]*) ;;
+		*) exit 0 ;;
+		esac
+		sleep "$SETTLE"
+		lockup || exit 0
+		evaluate "$1 $_name"
+		unlock
+		;;
+	boot)
+		[ "$(id -u)" = 0 ] || die "boot: root only"
+		lockup || exit 0
+		evaluate boot
+		unlock
+		start_hotplugd
+		apmd_follow
+		;;
+	lock)
+		[ "$(id -u)" = 0 ] || die "lock: root only"
+		lock_session "${2:-request}"
+		# before a suspend: give dtsession a moment to put the lock up before the machine freezes
+		[ "${2:-}" = suspend ] || [ "${2:-}" = hibernate ] && sleep 2
+		;;
+	status)
+		status
+		;;
+	*)
+		print -u2 "usage: d32-dock attach|detach CLASS NAME | boot | status | lock [why]"
+		exit 2
+		;;
+	esac
+	exit 0
+}
+
+main "$@"

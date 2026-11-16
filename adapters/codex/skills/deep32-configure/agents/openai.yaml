@@ -1,0 +1,5 @@
+interface:
+  display_name: "deep32-configure"
+  short_description: "Deep32 configure lens: add a topic or keywords"
+policy:
+  allow_implicit_invocation: false

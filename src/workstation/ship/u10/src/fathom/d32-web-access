@@ -1,0 +1,23 @@
+#!/bin/ksh
+set -u
+
+echo 'Fathom Web Access'
+echo '  S  Show current access'
+echo '  D  Enable direct access'
+echo '  O  Turn off access'
+echo '  Q  Close'
+printf '\nChoose an action: '
+IFS= read -r choice || exit 0
+case $choice in
+	[Ss]) mode=status ;;
+	[Dd]) mode=direct ;;
+	[Oo]) mode=off ;;
+	[Qq]|'') exit 0 ;;
+	*) echo 'Choose S, D, O or Q.'; exit 64 ;;
+esac
+
+/usr/bin/doas /usr/local/d32/sbin/deep32ctl web "$mode"
+status=$?
+printf '\nPress Enter to close. '
+IFS= read -r ignored || :
+exit "$status"

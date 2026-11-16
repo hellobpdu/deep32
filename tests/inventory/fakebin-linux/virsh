@@ -1,0 +1,5 @@
+#!/bin/sh
+# test stub for run_tests.py's probe test: prints canned output, changes nothing
+# usage: called by deep32-inventory.sh in place of the real command, with its arguments
+# exit codes: 0
+exit 0

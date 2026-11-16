@@ -1,0 +1,132 @@
+{
+ "name": "win-celeron",
+ "about": "Windows 11 Pro on a Celeron N4020 laptop, 4 GB",
+ "facts": {
+  "os": {
+   "family": "windows",
+   "name": "Windows 11 Pro",
+   "edition": "pro",
+   "version": "22H2",
+   "build": 22621,
+   "arch": "x64",
+   "wsl_guest": false
+  },
+  "hw": {
+   "vendor": "HP",
+   "model": "HP Laptop 14-dq0xxx",
+   "virtual": false
+  },
+  "cpu": {
+   "vendor": "intel",
+   "model": "Intel(R) Celeron(R) N4020 CPU @ 1.10GHz",
+   "family": null,
+   "model_id": null,
+   "stepping": null,
+   "gen": null,
+   "sockets": 1,
+   "cores": 2,
+   "threads": 2,
+   "p_cores": null,
+   "e_cores": 0,
+   "p_threads": null,
+   "avx": false,
+   "avx2": false,
+   "avx512f": false
+  },
+  "mem": {
+   "total_gb": 3.8,
+   "installed_gb": 4,
+   "free_gb": 1.0
+  },
+  "disks": [
+   {
+    "mount": "C:",
+    "size_gb": 59.0,
+    "free_gb": 12.0,
+    "ssd": null
+   }
+  ],
+  "gpus": [
+   {
+    "name": "Intel(R) UHD Graphics 600",
+    "vendor": "intel",
+    "mem_gb": null,
+    "driver": "27.20.100.9466",
+    "cc": null
+   }
+  ],
+  "virt": {
+   "firmware": true,
+   "slat": true,
+   "iommu": null,
+   "hypervisor": false
+  },
+  "hyp": {
+   "hyperv": false,
+   "kvm": false,
+   "proxmox": false,
+   "virtualbox": false,
+   "vmware": false,
+   "libvirt": false
+  },
+  "wsl": {
+   "present": false,
+   "wsl2_distros": 0
+  },
+  "docker": {
+   "present": false,
+   "client": null,
+   "nvidia": null
+  },
+  "tools": {
+   "tailscale": false,
+   "claude": false,
+   "codex": false,
+   "gh": false
+  },
+  "ports": {
+   "checked": true,
+   "busy": []
+  },
+  "net": null
+ },
+ "reasoning": [
+  "Classes: 'celeron' in the model: low-power (Workstation no, Forge no). Intel graphics only.",
+  "Sizing: 2 threads, 4 GB: tier 0; nothing is left after the host.",
+  "Candidates: win-nvidia, no-gpu, two-machines, headend-only.",
+  "win-nvidia, no-gpu and two-machines: cpu-supported missing (hardware, with more hardware gaps): ruled out.",
+  "headend-only: changes (agent missing; Tailscale auto). It is the only possible profile: an alternative (machines 2), best because no one-machine profile can run on this hardware. Unchanged by the single-machine-first order of matrix 0.3.0."
+ ],
+ "expect": {
+  "best": "headend-only",
+  "fit": "changes",
+  "ranked": [
+   "headend-only"
+  ],
+  "best_missing": [
+   "agent"
+  ],
+  "best_unknown": [],
+  "best_auto": [
+   "tailscale"
+  ],
+  "best_confirm": [],
+  "cpu_class": "low-power",
+  "gpu_class": null,
+  "gpu_forge": null,
+  "gpu_mem_tier": null,
+  "tier": 0,
+  "sizes": {
+   "headend-only": {
+    "ws": null,
+    "forge": null
+   }
+  },
+  "ruled_out": [
+   "win-nvidia",
+   "no-gpu",
+   "two-machines"
+  ],
+  "warnings": []
+ }
+}

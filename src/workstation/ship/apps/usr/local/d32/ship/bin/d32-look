@@ -1,0 +1,101 @@
+#!/bin/ksh
+# /usr/local/d32/bin/d32-look [hp|vue]: the Desktop Look chooser (item 45: HP-UX CDE by default, HP VUE selectable),
+# ship lane. The system look is the theme lane's private "hp" profile (HP-UX 11.00 CDE, his own HP files). "vue"
+# lays the theme lane's private "vue" profile (HP VUE 3.0 on dtwm) over this user's own CDE configuration; "hp"
+# takes it away again. Per user, no root needed; the login screen stays HP-UX CDE. Takes effect at the next login.
+# Without an argument it asks with a small dialog. A copy of everything replaced is kept first in
+# ~/.d32-look-backup/<time>/.
+# Update 1 (U12, U16): this is THE chooser (the theme pack's own copy is no longer installed here). After copying a
+# profile it applies the profile MANIFEST's modes (its 95 executable files: Application Manager actions), never
+# copies the MANIFEST itself, and removes the profile's personal copies of the system's action files
+# (~/.dt/types/*.dt that equal /etc/dt/appconfig/types/C's, and deep32.dt, whose only change ran the theme's own
+# chooser from ~/.dt/d32/bin) and ~/.dt/d32/bin: personal copies are read first and shadowed the system's fixes,
+# and the second run of the chooser failed. The lamp files in ~/.dt/d32 stay. The closing box is d32-msg.
+L=/usr/local/share/d32/look
+SYS=/etc/dt/appconfig/types/C
+MSG=/usr/local/d32/ship/libexec/d32-msg
+[ -n "${HOME:-}" ] && [ -d "$HOME" ] && [ "$HOME" != / ] || { print -u2 "d32-look: no home directory"; exit 1; }
+mark=$HOME/.dt/d32/look
+choice=${1:-}
+
+say() {
+	if [ -n "${DISPLAY:-}" ] && [ -x $MSG ]; then
+		$MSG "Desktop Look" "$1" >/dev/null 2>&1 &
+	else
+		print -r -- "$1"
+	fi
+}
+
+# files PROFILE: the profile's files, relative to its root, without its MANIFEST
+files() {
+	(cd $L/$1/user && find . -type f ! -path ./MANIFEST.tsv)
+}
+
+# lay PROFILE: copy the profile over $HOME, then the MANIFEST's modes (0555 -> 0755 for him, the rest 0644)
+lay() {
+	local p=$1
+	(cd $L/$p/user && files $p | sed 's|^\./||' | pax -w -x ustar) | (cd $HOME && pax -r)
+	files $p | while read -r f; do chmod 0644 "$HOME/$f" 2>/dev/null; done
+	if [ -f $L/$p/user/MANIFEST.tsv ]; then
+		awk -F'\t' '$1 !~ /^#/ && $2 == "0555" { print $1 }' $L/$p/user/MANIFEST.tsv |
+			while IFS= read -r f; do
+				f=${f#/}; f=${f#./}
+				[ -f "$HOME/$f" ] && chmod 0755 "$HOME/$f"
+			done
+	fi
+}
+
+# unshadow PROFILE: drop the personal action files that only shadow the system's, and the theme's own chooser
+unshadow() {
+	local f n
+	for f in $(cd $L/$1/user && find ./.dt/types -type f -name '*.dt' 2>/dev/null); do
+		n=${f##*/}
+		[ -f "$HOME/$f" ] || continue
+		if [ $n = deep32.dt ] || cmp -s "$HOME/$f" $SYS/$n; then
+			rm -f "$HOME/$f"
+		fi
+	done
+	rm -rf $HOME/.dt/d32/bin
+}
+
+if [ -z "$choice" ]; then
+	cur=$(cat $mark 2>/dev/null || echo hp)
+	/usr/X11R6/bin/xmessage -center -title "Desktop Look" -buttons "HP-UX CDE:10,HP VUE:11,Cancel:12" \
+		"Desktop Look (now: $cur)
+
+HP-UX CDE: HP-UX 10.20/11.00 CDE, the default.
+HP VUE: HP VUE 3.0 on dtwm, the 1993 look.
+
+Your choice takes effect at your next login." >/dev/null 2>&1
+	case $? in 10) choice=hp ;; 11) choice=vue ;; *) exit 0 ;; esac
+fi
+case $choice in hp|vue) ;; *) print -u2 "usage: d32-look [hp|vue]"; exit 64 ;; esac
+[ -d $L/vue/user ] || { print -u2 "d32-look: the VUE profile is not installed ($L/vue/user)"; exit 1; }
+bak=$HOME/.d32-look-backup/$(date +%Y%m%d-%H%M%S)
+files vue | while read -r f; do
+	if [ -f "$HOME/$f" ]; then
+		mkdir -p "$bak/$(dirname "$f")"
+		cp -p "$HOME/$f" "$bak/$f"
+	fi
+done
+# the saved session would keep the old palette: start the next login from the profile's session defaults
+for s in current home; do
+	[ -f $HOME/.dt/sessions/$s/dt.resources ] && mv $HOME/.dt/sessions/$s/dt.resources $HOME/.dt/sessions/$s/dt.resources.before-look
+done
+# an earlier chooser may have copied a profile MANIFEST into the home
+[ -f $HOME/MANIFEST.tsv ] && cmp -s $HOME/MANIFEST.tsv $L/vue/user/MANIFEST.tsv && rm -f $HOME/MANIFEST.tsv
+[ -f $HOME/MANIFEST.tsv ] && cmp -s $HOME/MANIFEST.tsv $L/hp/user/MANIFEST.tsv && rm -f $HOME/MANIFEST.tsv
+if [ $choice = vue ]; then
+	lay vue
+	unshadow vue
+else
+	files vue | while read -r f; do rm -f "$HOME/$f"; done
+	if [ -d $L/hp/user ]; then
+		lay hp
+		unshadow hp
+	fi
+fi
+mkdir -p $HOME/.dt/d32
+print -r -- $choice >$mark
+say "Desktop Look: $choice. Log out and in again to see it. (Your previous files: $bak)"
+exit 0

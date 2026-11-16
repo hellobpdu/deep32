@@ -1,0 +1,50 @@
+#!/bin/ksh
+# /d32/active/bin/d32status: the Deep32 Status window (ship lane): the state behind the lamp, from /var/d32/lamps/rag
+# (written every minute by root's d32-lampd), in a dtterm. Counts, ids and states only.
+# Update 1 (U46): the RAG line is the state word (ok, degraded, down) with the degraded parts named, not raw JSON,
+# and every line is folded at word boundaries to fit the window.
+if [ "${1:-}" != -show ] && [ -n "${DISPLAY:-}" ] && [ -x /usr/local/dt/bin/dtterm ]; then
+	exec /usr/local/dt/bin/dtterm -title "Deep32 Status" -geometry 100x24 -e /d32/active/bin/d32status -show
+fi
+W=96
+f=/var/d32/lamps/rag
+# say LABEL TEXT: "LABEL     TEXT", folded to $W columns, continuation lines indented under the text
+say() {
+	print -r -- "$2" | fold -s -w $((W - 10)) | sed 's/ *$//' | sed -e "1s/^/$(printf '%-10s' "$1")/" -e '2,$s/^/          /'
+}
+# json KEY: a string or number field of the lamp's one-line JSON
+json() {
+	print -r -- "$rag" | sed -n "s/.*\"$1\": \"\{0,1\}\([^\",}]*\)\"\{0,1\}[,}].*/\1/p"
+}
+rel=$(sed -n 1p /etc/d32/release 2>/dev/null)
+print -r -- "Deep32/UX ${rel:-(release unknown)}: status"
+print -r -- "=================================="
+if [ -r $f ]; then
+	rag=$(sed -n 's/^rag=//p' $f)
+	state=$(json state)
+	deg=$(print -r -- "$rag" | sed -n 's/.*"degraded": \[\([^]]*\)\].*/\1/p' | tr -d '"')
+	gen=$(json generation) docs=$(json docs) chunks=$(json chunks) err=$(json error)
+	gx=$(sed -n 's/^gpu_ext=//p' $f)
+	say "as of" "$(sed -n 's/^time=//p' $f)"
+	case $state in
+	ok)		say "RAG" "ok: every part of search is up" ;;
+	degraded)	say "RAG" "degraded: ${deg:-some parts} down; lexical (BM25) search, the knowledge base and structure still answer" ;;
+	down)		say "RAG" "down${err:+ ($err)}: no search until deep32-engine and deep32-gateway answer again" ;;
+	*)		say "RAG" "unknown (no answer yet)" ;;
+	esac
+	[ -n "$gen" ] && say "" "generation $gen: ${docs:-?} documents, ${chunks:-?} chunks"
+	say "GPU_EXT" "${gx:-off}"
+	say "services" "$(sed -n 's/^services=//p' $f | tr ' ' '\n' | sed 's/=/ /' | awk 'NF { printf "%s%s", (n++ ? ", " : ""), $0 } END { print "" }')"
+else
+	say "" "No status yet: root's d32-lampd writes $f every minute."
+fi
+print
+if [ "${gx:-off}" != on ]; then
+	say "" "GPU_EXT is off: dense search and the reranker are down by design until the home GPU is switched on, so search is lexical (BM25) with the knowledge base and structure. The Status lamp stays lit while that is so."
+fi
+say "" "Remote queries (relayd front) are off. Ask is off until this machine is paired. See INSTALL.md (Help)."
+if [ "${1:-}" = -show ]; then
+	print
+	print -n "Press Return to close. "
+	read x
+fi

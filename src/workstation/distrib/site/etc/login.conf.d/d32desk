@@ -1,0 +1,7 @@
+# Deep32 Workstation login class (BASE lane). login.conf(5): /etc/login.conf.d/<class> takes precedence over
+# /etc/login.conf; "tc=" reaches only this file and /etc/login.conf, so each class is complete in itself.
+# rc.d d32desk (EXPORT+DATA lane): the Library Search service as _d32desk.
+d32desk:\
+	:datasize=2048M:\
+	:coredumpsize=0:\
+	:tc=daemon:

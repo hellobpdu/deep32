@@ -1,0 +1,163 @@
+{
+ "name": "proxmox-ivybridge-rtx3060",
+ "about": "Proxmox VE on a two-socket Xeon E5 v2 (AVX, no AVX2), 256 GB, RTX 3060 bound to vfio-pci (no nvidia-smi)",
+ "facts": {
+  "os": {
+   "family": "linux",
+   "name": "Debian GNU/Linux 12 (bookworm)",
+   "edition": "debian",
+   "version": "12",
+   "build": null,
+   "arch": "x64",
+   "wsl_guest": false,
+   "kernel": "6.8.12-4-pve"
+  },
+  "hw": {
+   "vendor": "Dell Inc.",
+   "model": "PowerEdge R720",
+   "virtual": false
+  },
+  "cpu": {
+   "vendor": "intel",
+   "model": "Intel(R) Xeon(R) CPU E5-2690 v2 @ 3.00GHz",
+   "family": 6,
+   "model_id": 62,
+   "stepping": 4,
+   "gen": null,
+   "sockets": 2,
+   "cores": 20,
+   "threads": 40,
+   "p_cores": null,
+   "e_cores": 0,
+   "p_threads": null,
+   "avx": true,
+   "avx2": false,
+   "avx512f": false
+  },
+  "mem": {
+   "total_gb": 251.8,
+   "installed_gb": null,
+   "free_gb": 200.0
+  },
+  "disks": [
+   {
+    "mount": "/",
+    "size_gb": 94.0,
+    "free_gb": 70.1,
+    "ssd": true
+   },
+   {
+    "mount": "/var/lib/vz",
+    "size_gb": 1800.0,
+    "free_gb": 1500.0,
+    "ssd": false
+   }
+  ],
+  "gpus": [
+   {
+    "name": "NVIDIA GeForce RTX 3060",
+    "vendor": "nvidia",
+    "mem_gb": null,
+    "driver": null,
+    "cc": null
+   }
+  ],
+  "virt": {
+   "firmware": true,
+   "slat": true,
+   "iommu": true,
+   "hypervisor": false
+  },
+  "hyp": {
+   "hyperv": false,
+   "kvm": true,
+   "proxmox": true,
+   "virtualbox": false,
+   "vmware": false,
+   "libvirt": false
+  },
+  "wsl": null,
+  "docker": {
+   "present": false,
+   "client": null,
+   "nvidia": false
+  },
+  "tools": {
+   "tailscale": false,
+   "claude": false,
+   "codex": false,
+   "gh": false
+  },
+  "ports": {
+   "checked": true,
+   "busy": []
+  },
+  "net": null
+ },
+ "reasoning": [
+  "Classes: the E5-2690 v2 has AVX but not AVX2 and is not low-power: avx (Workstation yes, Forge to-be-tested). The RTX 3060 is rtx30 (Forge yes, upstream stable), usable; its memory and driver cannot be read (vfio-pci), so no memory tier.",
+  "Sizing: 40 threads; no installed figure, 251.8 GB visible, half rounded up (126) doubled: 252 GB; tier 3. After the host: 38 threads, 248 GB.",
+  "Candidates (Linux with Proxmox): proxmox-passthrough, two-machines, headless, headend-only. linux-nvidia excludes Proxmox; no-gpu does not match because the card is usable.",
+  "proxmox-passthrough: unconfirmed. gpu-mem unknown (card memory unreadable); headend-elsewhere in confirm; KVM, IOMMU, sizes and disk (1500 GB) met. Size 'both': threads (8, 8) fit 38, memory (16, 32) fit 248.",
+  "two-machines: ready (second-machine in confirm, Tailscale auto). Size 'each': (8, 16) and Forge (8, 32).",
+  "headless: changes. Missing nvidia-driver (none read), docker, nvidia-runtime; gpu-mem unknown; Tailscale auto. Size 'forge': (8, 32).",
+  "headend-only: changes (agent missing: neither Claude Code nor Codex).",
+  "Order (single machine first, matrix 0.3.0; before, it was two-machines, proxmox-passthrough, headless): one-machine profiles first, by fit: unconfirmed proxmox-passthrough (machines 1; the headend elsewhere does not count as a second machine), then changes headless; then the alternatives (machines 2): ready two-machines, changes headend-only (fourth, not shown). First three: proxmox-passthrough, headless, two-machines.",
+  "Warnings: cpu-forge-untested."
+ ],
+ "expect": {
+  "best": "proxmox-passthrough",
+  "fit": "unconfirmed",
+  "ranked": [
+   "proxmox-passthrough",
+   "headless",
+   "two-machines"
+  ],
+  "best_missing": [],
+  "best_unknown": [
+   "gpu-mem"
+  ],
+  "best_auto": [],
+  "best_confirm": [
+   "headend-elsewhere"
+  ],
+  "cpu_class": "avx",
+  "gpu_class": "rtx30",
+  "gpu_forge": "yes",
+  "gpu_mem_tier": null,
+  "tier": 3,
+  "sizes": {
+   "proxmox-passthrough": {
+    "ws": [
+     8,
+     16
+    ],
+    "forge": [
+     8,
+     32
+    ]
+   },
+   "headless": {
+    "ws": null,
+    "forge": [
+     8,
+     32
+    ]
+   },
+   "two-machines": {
+    "ws": [
+     8,
+     16
+    ],
+    "forge": [
+     8,
+     32
+    ]
+   }
+  },
+  "ruled_out": [],
+  "warnings": [
+   "cpu-forge-untested"
+  ]
+ }
+}

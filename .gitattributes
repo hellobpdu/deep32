@@ -1,0 +1,34 @@
+# Line endings and binary files for this repository.
+#
+# Text files are stored with LF and checked out with LF on every system, so the shell scripts
+# still run after a clone on Windows, and the files on disk match the published bytes.
+* text=auto eol=lf
+*.sh text eol=lf
+*.py text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.tsv text eol=lf
+*.ps1 text eol=lf
+*.txt text eol=lf
+
+# Binary: never converted, never merged as text.
+*.gpg binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.bmp binary
+*.ico binary
+*.webp binary
+*.svg binary
+
+# Test inputs whose exact bytes are the test (CRLF line ends, UTF-16, a byte-order mark):
+# git stores and checks them out exactly as they are.
+tests/inventory/edge/** -text
+tests/inventory/fakebin-win/*.cmd -text
+
+# Kept byte-exact as built and gated (2026-11-16): the Library sources and these locks are CRLF at origin.
+src/workstation/library/** -text
+src/workstation/pyrag/locks/requirements-buildenv312.lock -text
+src/workstation/pyrag/locks/requirements-buildenv314.lock -text
+src/workstation/pyrag/locks/requirements-test.lock -text

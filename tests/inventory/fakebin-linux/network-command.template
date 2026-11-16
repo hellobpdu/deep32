@@ -1,0 +1,5 @@
+#!/bin/sh
+# test stub for run_tests.py's probe test: prints canned output, changes nothing
+# usage: called by deep32-inventory.sh in place of the real command, with its arguments
+# exit codes: 0
+printf "1.76.6\n  tailscale commit: 0000000\n  go version: go1.23.1\n"

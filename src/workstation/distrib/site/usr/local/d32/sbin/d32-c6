@@ -1,0 +1,31 @@
+#!/bin/ksh
+# d32-c6: contract C6 status writer and reader.
+# Usage: d32-c6 set NODE STAGE STATE [key=value ...]
+#        d32-c6 repeat | show | check LINE
+# Exit: 0 success, 1 refused, 2 usage, 3 I/O, 4 not root.
+# D32_ROOT and D32_PATH select an isolated test installation.
+PATH=${D32_PATH:-/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin}
+export PATH
+[ -n "${D32_ROOT-}" ] || [ "$(id -u)" = 0 ] || exit 4
+. "${D32_ROOT-}/usr/local/d32/libexec/d32-c6.sh"
+case ${1-} in
+check) [ "$#" = 2 ] || exit 2; c6_check "$2"; exit $?;;
+show)
+    [ "$#" = 1 ] || exit 2
+    C6_DIR=${C6_DIR:-${D32_ROOT-}/var/run/d32/c6}
+    if c6_current; then echo ''; else echo 'd32-c6: no status line yet' >&2; exit 3; fi
+    exit 0;;
+repeat)
+    [ "$#" = 1 ] || exit 2
+    c6_setup workstation console || exit $?
+    c6_repeat; exit $?;;
+set)
+    [ "$#" -ge 4 ] || exit 2
+    shift
+    c6_setup "$1" console || exit $?
+    shift
+    C6_VERSION=$(sed -n '1{s/[[:space:]].*//;p;}' "${D32_ROOT-}/etc/d32/release" 2>/dev/null)
+    C6_NAME=$(sed -n 's/^node_name=//p' "${D32_ROOT-}/etc/d32/node.conf" 2>/dev/null)
+    c6_set "$@"; exit $?;;
+*) exit 2;;
+esac

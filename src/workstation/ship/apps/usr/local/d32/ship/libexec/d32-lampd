@@ -1,0 +1,25 @@
+#!/bin/ksh
+# d32-lampd [-q]: root's cron job, every minute (ship lane, First light PREVIEW). Asks deep32-gateway for rag_status over
+# edge.sock (the local MCP token, root 0600) and checks the rc.d services; writes the state for every session's lamp
+# updater to /var/d32/lamps/rag (0644: state, counts and ids only, never document text).
+set -u
+q=0
+[ "${1:-}" = -q ] && q=1
+out=/var/d32/lamps/rag
+install -d -o root -g wheel -m 0755 /var/d32/lamps
+svc=""
+for s in d32core d32edge kiwix_serve; do
+	if rcctl check $s >/dev/null 2>&1; then svc="$svc $s=up"; else svc="$svc $s=down"; fi
+done
+st=$(/usr/local/bin/python3.14 -I -B /usr/local/d32/ship/libexec/d32-mcp.py 2>/dev/null) || true
+[ -n "$st" ] || st='{"state": "down"}'
+gx=$(cat /var/d32/run/gpu_ext 2>/dev/null || echo off)
+{
+	print -r -- "time=$(date '+%Y-%m-%d %H:%M:%S')"
+	print -r -- "rag=$st"
+	print -r -- "services=${svc# }"
+	print -r -- "gpu_ext=$gx"
+} >$out.new
+chmod 0644 $out.new
+mv $out.new $out
+[ $q -eq 1 ] || cat $out

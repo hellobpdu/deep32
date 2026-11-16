@@ -1,0 +1,13 @@
+#!/bin/sh
+# Keep Xsession alive through the actual session and the sound shutdown.
+agent=/usr/local/d32/bin/d32sndd
+previous=$("$agent" --session-window </dev/null 2>/dev/null) || previous=
+"$agent" </dev/null >/dev/null 2>&1 &
+agent_pid=$!
+/usr/local/dt/bin/dtsession "$@"
+session_status=$?
+if [ "$session_status" -eq 0 ] && [ -n "$previous" ]; then
+	"$agent" --session-wait "$previous" </dev/null >/dev/null 2>&1
+fi
+"$agent" --session-end "$agent_pid" </dev/null >/dev/null 2>&1
+exit "$session_status"

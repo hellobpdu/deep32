@@ -1,0 +1,8 @@
+# This is a direct-version inventory, not a complete lock. Build uses a hashed staged lock.
+torch==2.14.0+cu130
+transformers==5.17.0
+fastapi==0.141.1
+uvicorn==0.54.0
+tokenizers==0.23.2
+accelerate==1.15.0
+numpy==2.5.3

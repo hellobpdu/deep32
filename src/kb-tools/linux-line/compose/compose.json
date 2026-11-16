@@ -1,0 +1,143 @@
+{
+ "name": "d32-s2",
+ "services": {
+  "qdrant": {
+   "image": "qdrant/qdrant@sha256:TO-PIN-QDRANT",
+   "pull_policy": "missing",
+   "environment": {
+    "QDRANT__SERVICE__HTTP_PORT": "6333",
+    "QDRANT__SERVICE__GRPC_PORT": "6334",
+    "QDRANT__TELEMETRY_DISABLED": "true"
+   },
+   "ports": [
+    "127.0.0.1:16333:6333"
+   ],
+   "volumes": [
+    "qdrant-storage:/qdrant/storage"
+   ],
+   "networks": [
+    "s2"
+   ],
+   "restart": "no"
+  },
+  "qdrant-c3": {
+   "image": "qdrant/qdrant@sha256:TO-PIN-QDRANT",
+   "pull_policy": "missing",
+   "environment": {
+    "QDRANT__SERVICE__HTTP_PORT": "6333",
+    "QDRANT__SERVICE__GRPC_PORT": "6334",
+    "QDRANT__TELEMETRY_DISABLED": "true"
+   },
+   "ports": [
+    "127.0.0.1:16343:6333"
+   ],
+   "volumes": [
+    "qdrant-c3-storage:/qdrant/storage"
+   ],
+   "networks": [
+    "s2"
+   ],
+   "restart": "no"
+  },
+  "stub-models": {
+   "build": {
+    "context": "${D32_S2_CTX}",
+    "dockerfile": "compose/stub-models.Dockerfile"
+   },
+   "image": "d32-s2/stub-models:local",
+   "pull_policy": "never",
+   "ports": [
+    "127.0.0.1:18091:9000"
+   ],
+   "networks": [
+    "s2"
+   ],
+   "read_only": true,
+   "restart": "no"
+  },
+  "deep32-engine": {
+   "build": {
+    "context": "${D32_S2_CTX}",
+    "dockerfile": "compose/engine.Dockerfile"
+   },
+   "image": "d32-s2/deep32-engine:local",
+   "pull_policy": "never",
+   "user": "${D32_UID}:${D32_GID}",
+   "env_file": [
+    "${D32_S2_SECRETS}/engine.env"
+   ],
+   "environment": {
+    "RAG_ROOT": "/var/lib/deep32/rag-data/${D32_S2_GENERATION}",
+    "RAG_QDRANT_URL": "http://qdrant:6333",
+    "RAG_EMBEDDING_URL": "http://stub-models:9000/v1/embeddings",
+    "RAG_EMBEDDING_MODEL": "stub/embeddings",
+    "RAG_EMBEDDING_REVISION": "stub-bow-1",
+    "RAG_RERANK_URL": "http://stub-models:9000/v1/rerank",
+    "PYTHONHASHSEED": "0",
+    "HF_HUB_OFFLINE": "1",
+    "TRANSFORMERS_OFFLINE": "1",
+    "USER": "deep32",
+    "LOGNAME": "deep32",
+    "TORCHINDUCTOR_CACHE_DIR": "/tmp/torchinductor-deep32"
+   },
+   "ports": [
+    "127.0.0.1:18765:8765"
+   ],
+   "volumes": [
+    "${D32_S2_DATA}:/var/lib/deep32/rag-data",
+    "${D32_S2_WORK}:/srv/d32/work"
+   ],
+   "networks": [
+    "s2"
+   ],
+   "depends_on": [
+    "qdrant",
+    "stub-models"
+   ],
+   "restart": "no"
+  },
+  "deep32-gateway": {
+   "build": {
+    "context": "${D32_S2_CTX}",
+    "dockerfile": "compose/gateway.Dockerfile"
+   },
+   "image": "d32-s2/deep32-gateway:local",
+   "pull_policy": "never",
+   "env_file": [
+    "${D32_S2_SECRETS}/gateway.env"
+   ],
+   "environment": {
+    "RAG_CORE_URL": "http://deep32-engine:8765",
+    "TAILSCALE_DNS_NAME": "gateway.lab.invalid",
+    "RAG_MCP_ALLOWED_IPS": "172.19.32.0/24,127.0.0.1/32"
+   },
+   "ports": [
+    "127.0.0.1:18443:8443"
+   ],
+   "networks": [
+    "s2"
+   ],
+   "depends_on": [
+    "deep32-engine"
+   ],
+   "read_only": true,
+   "restart": "no"
+  }
+ },
+ "networks": {
+  "s2": {
+   "driver": "bridge",
+   "ipam": {
+    "config": [
+     {
+      "subnet": "172.19.32.0/24"
+     }
+    ]
+   }
+  }
+ },
+ "volumes": {
+  "qdrant-storage": {},
+  "qdrant-c3-storage": {}
+ }
+}

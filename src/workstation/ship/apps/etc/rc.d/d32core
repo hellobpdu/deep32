@@ -1,0 +1,47 @@
+#!/bin/ksh
+#
+# d32core (ship lane copy of the shims lane's script; only the launcher differs: serve_core_ship.py adds exact_local).
+# d32core: production deep32-engine (CPython 3.12.14, the pyrag lane's venv) as _d32core, the RAG_CORE of First light.
+# PYRAG/shims lane: replaces BASE's skeleton (distrib/rc.d/d32core) and keeps its contract (HARDENING 5.8,
+# the final design 2.3, rc.subr(8)):
+#  - class "d32core" (/etc/login.conf.d/d32core, schg): limits, 8 MiB stack, RAG_TRACE=off, RAG_DB_IMMUTABLE=1,
+#    SQLITE_TMPDIR; rc_pre refuses to start if the class lost them (FIX-04, FIX-05);
+#  - the root step is d32-sockexec: it binds /var/run/d32/core.sock 0660 root:_d32edge, opens /etc/d32/core.env
+#    (root 0400: RAG_ROOT, the API token, the GPU URLs), drops to _d32core and execs the VENV's interpreter
+#    (pyrag lane: the venv's bin/python3.12, never the base one) with -I -B -X utf8;
+#  - the launcher imports, starts the app, then unveils and pledges (no inet once exact_local and the GPU
+#    forwarder's sockets are in use);
+#  - rc_reload=NO: a configuration change needs a local restart (ISO 3.1 item 8).
+
+daemon="/usr/local/d32/sbin/d32-sockexec"
+daemon_flags="-u _d32core -e /etc/d32/core.env -l core=unix:/var/run/d32/core.sock:root:_d32edge:0660 --"
+daemon_flags="${daemon_flags} /usr/local/d32/venv/deep32-engine/bin/python3.12 -I -B -X utf8"
+daemon_flags="${daemon_flags} /usr/local/d32/node/ship/serve_core_ship.py"
+daemon_user="root"
+daemon_timeout=180
+daemon_logger="daemon.info"
+
+. /etc/rc.d/rc.subr
+
+# after the exec the process is the interpreter, not d32-sockexec: match that
+pexp="/usr/local/d32/venv/deep32-engine/bin/python3.12 -I -B -X utf8 /usr/local/d32/node/ship/serve_core_ship.py"
+rc_bg=YES
+rc_reload=NO
+
+rc_pre() {
+	local _cap _o
+	install -d -o root -g wheel -m 0755 /var/run/d32
+	# FIX-04/FIX-05: the class must still carry the immutable-database and traces-off settings (BASE's guard;
+	# the getcap path must end in /etc/login.conf so tc=daemon resolves, as rc.subr's own lookup does).
+	_cap=$(getcap -f /etc/login.conf.d/d32core:/etc/login.conf -s setenv d32core) || return 1
+	[[ ,$_cap, == *,RAG_TRACE=off,* ]] || return 1
+	[[ ,$_cap, == *,RAG_DB_IMMUTABLE=1,* ]] || return 1
+	[[ ,$_cap, == *,SQLITE_TMPDIR=/var/d32/run/core-tmp,* ]] || return 1
+	install -d -o root -g wheel -m 0755 /var/d32 /var/d32/run
+	install -d -o _d32core -g _d32core -m 0700 /var/d32/run/core-tmp
+	# the secrets file: root's alone (d32-sockexec checks it again before opening it)
+	_o=$(stat -f '%Su %Lp' /etc/d32/core.env 2>/dev/null) || return 1
+	[[ $_o == "root 400" || $_o == "root 600" ]] || return 1
+}
+
+rc_cmd $1

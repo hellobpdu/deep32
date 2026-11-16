@@ -1,0 +1,108 @@
+{
+ "name": "esxi-host",
+ "about": "VMware ESXi 8 on a Xeon Gold host, 384 GB",
+ "facts": {
+  "os": {
+   "family": "esxi",
+   "name": "VMware ESXi 8.0.3",
+   "edition": null,
+   "version": "8.0.3",
+   "build": null,
+   "arch": "x64",
+   "wsl_guest": false
+  },
+  "hw": {
+   "vendor": "Dell Inc.",
+   "model": "PowerEdge R640",
+   "virtual": false
+  },
+  "cpu": {
+   "vendor": "intel",
+   "model": "Intel(R) Xeon(R) Gold 6130 CPU @ 2.10GHz",
+   "family": null,
+   "model_id": null,
+   "stepping": null,
+   "gen": null,
+   "sockets": 2,
+   "cores": 32,
+   "threads": 64,
+   "p_cores": null,
+   "e_cores": 0,
+   "p_threads": null,
+   "avx": true,
+   "avx2": true,
+   "avx512f": true
+  },
+  "mem": {
+   "total_gb": 383.6,
+   "installed_gb": null,
+   "free_gb": 300.0
+  },
+  "disks": null,
+  "gpus": null,
+  "virt": {
+   "firmware": true,
+   "slat": true,
+   "iommu": null,
+   "hypervisor": false
+  },
+  "hyp": {
+   "hyperv": false,
+   "kvm": false,
+   "proxmox": false,
+   "virtualbox": false,
+   "vmware": false,
+   "libvirt": false
+  },
+  "wsl": null,
+  "docker": {
+   "present": false,
+   "client": null,
+   "nvidia": null
+  },
+  "tools": {
+   "tailscale": false,
+   "claude": false,
+   "codex": false,
+   "gh": false
+  },
+  "ports": {
+   "checked": false,
+   "busy": []
+  },
+  "net": null
+ },
+ "reasoning": [
+  "Classes: the Xeon Gold 6130 has AVX2: modern. No card facts (null).",
+  "Sizing: 64 threads; 383.6 GB visible: 384 GB; tier 3.",
+  "Candidates: only esxi matches the esxi family (headend-only lists Windows, Linux and macOS).",
+  "esxi: ready. Size 'ws' from tier 3: (8, 16)."
+ ],
+ "expect": {
+  "best": "esxi",
+  "fit": "ready",
+  "ranked": [
+   "esxi"
+  ],
+  "best_missing": [],
+  "best_unknown": [],
+  "best_auto": [],
+  "best_confirm": [],
+  "cpu_class": "modern",
+  "gpu_class": null,
+  "gpu_forge": null,
+  "gpu_mem_tier": null,
+  "tier": 3,
+  "sizes": {
+   "esxi": {
+    "ws": [
+     8,
+     16
+    ],
+    "forge": null
+   }
+  },
+  "ruled_out": [],
+  "warnings": []
+ }
+}

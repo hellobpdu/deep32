@@ -1,0 +1,47 @@
+# Deep32 Workstation: uid and gid table (BASE lane, D.32.12). Source of truth for 30-users.sh, pf.conf's
+# user/group names and the first-boot check. Socket names in the purpose column are notes, not a contract: there is
+# no socket table file yet (owner, mode and peers per socket are INTEG's). Range 3200-3299 ("32"): clear of base daemons
+# (< 1000), the ports tree's users (500-999) and adduser's 1000 upward (the desktop user is 1000, made by install.sub).
+# Columns (whitespace separated; "-" = none; the purpose runs to the end of the line):
+#   kind   name   id   login-class   home   shell   supplementary-groups(comma)   purpose
+# kind: group = a group with no user; user = a user with its own group of the same name and id;
+#       member = extra groups and class for an account made elsewhere (the desktop user, by install.sub).
+# Changes go through docs/changes/ (LEAD contract); never renumber a shipped id.
+#
+# --- groups without a user ---
+group   _d32adm     3200 -        -                   -              -                 admin socket deep32d.sock (root only; ISO 3.2)
+group   _d32users   3201 -        -                   -              -                 the desktop user's apps: edge.sock, uplink.sock (ISO 3.2, FIX-16)
+group   _d32inb     3203 -        -                   -              -                 inbound-window files 0640 (FIX-11): the desktop user, _d32bench, the drop accounts
+group   _d32raw     3204 -        -                   -              -                 raw scans, set by d32-rawscan only; no members (DISTRO 3.5)
+group   d32xfer     3206 -        -                   -              -                 browser In-Tray and Out-Tray: the desktop user, d32web (BROWSER-MEDIA 4.1)
+group   d32gfx      3207 -        -                   -              -                 GPU render node: the desktop user, d32web (BROWSER-MEDIA 4.1)
+group   _d32acqc    3208 -        -                   -              -                 acq.sock 0660 root:_d32acqc, member the desktop user only (LIBRARY 5.8, HARDENING 4.3 FIX-17)
+# --- daemon users (nologin, home /var/empty, class d32d unless stated) ---
+user    _d32ctl     3210 d32d     /var/empty          /sbin/nologin  -                 deep32d control child (ISO 3.2)
+user    _d32core    3211 d32d     /var/empty          /sbin/nologin  -                 deep32-engine, production Python (HARDENING 5.8)
+user    _d32edge    3212 d32d     /var/empty          /sbin/nologin  -                 deep32-gateway, production Python (HARDENING 5.8)
+user    _d32ml      3213 d32infer /var/empty          /sbin/nologin  -                 LCL embedder and reranker (ISO 3.2; class d32infer)
+user    _d32gpu     3214 d32d     /var/empty          /sbin/nologin  -                 GPU_EXT forwarder, d32accel (ISO 3.2, the final design E1)
+user    _d32rem     3215 d32d     /var/empty          /sbin/nologin  -                 REMOTE forwarder, d32remote (HARDENING 5.8, FIX-20)
+user    _d32uph     3216 d32d     /var/empty          /sbin/nologin  -                 D32U/1 hub relay link (ISO 3.2, FIX-15)
+user    _d32upw     3217 d32d     /var/empty          /sbin/nologin  -                 D32U/1 work relay link (ISO 3.2, FIX-30)
+user    _d32chat    3218 d32d     /var/empty          /sbin/nologin  -                 chat broker, Deep32 Library Ask room; no network (item 41); its sockets are OPEN (INTEG): as listed it reaches neither edge.sock nor uplink.sock
+user    _d32sec     3224 d32d     /var/empty          /sbin/nologin  -                 secret store (ISO 3.2)
+user    _d32acq     3225 d32d     /var/empty          /sbin/nologin  -                 Library acquisitions store (ISO 3.2)
+user    _d32aud     3226 d32d     /var/empty          /sbin/nologin  -                 audit log writer (ISO 3.2, 11.2)
+user    _d32ts      3227 d32d     /var/empty          /sbin/nologin  -                 tailscaled LocalAPI status helper (ISO 2.6.2)
+user    _d32fs      3228 d32d     /var/empty          /sbin/nologin  _d32core          /deep32 fuse filesystem (ISO 3.2)
+user    _d32xweb    3230 d32d     /var/empty          /sbin/nologin  -                 Xephyr for d32web, X level 3 (FIX-01)
+user    _d32xnet    3231 d32d     /var/empty          /sbin/nologin  -                 Xephyr for d32net, X level 3 (FIX-01)
+user    _d32bench   3232 d32d     /var/empty          /sbin/nologin  _d32inb           d32-benchlog and iperf3 in inbound windows (FIX-11)
+user    _d32desk    3234 d32d     /var/empty          /sbin/nologin  -                 d32desk Library Search service (the final design 2.2)
+user    _d32shelf   3236 d32d     /var/empty          /sbin/nologin  -                 Library pack readers shelf, zim, shelf-open; group _d32shelf has no members (LIBRARY 5.8, CONTENT-EXPANSION 4.1, 5.1)
+user    _d32libw    3237 d32d     /var/empty          /sbin/nologin  -                 Library pack install, the only writer of packs/ (_d32libw:_d32shelf; LIBRARY 5.8, CONTENT-EXPANSION 5.1)
+user    _d32acx     3238 d32d     /var/empty          /sbin/nologin  -                 d32_acq_extract, one per job, chroot /var/empty, stdio only (LIBRARY 5.8)
+# --- network domains and inbound drop accounts (no underscore: people see them in Settings) ---
+user    d32web      3250 d32web   /home/d32web        /sbin/nologin  d32xfer,d32gfx    Web domain: Fathom, lynx, w3m (DISTRO 3.5, BROWSER-MEDIA 4.1)
+user    d32net      3251 d32user  /home/d32net        /sbin/nologin  -                 Lab domain: Sessions network tabs, nmap, Wireshark (DISTRO 3.5)
+user    d32drop     3252 d32d     /var/d32/inbound/drop /sbin/nologin _d32inb          SFTP drop in inbound windows; password "*" at rest (FIX-11)
+user    d32scp      3253 d32d     /var/d32/inbound/drop /sbin/nologin _d32inb          legacy SCP drop; shell becomes /bin/d32-scpsink when built (FIX-11)
+# --- the human account (made by install.sub as uid 1000, class staff, in wheel) ---
+member  @D32_USER@  -    d32user  -                   -              _d32users,_d32inb,_d32acqc,d32xfer,d32gfx,dialer  the desktop user: not in _wireshark (DISTRO C7)

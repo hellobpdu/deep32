@@ -1,0 +1,149 @@
+{
+ "name": "linux-gtx1080",
+ "about": "Debian 12, i7-8086K, 32 GB, GTX 1080 (compute 6.1, unsupported), KVM, Docker without the toolkit",
+ "facts": {
+  "os": {
+   "family": "linux",
+   "name": "Debian GNU/Linux 12 (bookworm)",
+   "edition": "debian",
+   "version": "12",
+   "build": null,
+   "arch": "x64",
+   "wsl_guest": false,
+   "kernel": null
+  },
+  "hw": {
+   "vendor": "Gigabyte Technology Co., Ltd.",
+   "model": "Z370 AORUS Gaming 7",
+   "virtual": false
+  },
+  "cpu": {
+   "vendor": "intel",
+   "model": "Intel(R) Core(TM) i7-8086K CPU @ 4.00GHz",
+   "family": null,
+   "model_id": null,
+   "stepping": null,
+   "gen": null,
+   "sockets": 1,
+   "cores": 6,
+   "threads": 12,
+   "p_cores": null,
+   "e_cores": 0,
+   "p_threads": null,
+   "avx": true,
+   "avx2": true,
+   "avx512f": false
+  },
+  "mem": {
+   "total_gb": 31.2,
+   "installed_gb": null,
+   "free_gb": 25.0
+  },
+  "disks": [
+   {
+    "mount": "/",
+    "size_gb": 465.3,
+    "free_gb": 300.0,
+    "ssd": true
+   }
+  ],
+  "gpus": [
+   {
+    "name": "NVIDIA GeForce GTX 1080",
+    "vendor": "nvidia",
+    "mem_gb": 8.0,
+    "driver": "535.183.01",
+    "cc": "6.1"
+   }
+  ],
+  "virt": {
+   "firmware": true,
+   "slat": true,
+   "iommu": false,
+   "hypervisor": false
+  },
+  "hyp": {
+   "hyperv": false,
+   "kvm": true,
+   "proxmox": false,
+   "virtualbox": false,
+   "vmware": false,
+   "libvirt": true
+  },
+  "wsl": null,
+  "docker": {
+   "present": true,
+   "client": "24.0.7",
+   "nvidia": false
+  },
+  "tools": {
+   "tailscale": "1.76.6",
+   "claude": false,
+   "codex": false,
+   "gh": false
+  },
+  "ports": {
+   "checked": true,
+   "busy": []
+  },
+  "net": null
+ },
+ "reasoning": [
+  "Classes: the i7-8086K has AVX2: modern. 'nvidia geforce gtx 1080' matches 'gtx 10[0-9][0-9]': legacy (Forge no), so gpu.usable is false; 8 GB is tier 8.",
+  "Sizing: 12 threads; 31.2 GB visible: 32 GB; tier 2. After the host: 10 threads, 28 GB.",
+  "Candidates: linux-nvidia, no-gpu (the card is not usable), two-machines, headless, headend-only.",
+  "linux-nvidia and headless: gpu-cuda missing (hardware): ruled out.",
+  "no-gpu: ready (KVM, Tailscale present). Size (6, 16). two-machines: ready (one-side met by the Workstation room). Size (6, 16) and Forge (4, 16).",
+  "headend-only: changes (agent missing).",
+  "Order: the one-machine no-gpu (ready) first; then the alternatives (machines 2): ready two-machines, changes headend-only. Unchanged by the single-machine-first order of matrix 0.3.0.",
+  "Warnings: gpu-not-usable (gpu-mem-8 needs a usable card)."
+ ],
+ "expect": {
+  "best": "no-gpu",
+  "fit": "ready",
+  "ranked": [
+   "no-gpu",
+   "two-machines",
+   "headend-only"
+  ],
+  "best_missing": [],
+  "best_unknown": [],
+  "best_auto": [],
+  "best_confirm": [],
+  "cpu_class": "modern",
+  "gpu_class": "legacy",
+  "gpu_forge": "no",
+  "gpu_mem_tier": "8",
+  "tier": 2,
+  "sizes": {
+   "no-gpu": {
+    "ws": [
+     6,
+     16
+    ],
+    "forge": null
+   },
+   "two-machines": {
+    "ws": [
+     6,
+     16
+    ],
+    "forge": [
+     4,
+     16
+    ]
+   },
+   "headend-only": {
+    "ws": null,
+    "forge": null
+   }
+  },
+  "ruled_out": [
+   "linux-nvidia",
+   "headless"
+  ],
+  "warnings": [
+   "gpu-not-usable"
+  ]
+ }
+}

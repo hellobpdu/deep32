@@ -1,0 +1,5 @@
+f32_sse.py	8061	5c436c062e196aa55f39bb16c8b1f12e14d34fb1c38b2419534e946502b90ffd  # sha256 or public signing fingerprint
+kb_bundle.py	50708	dfb678780d87b8ce9e0c868a0b3db48d26f739d9cea177748304094047d12f36  # sha256 or public signing fingerprint
+kb_rules.json	1100	7852cbef4d14e9939d136d8c330589cd1103648e0148c86441fca0a2ac52e493  # sha256 or public signing fingerprint
+mkindex.py	6051	a49fbacb1b7a89fdef5cea70e3939204cf8b6d5a2fc9b1f10fce28deae86cc4f  # sha256 or public signing fingerprint
+openpgp_verify.py	3555	bb65d5f4724cad162d7efe71bd47e32cbedceef6360d095a3de16ba540ffc72d  # sha256 or public signing fingerprint

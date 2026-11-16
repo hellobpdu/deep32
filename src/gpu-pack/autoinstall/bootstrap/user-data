@@ -1,0 +1,5 @@
+#cloud-config
+autoinstall:
+  version: 1
+  early-commands:
+    - python3 /cdrom/deep32/kit/autoinstall/select-settings.py

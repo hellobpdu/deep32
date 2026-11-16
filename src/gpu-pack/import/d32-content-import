@@ -1,0 +1,33 @@
+#!/bin/sh
+# /opt/deep32-forge/import/d32-content-import: the disc 2 importer of the Deep32 Forge. It checks the signed content
+# manifest of disc 2 (contract C2 section 4) and every file on the disc, keeps the corpus blocks (C4) and the knowledge
+# base (C3) beside the ones in use, loads the knowledge base into the local engine's Qdrant when one is named, switches
+# to them in one step and writes the import report (deep32-import-report 1) and console status lines (C6).
+#   d32-content-import --device srN [--qdrant-url URL]   import disc 2 from that drive
+#   d32-content-import --folder DIR [--qdrant-url URL]   import disc 2 from a folder holding its files
+#   d32-content-import --resume [--qdrant-url URL]       carry on with the newest import when it can be carried on
+#   d32-content-import --report                          print the current import report and change nothing
+# URL is http://127.0.0.1:PORT, http://localhost:PORT or http://[::1]:PORT.
+# Exit: 0 imported or already in use; 1 usage; 2 failed (the report says why); 3 another import is running;
+# 4 stopped by a signal (run it again to carry on).
+# Test hooks, read only when D32_ROOT is set: D32_ROOT, D32_PYTHON, D32_STUBS and the D32_TEST_* settings of
+# imp_paths.py.
+LC_ALL=C
+export LC_ALL
+umask 077
+if [ -z "${D32_ROOT:-}" ]; then
+	if [ "$(id -u)" != 0 ]; then
+		echo "d32-content-import: run as root" >&2
+		exit 1
+	fi
+	PATH=/usr/sbin:/usr/bin:/sbin:/bin
+	export PATH
+	py=/usr/bin/python3
+else
+	if [ -z "${D32_PYTHON:-}" ] || [ -z "${D32_STUBS:-}" ]; then
+		echo "d32-content-import: test mode needs D32_PYTHON and D32_STUBS" >&2
+		exit 1
+	fi
+	py=$D32_PYTHON
+fi
+exec "$py" -I -B "${D32_ROOT:-}/opt/deep32-forge/import/d32import.py" --node forge "$@"

@@ -1,0 +1,271 @@
+{
+ "format": "deep32-converter-chain",
+ "format_version": 1,
+ "name": "pymupdf-chain",
+ "round": "cisco-add8",
+ "chain_id": "add8-c9d0e21da9a99fc6",
+ "files": [
+  {
+   "path": "adapter.py",
+   "bytes": 31430,
+   "sha256": "f092db4d7e6bb81f855b69bf53c9bf003fdd939a1d8672a8a4ed56afc225a31c",
+   "origin": null
+  },
+  {
+   "path": "chain/pilot/local-add5/prep_doc/__init__.py",
+   "bytes": 4795,
+   "sha256": "e97e18ae754e91db14f45f9ba06624a98e0da6f7c25ea95bf48940516e265f88",
+   "origin": {
+    "path": "staging/pilot/local-add5/prep_doc/__init__.py",
+    "sha256": "f417df98162fbd40c27fd042f2fe46e0af1d74c33557c35bd3625682083feb8b",
+    "transform": null
+   }
+  },
+  {
+   "path": "chain/pilot/local-add5/prep_doc/__main__.py",
+   "bytes": 263,
+   "sha256": "529c6eca3d89b53e680010967594ea0c744dfca9c3928c179f4d55e499a57209",
+   "origin": {
+    "path": "staging/pilot/local-add5/prep_doc/__main__.py",
+    "sha256": "529c6eca3d89b53e680010967594ea0c744dfca9c3928c179f4d55e499a57209",
+    "transform": null
+   }
+  },
+  {
+   "path": "chain/pilot/local-add5/prep_doc/_technote.py",
+   "bytes": 5433,
+   "sha256": "72192aaee74f0f6be0044eebf3e92d91974d897aa3301b179a65a2043bcf03fd",
+   "origin": {
+    "path": "staging/pilot/local-add5/prep_doc/_technote.py",
+    "sha256": "72192aaee74f0f6be0044eebf3e92d91974d897aa3301b179a65a2043bcf03fd",
+    "transform": null
+   }
+  },
+  {
+   "path": "chain/pilot/local-add5/prep_doc/cvd_ise_zero_trust_network.py",
+   "bytes": 2605,
+   "sha256": "b02d5d9256773b2da0447d40212d627b2891595f2c9e60a65cbdb78e6d35e2c3",
+   "origin": {
+    "path": "staging/pilot/local-add5/prep_doc/cvd_ise_zero_trust_network.py",
+    "sha256": "2413947bed7c0d068d2d3aa66dad8920002f4b6815b3740546dabe2bfc1004ee",
+    "transform": null
+   }
+  },
+  {
+   "path": "chain/pilot/local-add5/prep_doc/ise31_admin_guest.py",
+   "bytes": 3165,
+   "sha256": "2a3274cb8d86c840947540b78f6639b0dfd14e6bef1dd09773b45959494dc040",
+   "origin": {
+    "path": "staging/pilot/local-add5/prep_doc/ise31_admin_guest.py",
+    "sha256": "2a3274cb8d86c840947540b78f6639b0dfd14e6bef1dd09773b45959494dc040",
+    "transform": null
+   }
+  },
+  {
+   "path": "chain/pilot/local-add5/prep_doc/vendor_tn_ise_cli_show_logging.py",
+   "bytes": 745,
+   "sha256": "8737ad1a3031d536e641fdde82c2267257655b34613f35d3241f35251f22961f",
+   "origin": {
+    "path": "staging/pilot/local-add5/prep_doc/cisco_tn_ise_cli_show_logging.py",
+    "sha256": "8737ad1a3031d536e641fdde82c2267257655b34613f35d3241f35251f22961f",
+    "transform": null
+   }
+  },
+  {
+   "path": "chain/pilot/local-add5/prep_doc/vendor_tn_ise_repository.py",
+   "bytes": 791,
+   "sha256": "b80410e82c590be28beed1959f1c05f19a3962c1911c74b200ad2596624f17f2",
+   "origin": {
+    "path": "staging/pilot/local-add5/prep_doc/cisco_tn_ise_repository.py",
+    "sha256": "b80410e82c590be28beed1959f1c05f19a3962c1911c74b200ad2596624f17f2",
+    "transform": null
+   }
+  },
+  {
+   "path": "chain/pilot/local-add5/prep_doc/vendor_tn_ise_sxp_catalyst.py",
+   "bytes": 669,
+   "sha256": "8867208f0bb53aa258ad26944dad4330f12d089f0908e5ac233de833a73e628e",
+   "origin": {
+    "path": "staging/pilot/local-add5/prep_doc/cisco_tn_ise_sxp_catalyst.py",
+    "sha256": "8867208f0bb53aa258ad26944dad4330f12d089f0908e5ac233de833a73e628e",
+    "transform": null
+   }
+  },
+  {
+   "path": "chain/pilot/local-add5/prep_doc/wp_ise_c9800_gbp.py",
+   "bytes": 2647,
+   "sha256": "ba100ed49c8f89e91ec96df35e33dc7a0bd6eea993d052d0d02bfb666b5d78ad",
+   "origin": {
+    "path": "staging/pilot/local-add5/prep_doc/wp_ise_c9800_gbp.py",
+    "sha256": "e497a23591a65625f43ea07ee763f2f5bc914942d719c3759d36841dfb625cd1",
+    "transform": "T5"
+   }
+  },
+  {
+   "path": "chain/pilot/vendor-add/fetch_add.py",
+   "bytes": 16789,
+   "sha256": "2d704b44175c5a0a01336c06d7f5a076c6eecf90299b1b1a60db85df9a47afc7",
+   "origin": {
+    "path": "staging/pilot/cisco-add/fetch_add.py",
+    "sha256": "c881c71aabecd68c1f7fbd5bb1a149af1c4990a93a500a996e52ad45d32d57db",
+    "transform": "T4"
+   }
+  },
+  {
+   "path": "chain/pilot/vendor-add/fetch_add5.py",
+   "bytes": 4241,
+   "sha256": "a59231c7221be384c0b72b9a8199d2b2c2c69deaa7e361a8f788ed56899599c7",
+   "origin": {
+    "path": "staging/pilot/cisco-add/fetch_add5.py",
+    "sha256": "69dfde7757b86eb318501ba7e658a18c4aac81ec6bc5f3cb28b230919577aa7a",
+    "transform": null
+   }
+  },
+  {
+   "path": "chain/pilot/vendor-add/postclean.py",
+   "bytes": 4381,
+   "sha256": "c92b877e28cd72400fe4619e1897169cd4c8a20f55749707662ea67974bfe1a9",
+   "origin": {
+    "path": "staging/pilot/cisco-add/postclean.py",
+    "sha256": "c92b877e28cd72400fe4619e1897169cd4c8a20f55749707662ea67974bfe1a9",
+    "transform": null
+   }
+  },
+  {
+   "path": "chain/pilot/vendor-add/postclean_v21.py",
+   "bytes": 6015,
+   "sha256": "c909374579bd64fec2a3d9dc8e20e68660a476076946ae166ee2487c7a2ca061",
+   "origin": {
+    "path": "staging/pilot/cisco-add/postclean_v21.py",
+    "sha256": "c909374579bd64fec2a3d9dc8e20e68660a476076946ae166ee2487c7a2ca061",
+    "transform": null
+   }
+  },
+  {
+   "path": "chain/pilot/vendor-add/prep_source.py",
+   "bytes": 7298,
+   "sha256": "823d20f00324942468071e6be4318fed0f7c4c832cb40a0b13ad150378b5e064",
+   "origin": {
+    "path": "staging/pilot/cisco-add/prep_source.py",
+    "sha256": "823d20f00324942468071e6be4318fed0f7c4c832cb40a0b13ad150378b5e064",
+    "transform": null
+   }
+  },
+  {
+   "path": "chain/pilot/vendor-add/qa_text.py",
+   "bytes": 10203,
+   "sha256": "2e33a29f68790f603263053c302e88b83ae36277c4e3cee5eb88066be9a8dcec",
+   "origin": {
+    "path": "staging/pilot/cisco-add/qa_text.py",
+    "sha256": "2e33a29f68790f603263053c302e88b83ae36277c4e3cee5eb88066be9a8dcec",
+    "transform": null
+   }
+  },
+  {
+   "path": "chain/pilot/vendor-add/qa_v21.py",
+   "bytes": 8135,
+   "sha256": "fdcd44a77e3c9ceecb23b46c9834c6dcaeefdcb3960ba16f82cf9ad0fbd1e54a",
+   "origin": {
+    "path": "staging/pilot/cisco-add/qa_v21.py",
+    "sha256": "fdcd44a77e3c9ceecb23b46c9834c6dcaeefdcb3960ba16f82cf9ad0fbd1e54a",
+    "transform": null
+   }
+  },
+  {
+   "path": "chain/pilot/vendor-add/scan_injection.py",
+   "bytes": 3284,
+   "sha256": "16acafaed7e19a5e7e03cf9734b48664b210c82dd5adef2bbb887beffd8b3dc1",
+   "origin": {
+    "path": "staging/pilot/cisco-add/scan_injection.py",
+    "sha256": "16acafaed7e19a5e7e03cf9734b48664b210c82dd5adef2bbb887beffd8b3dc1",
+    "transform": null
+   }
+  },
+  {
+   "path": "chain/pilot/vendor-add2/prep_classes.py",
+   "bytes": 3762,
+   "sha256": "b97d2781dd34ad7ef0ccafae85f364d96a247a7d996b787cb2b4f35b0b33e4b3",
+   "origin": {
+    "path": "staging/pilot/cisco-add2/prep_classes.py",
+    "sha256": "b97d2781dd34ad7ef0ccafae85f364d96a247a7d996b787cb2b4f35b0b33e4b3",
+    "transform": null
+   }
+  },
+  {
+   "path": "chain/pilot/vendor-add3/fetch_add3.py",
+   "bytes": 7197,
+   "sha256": "b8e9195b636e59f4f693a39e586cb6e2bc6f92dfa3a9ef413c5e24c38e8fc40a",
+   "origin": {
+    "path": "staging/pilot/cisco-add3/fetch_add3.py",
+    "sha256": "7e224bf5315ed57f9ff6e242830b95a63e78cf2e3afe9134770bf16fa6390805",
+    "transform": "T3"
+   }
+  },
+  {
+   "path": "chain/pilot/vendor-add8/fetch_add8.py",
+   "bytes": 15040,
+   "sha256": "857f689e3bd581e225694633ef3881eccb400712f9d3754179923df21ca2e288",
+   "origin": {
+    "path": "staging/pilot/cisco-add8/fetch_add8.py",
+    "sha256": "af946c78314b07016094679e5fc02fd3d939886bf6616309d9d5f0cb3ea5eb88",
+    "transform": null
+   }
+  },
+  {
+   "path": "chain/pilot/vendor-add8/finish_add8.py",
+   "bytes": 37431,
+   "sha256": "7ff908071173c44544dce8fbc05902f8700aff80628a4bc49d50bd869e6e2cc5",
+   "origin": {
+    "path": "staging/pilot/cisco-add8/finish_add8.py",
+    "sha256": "ea17840592877bdbc9738fc1f44531b1cbdca96889d6bb93e4a41f3dfab6200f",
+    "transform": null
+   }
+  },
+  {
+   "path": "chain/pilot/vendor-add8/pdf_subset.py",
+   "bytes": 12427,
+   "sha256": "b56b0efb48ad002ae9fbda85595d445af2514a217e9255940ab9410d46aee4ee",
+   "origin": {
+    "path": "staging/pilot/cisco-add8/pdf_subset.py",
+    "sha256": "8515d1f5b2f7c6abe331b3b2b6cf888b788040d43006438a17e0cff62b398974",
+    "transform": "T1"
+   }
+  },
+  {
+   "path": "chain/pilot/vendor-add8/prep_add8.py",
+   "bytes": 44842,
+   "sha256": "afaefee20760bc8273756561ebe74826890135735e969fed180f56befd791e3b",
+   "origin": {
+    "path": "staging/pilot/cisco-add8/prep_add8.py",
+    "sha256": "2d888c2ac1ce76867fabf97f693980585edc2cf3fbb152b3632b40d4ff488291",
+    "transform": "T2"
+   }
+  },
+  {
+   "path": "chain/tools/convert_docs.py",
+   "bytes": 20981,
+   "sha256": "da3244f95deb07fd8ced2c0ccf1e92d71ca9b0442f25eb0ce2c0faa507339182",
+   "origin": {
+    "path": "staging/tools/convert_docs.py",
+    "sha256": "da3244f95deb07fd8ced2c0ccf1e92d71ca9b0442f25eb0ce2c0faa507339182",
+    "transform": null
+   }
+  },
+  {
+   "path": "chain/tools/convert_docs_v21.py",
+   "bytes": 35642,
+   "sha256": "f8926807604dabf2087083498a79bc753cece02450445675111b0b02c8dbfcc3",
+   "origin": {
+    "path": "staging/tools/convert_docs_v21.py",
+    "sha256": "39f2f66f63364978f7f0e223270323a06ccc29c3bf026e5aea07bedb5087c368",
+    "transform": null
+   }
+  },
+  {
+   "path": "pipeline_v21.py",
+   "bytes": 3134,
+   "sha256": "6fb7d8400d88edfc47782886a94a60857316d00b687aa8635e78a125f52f6e06",
+   "origin": null
+  }
+ ]
+}

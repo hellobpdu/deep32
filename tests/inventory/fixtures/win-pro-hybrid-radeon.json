@@ -1,0 +1,159 @@
+{
+ "name": "win-pro-hybrid-radeon",
+ "about": "Windows 11 Pro, i5-12600K (6 fast, 4 efficient cores), 32 GB, Radeon RX 6700 XT, Hyper-V",
+ "facts": {
+  "os": {
+   "family": "windows",
+   "name": "Windows 11 Pro",
+   "edition": "pro",
+   "version": "24H2",
+   "build": 26100,
+   "arch": "x64",
+   "wsl_guest": false
+  },
+  "hw": {
+   "vendor": "Micro-Star International Co., Ltd.",
+   "model": "MS-7D25",
+   "virtual": false
+  },
+  "cpu": {
+   "vendor": "intel",
+   "model": "12th Gen Intel(R) Core(TM) i5-12600K",
+   "family": null,
+   "model_id": null,
+   "stepping": null,
+   "gen": null,
+   "sockets": 1,
+   "cores": 10,
+   "threads": 16,
+   "p_cores": 6,
+   "e_cores": 4,
+   "p_threads": 12,
+   "avx": true,
+   "avx2": true,
+   "avx512f": false
+  },
+  "mem": {
+   "total_gb": 31.8,
+   "installed_gb": 32,
+   "free_gb": 20.0
+  },
+  "disks": [
+   {
+    "mount": "C:",
+    "size_gb": 931.5,
+    "free_gb": 400.0,
+    "ssd": true
+   }
+  ],
+  "gpus": [
+   {
+    "name": "AMD Radeon RX 6700 XT",
+    "vendor": "amd",
+    "mem_gb": 12.0,
+    "driver": "31.0.24027.1012",
+    "cc": null
+   },
+   {
+    "name": "Intel(R) UHD Graphics 770",
+    "vendor": "intel",
+    "mem_gb": 1.0,
+    "driver": "31.0.101.4502",
+    "cc": null
+   }
+  ],
+  "virt": {
+   "firmware": true,
+   "slat": true,
+   "iommu": true,
+   "hypervisor": true
+  },
+  "hyp": {
+   "hyperv": true,
+   "kvm": false,
+   "proxmox": false,
+   "virtualbox": false,
+   "vmware": false,
+   "libvirt": false
+  },
+  "wsl": {
+   "present": true,
+   "wsl2_distros": 0
+  },
+  "docker": {
+   "present": false,
+   "client": null,
+   "nvidia": null
+  },
+  "tools": {
+   "tailscale": false,
+   "claude": "2.1.0",
+   "codex": false,
+   "gh": false
+  },
+  "ports": {
+   "checked": true,
+   "busy": []
+  },
+  "net": null
+ },
+ "reasoning": [
+  "Classes: the i5-12600K has AVX2: modern. Radeon and Intel graphics: no NVIDIA card, gpu.usable false.",
+  "Sizing: 12 fast threads (6 fast cores, 4 efficient: sized by the fast threads); 32 GB: tier 2. After the host: 10 threads, 28 GB.",
+  "Candidates: win-nvidia, no-gpu (no usable card), two-machines, headend-only.",
+  "win-nvidia: gpu-cuda missing (hardware): ruled out.",
+  "no-gpu: ready (Hyper-V on, disk 400 GB, Tailscale auto). Size 'ws': (6, 16).",
+  "two-machines: ready. Size (6, 16) and Forge (4, 16). headend-only: ready (Claude Code).",
+  "Order: the one-machine no-gpu first; then the alternatives (machines 2) by rank: two-machines 40, headend-only 90. All ready. Unchanged by the single-machine-first order of matrix 0.3.0.",
+  "Warnings: hybrid-cores."
+ ],
+ "expect": {
+  "best": "no-gpu",
+  "fit": "ready",
+  "ranked": [
+   "no-gpu",
+   "two-machines",
+   "headend-only"
+  ],
+  "best_missing": [],
+  "best_unknown": [],
+  "best_auto": [
+   "tailscale"
+  ],
+  "best_confirm": [],
+  "cpu_class": "modern",
+  "gpu_class": null,
+  "gpu_forge": null,
+  "gpu_mem_tier": null,
+  "tier": 2,
+  "sizes": {
+   "no-gpu": {
+    "ws": [
+     6,
+     16
+    ],
+    "forge": null
+   },
+   "two-machines": {
+    "ws": [
+     6,
+     16
+    ],
+    "forge": [
+     4,
+     16
+    ]
+   },
+   "headend-only": {
+    "ws": null,
+    "forge": null
+   }
+  },
+  "ruled_out": [
+   "win-nvidia"
+  ],
+  "warnings": [
+   "hybrid-cores"
+  ]
+ }
+}

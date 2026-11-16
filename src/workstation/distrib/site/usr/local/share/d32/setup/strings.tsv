@@ -1,0 +1,312 @@
+# /usr/local/share/d32/setup/strings.tsv: the words of the Deep32 Workstation screens (First Start,
+# Import Report, Pairing, the console lines). id TAB text; {name} is a value filled in when shown, {nl} a new
+# line. Change the words here, never in the programs.
+app.setup.title	Deep32 First Start
+app.setup.icon	First Start
+app.import.title	Deep32 Import Report
+app.import.icon	Import Report
+app.pair.title	Deep32 Pairing
+app.pair.icon	Pairing
+btn.close	Close
+btn.help	Help
+btn.import	Import Report
+btn.pairing	Pairing
+btn.again	Try Again
+peer.forge	Forge
+peer.relay	relay
+peer.headend	headend
+peer.workstation	Workstation
+step.install	Install
+step.firstboot	Passwords
+step.keys	Keys for this machine
+step.signin	Tailscale sign-in
+step.tailnet	Tailnet address
+step.content	Disc 2
+step.import	Import of disc 2
+step.pairing	Pairing
+step.ready	Ready
+state.done	OK
+state.running	RUNNING
+state.waiting	WAITING
+state.failed	FAILED
+state.pending	
+state.skipped	N/A
+setup.frame.steps	First start
+setup.frame.now	What to do now
+setup.signin.head	Sign this Workstation in to your Tailscale account.
+setup.signin.open	Open this address on any device where you can sign in to Tailscale (a phone will do):
+setup.signin.label	Sign-in address:
+setup.signin.after	This window moves on by itself once you have signed in.
+setup.signin.net	Waiting for a network connection. Plug in a network cable, or check the network adapter of the virtual machine.
+setup.signin.noaddr	Waiting for Tailscale to give a sign-in address. This can take a minute.
+setup.signin.approve	Signed in. Approve this machine in your Tailscale admin console to finish.
+setup.signin.off	The network link is switched off. Turn it on in a Terminal with: doas d32-link enable
+setup.signin.noip	Signed in. Waiting for the tailnet address.
+setup.signin.state	Tailscale reports the state {state}. Waiting.
+setup.loopback	This Workstation runs without a network link (loopback), so there is no Tailscale sign-in.
+setup.tailnet.done	Signed in. This Workstation is on your tailnet as {name}.
+setup.content.attach	Attach disc 2 (content) to this machine.
+setup.content.how	In a virtual machine, add the disc 2 image as a second optical drive. The import starts by itself once the disc is found.
+setup.content.many	More than one disc 2 is attached. Leave one attached and remove the others.
+setup.content.found	Disc 2 is attached. The import starts in a moment.
+setup.import.run	Importing disc 2. Its signature and every file are checked before anything is installed.
+setup.import.see	Import Report shows each step and each pack as it goes.
+setup.import.fail	The import of disc 2 stopped.
+setup.import.done	Disc 2 is imported.
+setup.pairing.code	Type this code on the {peer}:
+setup.pairing.spell	Read aloud: {spell}
+setup.pairing.left	It works once, for {left} more.
+setup.pairing.enter	Pair this Workstation with a {peer}: choose Pairing and type the code the {peer} shows.
+setup.ready	This Workstation is ready.
+setup.ready.more	You can close this window. Deep32 Status shows how search is doing.
+setup.failed	{step} stopped: {why}
+setup.failed.code	Error code: {code}
+setup.nostatus	The first-start status cannot be read from the desktop.
+setup.nostatus.how	Switch to the console with Ctrl+Alt+F1 to read it there. Ctrl+Alt+F5 brings the desktop back.
+setup.noline	The first start has not reported yet. This window updates by itself.
+setup.help.title	Deep32 First Start Help
+setup.help	The first start sets this Workstation up after the install: the passwords, its own keys, the Tailscale sign-in, then disc 2 (content) and its import.{nl}{nl}This window shows where the first start stands and what to do next. It updates by itself every two seconds, and opens by itself when you log in until the first start is done.{nl}{nl}The sign-in address works only once and only for a few minutes. If it has expired, Tailscale gives a new one and this window shows it.{nl}{nl}The same lines are written on the console of this machine.
+why.WS_SETTINGS_FORM	the settings disc is not in a form this version reads
+why.WS_SETTINGS_ROLE	the settings disc is not for a Workstation
+why.WS_SETTINGS_EXTRA	the settings disc holds files other than settings.json
+why.WS_SETTINGS_MANY	more than one settings disc is attached
+why.WS_INSTALL_STEP	a step of the install failed
+why.WS_NODE_CONF	the node settings of this machine are missing or not valid
+why.WS_ACCOUNT	the desktop account is missing
+why.WS_KEYS	the token files are incomplete
+why.WS_FIRSTBOOT_ORDER	the password step on the console has not finished
+why.WS_NO_IMPORTER	this build has no disc 2 importer
+why.WS_IMPORT_HOOK	the disc 2 importer stopped
+why.IMPORT_NO_DISC	nothing could be read from {device}
+why.IMPORT_NOT_DISC2	this is not disc 2 (it has no {missing})
+why.IMPORT_MOUNT	disc 2 could not be opened
+why.IMPORT_GPGV_MISSING	gpgv, which checks the signature, is not installed
+why.IMPORT_SIGNATURE	the signature of disc 2 does not verify with the release key
+why.IMPORT_MANIFEST	the file list of disc 2 cannot be read
+why.IMPORT_WRONG_SYSTEM	this disc 2 needs Workstation {wanted}; this one is {system_version}
+why.IMPORT_FILE_MISSING	a file of disc 2 is missing
+why.IMPORT_FILE_SIZE	a file of disc 2 has the wrong size
+why.IMPORT_FILE_HASH	a file of disc 2 is damaged (its checksum does not match)
+why.IMPORT_READ	the disc gave a read error
+why.IMPORT_SPACE	there is not enough free space: {needed} needed, {free} free
+why.IMPORT_WRITE	writing to the system disk failed
+why.IMPORT_KB_FORM	the knowledge base on disc 2 is not in a form this version reads
+why.IMPORT_KB_ENGINE	the knowledge base needs a search engine between {min} and {max}; this one is {engine}
+why.IMPORT_PACK_FORM	a Library pack on disc 2 is not valid
+why.IMPORT_PACK_BINDING	a Library pack was built for another knowledge base
+why.IMPORT_SWITCH	the switch to the new content failed; the old content is still in use
+why.IMPORT_CHECK	the new content failed its check ({what}) and the old content is back in use
+why.IMPORT_INTERNAL	something unexpected went wrong
+why.unknown	an error this version does not know
+hint.IMPORT_FILE_HASH	Copy disc 2 again from the release and attach the new copy.
+hint.IMPORT_FILE_SIZE	Copy disc 2 again from the release and attach the new copy.
+hint.IMPORT_FILE_MISSING	Copy disc 2 again from the release and attach the new copy.
+hint.IMPORT_READ	Clean the disc or copy the image again, then choose Try Again.
+hint.IMPORT_SIGNATURE	Use disc 2 only as the release publishes it. Do not import a disc whose signature fails.
+hint.IMPORT_SPACE	Free some space on the system disk, or give the virtual machine a larger disk, then choose Try Again.
+hint.IMPORT_WRONG_SYSTEM	Use the disc 2 of the same release as this Workstation.
+hint.default	Choose Try Again. If it stops at the same place, keep this report for a bug report.
+hint.noagain	The previous content stays in use. Keep this report for a bug report.
+report.frame.disc	Disc 2
+report.frame.steps	Steps
+report.frame.units	What is installed
+report.frame.problems	Problems
+report.version	Version {version}
+report.version.unknown	Version not known yet
+report.sig.good	Signature: good, release key {key}
+report.sig.bad	Signature: does not verify
+report.sig.unchecked	Signature: not checked yet
+report.state.running	Importing: {step}
+report.state.stopped	Stopped during: {step}. Nothing is lost: Try Again carries on from there.
+report.state.imported	Imported. The new knowledge base and Library are in use.
+report.state.current	Already in use: this disc 2 was imported before. Nothing was changed.
+report.state.failed	Stopped during: {step}.
+report.state.rolled	Stopped during: {step}. The previous knowledge base and Library are back in use.
+report.times	Started {started}, last update {written}
+report.progress	{done} of {total} ({pct} %)
+report.progress.rate	{done} of {total} ({pct} %), about {left} left
+report.meaning.on	Meaning search: on
+report.meaning.wait	Meaning search: waits for a Forge to be paired
+report.meaning.off	Meaning search: off, the paired Forge serves another model
+report.kb	Knowledge base {generation}: {documents} documents
+report.none	No problems.
+report.attempt	Attempt {attempt}, carrying on from an earlier import
+report.unreadable	The import report cannot be read. The import may still be starting; this window tries again every two seconds.
+report.noimport	No import has run on this machine yet.
+report.stage.disc	Find and open disc 2
+report.stage.signature	Check the signature
+report.stage.files	Check every file
+report.stage.space	Check free space
+report.stage.kb	Install the knowledge base
+report.stage.library	Install the Library packs
+report.stage.blocks	Keep the corpus blocks
+report.stage.switch	Switch to the new content
+report.stage.check	Check the new content
+report.stage.finish	Finish
+report.unit.kb	Knowledge base
+report.unit.lib-e26	Deep32 Encyclopedia: articles and pictures
+report.unit.lib-corpus	Deep32 Encyclopedia: reader edition of the corpus
+report.unit.lib-encyclopedia	Deep32 Encyclopedia: encyclopedia
+report.unit.lib-catalogue	Deep32 Encyclopedia: catalogue and word wheels
+report.unit.cisco-public	Cisco titles index
+report.unit.block-rfc	Corpus block: RFCs
+report.unit.block-cisco	Corpus block: Cisco
+report.unit.block-powershell	Corpus block: PowerShell
+report.unit.block-system	Corpus block: system
+report.unit.other	Deep32 Encyclopedia pack {id}
+report.ustate.pending	waiting
+report.ustate.checking	checking
+report.ustate.checked	checked
+report.ustate.installing	installing
+report.ustate.installed	installed
+report.ustate.current	already in use
+report.ustate.kept	kept
+report.ustate.skipped	not for this machine
+report.ustate.failed	failed
+report.warn.IMPORT_RESUMED	Carried on from an earlier import that stopped.
+report.warn.IMPORT_MEANING_WAIT	Meaning search starts once a Forge is paired. Keyword search works now.
+report.warn.IMPORT_MEANING_MISMATCH	The paired Forge serves another embedding model, so meaning search stays off. Keyword search works.
+report.warn.IMPORT_OLD_KEPT	The previous knowledge base and Library are kept for going back ({bytes}).
+report.problem	{id}  {step}: {why}
+report.help.title	Deep32 Import Report Help
+report.help	Disc 2 holds the knowledge base and the Deep32 Encyclopedia. The import checks the signature of the disc and every file on it before it installs anything, then installs the new content beside the old and switches to it in one step.{nl}{nl}If the import stops, nothing you use has changed until the switch, and Try Again carries on where it stopped. Try Again asks for your password in a small Terminal.{nl}{nl}The report itself is kept in /var/db/d32/import.
+again.title	Deep32 Import
+again.head	Carrying on with the import of disc 2.
+again.done	The import has finished. The report window shows the result.
+again.fail	The import stopped again. The report window shows where and why.
+again.busy	An import is already running. The report window shows its progress.
+pair.head	Deep32/UX {rel}: pairing
+pair.menu.forge	Pair with a Forge (type the code the Forge shows)
+pair.menu.relay	Pair with a relay (type the code the relay shows)
+pair.menu.headend	Let a headend pair with this Workstation (show a code)
+pair.menu.list	Paired machines
+pair.menu.quit	Close
+pair.choose	Choose an action: 
+pair.choose.again	Choose F, R, H, P or Q.
+pair.look	Looking for {peer}s on your tailnet...
+pair.look.none	No {peer} was found on your tailnet. Its machine name must start with deep32- and it must be signed in to the same tailnet.
+pair.look.loopback	This Workstation runs on loopback: the {peer} on this same machine is used.
+pair.look.signin	This Workstation is not signed in to Tailscale yet. Finish the sign-in first (First Start shows how).
+pair.look.status	The tailnet status could not be read. Try again in a minute.
+pair.row	{n}  {name}  {online}  {path}
+pair.online.yes	online
+pair.online.no	offline
+pair.path.direct	direct
+pair.path.relayed	relayed
+pair.path.unknown	
+pair.path.loopback	this machine
+pair.pick	Choose a {peer} (1 to {n}), or Q to go back: 
+pair.pick.one	Pair with {name}? Y or N: 
+pair.code.ask	Type the 10-character code the {peer} shows. Spaces and dashes are fine.
+pair.code.prompt	Code: 
+pair.code.bad	That is not a pairing code: {why} Type it again, or Q to go back.
+pair.code.why.empty	nothing was typed.
+pair.code.why.too-long	it is too long.
+pair.code.why.non-ascii	it has a character that is not on the code alphabet.
+pair.code.why.bad-symbol	codes use only the letters A to Z and the digits 2 to 7.
+pair.code.why.length	a code has exactly 10 characters.
+pair.code.why.not-canonical	the code is not in its standard form.
+pair.code.why.bad-request	the code could not be read.
+pair.working	Pairing with {name}...
+pair.ok.forge	Paired. This Workstation now uses {name} for meaning search.
+pair.ok.relay	Paired. Ask on this Workstation can now reach {name}.
+pair.ok.headend	Paired. The headend {name} can now search this Workstation.
+pair.fail	Not paired: {why}
+pair.show.head	Type this code on the headend:
+pair.show.spell	Read aloud: {spell}
+pair.show.left	It works once. Time left: {left}. Ctrl+C cancels.
+pair.show.expired	The code has expired and is gone. Nothing was paired.
+pair.show.cancel	Cancelled. The code is gone and nothing was paired.
+pair.list.head	Paired machines
+pair.list.row	{kind}  {name}  paired {when}
+pair.list.none	Nothing is paired yet.
+pair.close	Press Return to close. 
+pair.back	Press Return to go back. 
+pair.root	Pairing needs your password: it changes which machines this Workstation trusts.
+pair.why.internal	something unexpected went wrong.
+pair.why.bad-request	the request was not valid.
+pair.why.locked	too many failed tries. Pairing is locked for {minutes} more minutes.
+pair.why.peer-locked	the other machine has locked pairing after failed tries. Try again later.
+pair.why.expired	the code has expired. Ask for a new one.
+pair.why.unreachable	the other machine could not be reached. Check that it is on and signed in.
+pair.why.tls-failed	the secure connection could not be set up.
+pair.why.pin-mismatch	the other machine is not the one expected.
+pair.why.same-identity	that is this machine.
+pair.why.peer-refused	the other machine refused. It may not be showing a code right now.
+pair.why.incompatible-peer	the other machine runs a version that cannot pair with this one.
+pair.why.protocol	the exchange broke off. Ask for a new code and try again.
+pair.why.timeout	the other machine stopped answering.
+pair.why.connection	the connection dropped.
+pair.why.password-or-identity	the code did not match. Ask for a new code: each code works once.
+pair.why.confirmation	the two machines could not confirm each other. Ask for a new code.
+pair.why.storage	the pairing could not be saved on this machine.
+pair.why.busy	another pairing is running on this machine. Finish or close it first.
+pair.why.openssl-missing	openssl, which makes this machine's certificate, is not installed.
+pair.why.identity-kind-mismatch	this machine's pairing identity belongs to another kind of node.
+pair.why.bind-failed	the pairing port is in use on this machine.
+pair.why.already-paired	these two machines are already paired.
+pair.why.exists	a pairing record for that machine already exists.
+pair.why.not-paired	that machine is not paired.
+pair.why.bad-code	the code is not valid.
+pair.why.not-signed-in	this Workstation is not signed in to Tailscale yet.
+pair.why.status-unreadable	the tailnet status could not be read.
+pair.why.not-provided	this build cannot do that yet.
+pair.why.missing	the pairing program is not installed in this build.
+nato.A	Alfa
+nato.B	Bravo
+nato.C	Charlie
+nato.D	Delta
+nato.E	Echo
+nato.F	Foxtrot
+nato.G	Golf
+nato.H	Hotel
+nato.I	India
+nato.J	Juliett
+nato.K	Kilo
+nato.L	Lima
+nato.M	Mike
+nato.N	November
+nato.O	Oscar
+nato.P	Papa
+nato.Q	Quebec
+nato.R	Romeo
+nato.S	Sierra
+nato.T	Tango
+nato.U	Uniform
+nato.V	Victor
+nato.W	Whiskey
+nato.X	X-ray
+nato.Y	Yankee
+nato.Z	Zulu
+nato.2	two
+nato.3	three
+nato.4	four
+nato.5	five
+nato.6	six
+nato.7	seven
+say.install	Deep32 install: {msg}
+say.signin	Deep32: sign in to Tailscale. Open {signin} on any device.
+say.pair	Deep32: pairing code for the {peer}: {code} (works once, {left} left)
+say.failed	Deep32: {step} stopped: {why} [{error}]
+say.msg	Deep32: {step}: {msg}
+say.state	Deep32: {step} {dots} {state}
+say.ready	Deep32: this Workstation is ready.
+say.tailnet	Deep32: on your tailnet as {name} ({msg})
+c6.import.disc	looking at disc 2
+c6.import.signature	checking the signature of disc 2
+c6.import.files	checking every file of disc 2
+c6.import.files.n	checking every file of disc 2: {done} of {total} MB
+c6.import.space	checking free space
+c6.import.kb	installing the knowledge base
+c6.import.kb.n	installing the knowledge base: {done} of {total} MB
+c6.import.library	installing the Deep32 Encyclopedia packs
+c6.import.library.n	installing the Deep32 Encyclopedia packs: {done} of {total} MB
+c6.import.blocks	keeping the corpus blocks
+c6.import.blocks.n	keeping the corpus blocks: {done} of {total} MB
+c6.import.switch	switching to the new knowledge base and Library
+c6.import.check	checking the new knowledge base and Library
+c6.import.finish	finishing
+c6.import.failed	the import of disc 2 stopped: see Import Report
+c6.import.done	disc 2 {version} imported
+c6.import.current	disc 2 {version} is already in use
+c6.ready	ready

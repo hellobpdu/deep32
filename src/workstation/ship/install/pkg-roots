@@ -1,0 +1,32 @@
+# Package roots of the First light PREVIEW image (pkg_add -I -m from the medium's /packages/amd64; pkg_add pulls the
+# dependencies). The CDE desktop, the browser engine for the Library, the readers, the RAG's interpreters
+# and the shared libraries its own CPython 3.12 venv links (found with ldd over /usr/local/d32), age for the private
+# payload, kiwix-tools for the encyclopedia.
+cde
+motif
+firefox-esr
+mupdf
+kiwix-tools
+node
+python-3.14.7p0
+py3-cryptography
+py3-cffi
+py3-rpds-py
+age
+abseil-cpp
+libb2
+bzip2
+libcares
+libffi
+gtest
+xz
+re2
+libuv
+gettext-runtime
+libiconv
+# update 2 (desktop lane, U18): the programs the panel names for Calendar, NEdit and Image Viewer (xv pulls jasper)
+plan
+nedit
+xv
+# the disc 2 importer: gpgv checks the signature of disc 2 (contract C2 section 4)
+gnupg

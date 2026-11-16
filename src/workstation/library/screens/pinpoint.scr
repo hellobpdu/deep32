@@ -1,0 +1,1161 @@
+d32scr 1
+# Deep32 Library: the Pinpointer, the period design's finder, opened by the top bar's Find (256-colour captures 83, 84; with a
+# filter open 10, 12, 13, 14, 135, 136). Work-area coordinates inside the window; "over *": it lies over whichever
+# full screen is in front, at (10,65) of its work area (frame (11,81)), the Find Wizard's place. A subcategory chosen
+# from the Category menu opens it filtered (main.c open_pinpointer_filtered, capture 09); a title chosen in its list
+# opens behind it, and it stays open (capture 29).
+# [m256] every bitmap below is the store's own and stands where the 256-colour captures show it, frame 0 exact
+# (tools: fmatch in AUTHENTICITY.md 17.3): ENCORG_RESET (198,114), ENCORG_SPELL (175,132), ENCORG_WORDS, _CATEG,
+# _MEDIA, _TIME, _PLACE (193, 135 + 51k), ENCORG_WIZARD (198,393); the list's MAINUP (176,152), MTHUMB (178,170),
+# MAINDN (176,375). Frame coordinates = window coordinates + (11,81).
+# The bounded Library wheel pages all installed titles through e26-lib. Category, Words, Media, Time and Place
+# share FINDER state. Existing art and geometry remain the 1995 references; added controls require VM goldens.
+
+block pinwin
+	control win-frame
+		kind panel
+		rect 0 0 238 335                      # [m256] the window: black frame x 11-248, rows 81-415 (capture256 83)
+		bg ui:15
+	end
+	control win-ground
+		kind panel
+		rect 1 16 236 318                     # [m256] entry 28 inside it, rows 97-414
+		bg ui:28
+	end
+	control header-bar
+		kind panel
+		rect 7 33 175 16                      # [m256] frame x 18-192, rows 114-129, entry 13
+		bg ui:13
+	end
+	control header
+		kind label
+		rect 10 33 175 16                     # [m256] the lettering is centred 3 px right of the bar's centre
+		source pin-header                     # "All Articles", or "577 Articles" with a filter (capture 09)
+		font ui
+		fg ui:0                               # [m256] white lettering, centred
+		text-y 13                             # [m256] capitals on rows 119-126
+		align centre
+	end
+	control reset
+		kind button
+		# [m256] no class ring: record 10021 ("|^encorg_reset") has frame slots 28, but the capture shows the strip's own
+		#     entry-13 ring (a ring in 28 differed on 120 pixels)
+		rect 187 33 45 17                     # [m256] ENCORG_RESET frame 0 exact at (198,114)
+		strip ui/bitmap/ENCORG_RESET 4
+		frame normal 0
+		frame pressed 1
+		frame disabled 2
+		frame hot 3
+		action reset
+	end
+	control field
+		kind edit
+		rect 7 51 157 18                      # [m256] white, frame x 18-174, rows 132-149
+	end
+	control spell
+		kind button                            # [d] the original icon; the missing vocabulary has a named notice
+		rect 164 51 17 18                     # [m256] ENCORG_SPELL frame 0 exact at (175,132)
+		strip ui/bitmap/ENCORG_SPELL 3
+		frame normal 0
+		frame pressed 1
+		frame disabled 2
+		disabled                              # u14: no spelling list yet; its disabled frame instead of the "later build" box
+		action finder.spell "Spell Check"
+	end
+	control list
+		kind wheel
+		rect 7 71 174 240                     # [m256] frame x 18-191, rows 152-391: 15 rows of 16 px and the scroll column
+	end
+	control count
+		kind count
+		rect 7 312 174 17                     # [m256] the white box, rows 393-409; the bar in entry 25 (capture256 83)
+		bg ui:25
+	end
+	control wizard
+		kind button
+		# [m256] as Reset: the strip's own ring, not record 10020's entry 28
+		rect 187 312 45 17                    # [m256] ENCORG_WIZARD frame 0 exact at (198,393)
+		strip ui/bitmap/ENCORG_WIZARD 4
+		frame normal 0
+		frame pressed 1
+		frame disabled 2
+		frame hot 3
+		action goto findwiz                   # [m] the Wizard button opens the Find Wizard (captures 09 to 15)
+	end
+end
+
+block pincaption
+	control cap
+		kind bar
+		rect 1 1 236 15                       # [m256] rows 82-96, x 12-247, entry 27 while the list alone is open
+		bg ui:27
+		label @13433                          # [d] "PINPOINTER"
+		upper
+		tracking 3
+		text-y 12
+		font ui
+		fg ui:0
+		marker
+		text-x 17
+	end
+	control close-bar
+		kind panel
+		rect 202 4 1 9                        # [m256] entry 7 at frame x 213 (capture256 83)
+		bg ui:7
+	end
+	control close
+		kind label
+		rect 203 3 33 11
+		bg ui:27
+		fg ui:31
+		label @6003                           # [d] "Close"
+		font ui10
+		align centre
+		text-y 9
+		action close
+		key Escape
+	end
+end
+
+# the five filter buttons, at rest (their panel shut)
+block pinfilters
+	control f-words
+		kind button
+		record 10019                          # [d] "|^encorg_words": slots 28 (no visible ring on the entry-28 column)
+		rect 182 54 55 49                     # [m256] ENCORG_WORDS frame 0 exact at (193,135)
+		strip ui/bitmap/ENCORG_WORDS 4
+		frame normal 0
+		frame pressed 1
+		frame disabled 2
+		frame hot 0
+		frame checked 1
+		source finder-filter
+		prop filter words
+		action goto pinpointer-words
+	end
+	control f-categ
+		kind button
+		record 10015
+		rect 182 105 55 49                    # [m256] (193,186)
+		strip ui/bitmap/ENCORG_CATEG 4
+		frame normal 0
+		frame pressed 1
+		frame disabled 2
+		frame hot 0
+		frame checked 1                       # [m256] frame 1 while a category filter applies (09, 10, 12: 0 of 2,695 off)
+		source pin-category
+		action goto pinpointer-category
+	end
+	control f-media
+		kind button
+		record 10017
+		rect 182 156 55 49                    # [m256] (193,237)
+		strip ui/bitmap/ENCORG_MEDIA 4
+		frame normal 0
+		frame pressed 1
+		frame disabled 2
+		frame hot 0
+		frame checked 1
+		source finder-filter
+		prop filter media
+		action goto pinpointer-media
+	end
+	control f-time
+		kind button
+		record 10018
+		rect 182 207 55 49                    # [m256] (193,288)
+		strip ui/bitmap/ENCORG_TIME 4
+		frame normal 0
+		frame pressed 1
+		frame disabled 2
+		frame hot 0
+		frame checked 1
+		source finder-filter
+		prop filter time
+		action goto pinpointer-time
+	end
+	control f-place
+		kind button
+		record 10016
+		rect 182 258 55 49                    # [m256] (193,339)
+		strip ui/bitmap/ENCORG_PLACE 4
+		frame normal 0
+		frame pressed 1
+		frame disabled 2
+		frame hot 0
+		frame checked 1
+		source finder-filter
+		prop filter place
+		action goto pinpointer-place
+	end
+end
+
+screen pinpointer
+	size 238 335
+	origin 10 65                              # [m256] frame (11,81)
+	over *
+	prop viewport native-pinned
+	prop tab-order "field browse-scope doc-scope doc-type doc-sort cisco-shortcut list cisco-prev cisco-next cisco-retry section-retry zero-library zero-all reset spell f-words f-categ f-media f-time f-place wizard close"
+	uses pinwin
+	uses pincaption
+	uses pinfilters
+	control browse-scope
+		kind button
+		rect 7 17 116 15
+		source pin-doc-look
+		action menu pin-doc-scope
+	end
+	control cisco-shortcut
+		kind button
+		rect 127 17 54 15
+		label "Cisco"
+		action finder.multiple-packs "Cisco"
+	end
+	control doc-scope
+		kind button
+		rect 7 51 114 18
+		source pin-doc-look
+		action menu pin-doc-scope
+	end
+	control doc-type
+		kind button
+		rect 6 51 76 18
+		source pin-doc-type
+		action menu pin-doc-type
+	end
+	control doc-sort
+		kind button
+		rect 86 51 87 18
+		label "Sort"
+		action menu pin-doc-sort
+	end
+	control doc-filters
+		kind label
+		rect 7 312 168 16
+		source pin-doc-filters
+		font ui
+		fg ui:15
+		text-y 12
+	end
+	control doc-detail
+		kind label
+		rect 7 313 168 16
+		source pin-doc-detail
+		font ui
+		fg ui:15
+		text-y 12
+	end
+	control section-error
+		kind label
+		rect 7 313 106 16
+		source pin-section-error
+		font ui
+		fg ui:15
+		text-y 12
+	end
+	control section-retry
+		kind button
+		rect 114 313 59 16
+		label "Retry"
+		action pin.section-retry sections
+	end
+	control cisco-prev
+		kind button
+		rect 3 313 68 16
+		label "Previous"
+		action cisco.previous "Previous"
+	end
+	control cisco-next
+		kind button
+		rect 74 313 53 16
+		label "Next"
+		action cisco.next "Next"
+	end
+	control cisco-retry
+		kind button
+		rect 130 313 51 16
+		label "Retry"
+		action cisco.retry "Retry"
+	end
+	control zero-status
+		kind label
+		rect 14 94 157 18
+		source pin-doc-zero
+		font ui
+		fg ui:15
+		text-y 13
+	end
+	control zero-library
+		kind button
+		rect 7 313 191 16
+		label "Search Entire Library"
+		action pin.look library
+	end
+	control zero-all
+		kind button
+		rect 7 313 191 16
+		label "Show all types"
+		action pin.type 0
+	end
+end
+
+menu pin-doc-scope
+	record 1
+	items record
+	item-height 16
+	width 147
+end
+
+menu pin-doc-type
+	record 1
+	items record
+	item-height 16
+	width 248
+end
+
+menu pin-doc-sort
+	record 1
+	items record
+	item-height 16
+	width 120
+end
+
+# With a filter open the window grows to the right below its caption (capture256 135: a black frame x 248-615, rows
+# 95-415, entry 28 inside; the panel in entry 31 from (248,120) to (604,404), over the window's right border where
+# it meets the open filter's button), the open filter's button shows frame 3, and the caption turns entry 12 (the
+# panel holds the focus). The three chevrons at (590,100) shut it again.
+block pinwide
+	control ext-frame
+		kind panel
+		rect 237 14 368 321                   # [m256] frame x 248-615, rows 95-415
+		bg ui:15
+	end
+	control ext-ground
+		kind panel
+		rect 237 15 367 319                   # [m256] entry 28 from frame x 248: no border between the window and its
+		bg ui:28                              #     extension below the caption (capture256 135, rows 96-119)
+	end
+	control chevrons
+		kind panel
+		rect 579 19 19 12                     # [m256] frame x 590-608, rows 100-111
+		bg ui:28
+		fg ui:14
+		source chevrons
+		action goto pinpointer
+	end
+	control panel
+		kind panel
+		rect 237 39 357 285                   # [m256] entry 31, frame (248,120)-(604,404)
+		bg ui:31
+	end
+	control panel-rule
+		kind panel
+		rect 247 67 338 1                     # [m256] the black rule under the heading, row 148, x 258-595 (10-14, 135)
+		bg ui:15
+	end
+	control panel-reset
+		kind button
+		record 10037                          # [d] "|^encfil_reset"
+		rect 539 44 45 18                     # [m256] ENCFIL_RESET frame 0 exact at (550,125)
+		strip ui/bitmap/ENCFIL_RESET 4
+		frame normal 0
+		frame pressed 1
+		frame disabled 2
+		frame hot 0
+		action reset
+	end
+end
+
+block pinwidecap
+	control cap
+		kind bar
+		rect 1 1 236 15
+		bg ui:12                              # [m256] entry 12 while a filter panel is open (135, 10, 12-14)
+		label @13433
+		upper
+		tracking 3
+		text-y 12
+		font ui
+		fg ui:0
+		marker
+		text-x 17
+	end
+	control close
+		kind label
+		rect 203 3 33 11                      # [m256] no entry-7 bar while the caption is entry 12 (capture256 135)
+		bg ui:12
+		fg ui:31
+		label @6003
+		font ui10
+		align centre
+		text-y 9
+		action close
+		key Escape
+	end
+end
+
+screen pinpointer-category
+	size 605 335
+	origin 10 65
+	over *
+	prop viewport native-pinned
+	uses pinwin
+	uses pinwidecap
+	uses pinfilters
+	uses pinwide
+	control areas
+		kind catpanel
+		rect 237 39 357 285                   # his 20 areas and their categories (draw.c draw_catpanel)
+	end
+	control areas-reset
+		kind button
+		record 10037                          # [d] the panel's Reset again, over the category panel
+		rect 539 44 45 18
+		strip ui/bitmap/ENCFIL_RESET 4
+		frame normal 0
+		frame pressed 1
+		frame hot 0
+		action reset
+	end
+	control f-categ-open
+		kind button
+		rect 182 105 55 49
+		strip ui/bitmap/ENCORG_CATEG 4
+		frame normal 3                        # [m256] frame 3 while its panel is open (95.3% exact on 135, the rest is
+		action goto pinpointer                #     the panel's join)
+	end
+end
+
+screen pinpointer-words
+	prop focus box1
+	size 605 335
+	origin 10 65
+	over *
+	prop viewport native-pinned
+	uses pinwin
+	uses pinwidecap
+	uses pinfilters
+	uses pinwide
+	control f-words-open
+		kind button
+		rect 182 54 55 49
+		strip ui/bitmap/ENCORG_WORDS 4
+		frame normal 3
+		action goto pinpointer
+	end
+	control title
+		kind label
+		rect 247 44 240 20
+		label @14704                          # [d] "Search for words or phrases"
+		font ui-bold13                        # [m256] Arial Bold 13 px (GetFont 105): capitals on rows 130-139
+		fg ui:15
+		text-y 15
+		align left
+	end
+	control find
+		kind button
+		record 10038                          # [d] "|^encfil_find": idle and disabled frame entry 19, the red ring
+		rect 488 44 45 18                     # [m256] the red window (499,125)-(543,142); ENCFIL_FIND frame 0 exact at
+		strip ui/bitmap/ENCFIL_FIND 4         #     (500,126), centred in it
+		frame normal 0
+		frame pressed 1
+		frame hot 0
+		action finder.search "Search"
+	end
+	# [m256] capture256 10: an entry-13 frame, x 260-437, rows 160-328 (two rows at the top, one between the parts):
+	# the white box (rows 162-199), a row of cells on entry 31 (201-224), the second box in entry 14 (226-263), its
+	# cells (265-288), the third box (290-327)
+	control words-frame
+		kind panel
+		rect 249 79 178 169                   # [m256] x 260-437, rows 160-328
+		bg ui:13
+	end
+	control box1
+		kind field
+		rect 250 81 176 38                    # [m256] white, x 261-436, rows 162-199
+		bg ui:0
+		font ui
+		fg ui:15
+		prop multiline yes
+		prop maxlen 512
+		action finder.search "Search"
+	end
+	control cells1
+		kind panel
+		rect 250 120 176 24                   # [m256] entry 31 between and round the cells, rows 201-224
+		bg ui:31
+	end
+	control and1
+		kind button
+		record 10063                          # [d] "|^encwor_and": frame slots 31, the ring in the panel's colour
+		rect 250 120 44 24                    # [m256] ENCWOR_AND: 3 frames of 44 (132 px), frame 0 exact at (261,201):
+		                                      #     cells x 262-303, 306-347, 350-391, 394-435 (build 2 cut them to 33)
+		strip ui/bitmap/ENCWOR_AND 3
+		frame normal 0
+		frame checked 1
+		prop operator and
+		prop join 1
+		action find.word-op and1
+	end
+	control or1
+		kind button
+		record 10064                          # [d] "|^encwor_or": frame slots 31, the ring in the panel's colour
+		rect 294 120 44 24
+		strip ui/bitmap/ENCWOR_OR 3
+		frame normal 0
+		frame checked 1
+		prop operator or
+		prop join 1
+		action find.word-op or1
+	end
+	control not1
+		kind button
+		record 10065                          # [d] "|^encwor_not": frame slots 31, the ring in the panel's colour
+		rect 338 120 44 24
+		strip ui/bitmap/ENCWOR_NOT 3
+		frame normal 0
+		frame checked 1
+		prop operator not
+		prop join 1
+		action find.word-op not1
+	end
+	control near1
+		kind button
+		record 10066                          # [d] "|^encwor_near": frame slots 31, the ring in the panel's colour
+		rect 382 120 44 24
+		strip ui/bitmap/ENCWOR_NEAR 3
+		frame normal 0
+		frame checked 1
+		prop operator near
+		prop join 1
+		action find.word-op near1
+	end
+	control box2
+		kind field
+		rect 250 145 176 38                   # [m256] the second box waits in entry 14, rows 226-263 (capture256 10)
+		bg ui:14
+		font ui
+		fg ui:15
+		prop multiline yes
+		prop maxlen 512
+		action finder.search "Search"
+	end
+	control cells2
+		kind panel
+		rect 250 184 176 24                   # [m256] rows 265-288
+		bg ui:31
+	end
+	control and2
+		kind button
+		record 10063                          # [d] "|^encwor_and": frame slots 31, the ring in the panel's colour
+		rect 250 184 44 24                    # [m256] (261,265)
+		strip ui/bitmap/ENCWOR_AND 3
+		frame normal 0
+		frame checked 1
+		prop operator and
+		prop join 2
+		action find.word-op and2
+	end
+	control or2
+		kind button
+		record 10064                          # [d] "|^encwor_or": frame slots 31, the ring in the panel's colour
+		rect 294 184 44 24
+		strip ui/bitmap/ENCWOR_OR 3
+		frame normal 0
+		frame checked 1
+		prop operator or
+		prop join 2
+		action find.word-op or2
+	end
+	control not2
+		kind button
+		record 10065                          # [d] "|^encwor_not": frame slots 31, the ring in the panel's colour
+		rect 338 184 44 24
+		strip ui/bitmap/ENCWOR_NOT 3
+		frame normal 0
+		frame checked 1
+		prop operator not
+		prop join 2
+		action find.word-op not2
+	end
+	control near2
+		kind button
+		record 10066                          # [d] "|^encwor_near": frame slots 31, the ring in the panel's colour
+		rect 382 184 44 24
+		strip ui/bitmap/ENCWOR_NEAR 3
+		frame normal 0
+		frame checked 1
+		prop operator near
+		prop join 2
+		action find.word-op near2
+	end
+	control box3
+		kind field
+		rect 250 209 176 38                   # [m256] rows 290-327
+		bg ui:14
+		font ui
+		fg ui:15
+		prop multiline yes
+		prop maxlen 512
+		action finder.search "Search"
+	end
+	# [m256] the hints in Arial 13 px (GetFont 104) in entry 28, the numbers in Times New Roman 12 px (GetFont 200) in
+	# entry 27, on a 13-px pitch (capture256
+	# 10: lines from rows 164, 177; 203, 216 ... 294; 320, 333, 346, 359), the key name ENTER in the small face
+	control n1
+		kind label
+		rect 435 80 18 30
+		label "1)"
+		font serif12                         # [m256] Times New Roman 12 px (GetFont 200): a foot on the 1
+		fg ui:27
+		text-y 13                             # [m256] baseline 174
+		align left
+	end
+	control hint1
+		kind label
+		rect 453 80 145 30
+		label @14711                          # [d] "Type a word or phrase|in the text box." ('|' breaks the line)
+		font ui13
+		fg ui:28
+		text-y 13
+		pitch 13
+		align left
+	end
+	control n2
+		kind label
+		rect 435 120 18 30
+		label "2)"
+		font serif12                         # [m256] Times New Roman 12 px (GetFont 200): a foot on the 1
+		fg ui:27
+		text-y 12                             # [m256] baseline 213
+		align left
+	end
+	control hint2
+		kind label
+		rect 453 120 145 112
+		label @14712
+		font ui13
+		fg ui:28
+		text-y 12
+		pitch 13
+		align left
+	end
+	control n3
+		kind label
+		rect 435 236 18 30
+		label "3)"
+		font serif12                         # [m256] Times New Roman 12 px (GetFont 200): a foot on the 1
+		fg ui:27
+		text-y 13                             # [m256] baseline 330
+		align left
+	end
+	control hint3
+		kind label
+		rect 453 236 145 60
+		label @14713
+		font ui13
+		fg ui:28
+		text-y 13
+		pitch 13
+		align left
+	end
+	control scope-all
+		kind radio
+		rect 249 252 58 18
+		label "All"
+		font ui
+		bg ui:31
+		fg ui:15
+		group word-scope
+		state finder-scope-all
+		source finder-scope
+		prop scope all
+		action finder.scope all
+		checked
+	end
+	control scope-last
+		kind radio
+		rect 309 252 58 18
+		label "Last"
+		font ui
+		bg ui:31
+		fg ui:15
+		group word-scope
+		state finder-scope-last
+		source finder-scope
+		prop scope last
+		action finder.scope last
+	end
+	control scope-current
+		kind radio
+		rect 369 252 58 18
+		label "Current"
+		font ui
+		bg ui:31
+		fg ui:15
+		group word-scope
+		state finder-scope-current
+		source finder-scope
+		prop scope current
+		action finder.scope current
+	end
+	control past
+		kind button
+		rect 249 277 88 18
+		label "Past Requests"
+		font ui
+		bg ui:14
+		fg ui:15
+		action finder.past "Past Requests"
+	end
+	control hints
+		kind button
+		rect 342 277 84 18
+		label "Hints"
+		font ui
+		bg ui:14
+		fg ui:15
+		action finder.hints "Hints"
+	end
+	control lists
+		kind button
+		rect 249 301 177 18
+		label "Save / Open List"
+		font ui
+		bg ui:14
+		fg ui:15
+		action finder.lists "Saved Lists"
+	end
+end
+
+screen pinpointer-media
+	size 605 335
+	origin 10 65
+	over *
+	prop viewport native-pinned
+	uses pinwin
+	uses pinwidecap
+	uses pinfilters
+	uses pinwide
+	control f-media-open
+		kind button
+		rect 182 156 55 49
+		strip ui/bitmap/ENCORG_MEDIA 4
+		frame normal 3
+		action goto pinpointer
+	end
+	control title
+		kind label
+		rect 247 44 280 20
+		label @14701                          # [d] "Click icons to apply media filters"
+		font ui-bold13                        # [m256] Arial Bold 13 px (GetFont 105): capitals on rows 130-139
+		fg ui:15
+		text-y 15
+		align left
+	end
+	# [m256] the seven media icons (ENCMED_*, records 10030-10036, slots 31), frame 0 exact at (260,179), (349,179),
+	# (439,179), (529,179), (297,302), (393,302), (490,302); their names (strings 14717-14723) under them, capitals
+	# on rows 255-262 and 378-385, from x 274, 370, 447, 544, 297, 411 and 484 (Library centres them with Windows'
+	# own widths: up to 2 px left of where the X widths centre them, so five rects stand 1-2 px left)
+	control m-pic
+		kind toggle
+		record 10030
+		rect 249 98 69 73
+		strip ui/bitmap/ENCMED_PIC 3
+		frame normal 0
+		frame checked 1
+		frame pressed 2
+		source finder-media
+		prop media image
+		state finder-media-image
+		action finder.media image
+	end
+	control m-pic-label
+		kind label
+		rect 238 171 89 14
+		label "Images"
+		font ui
+		fg ui:15
+		text-y 11
+		align centre
+	end
+	control m-map
+		kind toggle
+		record 10031
+		rect 338 98 69 73
+		strip ui/bitmap/ENCMED_MAP 3
+		frame normal 0
+		frame checked 1
+		frame pressed 2
+		source finder-media
+		prop media maths
+		state finder-media-maths
+		action finder.media maths
+	end
+	control m-map-label
+		kind label
+		rect 328 171 89 14
+		label "Maths"
+		font ui
+		fg ui:15
+		text-y 11
+		align centre
+	end
+	control m-ani
+		kind toggle
+		record 10032
+		rect 428 98 69 73
+		strip ui/bitmap/ENCMED_ANI 3
+		frame normal 0
+		frame checked 1
+		frame pressed 2
+		source finder-media
+		prop media pdf
+		state finder-media-pdf
+		action finder.media pdf
+	end
+	control m-ani-label
+		kind label
+		rect 418 171 89 14
+		label "PDF"
+		font ui
+		fg ui:15
+		text-y 11
+		align centre
+	end
+	control m-aud
+		kind toggle
+		record 10033
+		rect 518 98 69 73
+		strip ui/bitmap/ENCMED_AUD 3
+		frame normal 0
+		frame checked 1
+		frame pressed 2
+		source finder-media
+		prop media audio
+		state finder-media-audio
+		action finder.media audio
+	end
+	control m-aud-label
+		kind label
+		rect 507 171 89 14
+		label "Audio"
+		font ui
+		fg ui:15
+		text-y 11
+		align centre
+	end
+	control m-int
+		kind toggle
+		record 10034
+		rect 286 221 69 73
+		strip ui/bitmap/ENCMED_INT 3
+		frame normal 0
+		frame checked 1
+		frame pressed 2
+		source finder-media
+		prop media interactivity
+		state finder-media-interactivity
+		action finder.media interactivity
+	end
+	control m-int-label
+		kind label
+		rect 274 294 89 14
+		label "Interactivity"
+		font ui
+		fg ui:15
+		text-y 11
+		align centre
+	end
+	control m-vid
+		kind toggle
+		record 10035
+		rect 382 221 69 73
+		strip ui/bitmap/ENCMED_VID 3
+		frame normal 0
+		frame checked 1
+		frame pressed 2
+		source finder-media
+		prop media video
+		state finder-media-video
+		action finder.media video
+	end
+	control m-vid-label
+		kind label
+		rect 370 294 89 14
+		label "Video"
+		font ui
+		fg ui:15
+		text-y 11
+		align centre
+	end
+	control m-cha
+		kind toggle
+		record 10036
+		rect 479 221 69 73
+		strip ui/bitmap/ENCMED_CHA 3
+		frame normal 0
+		frame checked 1
+		frame pressed 2
+		source finder-media
+		prop media table
+		state finder-media-table
+		action finder.media table
+	end
+	control m-cha-label
+		kind label
+		rect 467 294 89 14
+		label "Tables"
+		font ui
+		fg ui:15
+		text-y 11
+		align centre
+	end
+	control m-cli
+		kind button
+		rect 488 44 45 18
+		label "CLI"
+		font ui
+		bg ui:14
+		fg ui:15
+		action finder.media cli
+		source finder-media
+		prop media cli
+		state finder-media-cli
+	end
+end
+
+screen pinpointer-time
+	prop focus year-from
+	size 605 335
+	origin 10 65
+	over *
+	prop viewport native-pinned
+	uses pinwin
+	uses pinwidecap
+	uses pinfilters
+	uses pinwide
+	control f-time-open
+		kind button
+		rect 182 207 55 49
+		strip ui/bitmap/ENCORG_TIME 4
+		frame normal 3
+		action goto pinpointer
+	end
+	control title
+		kind label
+		rect 247 44 290 20
+		label @14703                          # [d] "Click and drag on timeline or type in dates"
+		font ui-bold13                        # [m256] Arial Bold 13 px (GetFont 105): capitals on rows 130-139
+		fg ui:15
+		text-y 15
+		align left
+	end
+	# [m256] capture256 13: the two white date boxes, x 256-396 and 438-578, rows 167-204, each with a bar down its
+	# left edge one row shorter (rows 168-204): entry 8 at x 253-255, entry 19 at x 435-437; beside each box its BC
+	# and AD toggles (records 10042, 10043: ENCTIM_BC and ENCTIM_AD, four frames of 18x14), disabled until a date is
+	# typed: frame 2 (entry-31 face, entry-30 lettering) in the record's white disabled frame, at x 398 and 581,
+	# rows 171 and 186
+	control year-from
+		kind field
+		rect 245 86 141 38
+		bg ui:0
+		font ui13
+		fg ui:15
+		prop maxlen 14
+		action finder.time "Apply dates"
+	end
+	control from-bar
+		kind panel
+		rect 242 87 3 37
+		bg ui:8
+	end
+	control from-bc
+		kind button
+		record 10042
+		rect 387 90 18 14
+		strip ui/bitmap/ENCTIM_BC 4
+		frame normal 0
+		frame pressed 1
+		frame disabled 2
+		frame hot 3
+		frame checked 1
+		source finder-era
+		prop endpoint from
+		prop era bc
+		prop field year-from
+		action finder.time from-bc
+	end
+	control from-ad
+		kind button
+		record 10043
+		rect 387 105 18 14
+		strip ui/bitmap/ENCTIM_AD 4
+		frame normal 0
+		frame pressed 1
+		frame disabled 2
+		frame hot 3
+		frame checked 1
+		source finder-era
+		prop endpoint from
+		prop era ad
+		prop field year-from
+		action finder.time from-ad
+	end
+	control year-to
+		kind field
+		rect 427 86 141 38
+		bg ui:0
+		font ui13
+		fg ui:15
+		prop maxlen 14
+		action finder.time "Apply dates"
+	end
+	control to-bar
+		kind panel
+		rect 424 87 3 37
+		bg ui:19
+	end
+	control to-bc
+		kind button
+		record 10042
+		rect 570 90 18 14
+		strip ui/bitmap/ENCTIM_BC 4
+		frame normal 0
+		frame pressed 1
+		frame disabled 2
+		frame hot 3
+		frame checked 1
+		source finder-era
+		prop endpoint to
+		prop era bc
+		prop field year-to
+		action finder.time to-bc
+	end
+	control to-ad
+		kind button
+		record 10043
+		rect 570 105 18 14
+		strip ui/bitmap/ENCTIM_AD 4
+		frame normal 0
+		frame pressed 1
+		frame disabled 2
+		frame hot 3
+		frame checked 1
+		source finder-era
+		prop endpoint to
+		prop era ad
+		prop field year-to
+		action finder.time to-ad
+	end
+	control picture
+		kind timeslider
+		rect 242 131 345 184                  # [m256] TIMEDKFIL exact at (253,212) (capture256 13)
+		strip ui/bitmap/TIMEDKFIL 1
+		frame normal 0
+		prop year-from year-from
+		prop year-to year-to
+	end
+	control scale-information
+		kind button
+		rect 426 302 157 18
+		label "Scale information"
+		font ui
+		bg ui:14
+		fg ui:15
+		action finder.timeline "Time scale artwork"
+	end
+end
+
+screen pinpointer-place
+	prop focus place-id
+	size 605 335
+	origin 10 65
+	over *
+	prop viewport native-pinned
+	uses pinwin
+	uses pinwidecap
+	uses pinfilters
+	uses pinwide
+	control f-place-open
+		kind button
+		rect 182 258 55 49
+		strip ui/bitmap/ENCORG_PLACE 4
+		frame normal 3
+		action goto pinpointer
+	end
+	control map
+		kind image
+		rect 237 72 357 251                   # [m256] PLACEFIL at (248,153), 90.7% exact (the rest is under the buttons)
+		strip ui/bitmap/PLACEFIL 1
+		frame normal 0
+	end
+	control title
+		kind label
+		rect 247 44 280 20
+		label @14702                          # [d] "Type a place name or click a button"
+		font ui-bold13                        # [m256] Arial Bold 13 px (GetFont 105): capitals on rows 130-139
+		fg ui:15
+		text-y 15
+		align left
+	end
+	# [m256] the strips' own rings: records 10011-10014 would ring them in entry 31 (1,032 pixels off)
+	control p-regions
+		kind button
+		rect 255 90 111 20                    # [m256] ENCPLC_STREG frame 0 exact at (266,171)
+		strip ui/bitmap/ENCPLC_STREG 3
+		frame normal 0
+		action finder.place regions
+	end
+	control p-countries
+		kind button
+		rect 255 120 111 20                   # [m256] (266,201)
+		strip ui/bitmap/ENCPLC_CTRY 3
+		frame normal 0
+		action finder.place countries
+	end
+	control p-political
+		kind button
+		rect 255 150 111 20                   # [m256] (266,231)
+		strip ui/bitmap/ENCPLC_POLITICAL 3
+		frame normal 0
+		action finder.place political
+	end
+	control p-cities
+		kind button
+		rect 255 180 111 20                   # [m256] (266,261)
+		strip ui/bitmap/ENCPLC_CITY 3
+		frame normal 0
+		action finder.place cities
+	end
+	# [m256] capture256 14: the place field in a 1-px entry-13 frame (x 401 and 588, rows 171 and 205), an entry-31
+	# row inside its top (172), white below (rows 173-204)
+	control p-frame
+		kind panel
+		rect 390 90 188 35
+		bg ui:13
+	end
+	control p-inset
+		kind panel
+		rect 391 91 186 1
+		bg ui:31
+	end
+	control place-id
+		kind field
+		rect 391 92 186 32
+		bg ui:0
+		font ui
+		fg ui:15
+		prop maxlen 255
+		action finder.search "Search"
+	end
+	control apply-place
+		kind button
+		rect 391 134 90 18
+		label "Apply place"
+		font ui
+		bg ui:14
+		fg ui:15
+		action finder.search "Search"
+	end
+end

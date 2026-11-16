@@ -1,0 +1,220 @@
+#!/bin/ksh
+# d32-docktest: the owner's supervised lid, dock, monitor and sleep-key test for the Latitude 5430 (update 2, lid and
+# dock lane). Run it after update 1 and its firmware are in (one reboot after update 1); it also works before
+# update 2, and then skips what update 2 adds. About 10 minutes for part 1, 5 for part 2.
+#
+#   d32-docktest           part 1, as the desktop user in a Terminal on the desktop, docked, on AC: lid, dock, monitor, sleep key
+#   d32-docktest suspend   part 2, as root at the console (Ctrl+Alt+F2), only after part 1: the supervised
+#                          suspend (S0ix) test that decides whether machdep.lidaction may ever leave 0
+#
+# It changes nothing on the system except, if you say so, the screen layout (put back after 20 s unless you confirm
+# it). Results go to ~/d32-docktest-<date>.txt (part 1) or /root/d32-docktest-suspend-<date>.txt (part 2); read
+# them out or copy them to Claude. Nothing in them is private.
+
+PATH=/bin:/usr/bin:/sbin:/usr/sbin:/usr/X11R6/bin:/usr/local/bin
+export PATH
+DISPLAYTOOL=/usr/local/d32/ship/libexec/d32-display
+STAMP=$(date +%Y%m%d-%H%M)
+
+say()  { print -r -- "$*"; print -r -- "$*" >>"$OUT"; }
+rec()  { print -r -- "  $*" >>"$OUT"; }
+step() { print; say "== $*"; }
+pause() { print -n "   ...then press Enter. "; read -r _x; }
+ask() {	# ask QUESTION -> sets ans y|n
+	while :; do
+		print -n "   $1 [y/n] "; read -r ans
+		case $ans in y|Y|yes) ans=y; break ;; n|N|no) ans=n; break ;; esac
+	done
+	rec "$1 -> $ans"
+}
+lid() {
+	case $(sysctl hw.sensors 2>/dev/null | grep -m 1 '(lid open)') in
+	*=On\ *) print open ;; *=Off\ *) print closed ;; *) print unknown ;;
+	esac
+}
+lidwatch() {	# lidwatch SECONDS: records whether the sensor ever read "closed"
+	_end=$(( $(date +%s) + $1 )); _seen=no
+	while [ "$(date +%s)" -lt $_end ]; do
+		[ "$(lid)" = closed ] && _seen=yes
+		sleep 1
+	done
+	print $_seen
+}
+dockstate() { awk '{ print $1 }' /var/run/d32/dock/state 2>/dev/null || print "n/a (update 2 not in)"; }
+externals() { xrandr --query 2>/dev/null | awk '/ connected/ && $1 !~ /^eDP/ { print $1 }' | tr '\n' ' '; }
+panelstate() { xrandr --current 2>/dev/null | awk '$1 ~ /^eDP/ { print ($3 ~ /^[0-9]+x/ || $4 ~ /^[0-9]+x/) ? "on" : "off" }'; }
+haveu2() { [ -x /usr/local/d32/sbin/d32-dock ] && [ -x "$DISPLAYTOOL" ]; }
+
+common() {
+	say "release: $(cat /etc/d32/release 2>/dev/null)   kernel: $(uname -r)   date: $(date)"
+	say "machdep.lidaction: $(sysctl -n machdep.lidaction)   lid: $(lid)   on AC: $(apm -a 2>/dev/null | sed 's/^1$/yes/;s/^0$/no/')"
+	say "apmd: $(pgrep -x apmd >/dev/null && print running || print 'not running'), flags '$(rcctl get apmd flags 2>/dev/null)'"
+	say "hotplugd: $(pgrep -x hotplugd >/dev/null && print running || print 'not running')   dock state: $(dockstate)"
+	if grep -q 'Failed to load DMC firmware' /var/run/dmesg.boot 2>/dev/null; then
+		say "GPU DMC firmware: NOT loaded (dmesg: Failed to load DMC firmware) - update 1's firmware is not active yet"
+		dmc=no
+	else
+		say "GPU DMC firmware: loaded (no 'Failed to load DMC' in this boot's dmesg)"
+		dmc=yes
+	fi
+	say "CPU microcode: $(grep -m 1 'cpu0: .*patch' /var/run/dmesg.boot 2>/dev/null | sed 's/.*patch /patch /')"
+}
+
+part1() {
+	OUT=$HOME/d32-docktest-$STAMP.txt; : >"$OUT"
+	[ -n "${DISPLAY:-}" ] || { print "Run this in a Terminal on the desktop (no DISPLAY here)."; exit 1; }
+	say "Deep32 lid and dock test, part 1 ($(id -un))"
+	common
+	if [ "$(sysctl -n machdep.lidaction)" != 0 ]; then
+		say "STOP: machdep.lidaction is not 0, so closing the lid would suspend. Do not close the lid; tell Claude."
+		exit 1
+	fi
+	print "\nBefore you start: save your work, keep the laptop on the dock and on AC power. Answer each question."
+
+	step "1. Lid, docked"
+	print "   Close the lid, count to 10, open it again (the laptop must keep running)."
+	print -n "   Press Enter, then close the lid within 15 s... "; read -r _x
+	seen=$(lidwatch 25)
+	rec "lid sensor read 'closed' during the test: $seen"
+	ask "The screen came back and this window is still here?"
+	[ "$seen" = yes ] || say "   note: the lid sensor never read 'closed' (the test may have been too quick)"
+
+	step "2. Dock out"
+	print "   Pull the dock's USB-C cable out of the laptop."
+	haveu2 && print "   Update 2: within about 3 s the laptop panel shows the desktop and then the lock dialog; unlock it."
+	pause
+	sleep 2
+	say "   dock state now: $(dockstate); externals: $(externals); panel: $(panelstate); lidaction $(sysctl -n machdep.lidaction)"
+	haveu2 && ask "The screen locked by itself when the dock came out?"
+	haveu2 && ask "After unlocking, the front panel is at the bottom of the laptop screen?"
+	print "   Now close the lid for 10 s and open it again, undocked."
+	print -n "   Press Enter, then close the lid within 15 s... "; read -r _x
+	seen=$(lidwatch 25)
+	rec "lid sensor read 'closed' (undocked): $seen"
+	ask "Still running, and this window is still here?"
+
+	step "3. Dock in"
+	print "   Plug the dock back in and wait about 15 s."
+	pause
+	sleep 3
+	say "   dock state now: $(dockstate); USB side: $(dmesg 2>/dev/null | grep -c 'ure0 at' ) ure attach lines in dmesg"
+
+	step "4. Monitor"
+	print "   Connect the monitor to the dock (HDMI or DisplayPort) and switch it on. Wait about 15 s."
+	pause
+	ext=$(externals)
+	say "   outputs connected besides the panel: ${ext:-none}"
+	xrandr --query 2>/dev/null | awk '/ connected/ { o = $1; n = 0; next } /^[^ ]/ { o = "" } o != "" && n++ < 1 { print "   " o " preferred " $1 }' | tee -a "$OUT"
+	grep -E 'EDID vendor' /var/log/Xorg.0.log 2>/dev/null | tail -n 3 | sed 's/^.*\]/  Xorg:/' | tee -a "$OUT"
+	if [ -z "$ext" ]; then
+		print "   Nothing through the dock. Plug the monitor into the laptop's own HDMI port instead and wait 10 s."
+		pause
+		ext=$(externals)
+		say "   outputs connected besides the panel (laptop HDMI): ${ext:-none}"
+	fi
+	if [ -n "$ext" ] && [ -x "$DISPLAYTOOL" ]; then
+		"$DISPLAYTOOL" status 2>/dev/null | sed 's/^/   /' | tee -a "$OUT"
+		ask "Try the layout now (the monitor primary, the panel mirroring it)?"
+		if [ "$ans" = y ]; then
+			"$DISPLAYTOOL" dock >/dev/null 2>&1
+			# like a "keep these settings?" box: a watchdog puts the panel back after 20 s unless he answers y
+			flag=$(mktemp /tmp/d32docktest.XXXXXX) || flag=/dev/null
+			( sleep 20; [ -s "$flag" ] || "$DISPLAYTOOL" undock >/dev/null 2>&1 ) &
+			t0=$(date +%s)
+			print -n "   Do you see the desktop on the monitor? Type y and Enter within 20 s to keep it: "
+			read -r keep
+			if [ "$keep" = y ] && [ $(( $(date +%s) - t0 )) -lt 20 ]; then
+				print y >"$flag"
+				say "   layout kept: the monitor works ($ext)"
+			else
+				wait
+				"$DISPLAYTOOL" undock >/dev/null 2>&1
+				say "   no answer in 20 s or not y: put back to the panel alone"
+			fi
+			rm -f "$flag"
+		fi
+	fi
+	[ -n "$ext" ] && print "   Next time you log out and in, the login screen and the session use this monitor by themselves."
+
+	step "5. Sleep key on AC"
+	# the RUNNING apmd decides, not rc.conf.local (on the boot that installs update 2, rc starts the old flags first)
+	_ap=$(pgrep -x apmd | head -n 1)
+	_apf=''
+	[ -n "$_ap" ] && _apf=$(ps -o command= -p "$_ap" 2>/dev/null)
+	say "   running apmd: ${_apf:-none}"
+	case " $_apf " in
+	*" -a "*)
+		print "   apmd runs with -a, so on AC the Fn sleep key (the moon) is ignored. Press it once now."
+		pause
+		sleep 10
+		ask "Nothing happened (no sleep, the screen stayed on)?"
+		;;
+	*)
+		say "   skipped: without a running apmd -a the sleep key WOULD suspend. That is the suspend test: part 2."
+		;;
+	esac
+
+	step "Done"
+	say "results: $OUT"
+	print "   If you want to know whether the laptop can sleep, run part 2 as root at the console:"
+	print "   Ctrl+Alt+F2, log in as root, 'd32-docktest suspend' (save your work first)."
+}
+
+part2() {
+	[ "$(id -u)" = 0 ] || { print "part 2 runs as root at the console (Ctrl+Alt+F2)"; exit 1; }
+	OUT=/root/d32-docktest-suspend-$STAMP.txt; : >"$OUT"
+	say "Deep32 suspend (S0ix) test, part 2"
+	common
+	case $(tty) in /dev/ttyC*) ;; *) print "Run this at the console (Ctrl+Alt+F2), not over the network or in a Terminal."; exit 1 ;; esac
+	pgrep -x apmd >/dev/null || { say "STOP: apmd is not running (zzz needs it). Reboot once after update 1, then retry."; exit 1; }
+	[ "$dmc" = yes ] || { say "STOP: the DMC firmware is not loaded; this test would only repeat the old failure."; exit 1; }
+	cat <<'EOF'
+
+   This puts the laptop to sleep (S0ix, its only sleep state) and asks you to wake it. On 2026-11-06 the same thing
+   hung it twice and it needed a hard power-off. The DMC firmware from update 1 may fix that; this finds out.
+
+   Before you go on:
+     - save and close everything in your desktop session (Ctrl+Alt+F5 to get there, Ctrl+Alt+F2 to come back);
+     - stay on AC power; docked or not does not matter.
+   After the screen goes dark, wait 30 seconds, then press the power button BRIEFLY (do not hold it).
+   If nothing comes back within 2 minutes of brief presses: HOLD the power button for 10 seconds. The next boot
+   checks the disk by itself (fsck). Then tell Claude "suspend still hangs".
+
+EOF
+	print -n "   Type yes to suspend now: "; read -r go
+	[ "$go" = yes ] || { say "not started"; exit 0; }
+	n0=$(dmesg | wc -l); t0=$(date +%s)
+	rec "suspending at $(date)"
+	sync; sync
+	zzz
+	# zzz returns at once; the machine sleeps a moment later. Wait for the clock to jump (we slept) or 120 s.
+	slept=no; i=0
+	while [ $i -lt 120 ]; do
+		a=$(date +%s); sleep 1; b=$(date +%s)
+		[ $((b - a)) -gt 5 ] && { slept=yes; break; }
+		i=$((i + 1))
+	done
+	t1=$(date +%s)
+	say "   slept: $slept   back after: $((t1 - t0)) s"
+	dmesg | tail -n +$((n0 + 1)) | grep -E '^(PC10|LPIT[0-9]+): |wakeup event|S3 unavailable|resume|DMC' | tee -a "$OUT" | sed 's/^/   /'
+	lp=$(dmesg | tail -n +$((n0 + 1)) | awk '/^LPIT[0-9]+: / && $2 != $4 { c++ } END { print c + 0 }')
+	pc=$(dmesg | tail -n +$((n0 + 1)) | awk '/^PC10: / && $2 != $4 { c++ } END { print c + 0 }')
+	say "   S0ix residency counters that moved: LPIT $lp, PC10 $pc (0 and 0 = it never reached deep sleep)"
+	ask "The desktop came back (locked if update 2 is in), and works after unlocking?"
+	if [ "$ans" = y ] && [ "$slept" = yes ] && [ "$lp" -gt 0 ]; then
+		say "VERDICT: SUSPEND PASS (woke, S0ix reached). Claude may propose LID_UNDOCKED=1 in a later update."
+	elif [ "$ans" = y ] && [ "$slept" = yes ]; then
+		say "VERDICT: SUSPEND WAKES, NO S0IX (woke, but no deep-sleep residency: it would drain the battery). Keep 0."
+	else
+		say "VERDICT: SUSPEND FAIL. Keep machdep.lidaction 0."
+	fi
+	say "results: $OUT"
+	print "   The sleep key on battery uses the same path; test it only after a PASS (unplug AC and dock, press Fn+Sleep,"
+	print "   wake with a brief press of the power button). Hibernate (ZZZ) is a separate test for later."
+}
+
+case ${1:-} in
+'')		part1 ;;
+suspend)	part2 ;;
+*)		print -u2 "usage: d32-docktest [suspend]"; exit 2 ;;
+esac

@@ -1,0 +1,8 @@
+# Deep32 Workstation login class (BASE lane). login.conf(5): /etc/login.conf.d/<class> takes precedence over
+# /etc/login.conf; "tc=" reaches only this file and /etc/login.conf, so each class is complete in itself.
+# Daemon users: the passwd class of every _d32* account (DISTRO D45; HARDENING 5.8 calls it "d32").
+# rc.d services get the class named after their script instead (rc.subr), hence one file per script below.
+d32d:\
+	:datasize=2048M:\
+	:coredumpsize=0:\
+	:tc=daemon:

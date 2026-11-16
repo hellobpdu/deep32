@@ -1,0 +1,45 @@
+d32scr 1
+# Reconstructed chooser for the two approved desktop editors.
+screen wordproc
+	size 282 127
+	origin 178 144
+	over *
+	ground ui:15
+	prop tab-order "dtpad nedit wordproc-cancel"
+
+	control wordproc-caption
+		kind bar
+		rect 1 1 280 15
+		bg ui:27
+		fg ui:0
+		font ui
+		label "Choose Word Processor"
+		text-x 16
+		text-y 12
+		marker
+	end
+	control wordproc-body
+		kind panel
+		rect 1 16 280 110
+		bg ui:28
+	end
+	control dtpad
+		kind button
+		rect 16 27 250 22
+		font ui
+		action wordproc.choose dtpad
+	end
+	control nedit
+		kind button
+		rect 16 54 250 22
+		font ui
+		action wordproc.choose nedit
+	end
+	control wordproc-cancel
+		kind button
+		rect 194 91 72 22
+		font ui
+		label "Cancel"
+		action close
+	end
+end

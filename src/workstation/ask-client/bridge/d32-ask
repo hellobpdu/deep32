@@ -1,0 +1,1330 @@
+#!/usr/local/bin/python3.14 -I
+"""Ask Deep32: a terminal UI for d32-chatd's local UNIX socket only."""
+
+import argparse
+import base64
+import csv
+import importlib.util
+import json
+import os
+from pathlib import Path
+import queue
+import re
+import shutil
+import socket
+import stat
+import subprocess
+import sys
+import threading
+import time
+import unicodedata
+
+
+# Isolated mode does not search the script's directory for imports. Load the
+# installed companion explicitly so launching Ask still works with python -I.
+_mods_spec = importlib.util.spec_from_file_location("d32_ask_mods", Path(__file__).with_name("d32_ask_mods.py"))
+mods = importlib.util.module_from_spec(_mods_spec)
+_mods_spec.loader.exec_module(mods)
+
+
+ERRORS = {
+    1: ("PROTOCOL", "The chat broker and relay could not understand each other. Check their versions."),
+    2: ("AUTH", "The relay could not authenticate this laptop. Check its pairing at the console."),
+    3: ("CHANNEL_FORBIDDEN", "That service is not available on the research link."),
+    4: ("FLOW_CONTROL", "The relay stopped the conversation after a flow-control error. Start /new."),
+    5: ("LIMIT", "The relay has reached a session or size limit. Try /new when another conversation has closed."),
+    6: ("TIMEOUT", "The relay did not reply in time. Check the link, then try /new."),
+    7: ("SESSION", "The session or its engine, model or effort was refused. Check the settings and try /new."),
+    8: ("SETTINGS_UNVERIFIED", "The relay has not verified its engine settings. Check the relay on the paired PC."),
+    9: ("CODEX_UNAVAILABLE", "The requested engine is unavailable on the paired PC. Check its sign-in and relay."),
+    10: ("CANCELLED", "The request was cancelled."),
+    11: ("RELAY_LOST", "The link to the paired PC is down. Is the link up (doas d32-link status) and the relay running?"),
+    15: ("WINDOW_LOCKED", "Unlock this Ask window before starting a question."),
+}
+HELP = """Ask a question, then wait for the streamed answer. Ctrl+C interrupts a turn.
+/new                 Start a fresh session with the next engine
+/engine codex|claude Choose the NEXT session only; later sessions use Codex
+/status              Show the link, pairing and available models
+/ledger              Show this session's RAG calls (metadata only)
+/refs                List the last answer's Library references
+/open [N]            Open reference N in Library, or list references
+/mods                Show the console's question modifier key
+/history on|off      Save questions and answers; off by default
+/help                Show these commands
+/quit                Close the session and leave (or press Ctrl+D)"""
+
+
+def clean(text):
+    """Keep LF/TAB, and remove terminal controls even from a faulty broker."""
+    return "".join(c for c in str(text) if c in "\n\t" or
+                   (ord(c) >= 32 and not 127 <= ord(c) <= 159))
+
+
+PACK_MAPS = (
+    ("lib-corpus", Path("/d32/libcontent/corpus/cite-map.tsv")),
+    ("lib-e26", Path("/d32/libcontent/e26/cite-map.tsv")),
+)
+MAP_COLUMNS = ("rag_doc_id", "rag_anchor", "pack", "article_id", "article_anchor", "title")
+LAUNCHER = "/d32/active/bin/e26"
+DOC_ID = r"[A-Za-z0-9][A-Za-z0-9._:-]*"
+RAG_ANCHOR = r"[A-Za-z0-9][A-Za-z0-9._:-]*"
+RAW_CITE = re.compile(r"(?<![\w:/#.-])(" + DOC_ID + r")#(" + RAG_ANCHOR + r")(?![\w.:/#-])")
+RFC_CITE = re.compile(r"\bRFC\s+([1-9][0-9]{0,5})(?:\s+(?:\u00a7\s*|App(?:endix)?\.?\s+)([A-Z0-9]+(?:\.[0-9]+)*))?", re.I)
+REF_LINE = re.compile(r"(?im)(?:^\s*(?:[-*]\s+)?|(?<=;)\s*)(?:\*\*)?(?:Read|docs)(?:\*\*)?[.:](?:\*\*)?\s*(.*)$")
+LINE_CITE = re.compile(r"(?<![\w:/#.-])(" + DOC_ID + r")(?:#(" + RAG_ANCHOR + r"))?(?![\w/#])")
+
+
+def library_uri(pack, article, anchor=""):
+    """Construct only the local, unescaped URI accepted by the launcher."""
+    if pack not in {name for name, _ in PACK_MAPS}:
+        raise ValueError("unknown pack")
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9:._()-]{0,511}", article):
+        raise ValueError("invalid article id")
+    if anchor and not re.fullmatch(r"[a-z][a-z0-9._-]{0,127}", anchor):
+        raise ValueError("invalid article anchor")
+    return f"library:{pack}/{article}" + (f"#{anchor}" if anchor else "")
+
+
+def extract_cites(text):
+    """Return exact raw identities in reading order, including Read/docs lines."""
+    matches = []
+    for match in RAW_CITE.finditer(text):
+        matches.append((match.start(), match.group(1), match.group(2).rstrip(".")))
+    for match in RFC_CITE.finditer(text):
+        matches.append((match.start(), "rfc" + match.group(1), (match.group(2) or "")))
+    for line in REF_LINE.finditer(text):
+        # Bare ids occur only in the structured reference list. Ignore its
+        # parenthesised status words and explanatory prose after a semicolon.
+        value = re.sub(r"\([^)]*\)", lambda m: " " * len(m.group()), line.group(1))
+        for item in re.finditer(r"[^,;]+", value.split(";", 1)[0]):
+            candidate = item.group().strip().strip("`[] ")
+            match = LINE_CITE.fullmatch(candidate.rstrip("."))
+            if match:
+                matches.append((line.start(1) + item.start(), match.group(1),
+                                (match.group(2) or "").rstrip(".")))
+    found, seen = [], set()
+    for _, doc, anchor in sorted(matches, key=lambda item: item[0]):
+        key = (doc, anchor)
+        if key not in seen:
+            found.append(key)
+            seen.add(key)
+    return found
+
+
+class CiteMaps:
+    """Read installed generation snapshots; exact sections outrank fallbacks."""
+
+    def __init__(self, paths=PACK_MAPS):
+        self.entries = {}
+        for expected_pack, path in paths:
+            try:
+                entries = {}
+                with Path(path).open(encoding="utf-8", newline="") as source:
+                    rows = csv.DictReader(source, delimiter="\t", quoting=csv.QUOTE_NONE)
+                    if tuple(rows.fieldnames or ()) != MAP_COLUMNS:
+                        continue
+                    for row in rows:
+                        if None in row or any(value is None for value in row.values()):
+                            raise ValueError("invalid map row")
+                        if any(clean(value) != value or "\n" in value or "\r" in value or "\t" in value
+                               for value in row.values()):
+                            raise ValueError("invalid map field")
+                        doc, anchor = row["rag_doc_id"], row["rag_anchor"]
+                        if not re.fullmatch(DOC_ID, doc) or not (anchor == "*" or re.fullmatch(RAG_ANCHOR, anchor)):
+                            raise ValueError("invalid RAG identity")
+                        if row["pack"] != expected_pack or not row["title"]:
+                            raise ValueError("invalid pack or title")
+                        if anchor == "*" and row["article_anchor"]:
+                            raise ValueError("document has an anchor")
+                        if anchor != "*" and not row["article_anchor"]:
+                            raise ValueError("section has no anchor")
+                        try:
+                            uri = library_uri(row["pack"], row["article_id"], row["article_anchor"])
+                        except ValueError:
+                            raise ValueError("invalid target URI") from None
+                        key, entry = (doc, anchor), dict(row, uri=uri)
+                        if key in entries and entries[key] != entry:
+                            raise ValueError("conflicting map key")
+                        entries[key] = entry
+                for key, entry in entries.items():
+                    self.entries.setdefault(key, entry)
+            except (OSError, UnicodeError, csv.Error, ValueError):
+                continue
+
+    def resolve(self, cite):
+        doc, anchor = cite
+        entry = self.entries.get((doc, anchor)) if anchor else None
+        fallback = False
+        if entry is None:
+            entry = self.entries.get((doc, "*"))
+            fallback = bool(anchor and entry)
+        return {"cite": doc + ("#" + anchor if anchor else ""),
+                "entry": entry, "fallback": fallback}
+
+
+def osc8_supported(out, environ=None):
+    env = os.environ if environ is None else environ
+    term = env.get("TERM", "").lower()
+    if not getattr(out, "isatty", lambda: False)() or "dtterm" in term:
+        return False
+    # TERM alone cannot distinguish old xterm/vte from OSC 8 implementations.
+    return (term in ("xterm-kitty", "foot", "foot-extra", "wezterm") or
+            term in ("xterm", "xterm-256color") and
+            (env.get("TERM_PROGRAM") in ("iTerm.app", "WezTerm", "vscode") or
+             bool(env.get("WT_SESSION")) or
+             env.get("VTE_VERSION", "").isdigit() and int(env["VTE_VERSION"]) >= 5000))
+
+
+def open_reference(uri):
+    # Never compose a shell command. A new session survives the terminal turn.
+    subprocess.Popen([LAUNCHER, "-open", uri], stdin=subprocess.DEVNULL,
+                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                     start_new_session=True, close_fds=True)
+
+
+def cells(text):
+    return sum(0 if unicodedata.combining(c) else
+               2 if unicodedata.east_asian_width(c) in ("W", "F") else 1
+               for c in text)
+
+
+class WrappedStream:
+    """Stream whole words; keep Markdown links, citations and fenced code intact.
+
+    Only an unfinished word/link and a fence prefix are held between deltas.
+    A long indivisible link or word may exceed the width; it is never mutilated.
+    """
+
+    def __init__(self, out):
+        self.out = out
+        self.column = 0
+        self.token = ""
+        self.space = ""
+        self.brackets = 0
+        self.parens = 0
+        self.inline = False
+        self.prefix = ""
+        self.at_start = True
+        self.fence = None
+        self.raw = False
+        self.raw_prefix = ""
+        self.opening = False
+
+    def write(self, text):
+        self.out.write(text)
+        self.out.flush()
+        if "\n" in text:
+            self.column = cells(text.rsplit("\n", 1)[1])
+        else:
+            self.column += cells(text)
+
+    def word(self):
+        if not self.token:
+            return
+        width = max(20, shutil.get_terminal_size(fallback=(80, 24)).columns)
+        if self.column and self.column + cells(self.space + self.token) > width:
+            self.write("\n")
+            self.space = ""
+        self.write(self.space + self.token)
+        self.token = self.space = ""
+
+    def normal(self, char):
+        if char == "\n":
+            self.word()
+            self.space = ""
+            self.write("\n")
+            self.at_start = True
+        elif char.isspace() and not (self.brackets or self.parens or self.inline):
+            self.word()
+            self.space += char
+        else:
+            if char == "[":
+                self.brackets += 1
+            elif char == "]" and self.brackets:
+                self.brackets -= 1
+            elif char == "(" and (self.token.endswith("]") or self.parens):
+                self.parens += 1
+            elif char == ")" and self.parens:
+                self.parens -= 1
+            elif char == "`":
+                self.inline = not self.inline
+            self.token += char
+
+    def feed(self, text):
+        for char in clean(text):
+            if self.raw:
+                self.write(char)
+                if char != "\n":
+                    self.raw_prefix += char
+                if char == "\n":
+                    marker = self.raw_prefix.strip()
+                    if self.fence:
+                        if self.opening:
+                            length = len(marker) - len(marker.lstrip(self.fence[0]))
+                            self.fence = self.fence[0] * length
+                        elif len(marker) >= len(self.fence) and set(marker) == {self.fence[0]}:
+                            self.fence = None
+                    self.opening = False
+                    self.raw = bool(self.fence)
+                    self.raw_prefix = ""
+                    self.at_start = not self.raw
+                continue
+            if self.at_start:
+                self.prefix += char
+                start = self.prefix.lstrip(" \t")
+                if self.prefix == "    " or self.prefix == "\t":
+                    self.raw = True
+                    self.raw_prefix = self.prefix
+                    self.write(self.prefix)
+                    self.prefix = ""
+                    self.at_start = False
+                    continue
+                if start.startswith("```") or start.startswith("~~~"):
+                    self.fence = start[:3]
+                    self.raw = self.opening = True
+                    self.raw_prefix = self.prefix
+                    self.write(self.prefix)
+                    self.prefix = ""
+                    self.at_start = False
+                    continue
+                if char != "\n" and (not start or start in ("`", "``", "~", "~~")):
+                    continue
+                pending, self.prefix = self.prefix, ""
+                self.at_start = False
+                for value in pending:
+                    self.normal(value)
+            else:
+                self.normal(char)
+
+    def finish(self):
+        if self.prefix:
+            for char in self.prefix:
+                self.normal(char)
+            self.prefix = ""
+        self.word()
+        if self.column:
+            self.write("\n")
+
+
+class AnswerMarkup:
+    """Parse one cleaned source line at a time. Fences persist within the turn."""
+
+    fence_open = re.compile(r"^ {0,3}(`{3,}|~{3,})(\S*)")
+    heading = re.compile(r"^ {0,3}(#{1,6})[ \t]+(.*?)[ \t#]*$")
+    rule = re.compile(r"^ {0,3}([-*_])([ \t]*\1){2,}[ \t]*$")
+    item = re.compile(r"^( *)([-*+]|[0-9]{1,9}[.)])[ \t]+(.*)$")
+    quote = re.compile(r"^ {0,3}(>[ ]?)+")
+    literal = re.compile(r"\[(?:\\.|[^\\\[\]])*\]\((?:\\.|[^\\\s()]|\([^()]*\))*\)|"
+                         r"\b(?:[A-Za-z][A-Za-z0-9+.-]*://|mailto:|www\.)[^\s<>`]+")
+    delimiters = re.compile(r"\\[\\`*_\[\]#>|]|`+|\*+|_+")
+    emphasis = {"***": "bi", "**": "b", "__": "b", "*": "i", "_": "i"}
+
+    def __init__(self):
+        self.fence = None
+        self.ref_pending = self.ref_continuation = False
+
+    def parse(self, line):
+        # REF_LINE's whitespace after the label can carry a bare reference to the next nonblank line.
+        self.ref_continuation = self.ref_pending
+        if self.ref_continuation:
+            self.ref_pending = not line.strip()
+        else:
+            ref = REF_LINE.search(line)
+            self.ref_pending = bool(ref and not ref[1])
+        if self.fence:
+            fence, info = self.fence
+            if re.fullmatch(r" {0,3}" + fence + fence[0] + "*[ \t]*", line):
+                self.fence = None
+                return None
+            return "code", 0, info, [("c", line)]
+        if m := self.fence_open.match(line):
+            self.fence = m.groups()
+            return None
+        if m := self.heading.match(line):
+            return "h", min(3, len(m[1])), "", self.inline(line, *m.span(2))
+        if self.rule.fullmatch(line):
+            return "hr", 0, "", []
+        if line.lstrip().startswith("|"):
+            return "pre", 0, "", [("c", line)]
+        if m := self.item.match(line):
+            return "li", min(4, len(m[1]) // 2 + 1), m[2], self.inline(line, *m.span(3))
+        if m := self.quote.match(line):
+            return "quote", min(3, m[0].count(">")), "", self.inline(line, m.end(), len(line))
+        if not line.strip():
+            return "blank", 0, "", [("", line)] if line else []
+        return "p", 0, "", self.inline(line, 0, len(line))
+
+    @staticmethod
+    def cite_spans(line, continuation=False):
+        """Return source ranges with the same raw and Read/docs rules as extract_cites."""
+        spans = [m.span() for pattern in (RAW_CITE, RFC_CITE) for m in pattern.finditer(line)]
+        values = [(0, line)] if continuation else [(m.start(1), m[1]) for m in REF_LINE.finditer(line)]
+        for start, text in values:
+            value = re.sub(r"\([^)]*\)", lambda m: " " * len(m[0]), text).split(";", 1)[0]
+            for item in re.finditer(r"[^,;]+", value):
+                candidate = item[0].strip().strip("`[] ")
+                if LINE_CITE.fullmatch(candidate.rstrip(".")):
+                    offset = start + item.start() + item[0].index(candidate)
+                    spans.append((offset, offset + len(candidate)))
+        merged = []
+        for a, b in sorted(spans):
+            if merged and a < merged[-1][1]:
+                a, previous = merged.pop()
+                b = max(b, previous)
+            merged.append((a, b))
+        return merged
+
+    def inline(self, line, start, end):
+        spans = self.cite_spans(line, self.ref_continuation) + [m.span() for m in self.literal.finditer(line)]
+        literal = bytearray(len(line))
+        for a, b in spans:
+            literal[a:b] = b"\1" * (b - a)
+
+        matches = []
+        for m in self.delimiters.finditer(line, start, end):
+            boundary = m.start() + 1 if m[0].startswith("\\") else m.end()
+            if any(literal[m.start():boundary]):
+                continue
+            before = line[m.start()-1:m.start()] or " "
+            after = line[m.end():m.end()+1] or " "
+            if m[0][0] == "_" and all(c.isalnum() or c == "_" for c in (before, after)):
+                continue
+            matches.append(m)
+        # Find the next equal tick run, then consume code before considering emphasis.
+        ticks, closing = {}, {}
+        for m in reversed(matches):
+            if m[0].startswith("`"):
+                closing[m.start()] = ticks.get(m[0])
+                ticks[m[0]] = m
+        tokens, cursor = [], start
+        for m in matches:
+            if m.start() < cursor:
+                continue
+            tokens.append(("", line[cursor:m.start()]))
+            cursor = m.end()
+            if close := closing.get(m.start()):
+                tokens.append(("c", line[cursor:close.start()]))
+                cursor = close.end()
+            elif m[0].startswith("\\"):
+                tokens.append(("", m[0][1:]))
+            else:
+                tokens.append((m[0] if m[0] in self.emphasis else "", m[0]))
+        tokens.append(("", line[cursor:end]))
+
+        following, nearest, runs = {}, {}, []
+        for i in range(len(tokens) - 1, -1, -1):
+            marker = tokens[i][0]
+            if marker in self.emphasis:
+                following[i] = nearest.get(marker, len(tokens))
+                nearest[marker] = i
+
+        def emit(i, stop, active):
+            while i < stop:
+                marker, value = tokens[i]
+                close = following.get(i, stop)
+                if close < stop:
+                    emit(i + 1, close, active + self.emphasis[marker])
+                    i = close + 1
+                    continue
+                style = "".join(flag for flag in "bic" if flag in active + marker)
+                if value:
+                    if runs and runs[-1][0] == style:
+                        runs[-1][1].append(value)
+                    else:
+                        runs.append((style, [value]))
+                i += 1
+
+        emit(0, len(tokens), "")
+        return [(style, "".join(chunks)) for style, chunks in runs]
+
+
+class EventSink:
+    limit = 65536
+    escapes = {"\\": "\\", "t": "\t", "n": "\n"}
+
+    def __init__(self, out, window_auth=False):
+        self.out, self.inbox = out, queue.Queue(64)
+        self.window_auth = window_auth
+        self.write = out.buffer.write if hasattr(out, "buffer") else lambda data: out.write(data.decode())
+
+    @staticmethod
+    def escape(value):
+        return clean(value).replace("\\", "\\\\").replace("\t", "\\t").replace("\n", "\\n").encode("utf-8", "ignore")
+
+    @staticmethod
+    def cut(data, end):
+        if len(data) <= end:
+            return len(data)
+        while data[end] & 0xc0 == 0x80:
+            end -= 1
+        slash = end
+        while slash and data[slash - 1] == 92:
+            slash -= 1
+        return end - (end - slash) % 2
+
+    def cite_wire_ranges(self, text, continuation):
+        cursor = offset = 0
+        for first, last in AnswerMarkup.cite_spans(text, continuation):
+            offset += len(self.escape(text[cursor:first]))
+            stop = offset + len(self.escape(text[first:last]))
+            yield offset, stop
+            cursor, offset = last, stop
+
+    def emit(self, op, *fields, continuation=False):
+        values = [op.encode("ascii"), *map(self.escape, fields)]
+        if op == "H" and sum(map(len, values)) > self.limit - 7:
+            room = (self.limit - 8 - len(values[3])) // 5
+            values[1:] = [value if i == 3 else value[:self.cut(value, room)] for i, value in enumerate(values[1:], 1)]
+        head = b"\t".join(values[:-1]) + (b"\t" if fields else b"")
+        data, room = values[-1], self.limit - len(head) - 1
+        ranges = iter(())
+        if op == "R" and len(data) > room:
+            ranges = self.cite_wire_ranges(clean(fields[-1]), continuation)
+        start, span = 0, next(ranges, None)
+        while True:
+            end = self.cut(data, start + room)
+            while span and span[1] <= end:
+                span = next(ranges, None)
+            if span and start < span[0] < end < span[1]:
+                end = span[0]
+            self.write(head + data[start:end] + b"\n")
+            self.out.flush()
+            if op not in ("R", "N") or end == len(data):
+                return
+            start = end
+
+    def parse(self, raw):
+        op, *fields = raw[:-1].decode().split("\t")
+        if self.window_auth and op in ("U", "D", "A"):
+            if op == "U" and len(fields) == 2 and fields[0] in ("enroll", "unlock"):
+                if re.fullmatch(r"(?:[0-9a-f]{2}){12,256}", fields[1]):
+                    return op, fields[0], bytearray.fromhex(fields[1])
+            elif op == "D" and len(fields) == 3 and valid_choice(*fields):
+                return op, *fields
+            elif op == "A" and len(fields) == 1 and fields[0] in ("begin", "cancel"):
+                return op, fields[0]
+            return ("!",)
+        if op in ("I", "Q") and not fields:
+            return (op,)
+        if op == "O" and len(fields) == 2 and all(re.fullmatch(r"[0-9]{1,10}", s) for s in fields):
+            turn, number = map(int, fields)
+            if 0 < turn <= 0xffffffff and 0 < number <= 0xffffffff:
+                return op, turn, number
+        if op == "L" and len(fields) == 1:
+            value = fields[0]
+            if re.fullmatch(r"(?:[^\\]|\\[\\tn])*", value):
+                value = re.sub(r"\\([\\tn])", lambda match: self.escapes[match[1]], value)
+                if value == clean(value):
+                    return op, value
+        if op not in ("L", "I", "O", "Q") and re.fullmatch(r"[A-Za-z]", op):
+            return None
+        return ("!",)
+
+    def read(self):
+        # A raw descriptor read does not hold a Python stdio lock at shutdown.
+        pending, overflow = b"", False
+        while chunk := os.read(sys.stdin.fileno(), self.limit):
+            *lines, pending = (pending + chunk).split(b"\n")
+            for line in lines:
+                event = ("!",)
+                if not overflow and len(line) < self.limit:
+                    try:
+                        event = self.parse(line + b"\n")
+                    except UnicodeError:
+                        pass
+                overflow = False
+                if event is not None:
+                    self.inbox.put(event)
+                if event == ("Q",):
+                    return
+            if len(pending) >= self.limit:
+                pending, overflow = b"", True
+        if pending or overflow:
+            self.inbox.put(("!",))
+        self.inbox.put(("Q",))
+
+    def start(self):
+        threading.Thread(target=self.read, daemon=True).start()
+
+    def poll(self, timeout=0):
+        try:
+            return self.inbox.get(timeout=timeout)
+        except queue.Empty:
+            return None
+
+    def stream(self, turn):
+        return EventStream(self, turn)
+
+
+class EventStream:
+    def __init__(self, sink, turn):
+        self.sink, self.turn = sink, turn
+        self.markup, self.pending = AnswerMarkup(), ""
+
+    def feed(self, raw):
+        *lines, self.pending = (self.pending + clean(raw)).split("\n")
+        for line in lines:
+            block = self.markup.parse(line)
+            if block is None:
+                self.sink.emit("P", self.turn, "")
+                continue
+            kind, level, marker, runs = block
+            self.sink.emit("B", self.turn, kind, level, marker)
+            continuation = self.markup.ref_continuation or bool(REF_LINE.search(line))
+            for style, text in runs:
+                self.sink.emit("R", style, text, continuation=continuation)
+            self.sink.emit("E")
+        if self.pending:
+            self.sink.emit("P", self.turn, self.pending)
+
+    def finish(self):
+        if self.pending:
+            self.feed("\n")
+
+
+class UplinkError(Exception):
+    pass
+
+
+def valid_choice(engine, model, effort):
+    return (engine in ("codex", "claude") and isinstance(model, str) and
+            re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,63}", model) is not None and
+            isinstance(effort, str) and effort in ("low", "medium", "high", "xhigh", "max", "ultra"))
+
+
+class WindowAccess:
+    locks = {"unconfigured", "locked", "unlocked", "offline", "unsupported"}
+    providers = {"ready", "pending", "unavailable", "needs_login"}
+    reasons = {"none", "denied", "rate_limited", "busy", "capacity", "closed",
+               "enrollment_disabled", "storage_unverified", "link_lost", "update_required"}
+
+    def __init__(self, sink):
+        self.sink = sink
+        self.lock = "locked"
+        self.choices = set()
+        self.choice = None
+        self.refresh = False
+
+    def state(self, lock, codex="unavailable", claude="unavailable", reason="none"):
+        self.lock = lock
+        if lock != "unlocked":
+            self.choices.clear()
+            self.choice = None
+            self.refresh = False
+        self.sink.emit("K", lock, codex, claude, reason)
+
+    def receive(self, event, uplink):
+        op = event["op"]
+        if op == "ask.state":
+            lock, codex, claude, reason = (event.get(key) for key in ("lock", "codex", "claude", "reason"))
+            if (isinstance(lock, str) and lock in self.locks and
+                    all(isinstance(value, str) and value in self.providers for value in (codex, claude)) and
+                    isinstance(reason, str) and reason in self.reasons):
+                self.state(lock, codex, claude, reason)
+                if lock == "unlocked" and self.refresh:
+                    self.refresh = False
+                    uplink.send("ask.capabilities")
+        elif op == "ask.unlocked":
+            self.state("unlocked")
+            self.refresh = True
+            uplink.send("ask.status")
+        elif op == "ask.capabilities" and self.lock == "unlocked":
+            choices = event.get("tuples")
+            if not isinstance(choices, list) or len(choices) > 128:
+                return
+            rows, seen, preferred_engines = [], set(), set()
+            for row in choices:
+                if not isinstance(row, dict) or set(row) != {"engine", "model", "effort", "billing", "preferred"}:
+                    return
+                key = (row["engine"], row["model"], row["effort"])
+                billing, preferred = row["billing"], row["preferred"]
+                if (not valid_choice(*key) or key in seen or type(preferred) is not bool or
+                        billing != ("" if key[0] == "codex" else "plan") or
+                        (preferred and key[0] in preferred_engines)):
+                    return
+                seen.add(key)
+                if preferred:
+                    preferred_engines.add(key[0])
+                rows.append((*key, billing, int(preferred)))
+            self.choices = seen
+            if self.choice not in seen:
+                self.choice = None
+            for row in rows:
+                self.sink.emit("M", *row)
+            self.sink.emit("J")
+        elif op == "ask.codex.challenge" and self.lock == "unlocked":
+            url, code = event.get("url"), event.get("code")
+            if (isinstance(url, str) and url == "https://auth.openai.com/codex/device" and
+                    isinstance(code, str) and re.fullmatch(r"[A-Za-z0-9-]{4,32}", code)):
+                self.sink.emit("Y", url, code)
+        elif op == "ask.codex.state" and self.lock == "unlocked":
+            state = event.get("state")
+            if state in ("ready", "unavailable", "pending", "cancelled", "expired", "busy", "rejected", "idle", "closed"):
+                self.sink.emit("Z", state)
+                if state == "ready":
+                    self.refresh = True
+                    uplink.send("ask.status")
+        elif op == "ask.closed":
+            self.state("locked", reason="closed")
+
+
+class Uplink:
+    MAX_LINE = 4 * 1024 * 1024 + 4096
+
+    def __init__(self, path):
+        self.events = queue.Queue()
+        self.socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        try:
+            self.socket.settimeout(5)
+            self.socket.connect(path)
+            self.socket.settimeout(None)
+        except OSError:
+            self.socket.close()
+            raise UplinkError("Cannot reach the local chat broker. Check that d32chat is running and you belong to _d32users.") from None
+        self.reader = threading.Thread(target=self.read, daemon=True)
+        self.reader.start()
+
+    def send(self, op, **fields):
+        try:
+            self.socket.sendall((json.dumps(dict(op=op, **fields), ensure_ascii=False) + "\n").encode("utf-8"))
+        except OSError:
+            raise UplinkError("The local chat broker disconnected. Start Ask again after checking d32chat.") from None
+
+    def read(self):
+        pending = b""
+        try:
+            while True:
+                chunk = self.socket.recv(65536)
+                if not chunk:
+                    raise UplinkError("The local chat broker disconnected. Start Ask again after checking d32chat.")
+                pending += chunk
+                while b"\n" in pending:
+                    line, pending = pending.split(b"\n", 1)
+                    if len(line) > self.MAX_LINE:
+                        raise ValueError
+                    event = json.loads(line.decode("utf-8"))
+                    if not isinstance(event, dict) or not isinstance(event.get("op"), str):
+                        raise ValueError
+                    self.events.put(event)
+                if len(pending) > self.MAX_LINE:
+                    raise ValueError
+        except (ValueError, UnicodeError):
+            self.events.put(UplinkError("The local chat broker sent an unreadable event. Check its version."))
+        except (OSError, UplinkError):
+            self.events.put(UplinkError("The local chat broker disconnected. Start Ask again after checking d32chat."))
+
+    def receive(self, timeout=0.2):
+        try:
+            event = self.events.get(timeout=timeout)
+        except queue.Empty:
+            return None
+        if isinstance(event, Exception):
+            raise event
+        return event
+
+    def close(self):
+        try:
+            self.socket.shutdown(socket.SHUT_RDWR)
+        except OSError:
+            pass
+        self.socket.close()
+        self.reader.join(timeout=1)
+
+
+class History:
+    def __init__(self, path=None):
+        self.path = path
+        self.file = None
+
+    def enable(self):
+        if self.file is not None:
+            return
+        path = self.path or Path.home() / ".d32" / "ask-history"
+        path = Path(path)
+        path.parent.mkdir(mode=0o700, exist_ok=True)
+        directory = path.parent.lstat()
+        if not stat.S_ISDIR(directory.st_mode):
+            raise OSError("unsafe directory")
+        if hasattr(os, "getuid") and (directory.st_uid != os.getuid() or directory.st_mode & 0o077):
+            raise OSError("private directory required")
+        flags = os.O_WRONLY | os.O_CREAT | os.O_APPEND | getattr(os, "O_NOFOLLOW", 0)
+        fd = os.open(path, flags, 0o600)
+        try:
+            info = os.fstat(fd)
+            if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1:
+                raise OSError("private regular file required")
+            if hasattr(os, "getuid") and info.st_uid != os.getuid():
+                raise OSError("file owner mismatch")
+            os.fchmod(fd, 0o600) if hasattr(os, "fchmod") else os.chmod(path, 0o600)
+            self.file = os.fdopen(fd, "a", encoding="utf-8", newline="\n")
+        except Exception:
+            os.close(fd)
+            raise
+
+    def save(self, role, text):
+        if self.file is not None:
+            self.file.write(json.dumps({"role": role, "text": text}, ensure_ascii=False) + "\n")
+            self.file.flush()
+
+    def close(self):
+        if self.file is not None:
+            self.file.close()
+            self.file = None
+
+
+class Ask:
+    def __init__(self, uplink, args, out=sys.stdout, history=None, cite_maps=None, sink=None):
+        self.ui, self.args, self.out = uplink, args, out
+        self.history = history or History()
+        self.next_engine = args.engine
+        self.engine = args.engine
+        self.model = args.model or "relay default"
+        self.session = None
+        self.links = {}
+        self.ledger = []
+        self.active = False
+        self.stream = None
+        self.parts = []
+        self.had_delta = False
+        self.had_error = False
+        self.interrupted = False
+        self.closed_sessions = set()
+        self.cite_maps = cite_maps if cite_maps is not None else CiteMaps()
+        self.references = []
+        self.mod_summary = ""
+        self.sink, self.turn_number, self.turn_references = sink, 0, {}
+        self.window_access = WindowAccess(sink) if getattr(args, "window_auth", False) else None
+        self.started, self.leaving, self.notice_kind = False, False, "info"
+
+    def say(self, text="", kind=None):
+        if self.sink:
+            if self.started:
+                self.sink.emit("N", kind or ("error" if text.startswith("Error ") else self.notice_kind), text)
+        else:
+            print(clean(text), file=self.out, flush=True)
+
+    def header(self):
+        info = self.links.get(self.args.link, {})
+        state = info.get("state", "unknown")
+        if self.sink:
+            self.sink.emit("H", self.args.link, state, int(bool(info.get("paired"))),
+                           self.engine, self.model, self.mod_summary)
+            return
+        paired = "paired" if info.get("paired") else "not paired"
+        summary = "  [" + self.mod_summary + "]" if self.mod_summary else ""
+        self.say(f"Ask Deep32 | {self.args.link}: {state}, {paired} | engine: {self.engine} | model: {self.model}" + summary)
+
+    def event(self, event):
+        op, sid = event["op"], event.get("session")
+        if op.startswith("ask."):
+            if self.window_access is not None:
+                self.window_access.receive(event, self.ui)
+            return
+        if op == "status" and isinstance(event.get("links"), list):
+            for info in event["links"]:
+                if isinstance(info, dict) and isinstance(info.get("link"), str):
+                    self.links[info["link"]] = info
+            return
+        if op == "link" and isinstance(event.get("info"), dict):
+            info = event["info"]
+            if isinstance(info.get("link"), str):
+                self.links[info["link"]] = info
+                if self.sink and self.started and info["link"] == self.args.link:
+                    self.header()
+                    if self.window_access is not None and info.get("state") != "ACTIVE":
+                        self.window_access.state("offline", reason="link_lost")
+                    elif self.window_access is not None and self.window_access.lock == "offline":
+                        self.ui.send("ask.status", link=self.args.link)
+            return
+        if op == "session.closed":
+            if isinstance(sid, str):
+                self.closed_sessions.add(sid)
+            if sid == self.session:
+                self.finish_answer()
+                self.active = False
+                self.session = None
+                self.say("Session closed. Your next question will start a fresh session.")
+            return
+        if sid is not None and self.session is not None and sid != self.session:
+            return
+        if op == "error":
+            self.finish_answer("error")
+            self.had_error = True
+            self.active = False
+            code = event.get("code")
+            name, message = ERRORS.get(code, ("UNKNOWN", "The relay reported an unknown error. Check its version."))
+            number = code if isinstance(code, int) else "?"
+            self.say(f"Error {number} {name}: {message}")
+            if code == 11:
+                self.session = None
+                if self.window_access is not None:
+                    self.window_access.state("offline", reason="link_lost")
+            elif code == 15 and self.window_access is not None:
+                self.window_access.state("locked")
+        elif op == "session.opened" and isinstance(sid, str):
+            self.session = sid
+            if isinstance(event.get("model"), str):
+                self.model = event["model"]
+        elif op == "mcp" and sid == self.session:
+            # Discard all other fields: a ledger can never retain result text.
+            self.ledger.append({key: event.get(key) for key in ("method", "tool", "result", "bytes", "ms")})
+        elif op in ("agent.delta", "agent.final") and self.active and sid == self.session:
+            text = event.get("text")
+            if not isinstance(text, str):
+                return
+            if op == "agent.delta":
+                self.had_delta = True
+                self.parts.append(clean(text))
+                self.stream.feed(text)
+            elif not self.had_delta:
+                # agent.final is the complete answer, not another delta.
+                self.parts.append(clean(text))
+                self.stream.feed(text)
+        elif op == "turn.completed" and self.active and sid == self.session:
+            status = event.get("status")
+            self.finish_answer(status if status in ("interrupted", "failed") else "completed")
+            self.active = False
+            if status == "interrupted":
+                self.say("Turn interrupted.")
+            elif status == "failed":
+                self.say("The turn failed. Check /status before trying again.")
+            self.say()
+        elif op == "status" and sid == self.session and isinstance(event.get("code"), str):
+            self.say("Relay status: " + event["code"])
+
+    def finish_answer(self, status="closed"):
+        if self.stream is not None:
+            self.stream.finish()
+            self.stream = None
+            answer = "".join(self.parts)
+            if answer:
+                self.save_history("assistant", answer)
+            self.references = [self.cite_maps.resolve(cite) for cite in extract_cites(answer)]
+            if self.sink:
+                self.turn_references[self.turn_number] = self.references
+                if len(self.turn_references) > 64:
+                    del self.turn_references[self.turn_number - 64]
+                for number, reference in enumerate(self.references, 1):
+                    label, marking = self.reference_label(reference)
+                    self.sink.emit("C", self.turn_number, number, "library" if reference["entry"] else "absent",
+                                   int(reference["fallback"]), marking, label)
+                self.sink.emit("S", 0)
+                self.sink.emit("F", self.turn_number, status)
+            elif self.references:
+                self.show_references()
+            self.parts = []
+
+    @staticmethod
+    def reference_label(reference):
+        cite, entry = reference["cite"], reference["entry"]
+        if entry is None:
+            return cite, ""
+        title = clean(entry["title"]).replace("\n", " ").replace("\t", " ")
+        marking = ""
+        return f"{title} [{cite}]", marking
+
+    def show_references(self):
+        if not self.references:
+            self.say("No Library references in the last answer.")
+            return
+        self.say("Library:")
+        for index, reference in enumerate(self.references, 1):
+            cite, entry = reference["cite"], reference["entry"]
+            if entry is None:
+                self.say(f"[{index}] {cite} (not in the Library)")
+                continue
+            label, marking = self.reference_label(reference)
+            if reference["fallback"]:
+                label += " (document; section not mapped)"
+            if marking:
+                label += f" [{marking}]"
+            if not self.sink and osc8_supported(self.out):
+                self.out.write(f"[{index}] \x1b]8;;{entry['uri']}\x1b\\{label}\x1b]8;;\x1b\\\n")
+                self.out.flush()
+            else:
+                self.say(f"[{index}] {label}")
+
+    def save_history(self, role, text):
+        try:
+            self.history.save(role, text)
+        except OSError:
+            self.history.close()
+            self.say("History could not be saved and has been switched off.")
+
+    def wait(self, predicate, seconds=30):
+        end = time.monotonic() + seconds
+        while time.monotonic() < end:
+            event = self.ui.receive(min(0.2, max(0, end - time.monotonic())))
+            if event is not None:
+                self.event(event)
+                if predicate(event):
+                    return event
+        raise UplinkError("The local chat broker did not reply in time. Check d32chat and the link.")
+
+    def status(self, detailed=False):
+        self.ui.send("status")
+        self.wait(lambda e: e["op"] == "status" and "links" in e, 5)
+        self.header()
+        if detailed:
+            info = self.links.get(self.args.link, {})
+            for label, key in (("Models", "models"), ("Efforts", "efforts")):
+                values = info.get(key)
+                if isinstance(values, list):
+                    self.say(label + ": " + (", ".join(str(v) for v in values) or "not advertised"))
+            signed = info.get("signed_in")
+            self.say("Relay sign-in: " + ("yes" if signed is True else "no" if signed is False else "unknown"))
+
+    def open_session(self):
+        self.had_error = False
+        self.ledger = []
+        if self.window_access is not None:
+            if self.window_access.lock != "unlocked" or self.window_access.choice not in self.window_access.choices:
+                self.say("Unlock Ask and choose an available engine, model and strength.", "error")
+                return False
+            self.engine, self.model, effort = self.window_access.choice
+            fields = {"link": self.args.link, "engine": self.engine, "model": self.model, "effort": effort}
+        else:
+            self.engine = self.next_engine
+            self.next_engine = "codex"
+            self.model = self.args.model or "relay default"
+            fields = {"link": self.args.link, "engine": self.engine}
+            for key in ("model", "effort"):
+                if getattr(self.args, key):
+                    fields[key] = getattr(self.args, key)
+        self.ui.send("session.open", **fields)
+        event = self.wait(lambda e: e["op"] in ("session.opened", "error"))
+        if event["op"] == "error":
+            # Refused opens have a reserved id, then a session.closed event.
+            sid = event.get("session")
+            if isinstance(sid, str) and sid not in self.closed_sessions:
+                self.wait(lambda e: e["op"] == "session.closed" and e.get("session") == sid, 5)
+            return False
+        self.header()
+        return True
+
+    def close_session(self):
+        self.drain()
+        if self.session is None:
+            return
+        sid = self.session
+        self.ui.send("session.close", session=sid)
+        # The UI processes requests in order. Its status reply is a barrier
+        # after any synchronous SESSION refusal for this close; session.closed
+        # itself can arrive first from the link child, before that refusal.
+        self.ui.send("status")
+        closed = barrier = False
+        end = time.monotonic() + 5
+        while time.monotonic() < end:
+            event = self.ui.receive(0.1)
+            if event is None:
+                continue
+            if event["op"] == "error" and event.get("code") == 7 and event.get("session") in (None, sid):
+                # The broker may have removed it between our drain and close.
+                self.session = None
+                closed = True
+            else:
+                self.event(event)
+                if event["op"] == "session.closed" and event.get("session") == sid:
+                    closed = True
+                if event["op"] == "status" and "links" in event:
+                    barrier = True
+            if closed and barrier:
+                return
+        raise UplinkError("The local chat broker did not close the session in time. Check d32chat.")
+
+    def drain(self):
+        while True:
+            pending = self.ui.receive(0)
+            if pending is None:
+                break
+            self.event(pending)
+
+    def interrupt(self):
+        if self.active and self.session and not self.interrupted:
+            self.ui.send("turn.interrupt", session=self.session)
+            self.interrupted = True
+            if self.stream is not None and not self.sink:
+                self.stream.finish()
+            self.say("Interrupt requested; waiting for the relay.")
+
+    def turn(self, text, interrupt_after=None):
+        if self.sink and len(self.sink.escape(text)) + len(str(self.turn_number + 1)) + 4 > self.sink.limit:
+            self.input_event(("!",))
+            return
+        parsed = mods.split_mods(text)
+        resolved = mods.resolve_research_turn(text, parsed)
+        if resolved["Error"]:
+            self.say(resolved["Error"])
+            return
+        previous_summary = self.mod_summary
+        self.mod_summary = mods.get_mod_summary(parsed) if parsed["Has"] else ""
+        if self.session is not None and (parsed["Has"] or previous_summary):
+            self.header()
+        if self.session is None and not self.open_session():
+            return
+        self.save_history("user", text)
+        self.active, self.interrupted, self.had_delta = True, False, False
+        self.had_error = False
+        self.parts = []
+        if self.sink:
+            self.turn_number += 1
+            self.sink.emit("Q", self.turn_number, text)
+            self.sink.emit("S", 1)
+            self.stream = self.sink.stream(self.turn_number)
+        else:
+            self.stream = WrappedStream(self.out)
+        self.ui.send("turn.start", session=self.session, text=resolved["Text"])
+        started = time.monotonic()
+        interrupted_at = None
+        while self.active:
+            try:
+                if interrupt_after is not None and not self.interrupted and time.monotonic() - started >= interrupt_after:
+                    self.interrupt()
+                    interrupted_at = time.monotonic()
+                if self.sink and (record := self.sink.poll()):
+                    self.input_event(record)
+                    if self.interrupted:
+                        interrupted_at = interrupted_at or time.monotonic()
+                event = self.ui.receive(0.1)
+                if event is not None:
+                    self.event(event)
+                if interrupted_at is not None and self.active and time.monotonic() - interrupted_at > 10:
+                    self.say("The interrupt was not acknowledged; closing this session.")
+                    if self.sink:
+                        self.finish_answer("interrupted")
+                    self.close_session()
+                    self.active = False
+            except KeyboardInterrupt:
+                self.interrupt()
+                interrupted_at = interrupted_at or time.monotonic()
+        if self.interrupted and self.engine == "claude" and self.session is not None:
+            # Claude interrupt ends its worker; its conversation cannot resume.
+            self.close_session()
+
+    def open_number(self, references, number):
+        if number > len(references):
+            self.say("That reference number is not in the last answer. Use /refs.")
+            return
+        reference = references[number - 1]
+        if reference["entry"] is None:
+            self.say(reference["cite"] + " is not in the Library.")
+            return
+        try:
+            open_reference(reference["entry"]["uri"])
+            self.say(f"Opening Library reference {number}.")
+        except OSError:
+            self.say("Library could not be started. Check that the Library launcher is installed.")
+
+    def input_event(self, record):
+        op, *fields = record
+        if op == "!":
+            self.say("Ask ignored a malformed window request.", "error")
+        elif op == "O":
+            turn, number = fields
+            if turn not in self.turn_references:
+                self.say("That answer is no longer available. Ask again.", "error")
+            else:
+                self.open_number(self.turn_references[turn], number)
+        elif op == "I" or op == "Q":
+            self.leaving = self.leaving or op == "Q"
+            self.interrupt()
+        elif op in ("U", "D", "A") and self.window_access is not None:
+            self.window_request(op, fields)
+        elif self.active:
+            self.say("A turn is running. Cancel it or wait.")
+        else:
+            line = fields[0]
+            if line.lstrip(mods.WHITESPACE).startswith("/"):
+                self.notice_kind = "cmd"
+            try:
+                keep = self.command(line)
+                self.leaving = self.leaving or not keep
+            finally:
+                self.notice_kind = "info"
+
+    def window_request(self, op, fields):
+        access = self.window_access
+        if op == "U":
+            mode, password = fields
+            try:
+                expected = "unconfigured" if mode == "enroll" else "locked"
+                if access.lock == expected:
+                    self.ui.send("ask." + mode, password_b64=base64.b64encode(password).decode("ascii"))
+            finally:
+                password[:] = b"\x00" * len(password)
+        elif access.lock == "unlocked" and op == "D" and not self.active:
+            choice = tuple(fields)
+            if choice in access.choices and choice != access.choice:
+                self.close_session()
+                access.choice = choice
+        elif access.lock == "unlocked" and op == "A" and not self.active:
+            self.ui.send("ask.codex.login." + fields[0])
+
+    def command(self, line, interrupt_after=None):
+        # A closure can follow turn.completed (notably a Claude interrupt).
+        self.drain()
+        line = line.strip(mods.WHITESPACE)
+        if not line:
+            return True
+        if line in ("/quit", "/exit"):
+            return False
+        if line == "/help":
+            self.say(HELP)
+        elif line in ("/mods", "/flags", "/key"):
+            self.say(mods.mods_key())
+        elif line == "/status":
+            self.status(detailed=True)
+        elif line == "/new":
+            self.close_session()
+            self.open_session()
+        elif line.startswith("/engine"):
+            if self.window_access is not None:
+                self.say("Use the Engine, Model and Strength menus in this Ask window.")
+                return True
+            parts = line.split()
+            if len(parts) != 2 or parts[0] != "/engine" or parts[1] not in ("codex", "claude"):
+                self.say("Use /engine codex or /engine claude.")
+            else:
+                self.next_engine = parts[1]
+                self.say(f"Engine {self.next_engine} selected for the NEXT session. Use /new to start it.")
+        elif line == "/ledger":
+            if not self.ledger:
+                self.say("No RAG calls recorded for this session.")
+            for index, entry in enumerate(self.ledger, 1):
+                tool = entry["tool"] or entry["method"] or "unknown"
+                result = entry["result"] if entry["result"] in ("ok", "error", "refused", "budget", "cancelled") else "unknown"
+                size = entry["bytes"] if type(entry["bytes"]) is int and entry["bytes"] >= 0 else "?"
+                ms = entry["ms"] if type(entry["ms"]) is int and entry["ms"] >= 0 else "?"
+                self.say(f"{index}. {tool} | {result} | {size} bytes | {ms} ms")
+        elif line == "/refs" or line == "/open":
+            self.show_references()
+        elif line.startswith("/open ") or line.startswith("/open\t"):
+            parts = line.split()
+            if len(parts) != 2 or not re.fullmatch(r"[1-9][0-9]{0,8}", parts[1]):
+                self.say("Use /open N with a reference number, or /open to list them.")
+            else:
+                self.open_number(self.references, int(parts[1]))
+        elif line.startswith("/history"):
+            if line == "/history on":
+                try:
+                    self.history.enable()
+                    self.say("History on: questions and answers will be saved in ~/.d32/ask-history (0600).")
+                except OSError:
+                    self.say("History could not be enabled. Check that ~/.d32 is a private directory owned by you.")
+            elif line == "/history off":
+                self.history.close()
+                self.say("History off.")
+            else:
+                self.say("Use /history on or /history off.")
+        elif line.startswith("/"):
+            self.say("Unknown command. Use /help for the command list.")
+        else:
+            self.turn(line, interrupt_after)
+        return True
+
+    def run(self, script=None):
+        self.status()
+        self.started = True
+        self.say("/help for commands. /mods for question modifiers (| $hv). History is off.")
+        if self.sink:
+            self.sink.start()
+            if self.window_access is not None:
+                self.ui.send("ask.status", link=self.args.link)
+            while not self.leaving:
+                self.drain()
+                if record := self.sink.poll(0.1):
+                    self.input_event(record)
+        elif script is not None:
+            for line, delay in script:
+                self.say("You> " + line)
+                if not self.command(line, delay):
+                    break
+        else:
+            while True:
+                try:
+                    line = input("You> ")
+                except EOFError:
+                    self.say()
+                    break
+                except KeyboardInterrupt:
+                    self.say("\nNo turn is running. Use /quit to leave.")
+                    continue
+                if not self.command(line):
+                    break
+
+
+def script_lines(path):
+    """Plain input lines, or JSON {text, interrupt_after} for scripted interrupts."""
+    with open(path, encoding="utf-8") as source:
+        for number, line in enumerate(source, 1):
+            line = line.rstrip("\r\n")
+            delay = None
+            if line.startswith("{"):
+                try:
+                    item = json.loads(line)
+                    text = item["text"]
+                    delay = item.get("interrupt_after")
+                    if not isinstance(text, str) or (delay is not None and
+                        (type(delay) not in (int, float) or not 0 <= delay <= 3600)):
+                        raise ValueError
+                    line = text
+                except (ValueError, TypeError, KeyError):
+                    raise UplinkError(f"Script line {number} is invalid; use plain input or a text/interrupt_after object.") from None
+            yield line, delay
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--socket", default="/var/run/d32/uplink.sock", help="local UNIX socket (default: %(default)s)")
+    parser.add_argument("--link", default="home")
+    parser.add_argument("--engine", choices=("codex", "claude"), default="codex")
+    parser.add_argument("--model", help="relay model; omitted by default")
+    parser.add_argument("--effort", help="relay effort; omitted by default")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--script", metavar="FILE", help="read UTF-8 input lines instead of prompting")
+    mode.add_argument("--events", action="store_true", help="use the native Ask window protocol")
+    parser.add_argument("--window-auth", action="store_true", help=argparse.SUPPRESS)
+    args = parser.parse_args(argv)
+    if args.window_auth and not args.events:
+        parser.error("--window-auth requires --events")
+    ui = ask = None
+    sink = EventSink(sys.stdout, args.window_auth) if args.events else None
+    result = 0
+    try:
+        if sink:
+            sink.emit("V", 1)
+        ui = Uplink(args.socket)
+        ask = Ask(ui, args, sink=sink) if sink else Ask(ui, args)
+        ask.run(script_lines(args.script) if args.script else None)
+    except (UplinkError, OSError) as error:
+        message = str(error) if isinstance(error, UplinkError) else "Ask could not read its script or local history."
+        if sink:
+            try:
+                if ask:
+                    ask.finish_answer("error")
+                sink.emit("X", message)
+            except OSError:
+                pass
+        else:
+            print(message, file=sys.stderr)
+        result = 1
+    except KeyboardInterrupt:
+        if not sink:
+            print("\nLeaving Ask Deep32.")
+    finally:
+        if ask is not None:
+            try:
+                ask.finish_answer()
+                ask.close_session()
+                if ask.window_access is not None:
+                    ui.send("ask.close")
+            except (UplinkError, OSError, KeyboardInterrupt):
+                result = 1
+            ask.history.close()
+        if ui is not None:
+            ui.close()
+    return result
+
+
+if __name__ == "__main__":
+    sys.exit(main())

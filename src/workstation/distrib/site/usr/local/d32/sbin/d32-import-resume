@@ -1,0 +1,11 @@
+#!/bin/ksh
+# /usr/local/d32/sbin/d32-import-resume: root's half of Try Again. No arguments: it runs the disc 2 importer with
+# --resume and nothing else (the importer refuses when no import can be resumed). Exit: the importer's.
+[ $# -eq 0 ] || exit 2
+if [ -z "${D32_ROOT:-}" ]; then
+	[ "$(id -u)" = 0 ] || exit 3
+	PATH=/bin:/usr/bin:/sbin:/usr/sbin
+fi
+imp=${D32_ROOT:-}/usr/local/d32/libexec/d32-content-import
+[ -x "$imp" ] || exit 2
+exec "$imp" --resume </dev/null

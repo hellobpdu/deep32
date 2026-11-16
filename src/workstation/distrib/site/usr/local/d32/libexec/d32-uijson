@@ -1,0 +1,666 @@
+#!/usr/local/bin/python3.14 -I
+"""d32-uijson: turns the machine records the Workstation screens show into finished lines of text.
+
+  d32-uijson check REPORT                 check an import report against its contract (exit 0, or 1 and one line
+                                          per fault on standard output)
+  d32-uijson report REPORT [--now T]      the import report window's lines: KEY|TEXT[|TEXT]... (no field holds |)
+  d32-uijson candidates < discover.json   the pairing terminal's list of machines found (deep32-pair discover)
+  d32-uijson result < result.json         one pairing result (deep32-pair join or serve)
+  d32-uijson peers < peers.json           the paired machines (deep32-pair peers)
+
+Every word comes from the strings table (--strings FILE, default /usr/local/share/d32/setup/strings.tsv). Standard
+library only; Python 3.12 or later. It reads what it is given and writes only to standard output.
+"""
+import json
+import os
+import re
+import sys
+import time
+
+STRINGS = '/usr/local/share/d32/setup/strings.tsv'
+
+STAGES = ('disc', 'signature', 'files', 'space', 'kb', 'library', 'blocks', 'switch', 'check', 'finish')
+BLOCKS = ('block-rfc', 'block-cisco', 'block-powershell', 'block-system')
+TOP = ('format', 'format_version', 'node', 'import_id', 'attempt', 'resumed_from', 'report_seq', 'started',
+       'written', 'finished', 'heartbeat', 'pid', 'state', 'outcome', 'stage', 'source', 'progress', 'stages',
+       'units', 'kb', 'rollback', 'resume', 'errors', 'warnings')
+SOURCE = ('device', 'disc_version', 'manifest_sha256', 'signature', 'signer', 'disc_bytes')
+PROGRESS = ('done_bytes', 'total_bytes', 'rate', 'free_bytes_before', 'free_bytes_now', 'needed_bytes')
+STAGE_KEYS = ('id', 'state', 'started', 'finished', 'done_bytes', 'total_bytes', 'done_items', 'total_items',
+              'error')
+UNIT_KEYS = ('id', 'kind', 'generation', 'bytes', 'sha256', 'parts', 'parts_checked', 'state', 'kb_fingerprint',
+             'error')
+KB_KEYS = ('generation', 'fingerprint', 'created', 'counts', 'embedding', 'engine_ok', 'meaning_search', 'previous')
+ROLLBACK = ('available', 'kb_generation', 'library', 'done')
+RESUME = ('resumable', 'next_stage', 'units_done', 'bytes_kept')
+PROBLEM = ('id', 'code', 'stage', 'unit', 'path', 'args', 'at')
+ERRORS = {
+    'IMPORT_NO_DISC': ('device',), 'IMPORT_NOT_DISC2': ('missing',), 'IMPORT_MOUNT': ('device',),
+    'IMPORT_GPGV_MISSING': (), 'IMPORT_SIGNATURE': (), 'IMPORT_MANIFEST': (),
+    'IMPORT_WRONG_SYSTEM': ('system_version', 'wanted'), 'IMPORT_FILE_MISSING': (),
+    'IMPORT_FILE_SIZE': ('expected', 'found'), 'IMPORT_FILE_HASH': (), 'IMPORT_READ': (),
+    'IMPORT_SPACE': ('needed_bytes', 'free_bytes'), 'IMPORT_WRITE': (), 'IMPORT_KB_FORM': (),
+    'IMPORT_KB_ENGINE': ('engine', 'min', 'max'), 'IMPORT_PACK_FORM': (),
+    'IMPORT_PACK_BINDING': ('pack_fingerprint', 'kb_fingerprint'), 'IMPORT_SWITCH': (), 'IMPORT_CHECK': ('what',),
+    'IMPORT_INTERNAL': (),
+}
+WARNINGS = {'IMPORT_RESUMED': ('from',), 'IMPORT_MEANING_WAIT': (), 'IMPORT_MEANING_MISMATCH': ('served', 'wanted'),
+            'IMPORT_OLD_KEPT': ('bytes',)}
+STAGE_STATES = ('pending', 'running', 'done', 'failed', 'skipped')
+UNIT_STATES = ('pending', 'checking', 'checked', 'installing', 'installed', 'current', 'kept', 'skipped', 'failed')
+
+TIME = re.compile(r'^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$')
+HEX64 = re.compile(r'^[0-9a-f]{64}$')
+IMPORT_ID = re.compile(r'^[0-9]{8}T[0-9]{6}Z-[0-9a-f]{8}$')
+VERSION = re.compile(r'^[A-Za-z0-9._+-]{1,64}$')
+UNIT_ID = re.compile(r'^(kb|lib-[a-z0-9-]{1,32}|cisco-public|block-(rfc|cisco|powershell|system))$')
+ARG = re.compile(r'^[A-Za-z0-9._:/+-]{1,128}$')
+SECRETS = (re.compile(r'[0-9a-fA-F]{32,}'), re.compile(r'tskey-'), re.compile(r'PRIVATE KEY'),
+           re.compile(r'https?://login\.tailscale\.com'), re.compile(r'\$2[aby]\$'), re.compile(r'@'),
+           re.compile(r'\b100\.(6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])\.[0-9]+\.[0-9]+\b'),
+           re.compile(r'\.ts\.net'))
+HASH_FIELDS = {'manifest_sha256', 'sha256', 'signer'}   # labelled hashes and the public key fingerprint
+
+
+# ---------------------------------------------------------------------------------------------- strings
+
+class Words:
+    def __init__(self, path):
+        self.t = {}
+        try:
+            with open(path, encoding='ascii') as f:
+                for line in f.read().split('\n'):
+                    if '\t' in line:
+                        k, v = line.split('\t', 1)
+                        self.t[k] = v.split('\t', 1)[0]
+        except (OSError, UnicodeError):
+            pass
+
+    def has(self, key):
+        return key in self.t
+
+    def __call__(self, string_id, **values):
+        s = self.t.get(string_id, string_id)
+        for k, v in values.items():
+            s = s.replace('{' + k + '}', str(v))
+        return s.replace('{nl}', '\n')
+
+
+def size(n):
+    if not isinstance(n, int) or isinstance(n, bool) or n < 0:
+        return '?'
+    if n < 1073741824:
+        return '%d MB' % ((n + 524288) // 1048576)
+    t = (n * 10 + 536870912) // 1073741824
+    return '%d.%d GB' % (t // 10, t % 10)
+
+
+def duration(s):
+    m = max(1, -(-int(s) // 60))
+    if m < 60:
+        return '%d min' % m
+    return '%d h %d min' % (m // 60, m % 60)
+
+
+def is_time(t):
+    """A UTC time of the contract that is also a real date and time (2026-02-30T25:00:00Z has the shape, not the date)."""
+    if not isinstance(t, str) or not TIME.match(t):
+        return False
+    try:
+        time.strptime(t, '%Y-%m-%dT%H:%M:%SZ')
+    except ValueError:
+        return False
+    return True
+
+
+def clock(t):
+    if not is_time(t):
+        return '?'
+    st = time.strptime(t, '%Y-%m-%dT%H:%M:%SZ')
+    return time.strftime('%d %b %H:%M UTC', st)
+
+
+def utc_epoch(t):
+    import calendar
+    return calendar.timegm(time.strptime(t, '%Y-%m-%dT%H:%M:%SZ'))
+
+
+def grouped_fp(fp):
+    if not isinstance(fp, str) or not re.match(r'^[0-9A-F]{40}$', fp):
+        return '?'
+    g = [fp[i:i + 4] for i in range(0, 40, 4)]
+    return ' '.join(g[:5]) + '  ' + ' '.join(g[5:])
+
+
+# ---------------------------------------------------------------------------------------------- the contract check
+
+def check(raw):
+    """Faults of one report, as plain lines (empty list: the report keeps every rule a single file can show). Never
+    raises: a value whose type no rule expected (a list where a code belongs, and so on) is a fault like any other."""
+    try:
+        return _check(raw)
+    except Exception:
+        return ['a value has a type the contract does not allow']
+
+
+def _check(raw):
+    out = []
+
+    def bad(msg):
+        out.append(msg)
+
+    try:
+        text = raw.decode('ascii')
+    except UnicodeError:
+        return ['not ASCII']
+    try:
+        r = json.loads(text)
+    except ValueError:
+        return ['not JSON']
+    if not isinstance(r, dict):
+        return ['not one JSON object']
+    if text != json.dumps(r, indent=2) + '\n':
+        bad('not in the canonical form: two-space indent, LF, one final LF, ASCII escapes')
+    if tuple(r) != TOP:
+        return out + ['top-level keys are not exactly, and in the order of, the contract']
+    if r['format'] != 'deep32-import-report' or r['format_version'] != 1:
+        return out + ['unknown format or version']
+
+    def isint(v, lo=0):
+        return isinstance(v, int) and not isinstance(v, bool) and v >= lo
+
+    def opt_time(k, v):
+        if v is not None and not is_time(v):
+            bad('%s is not a UTC time' % k)
+
+    def keys(obj, want, where):
+        if not isinstance(obj, dict) or tuple(obj) != want:
+            bad('%s: keys are not exactly %s' % (where, ', '.join(want)))
+            return False
+        return True
+
+    if r['node'] not in ('workstation', 'forge'):
+        bad('node')
+    if not (isinstance(r['import_id'], str) and IMPORT_ID.match(r['import_id'])):
+        bad('import_id')
+    if not isint(r['attempt'], 1):
+        bad('attempt')
+    if r['resumed_from'] is not None and not (isinstance(r['resumed_from'], str) and IMPORT_ID.match(r['resumed_from'])):
+        bad('resumed_from')
+    if (r['attempt'] == 1) != (r['resumed_from'] is None):
+        bad('attempt and resumed_from disagree')
+    if not isint(r['report_seq'], 1):
+        bad('report_seq')
+    for k in ('started', 'written', 'finished', 'heartbeat'):
+        opt_time(k, r[k])
+    if r['started'] is None or r['written'] is None:
+        bad('started and written are required')
+    if r['state'] not in ('running', 'done', 'failed'):
+        bad('state')
+    if r['stage'] not in STAGES:
+        bad('stage')
+    if r['state'] == 'running':
+        if r['outcome'] is not None or r['finished'] is not None:
+            bad('a running report has no outcome and no finished time')
+        if not isint(r['pid'], 1):
+            bad('a running report names its pid')
+        if r['heartbeat'] != r['written']:
+            bad('heartbeat must equal written while running')
+    else:
+        if r['finished'] is None:
+            bad('a finished report has a finished time')
+        if r['pid'] is not None:
+            bad('a finished report has pid null')
+        want = ('imported', 'already-current') if r['state'] == 'done' else ('failed', 'rolled-back')
+        if r['outcome'] not in want:
+            bad('outcome %r does not fit state %s' % (r['outcome'], r['state']))
+    if r['state'] == 'failed' and not r['errors']:
+        bad('a failed report holds at least one error')
+
+    s = r['source']
+    if keys(s, SOURCE, 'source'):
+        if not (isinstance(s['device'], str) and re.match(r'^(cd[0-9]|sr[0-9]|loop[0-9]{1,3}|folder)$', s['device'])):
+            bad('source.device')
+        if s['signature'] not in ('unchecked', 'good', 'bad'):
+            bad('source.signature')
+        if s['manifest_sha256'] is not None and not (isinstance(s['manifest_sha256'], str) and HEX64.match(s['manifest_sha256'])):
+            bad('source.manifest_sha256')
+        if s['signature'] != 'good':
+            if s['disc_version'] is not None or s['signer'] is not None or s['disc_bytes'] is not None:
+                bad('nothing from the manifest may be reported before the signature is good')
+        else:
+            if not (isinstance(s['disc_version'], str) and VERSION.match(s['disc_version'])):
+                bad('source.disc_version')
+            if not (isinstance(s['signer'], str) and re.match(r'^[0-9A-F]{40}$', s['signer'])):
+                bad('source.signer')
+            if s['disc_bytes'] is not None and not isint(s['disc_bytes']):
+                bad('source.disc_bytes')
+
+    p = r['progress']
+    if keys(p, PROGRESS, 'progress'):
+        for k in PROGRESS:
+            if k in ('done_bytes', 'total_bytes'):
+                if not isint(p[k]):
+                    bad('progress.' + k)
+            elif p[k] is not None and not isint(p[k]):
+                bad('progress.' + k)
+        if isint(p['done_bytes']) and isint(p['total_bytes']) and p['done_bytes'] > p['total_bytes'] > 0:
+            bad('progress.done_bytes is above total_bytes')
+
+    st = r['stages']
+    if not isinstance(st, list) or len(st) != len(STAGES):
+        bad('stages: every stage, in order')
+    else:
+        running = 0
+        failed_at = None
+        for i, g in enumerate(st):
+            if not keys(g, STAGE_KEYS, 'stages[%d]' % i):
+                continue
+            if g['id'] != STAGES[i]:
+                bad('stages[%d] is %r, the contract has %s there' % (i, g['id'], STAGES[i]))
+            if g['state'] not in STAGE_STATES:
+                bad('stages[%d].state' % i)
+            opt_time('stages[%d].started' % i, g['started'])
+            opt_time('stages[%d].finished' % i, g['finished'])
+            for k in ('done_bytes', 'total_bytes', 'done_items', 'total_items'):
+                if g[k] is not None and not isint(g[k]):
+                    bad('stages[%d].%s' % (i, k))
+            if g['state'] == 'running':
+                running += 1
+            if failed_at is not None and g['state'] != 'pending':
+                bad('stages after a failed stage stay pending')
+            if g['state'] == 'failed':
+                failed_at = i
+                if not (isinstance(g['error'], str) and re.match(r'^E[1-9][0-9]*$', g['error'])):
+                    bad('a failed stage names its error')
+            elif g['error'] is not None:
+                bad('stages[%d].error is set on a stage that did not fail' % i)
+        if running > 1:
+            bad('more than one stage is running')
+        ids = [g.get('id') for g in st if isinstance(g, dict)]
+        states = [g.get('state') for g in st if isinstance(g, dict)]
+        if 'running' in states:
+            k = states.index('running')
+            if any(x not in ('done', 'skipped') for x in states[:k]):
+                bad('stages before the running one are done or skipped')
+            if r['stage'] != ids[k]:
+                bad('stage names the running stage')
+        if 'failed' in states:
+            k = states.index('failed')
+            if any(x not in ('done', 'skipped') for x in states[:k]):
+                bad('stages before the failed one are done or skipped')
+            if r['stage'] != ids[k]:
+                bad('stage names the failed stage')
+
+    us = r['units']
+    if not isinstance(us, list):
+        bad('units')
+    else:
+        order = []
+        for i, u in enumerate(us):
+            if not keys(u, UNIT_KEYS, 'units[%d]' % i):
+                continue
+            if not (isinstance(u['id'], str) and UNIT_ID.match(u['id'])):
+                bad('units[%d].id' % i)
+                continue
+            kind = ('kb' if u['id'] == 'kb' else 'library' if u['id'].startswith('lib-') else
+                    'index' if u['id'] == 'cisco-public' else 'block')
+            if u['kind'] != kind:
+                bad('units[%d].kind' % i)
+            if u['state'] not in UNIT_STATES:
+                bad('units[%d].state' % i)
+            if not isint(u['bytes']) or not isint(u['parts'], 1) or not isint(u['parts_checked']) or \
+                    (isint(u['parts']) and isint(u['parts_checked']) and u['parts_checked'] > u['parts']):
+                bad('units[%d] sizes or parts' % i)
+            if not (isinstance(u['sha256'], str) and HEX64.match(u['sha256'])):
+                bad('units[%d].sha256' % i)
+            if u['generation'] is not None and not (isinstance(u['generation'], str) and VERSION.match(u['generation'])):
+                bad('units[%d].generation' % i)
+            if kind in ('library', 'index'):
+                if u['kb_fingerprint'] is not None and not (isinstance(u['kb_fingerprint'], str) and re.match(r'^[0-9a-f]{16}$', u['kb_fingerprint'])):
+                    bad('units[%d].kb_fingerprint' % i)
+            elif u['kb_fingerprint'] is not None:
+                bad('units[%d].kb_fingerprint is only for library and index units' % i)
+            if (u['state'] == 'failed') != (u['error'] is not None):
+                bad('units[%d]: a failed unit names its error, and only a failed one' % i)
+            rank = 0 if kind == 'kb' else 1 if kind == 'library' else 2 if kind == 'index' else 3 + BLOCKS.index(u['id'])
+            order.append(rank)
+        if order != sorted(order) or len(set(u.get('id') for u in us if isinstance(u, dict))) != len(us):
+            bad('units are not in the contract order, or one is listed twice')
+
+    kb = r['kb']
+    if kb is not None and keys(kb, KB_KEYS, 'kb'):
+        if kb['meaning_search'] not in (None, 'on', 'off-mismatch', 'waiting-forge'):
+            bad('kb.meaning_search')
+        if kb['fingerprint'] is not None and not re.match(r'^[0-9a-f]{16}$', str(kb['fingerprint'])):
+            bad('kb.fingerprint')
+        if kb['generation'] is not None and not re.match(r'^[a-z0-9][a-z0-9._-]{0,39}$', str(kb['generation'])):
+            bad('kb.generation')
+        opt_time('kb.created', kb['created'])
+        if kb['counts'] is not None and (not isinstance(kb['counts'], dict) or tuple(kb['counts']) != ('documents', 'chunks', 'points')
+                                         or not all(isint(v) for v in kb['counts'].values())):
+            bad('kb.counts')
+        if kb['embedding'] is not None and (not isinstance(kb['embedding'], dict) or tuple(kb['embedding']) != ('model_id', 'revision', 'dimension')):
+            bad('kb.embedding')
+        if kb['engine_ok'] not in (None, True, False):
+            bad('kb.engine_ok')
+        if kb['previous'] is not None and (not isinstance(kb['previous'], dict) or tuple(kb['previous']) != ('generation', 'fingerprint')):
+            bad('kb.previous')
+
+    rb = r['rollback']
+    if keys(rb, ROLLBACK, 'rollback'):
+        if rb['available'] not in (True, False) or rb['done'] not in (True, False) or not isinstance(rb['library'], dict):
+            bad('rollback values')
+        if rb['done'] and r['outcome'] != 'rolled-back':
+            bad('rollback.done needs outcome rolled-back')
+
+    rs = r['resume']
+    if keys(rs, RESUME, 'resume'):
+        if rs['resumable'] not in (True, False) or (rs['next_stage'] is not None and rs['next_stage'] not in STAGES):
+            bad('resume values')
+        if not isinstance(rs['units_done'], list) or not isint(rs['bytes_kept']):
+            bad('resume.units_done or bytes_kept')
+
+    for lst, prefix, table in (('errors', 'E', ERRORS), ('warnings', 'W', WARNINGS)):
+        items = r[lst]
+        if not isinstance(items, list):
+            bad(lst)
+            continue
+        for i, e in enumerate(items):
+            if not keys(e, PROBLEM, '%s[%d]' % (lst, i)):
+                continue
+            if e['id'] != '%s%d' % (prefix, i + 1):
+                bad('%s[%d].id is not %s%d' % (lst, i, prefix, i + 1))
+            if e['code'] not in table:
+                bad('%s[%d].code %r is not in the contract' % (lst, i, e['code']))
+                continue
+            if e['stage'] not in STAGES:
+                bad('%s[%d].stage' % (lst, i))
+            if e['unit'] is not None and not (isinstance(e['unit'], str) and UNIT_ID.match(e['unit'])):
+                bad('%s[%d].unit' % (lst, i))
+            if e['path'] is not None and not (isinstance(e['path'], str) and re.match(r'^(kb|corpus|library)/[A-Za-z0-9._/-]{1,200}$', e['path'])
+                                              and '..' not in e['path']):
+                bad('%s[%d].path is not a disc-relative path' % (lst, i))
+            if not isinstance(e['args'], dict) or not set(e['args']) <= set(table[e['code']]):
+                bad('%s[%d].args has keys %s does not allow' % (lst, i, e['code']))
+            else:
+                for k, v in e['args'].items():
+                    if not (isint(v) or (isinstance(v, str) and ARG.match(v))):
+                        bad('%s[%d].args.%s' % (lst, i, k))
+            opt_time('%s[%d].at' % (lst, i), e['at'])
+
+    # no secret shapes anywhere except the labelled hash fields
+    def walk(o, key=''):
+        if isinstance(o, dict):
+            for k, v in o.items():
+                walk(v, k)
+        elif isinstance(o, list):
+            for v in o:
+                walk(v, key)
+        elif isinstance(o, str) and key not in HASH_FIELDS:
+            for pat in SECRETS:
+                if pat.search(o):
+                    bad('a value of %s has the shape of a secret or a private value' % (key or 'the report'))
+                    break
+    walk(r)
+    return out
+
+
+# ---------------------------------------------------------------------------------------------- the report window
+
+def stopped(r, now, pid_check):
+    if r.get('state') != 'running':
+        return False
+    try:
+        if now - utc_epoch(r['heartbeat']) > 60:
+            return True
+    except (TypeError, ValueError, KeyError):
+        return True
+    if pid_check and isinstance(r.get('pid'), int):
+        try:
+            os.kill(r['pid'], 0)
+        except ProcessLookupError:
+            return True
+        except OSError:
+            pass
+    return False
+
+
+def unit_name(w, uid):
+    k = 'report.unit.' + uid
+    return w(k) if w.has(k) else w('report.unit.other', id=uid)
+
+
+def problem_text(w, e, step_names):
+    code = e['code']
+    a = dict(e.get('args') or {})
+    if code == 'IMPORT_SPACE':
+        a['needed'] = size(a.get('needed_bytes'))
+        a['free'] = size(a.get('free_bytes'))
+    k = 'why.' + code
+    why = w(k, **a) if w.has(k) else w('why.unknown')
+    step = step_names.get(e['stage'], e['stage'])
+    if e.get('unit'):
+        return w('report.problem', id=e['id'], step=step + ', ' + unit_name(w, e['unit']), why=why)
+    return w('report.problem', id=e['id'], step=step, why=why)
+
+
+def render_report(path, w, now, pid_check=True):
+    try:
+        raw = open(path, 'rb').read()
+    except FileNotFoundError:
+        return [('live', 'yes'), ('error', w('report.noimport'))]
+    except OSError:
+        return [('live', 'yes'), ('error', w('report.unreadable'))]
+    if check(raw):
+        return [('live', 'yes'), ('error', w('report.unreadable'))]
+    try:
+        return _render(json.loads(raw.decode('ascii')), w, now, pid_check)
+    except Exception:
+        return [('live', 'yes'), ('error', w('report.unreadable'))]
+
+
+def _render(r, w, now, pid_check):
+    rows = []
+    names = {s: w('report.stage.' + s) for s in STAGES}
+    is_stopped = stopped(r, now, pid_check)
+    live = r['state'] == 'running' and not is_stopped
+    rows.append(('live', 'yes' if live else 'no'))
+    s = r['source']
+    rows.append(('version', w('report.version', version=s['disc_version']) if s['disc_version'] else w('report.version.unknown')))
+    if s['signature'] == 'good':
+        rows.append(('sig', w('report.sig.good', key=grouped_fp(s['signer']))))
+    elif s['signature'] == 'bad':
+        rows.append(('sig', w('report.sig.bad')))
+    else:
+        rows.append(('sig', w('report.sig.unchecked')))
+    step = names[r['stage']]
+    if is_stopped:
+        rows.append(('state', w('report.state.stopped', step=step)))
+    elif r['state'] == 'running':
+        rows.append(('state', w('report.state.running', step=step)))
+    elif r['outcome'] == 'imported':
+        rows.append(('state', w('report.state.imported')))
+    elif r['outcome'] == 'already-current':
+        rows.append(('state', w('report.state.current')))
+    elif r['outcome'] == 'rolled-back':
+        rows.append(('state', w('report.state.rolled', step=step)))
+    else:
+        rows.append(('state', w('report.state.failed', step=step)))
+    rows.append(('times', w('report.times', started=clock(r['started']), written=clock(r['written']))))
+    if r['attempt'] > 1:
+        rows.append(('attempt', w('report.attempt', attempt=r['attempt'])))
+    p = r['progress']
+    total, done = p['total_bytes'], p['done_bytes']
+    pct = 100 if r['state'] == 'done' else (min(100, done * 100 // total) if total else 0)
+    rows.append(('pct', str(pct)))
+    if live and p['rate'] and total > done:
+        rows.append(('progress', w('report.progress.rate', done=size(done), total=size(total), pct=pct,
+                                   left=duration((total - done) / p['rate']))))
+    else:
+        rows.append(('progress', w('report.progress', done=size(done), total=size(total), pct=pct)))
+    kb = r['kb']
+    if kb and kb['generation'] and kb['counts']:
+        rows.append(('kb', w('report.kb', generation=kb['generation'], documents=kb['counts']['documents'])))
+    if kb and kb['meaning_search']:
+        rows.append(('meaning', w({'on': 'report.meaning.on', 'waiting-forge': 'report.meaning.wait',
+                                   'off-mismatch': 'report.meaning.off'}[kb['meaning_search']])))
+    for g in r['stages']:
+        stv = g['state']
+        if is_stopped and stv == 'running':
+            stv = 'waiting'
+        word = {'done': 'state.done', 'running': 'state.running', 'failed': 'state.failed', 'pending': 'state.pending',
+                'skipped': 'state.skipped', 'waiting': 'state.waiting'}[stv]
+        detail = ''
+        if g['total_bytes']:
+            detail = size(g['total_bytes'])
+        rows.append(('step', w(word), names[g['id']], detail, 'current' if g['id'] == r['stage'] else ''))
+    for u in r['units']:
+        rows.append(('unit', unit_name(w, u['id']), size(u['bytes']), w('report.ustate.' + u['state'])))
+    for e in r['errors']:
+        rows.append(('problem', problem_text(w, e, names)))
+    for e in r['warnings']:
+        k = 'report.warn.' + e['code']
+        a = dict(e['args'])
+        if 'bytes' in a:
+            a['bytes'] = size(a['bytes'])
+        rows.append(('note', w(k, **a)))
+    if not r['errors']:
+        rows.append(('problem', w('report.none')))
+    again = (is_stopped or r['state'] == 'failed') and r['resume']['resumable'] and r['source']['signature'] != 'bad'
+    if r['errors']:
+        code = r['errors'][-1]['code']
+        if w.has('hint.' + code):
+            rows.append(('hint', w('hint.' + code)))
+        else:
+            rows.append(('hint', w('hint.default' if again else 'hint.noagain')))
+    elif is_stopped:
+        rows.append(('hint', w('hint.default')))
+    rows.append(('again', 'yes' if again else 'no'))
+    return rows
+
+
+# ---------------------------------------------------------------------------------------------- pairing records
+
+def read_stdin_json():
+    data = sys.stdin.buffer.read(1048576)
+    try:
+        o = json.loads(data.decode('ascii'))
+    except (UnicodeError, ValueError):
+        return None
+    return o if isinstance(o, dict) else None
+
+
+def clean(s, pat=r'^[A-Za-z0-9._-]{1,63}$'):
+    return s if isinstance(s, str) and re.match(pat, s) else ''
+
+
+def candidates():
+    o = read_stdin_json()
+    if o is None:
+        return [('status', 'internal')]
+    rows = [('status', 'ok' if o.get('ok') else clean(o.get('reason')) or 'internal')]
+    if not o.get('ok'):
+        return rows
+    for c in o.get('candidates') or []:
+        if not isinstance(c, dict):
+            continue
+        name = clean(c.get('host_name')) or clean((c.get('dns_name') or '').split('.')[0]) or ''
+        ipv4 = clean(c.get('ipv4'), r'^[0-9]{1,3}(\.[0-9]{1,3}){3}$')
+        port = c.get('port') if isinstance(c.get('port'), int) and not isinstance(c.get('port'), bool) else ''
+        path = c.get('path') if c.get('path') in ('direct', 'relayed', 'unknown', 'loopback') else 'unknown'
+        rows.append(('cand', name, 'yes' if c.get('online') is True else 'no', path, ipv4, str(port),
+                     clean(c.get('dns_name'), r'^[A-Za-z0-9.-]{1,253}$')))
+    return rows
+
+
+def result():
+    o = read_stdin_json()
+    if o is None:
+        return [('ok', 'no'), ('reason', 'internal')]
+    rows = [('ok', 'yes' if o.get('ok') is True else 'no'), ('reason', clean(o.get('reason')) or ('' if o.get('ok') else 'internal'))]
+    if o.get('code_reason'):
+        rows.append(('code_reason', clean(o.get('code_reason'))))
+    if isinstance(o.get('locked_seconds'), int):
+        rows.append(('locked_minutes', str(max(1, -(-o['locked_seconds'] // 60)))))
+    if o.get('peer_id'):
+        rows.append(('peer_id', clean(o.get('peer_id'))))
+    return rows
+
+
+def peers():
+    o = read_stdin_json()
+    if o is None or not o.get('ok'):
+        return [('status', 'internal' if o is None else clean(o.get('reason')) or 'internal')]
+    rows = [('status', 'ok')]
+    for p in o.get('peers') or []:
+        if not isinstance(p, dict):
+            continue
+        when = p.get('paired_at')
+        day = time.strftime('%d %b %Y', time.gmtime(when)) if isinstance(when, int) and when > 0 else '?'
+        rows.append(('peer', clean(p.get('kind')), clean(p.get('peer_host_name')) or clean(p.get('peer_id')), day))
+    return rows
+
+
+# ---------------------------------------------------------------------------------------------- main
+
+def emit(rows):
+    for row in rows:
+        cells = (str(c).replace('|', '/').replace('\t', ' ').replace('\n', ' ') for c in row)
+        sys.stdout.write('|'.join(cells) + '\n')
+
+
+def main(argv):
+    sys.stdout.reconfigure(newline='\n')         # the shell readers want LF on every system
+    strings = STRINGS
+    now = None
+    pid_check = True
+    args = []
+    i = 0
+    while i < len(argv):
+        a = argv[i]
+        if a == '--strings' and i + 1 < len(argv):
+            strings = argv[i + 1]
+            i += 2
+        elif a == '--now' and i + 1 < len(argv):
+            if not is_time(argv[i + 1]):
+                return 2
+            now = utc_epoch(argv[i + 1])
+            pid_check = False
+            i += 2
+        else:
+            args.append(a)
+            i += 1
+    if not args:
+        sys.stderr.write('usage: d32-uijson check|report REPORT | candidates|result|peers < JSON\n')
+        return 2
+    w = Words(strings)
+    verb = args[0]
+    if verb == 'check' and len(args) == 2:
+        try:
+            raw = open(args[1], 'rb').read()
+        except OSError:
+            print('cannot read the report')
+            return 1
+        faults = check(raw)
+        for f in faults:
+            print(f)
+        return 1 if faults else 0
+    if verb == 'report' and len(args) == 2:
+        emit(render_report(args[1], w, now if now is not None else int(time.time()), pid_check))
+        return 0
+    if verb == 'candidates' and len(args) == 1:
+        emit(candidates())
+        return 0
+    if verb == 'result' and len(args) == 1:
+        emit(result())
+        return 0
+    if verb == 'peers' and len(args) == 1:
+        emit(peers())
+        return 0
+    sys.stderr.write('d32-uijson: unknown verb\n')
+    return 2
+
+
+if __name__ == '__main__':
+    sys.exit(main(sys.argv[1:]))

@@ -1,0 +1,26 @@
+#!/bin/ksh
+# /usr/local/d32/libexec/d32-c6-words: the plain-words line a person reads beside each C6 status line (contract C6).
+#   d32-c6-words LINE      print the words for one status line; nothing, and exit 1, when LINE is not one
+#   d32-c6-words -         the same for every line on standard input (lines that are not status lines are skipped)
+# The first start's d32-c6 calls it for the screen copy of each new state, so the console shows the machine line and,
+# under it, the same state in words. The words come from /usr/local/share/d32/setup/strings.tsv.
+# A sign-in address or a pairing code is passed on standard input or as this program's own argument by its caller
+# only for the moment it is shown; nothing here writes a file or a log.
+LC_ALL=C
+export LC_ALL
+. ${D32_ROOT:-}/usr/local/d32/libexec/d32-ui-lib.sh || exit 2
+one() {
+	d32ui_c6 "$1" || return 1
+	d32ui_words
+	echo "$D32UI_T"
+}
+case ${1:-} in
+-)	rc=1
+	while IFS= read -r line; do
+		one "$line" && rc=0
+	done
+	exit $rc ;;
+'')	echo "usage: d32-c6-words LINE | -" >&2
+	exit 2 ;;
+*)	one "$1" ;;
+esac

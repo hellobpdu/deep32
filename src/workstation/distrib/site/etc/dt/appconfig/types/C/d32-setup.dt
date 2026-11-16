@@ -1,0 +1,36 @@
+# d32-setup.dt: the Workstation screens for the first start, the import of disc 2 and pairing. Alongside the other
+# Deep32 action files; no existing action is overridden.
+set DtDbVersion=1.0
+
+ACTION D32FirstStart
+{
+  LABEL                First Start
+  ICON                 D32set
+  TYPE                 COMMAND
+  WINDOW_TYPE          NO_STDIO
+  EXEC_HOST            %LocalHost%
+  EXEC_STRING          /usr/local/d32/libexec/d32-setup
+  DESCRIPTION          Deep32 First Start: where the first start of this Workstation stands and what to do next.
+}
+
+ACTION D32ImportReport
+{
+  LABEL                Import Report
+  ICON                 D32acq
+  TYPE                 COMMAND
+  WINDOW_TYPE          NO_STDIO
+  EXEC_HOST            %LocalHost%
+  EXEC_STRING          /usr/local/d32/libexec/d32-import-report
+  DESCRIPTION          Deep32 Import Report: each step and pack of the import of disc 2.
+}
+
+ACTION D32Pairing
+{
+  LABEL                Pairing
+  ICON                 D32stn
+  TYPE                 COMMAND
+  WINDOW_TYPE          NO_STDIO
+  EXEC_HOST            %LocalHost%
+  EXEC_STRING          /usr/local/d32/libexec/d32-pair
+  DESCRIPTION          Deep32 Pairing: pair this Workstation with a Forge, a relay or a headend, with a one-time code.
+}

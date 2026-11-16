@@ -1,0 +1,15 @@
+#!/bin/ksh
+# d32-edge-front on|off|status: the relayd TLS front for remote callers (root). OFF at First light (the final design 0).
+#   on   write "on" to /etc/d32/state/edge_front, restart d32edge (it then also listens on 127.0.0.1:8766 behind
+#        its RemoteGate, queries only) and start d32front (relayd -f /etc/d32/relayd.conf)
+#   off  stop d32front, write "off", restart d32edge without the TCP listener
+# Exposing the front beyond loopback is a pf change (a `pass in` rule) and stays the owner's decision.
+set -e
+[[ $(id -u) == 0 ]] || { echo "d32-edge-front: root only" >&2; exit 1; }
+S=/etc/d32/state/edge_front
+case $1 in
+on)	print on >$S; chmod 0600 $S; rcctl -f restart d32edge; rcctl -f start d32front ;;
+off)	rcctl stop d32front || true; print off >$S; chmod 0600 $S; rcctl -f restart d32edge ;;
+status)	print "setting: $(cat $S 2>/dev/null || print off)"; rcctl check d32front || true; rcctl check d32edge || true ;;
+*)	echo "usage: d32-edge-front on|off|status" >&2; exit 2 ;;
+esac

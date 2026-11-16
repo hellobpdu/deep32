@@ -1,0 +1,39 @@
+#!/bin/ksh
+#
+# d32edge: production deep32-gateway (CPython 3.14, the pyrag lane's venv) as _d32edge, the RAG_EDGE of First light.
+# PYRAG/shims lane: replaces BASE's skeleton (distrib/rc.d/d32edge) and keeps its contract (HARDENING 5.8,
+# the final design 0 and 2.3, rc.subr(8)):
+#  - class "d32edge" (/etc/login.conf.d/d32edge, schg);
+#  - d32-sockexec binds /var/run/d32/edge.sock 0660 root:_d32users (the desktop user's apps), opens /etc/d32/edge.env (root
+#    0400: the core token, the MCP tokens), drops to _d32edge and execs the venv's interpreter;
+#  - deep32-gateway reaches deep32-engine only over /var/run/d32/core.sock (0660 root:_d32edge);
+#  - NO TCP listener at First light (the final design 0). Only while /etc/d32/state/edge_front reads "on" does it also
+#    get 127.0.0.1:8766, the backend of the relayd TLS front (rc.d/d32front), and then the edge's RemoteGate
+#    lets remote callers make queries only;
+#  - rc_reload=NO.
+
+daemon="/usr/local/d32/sbin/d32-sockexec"
+daemon_flags="-u _d32edge -e /etc/d32/edge.env -l edge=unix:/var/run/d32/edge.sock:root:_d32users:0660"
+if [[ $(cat /etc/d32/state/edge_front 2>/dev/null) == on ]]; then
+	daemon_flags="${daemon_flags} -l front=tcp:127.0.0.1:8766"
+fi
+daemon_flags="${daemon_flags} -- /usr/local/d32/venv/deep32-gateway/bin/python3.14 -I -B -X utf8"
+daemon_flags="${daemon_flags} /usr/local/d32/node/shims/serve_edge.py"
+daemon_user="root"
+daemon_timeout=60
+daemon_logger="daemon.info"
+
+. /etc/rc.d/rc.subr
+
+pexp="/usr/local/d32/venv/deep32-gateway/bin/python3.14 -I -B -X utf8 /usr/local/d32/node/shims/serve_edge.py"
+rc_bg=YES
+rc_reload=NO
+
+rc_pre() {
+	local _o
+	install -d -o root -g wheel -m 0755 /var/run/d32
+	_o=$(stat -f '%Su %Lp' /etc/d32/edge.env 2>/dev/null) || return 1
+	[[ $_o == "root 400" || $_o == "root 600" ]] || return 1
+}
+
+rc_cmd $1

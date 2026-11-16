@@ -1,0 +1,12 @@
+# Candidate for the existing Desktop_Apps/Dtcalc entry. Merge in T90 only.
+ACTION Dtcalc
+{
+    LABEL           Calculator
+    ICON            Dtcalc
+    ARG_COUNT       0
+    TYPE            COMMAND
+    WINDOW_TYPE     NO_STDIO
+    EXEC_STRING     /usr/local/d32/bin/d32-dtcalc
+    DESCRIPTION     The Calculator (Dtcalc) action runs the desktop \
+                    Calculator application.
+}

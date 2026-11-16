@@ -1,0 +1,35 @@
+# Template: deep32-install writes this unit with the install's settings. The values below are the
+# defaults: service user deep32, engine code in /opt/deep32/engine, its settings in /etc/deep32/engine.env,
+# listening on loopback only (contract C8: the engine is never reached from the tailnet).
+[Unit]
+Description=Deep32 search engine (retrieval API)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+
+User=deep32
+Group=deep32
+
+WorkingDirectory=/opt/deep32/engine
+
+EnvironmentFile=/etc/deep32/engine.env
+
+# On a host with two processor sockets, the original deployment kept the engine on one node by putting
+# "/usr/bin/numactl --cpunodebind=0 --membind=0" in front of the command below.
+ExecStart=/opt/deep32/engine/.venv/bin/uvicorn rag_core.api:app --host 127.0.0.1 --port 8765 --workers 1
+
+Restart=on-failure
+RestartSec=5
+
+TimeoutStartSec=300
+TimeoutStopSec=30
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

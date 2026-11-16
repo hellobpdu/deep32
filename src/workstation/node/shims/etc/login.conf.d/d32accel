@@ -1,0 +1,10 @@
+# Deep32 Workstation login class for rc.d d32accel, the GPU_EXT-direct forwarder as _d32gpu (BASE lane's file,
+# with the shims lane's additions marked +).
+# + stacksize-cur=8M, openfiles 1024/4096: as d32core. datasize 512M: stdlib forwarder, no model in memory.
+d32accel:\
+	:datasize=512M:\
+	:stacksize-cur=8M:\
+	:openfiles-cur=1024:\
+	:openfiles-max=4096:\
+	:coredumpsize=0:\
+	:tc=daemon:

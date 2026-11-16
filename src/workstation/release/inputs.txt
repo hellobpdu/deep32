@@ -1,0 +1,6 @@
+# Inputs the BASE release scripts pin (checked first-hand on the build host, 2026-11-05).
+# OpenBSD 8.0 amd64 sets: from install80.iso (sha256 bc85d747c6ee4354d14fbfeee38087500386a2e9d86fa7b5ab13d840d902aa33,
+# D:/iso), verified with signify -C against the release's SHA256.sig and /etc/signify/openbsd-80-base.pub.
+# sha256 bsd.rd: 40cddcb7a5f4320588c4ec7f49ae28702e400fe49c8c78d94f40ddf76e1e45ce
+# The ramdisk's install.sub (65,074 bytes) that distrib/install/install.sub-halt.diff applies to:
+# sha256 install.sub: 9e0244de4115a571aa91ea81c340f09d916f3467cda8d055033ec09bcc769d60

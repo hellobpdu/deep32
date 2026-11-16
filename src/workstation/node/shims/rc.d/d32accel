@@ -1,0 +1,45 @@
+#!/bin/ksh
+#
+# d32accel: the GPU_EXT-direct forwarder (the final design E1) as _d32gpu, system python3.14, stdlib only.
+# PYRAG/shims lane. deep32-engine's embedder and reranker connect to its two sockets (0660 root:_d32core); it forwards
+# to the hub's TEI and reranker over the tailnet after checking each model's id and revision (golden probes).
+#  - OFF unless the GPU_EXT setting is on: rc_pre refuses to start unless /etc/d32/state/gpu_ext (root 0600,
+#    FIX-19) reads "on". It then publishes the setting to /var/d32/run/gpu_ext (root 0644), which the process
+#    re-reads at every re-check, forwarding nothing while it is off; rc_post writes "off" there. The switch is
+#    /usr/local/d32/sbin/d32-gpu-ext on|off|status (root);
+#  - d32-sockexec binds the sockets, opens /etc/d32/accel.env (root 0400), drops to _d32gpu;
+#  - class "d32accel" (/etc/login.conf.d/d32accel); rc_reload=NO.
+
+daemon="/usr/local/d32/sbin/d32-sockexec"
+daemon_flags="-u _d32gpu -e /etc/d32/accel.env"
+daemon_flags="${daemon_flags} -l embed=unix:/var/run/d32/gpu-embed.sock:root:_d32core:0660"
+daemon_flags="${daemon_flags} -l rerank=unix:/var/run/d32/gpu-rerank.sock:root:_d32core:0660"
+daemon_flags="${daemon_flags} -- /usr/local/bin/python3.14 -I -B -X utf8 /usr/local/d32/node/shims/serve_accel.py"
+daemon_user="root"
+daemon_timeout=30
+daemon_logger="daemon.info"
+
+. /etc/rc.d/rc.subr
+
+pexp="/usr/local/bin/python3.14 -I -B -X utf8 /usr/local/d32/node/shims/serve_accel.py"
+rc_bg=YES
+rc_reload=NO
+
+rc_pre() {
+	local _o
+	[[ $(cat /etc/d32/state/gpu_ext 2>/dev/null) == on ]] || {
+		echo "d32accel: GPU_EXT is off (/etc/d32/state/gpu_ext)" >&2
+		return 1
+	}
+	install -d -o root -g wheel -m 0755 /var/run/d32 /var/d32 /var/d32/run
+	_o=$(stat -f '%Su %Lp' /etc/d32/accel.env 2>/dev/null) || return 1
+	[[ $_o == "root 400" || $_o == "root 600" ]] || return 1
+	print on >/var/d32/run/gpu_ext && chmod 0644 /var/d32/run/gpu_ext
+}
+
+rc_post() {
+	print off >/var/d32/run/gpu_ext
+	rm -f /var/run/d32/gpu-embed.sock /var/run/d32/gpu-rerank.sock	# deep32-engine then sees ENOENT, not a stale socket
+}
+
+rc_cmd $1

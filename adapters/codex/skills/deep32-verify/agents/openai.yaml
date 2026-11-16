@@ -1,0 +1,5 @@
+interface:
+  display_name: "deep32-verify"
+  short_description: "Deep32 verify lens: add a topic or keywords"
+policy:
+  allow_implicit_invocation: false

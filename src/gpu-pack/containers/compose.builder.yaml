@@ -1,0 +1,34 @@
+# Applied with the installed base compose and images.conf by builder-job.sh.
+services:
+  qdrant:
+    image: ${QDRANT_IMAGE:?immutable Qdrant image id required}
+    pull_policy: never
+    restart: unless-stopped
+    user: "10032:10032"
+    environment:
+      QDRANT__TELEMETRY_DISABLED: "true"
+      QDRANT__STORAGE__SNAPSHOTS_PATH: /qdrant/storage/snapshots
+    volumes:
+      - /var/lib/deep32-forge/qdrant:/qdrant/storage
+    networks: [models]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+  builder:
+    image: ${BUILDER_IMAGE:?immutable builder image id required}
+    pull_policy: never
+    profiles: [builder]
+    user: "10032:10032"
+    environment:
+      RAG_QDRANT_URL: http://qdrant:6333
+      RAG_EMBEDDING_URL: http://embeddings:80/v1/embeddings
+      RAG_EMBEDDING_MODEL: jina-embeddings-v5-text-small
+      RAG_EMBEDDING_REVISION: ${TEI_REVISION:?revision required}
+      RAG_RERANK_URL: http://reranker:8082/v1/rerank
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      PYTHONHASHSEED: "0"
+    volumes:
+      - /var/lib/deep32-forge:/var/lib/deep32-forge
+    networks: [models]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]

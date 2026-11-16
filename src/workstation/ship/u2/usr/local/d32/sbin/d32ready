@@ -1,0 +1,427 @@
+#!/bin/ksh
+# /usr/local/d32/sbin/d32ready: the Deep32/UX readiness check (update 2; the update 1 notes 3(f) "Updating",
+# HARDENING-REVIEW 3.2 compensation 1, ISO-DESIGN 2.7 and 12.3 item 6). Base tools only, no network code.
+#
+#   d32ready [-q]              the checklist. READ-ONLY: it writes nothing anywhere (no temporary files either).
+#                              Root sees every line; another user gets N/A where root is needed. -q: problems only.
+#   d32ready boot              rc.securelevel only (securelevel 0): the boot record in /var/db/d32ready (the loaded
+#                              pf rules' fingerprint, the boot inputs against the baseline), made immutable; the
+#                              first baseline when there is none. One or two lines on the console.
+#   d32ready baseline [<why>]  securelevel 0 only (the boot window): record the boot inputs' hashes as the known-good
+#                              set. d32upd v2 runs it after it installs or reverts a set.
+#
+# Exit status: 0 every line OK or N/A; 1 at least one FAIL; 2 WARN only; 64 usage.
+#
+# The checks (rules in /etc/d32/ready.conf, schg like every /etc/d32/*.conf):
+#   Security level   kern.securelevel is the "securelevel" line (1).
+#   Packet filter    pf is enabled; the loaded rules (pfctl -sr) are exactly /etc/pf.conf as parsed now (pfctl -nvf,
+#                    less its set and table lines), and the same as at the boot record. /etc/pf.conf is schg, so a
+#                    difference means someone loaded other rules at runtime.
+#   Immutable files  every path /etc/d32/schg.list names, and every "schgdir", carries schg.
+#   Boot inputs      the files schg.list names, plus the "input" lines, against the baseline: changed, missing, new.
+#   Interfaces       no /etc/hostname.* but the "hostname" lines (none: LAN only, no NIC at boot; item 56).
+#   Network          no default route, no autoconf, none of the "off" daemons running (items 56 and 58).
+#   Listeners        every socket bound to all addresses matches a "listen" line (command, protocol, port; globs).
+#   Updates          the release and seq, the days since the last update ("update_age", 90), nothing half done,
+#                    the last boot window's result.
+# The boot record and baseline live in /var/db/d32ready (root 0700, schg outside the boot window). Residual risk,
+# said plainly: as for every schg file, root at runtime could rename /var/db (not schg) and plant a look-alike; the
+# watch is detective, not a lock (HARDENING-REVIEW 3.2).
+
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+export PATH
+umask 077
+
+CONF=/etc/d32/ready.conf
+SCHGLIST=/etc/d32/schg.list
+RD=/var/db/d32ready
+BASE=$RD/inputs.sha256
+BINFO=$RD/inputs.info
+BOOTREC=$RD/boot.txt
+UPD=/var/db/d32upd
+RELFILE=/etc/d32/release
+SF_IMMUTABLE=131072	# 0x00020000, the schg flag (sys/stat.h)
+
+NFAIL=0
+NWARN=0
+QUIET=0
+CUR=OK
+ROOT=0
+[ "$(id -u)" = 0 ] && ROOT=1
+
+say() { print -r -- "d32ready: $*"; }
+die() { say "$*" >&2; logger -t d32ready -p daemon.err -- "$*" 2>/dev/null; exit 1; }
+
+conf() {	# keyword: the rest of each line that starts with it (comments dropped)
+	[ -f $CONF ] || return 0
+	sed -e 's/#.*//' $CONF | awk -v k="$1" '$1 == k { $1 = ""; sub(/^[ \t]+/, ""); print }'
+}
+
+line() {	# status, label: one checklist line, the status at column 76
+	l_lab="$(print -r -- "$2" | cut -c1-72) "
+	while [ ${#l_lab} -lt 74 ]; do l_lab="$l_lab."; done
+	CUR=$1
+	case $1 in
+	FAIL) NFAIL=$((NFAIL + 1)); l_st="FAIL *" ;;
+	WARN) NWARN=$((NWARN + 1)); l_st=WARN ;;
+	*) l_st=$1 ;;
+	esac
+	if [ $QUIET = 1 ]; then
+		case $1 in OK|N/A) return 0 ;; esac
+	fi
+	print -r -- "$l_lab $l_st"
+}
+detail() {	# a line under the last checklist line
+	if [ $QUIET = 1 ]; then
+		case $CUR in OK|N/A) return 0 ;; esac
+	fi
+	print -r -- "    - $*" | cut -c1-80
+}
+short() { print -r -- "$1" | cut -c1-16; }
+
+# ---- what the checks read --------------------------------------------------------------------------------------
+
+schg_patterns() { [ -f $SCHGLIST ] && sed -e 's/#.*//' $SCHGLIST | awk 'NF { print $1 }'; }
+input_files() {	# every regular file the boot inputs name, sorted, one per line
+	{ schg_patterns; conf input; } | while read -r if_p; do
+		for if_f in $if_p; do
+			[ -f "$if_f" ] && [ ! -L "$if_f" ] && print -r -- "$if_f"
+		done
+	done | sort -u
+}
+input_hashes() { input_files | xargs sha256 2>/dev/null; }
+
+pf_rules() { pfctl -sr 2>/dev/null; }
+pf_norm() { grep -vE '^(set |table <|queue |load anchor )' || :; }
+rec_get() { [ -f $BOOTREC ] && awk -v k="$1" '$1 == k { print $2; exit }' $BOOTREC; }
+
+release_now() {	# REL SEQ from /etc/d32/release (the d32upd reading: first word; a "seq N" anywhere; none = 0)
+	REL=$(awk 'NF { print $1; exit }' $RELFILE 2>/dev/null)
+	SEQ=$(grep -Eio 'seq["'"'"' =:]*[0-9]+' $RELFILE 2>/dev/null | grep -Eo '[0-9]+$' | sort -u | head -n 1)
+	SEQ=${SEQ:-0}
+}
+
+compare_inputs() {	# current hashes on stdin, baseline as $1: "changed|missing|new <path>" lines
+	awk 'function key(l) { sub(/^SHA256 \(/, "", l); sub(/\) = [0-9a-f]+$/, "", l); return l }
+	    FNR == NR { if ($0 ~ /^SHA256 \(/) b[key($0)] = $NF; next }
+	    /^SHA256 \(/ { k = key($0); c[k] = $NF }
+	    END {
+		for (k in b) { if (!(k in c)) print "missing", k; else if (b[k] != c[k]) print "changed", k }
+		for (k in c) if (!(k in b)) print "new", k
+	    }' "$1" - | sort -k2
+}
+
+# ---- the checks ------------------------------------------------------------------------------------------------
+
+ck_securelevel() {
+	cs_want=$(conf securelevel | tail -n 1)
+	cs_want=${cs_want:-1}
+	cs_have=$(sysctl -n kern.securelevel 2>/dev/null)
+	if [ "$cs_have" = "$cs_want" ]; then
+		line OK "Security level $cs_have"
+	else
+		line FAIL "Security level ${cs_have:-unknown}, expected $cs_want"
+	fi
+}
+
+ck_pf() {
+	if [ $ROOT = 0 ]; then line N/A "Packet filter (root only)"; return; fi
+	cp_st=$(pfctl -si 2>/dev/null | awk '/^Status:/ { print $2; exit }')
+	if [ "$cp_st" != Enabled ]; then
+		line FAIL "Packet filter: ${cp_st:-no status} (it must be Enabled)"
+		return
+	fi
+	if ! cp_parsed=$(pfctl -nvf /etc/pf.conf 2>/dev/null); then
+		line FAIL "Packet filter: /etc/pf.conf does not parse"
+		return
+	fi
+	cp_want=$(print -r -- "$cp_parsed" | pf_norm | sha256)
+	cp_have=$(print -r -- "$(pf_rules)" | sha256)
+	cp_boot=$(rec_get rules)
+	if [ "$cp_have" != "$cp_want" ]; then
+		line FAIL "Packet filter: the loaded rules are not /etc/pf.conf"
+		detail "loaded $(short $cp_have), /etc/pf.conf parses to $(short $cp_want)"
+	elif [ -n "$cp_boot" ] && [ "$cp_boot" != "$cp_have" ]; then
+		line FAIL "Packet filter: the rules changed since the boot record"
+		detail "boot $(short $cp_boot), now $(short $cp_have)"
+	else
+		line OK "Packet filter: enabled, rules are /etc/pf.conf ($(short $cp_have))"
+		[ -n "$cp_boot" ] || detail "no boot record yet (d32ready boot runs in rc.securelevel)"
+	fi
+}
+
+ck_schg() {
+	if [ $ROOT = 0 ]; then line N/A "Immutable files (root only)"; return; fi
+	if [ ! -f $SCHGLIST ]; then line FAIL "Immutable files: there is no $SCHGLIST"; return; fi
+	cg_n=0 cg_bad=0 cg_none=0 cg_list= cg_seen=" "
+	set -f	# the patterns are split here and globbed once, below
+	for cg_p in $(schg_patterns) $(conf schgdir); do
+		set +f
+		cg_hit=0
+		for cg_f in $cg_p; do
+			[ -e "$cg_f" ] || [ -L "$cg_f" ] || continue
+			cg_hit=1
+			case $cg_seen in *" $cg_f "*) continue ;; esac
+			cg_seen="$cg_seen$cg_f "
+			cg_n=$((cg_n + 1))
+			cg_fl=$(stat -f %f -- "$cg_f" 2>/dev/null)
+			case $cg_fl in ""|*[!0-9]*) cg_fl=0 ;; esac
+			if [ $((cg_fl & SF_IMMUTABLE)) = 0 ]; then
+				cg_bad=$((cg_bad + 1))
+				[ $cg_bad -le 6 ] && cg_list="$cg_list $cg_f"
+			fi
+		done
+		[ $cg_hit = 1 ] || cg_none=$((cg_none + 1))
+		set -f
+	done
+	set +f
+	if [ $cg_bad -gt 0 ]; then
+		line FAIL "Immutable files: $cg_bad of $cg_n are not schg"
+		detail "${cg_list# }$([ $cg_bad -gt 6 ] && print ' ...')"
+	else
+		line OK "Immutable files: all $cg_n schg"
+	fi
+	[ $cg_none = 0 ] || detail "$cg_none patterns of schg.list match nothing"
+}
+
+ck_inputs() {
+	if [ $ROOT = 0 ]; then line N/A "Boot inputs (root only)"; return; fi
+	if [ ! -s $BASE ]; then
+		line WARN "Boot inputs: no baseline yet"
+		detail "the next boot window records one (d32ready baseline, at securelevel 0)"
+		return
+	fi
+	ci_diff=$(input_hashes | compare_inputs $BASE)
+	ci_info=$(head -n 1 $BINFO 2>/dev/null)
+	if [ -n "$ci_diff" ]; then
+		ci_c=$(print -r -- "$ci_diff" | grep -c '^changed ')
+		ci_m=$(print -r -- "$ci_diff" | grep -c '^missing ')
+		ci_w=$(print -r -- "$ci_diff" | grep -c '^new ')
+		line FAIL "Boot inputs: $ci_c changed, $ci_m missing, $ci_w new since the baseline"
+		print -r -- "$ci_diff" | head -n 6 | while read -r ci_k ci_p; do detail "$ci_k $ci_p"; done
+		[ -n "$ci_info" ] && detail "baseline: $ci_info"
+	else
+		line OK "Boot inputs: $(grep -c '^SHA256 (' $BASE) files as at the baseline"
+		[ -n "$ci_info" ] && detail "baseline: $ci_info"
+	fi
+}
+
+ck_hostname() {
+	ch_ok=" $(conf hostname | tr '\n' ' ') "
+	ch_found= ch_bad=
+	for ch_f in /etc/hostname.*; do
+		[ -e "$ch_f" ] || continue
+		ch_n=${ch_f#/etc/hostname.}
+		ch_found="$ch_found $ch_n"
+		case $ch_ok in *" $ch_n "*) ;; *) ch_bad="$ch_bad $ch_n" ;; esac
+	done
+	if [ -n "$ch_bad" ]; then
+		line FAIL "Interfaces at boot: unexpected /etc/hostname.*:$ch_bad"
+	elif [ -n "$ch_found" ]; then
+		line OK "Interfaces at boot:$ch_found (allowed)"
+	else
+		line OK "Interfaces at boot: none (LAN only)"
+	fi
+}
+
+ck_network() {
+	cn_why=
+	route -n get -inet default >/dev/null 2>&1 && cn_why="$cn_why, an IPv4 default route"
+	route -n get -inet6 default >/dev/null 2>&1 && cn_why="$cn_why, an IPv6 default route"
+	cn_if=$(ifconfig 2>/dev/null)
+	print -r -- "$cn_if" | grep -q AUTOCONF4 && cn_why="$cn_why, IPv4 autoconf"
+	print -r -- "$cn_if" | grep -q AUTOCONF6 && cn_why="$cn_why, IPv6 autoconf"
+	for cn_d in $(conf off); do
+		pgrep -x "$cn_d" >/dev/null 2>&1 && cn_why="$cn_why, $cn_d running"
+	done
+	cn_lvl=$(conf default_route | tail -n 1)
+	case $cn_lvl in fail) cn_lvl=FAIL ;; allow) cn_lvl=OK ;; *) cn_lvl=WARN ;; esac
+	if [ -n "$cn_why" ]; then
+		line $cn_lvl "Network: not LAN only"
+		detail "${cn_why#, }"
+	else
+		line OK "Network: LAN only (no default route, no autoconf)"
+	fi
+}
+
+listeners() {	# command protocol port, for every socket bound to all addresses (fstat -n; not connected ones)
+	fstat -n 2>/dev/null | awk '
+	$5 == "internet" || $5 == "internet6" {
+		if ($0 ~ /<--|-->/) next
+		la = $NF
+		if (la !~ /^\*:/ && la !~ /^\[::\]:/ && la !~ /^0\.0\.0\.0:/) next
+		port = la
+		sub(/^.*:/, "", port)
+		print $2, $7 (($5 == "internet6") ? "6" : ""), port
+	}' | sort -u
+}
+allowed_check() {	# "cmd proto port" lines on stdin against the listen rules: "bad <c/p/n>" lines, then "total N"
+	awk -v conf=$CONF '
+	function g2r(g) { gsub(/\./, "[.]", g); gsub(/\?/, ".", g); gsub(/\*/, ".*", g); return "^" g "$" }
+	BEGIN {
+		while ((getline l < conf) > 0) {
+			sub(/#.*/, "", l)
+			if (split(l, a) >= 3 && a[1] == "listen") {
+				nr++; rc[nr] = g2r(a[2]); rp[nr] = g2r(a[3]); rn[nr] = (a[4] == "") ? "^.*$" : g2r(a[4])
+			}
+		}
+	}
+	NF >= 3 {
+		n++
+		for (i = 1; i <= nr; i++) if ($1 ~ rc[i] && $2 ~ rp[i] && $3 ~ rn[i]) next
+		print "bad", $1 "/" $2 "/" $3
+	}
+	END { print "total", n + 0 }'
+}
+ck_listen() {
+	if [ $ROOT = 0 ]; then line N/A "Listeners on all addresses (root only)"; return; fi
+	cl_out=$(listeners | allowed_check)
+	cl_n=$(print -r -- "$cl_out" | awk '$1 == "total" { print $2 }')
+	cl_bad=$(print -r -- "$cl_out" | awk '$1 == "bad" { printf " %s", $2 }')
+	if [ -n "$cl_bad" ]; then
+		line FAIL "Listeners on all addresses: $(print -r -- "$cl_out" | grep -c '^bad ') of $cl_n not allowed"
+		for cl_b in $cl_bad; do detail "not allowed: $cl_b"; done
+	else
+		line OK "Listeners on all addresses: $cl_n, all allowed"
+	fi
+}
+
+ck_updates() {
+	release_now
+	cu_max=$(conf update_age | tail -n 1)
+	case $cu_max in ""|*[!0-9]*) cu_max=90 ;; esac
+	cu_when=
+	if [ $ROOT = 1 ] && [ -f $UPD/history ]; then
+		cu_when=$(awk -F'\t' '$4 == "installed" || $4 == "reverted" { w = $1 } END { print w }' $UPD/history)
+	fi
+	cu_now=$(date +%s)
+	if [ -n "$cu_when" ]; then
+		cu_t=$(date -j -f '%Y-%m-%d %H:%M:%S' "$cu_when" +%s 2>/dev/null)
+	else
+		cu_t=$(stat -f %m $RELFILE 2>/dev/null)
+	fi
+	case $cu_t in ""|*[!0-9]*) cu_t=$cu_now ;; esac
+	cu_days=$(((cu_now - cu_t) / 86400))
+	cu_why=
+	[ -f $RELFILE ] || cu_why="$cu_why, there is no $RELFILE"
+	[ -e /d32/var/pending.running ] && cu_why="$cu_why, the last boot window stopped half way (the next boot puts it back)"
+	[ -e /d32/var/pending ] && cu_why="$cu_why, an update waits for the next boot"
+	cu_last=
+	[ $ROOT = 1 ] && [ -s $UPD/last-window ] && cu_last=$(head -n 1 $UPD/last-window | tr '\t' ' ')
+	case $cu_last in
+	*FAILED*|*REFUSED*|*INTERRUPTED*|*INCOMPLETE*) cu_why="$cu_why, the last boot window: $cu_last" ;;
+	esac
+	[ $cu_days -gt $cu_max ] && cu_why="$cu_why, the last update was $cu_days days ago (over $cu_max)"
+	if [ -n "$cu_why" ]; then
+		line WARN "Updates: ${REL:-unknown} (seq $SEQ)"
+		print -r -- "${cu_why#, }" | tr ',' '\n' | sed 's/^ //' | while read -r cu_l; do detail "$cu_l"; done
+	else
+		line OK "Updates: ${REL:-unknown} (seq $SEQ), last update $cu_days days ago"
+		[ -n "$cu_last" ] && detail "last boot window: $cu_last"
+	fi
+}
+
+cmd_check() {
+	[ -f $CONF ] || { line WARN "Rules: there is no $CONF (defaults)"; }
+	ck_securelevel
+	ck_pf
+	ck_schg
+	ck_inputs
+	ck_hostname
+	ck_network
+	ck_listen
+	ck_updates
+	if [ $NFAIL -gt 0 ]; then
+		print -r -- "The system is NOT ready: $NFAIL failed, $NWARN warnings."
+		return 1
+	fi
+	if [ $NWARN -gt 0 ]; then
+		print -r -- "The system is ready, with $NWARN warnings."
+		return 2
+	fi
+	print -r -- "The system is ready."
+	return 0
+}
+
+# ---- the boot window's verbs (securelevel 0 only) --------------------------------------------------------------
+
+need_window() {
+	[ $ROOT = 1 ] || die "$1: root only"
+	nw_sl=$(sysctl -n kern.securelevel 2>/dev/null)
+	case $nw_sl in -1|0) ;; *) die "$1 runs only in the boot window (securelevel 0; now ${nw_sl:-unknown})" ;; esac
+}
+rd_open() {	# the record directory, writable for this window
+	[ -L $RD ] && die "$RD is a symlink: refused"
+	if [ ! -d $RD ]; then
+		mkdir -m 0700 $RD || die "cannot make $RD"
+	fi
+	chflags 0 $RD || die "cannot clear the flags of $RD"
+	for ro_f in $RD/*; do
+		[ -e "$ro_f" ] || continue
+		[ -L "$ro_f" ] && die "$ro_f is a symlink: refused"
+		chflags 0 "$ro_f"
+	done
+	chown root:wheel $RD
+	chmod 0700 $RD
+}
+rd_close() {	# immutable until the next boot window
+	for rc_f in $RD/*; do
+		[ -f "$rc_f" ] && chmod 0600 "$rc_f" && chflags schg "$rc_f"
+	done
+	chflags schg $RD
+}
+do_baseline() {	# why
+	input_hashes >$BASE.new || die "cannot write $BASE.new"
+	[ -s $BASE.new ] || die "no boot inputs found: is $SCHGLIST there?"
+	mv $BASE.new $BASE || die "cannot write $BASE"
+	release_now
+	print -r -- "$(date '+%Y-%m-%d %H:%M:%S'), $(grep -c '^SHA256 (' $BASE) files, release ${REL:-unknown} seq $SEQ: $1" >$BINFO
+}
+
+cmd_baseline() {
+	need_window baseline
+	rd_open
+	do_baseline "${1:-by hand at securelevel 0}"
+	rd_close
+	say "baseline: $(head -n 1 $BINFO)"
+}
+
+cmd_boot() {
+	need_window boot
+	rd_open
+	cb_st=$(pfctl -si 2>/dev/null | awk '/^Status:/ { print $2; exit }')
+	cb_rules=$(print -r -- "$(pf_rules)" | sha256)
+	cb_conf=$(sha256 -q /etc/pf.conf 2>/dev/null)
+	cb_n=$(input_files | grep -c .)
+	cb_diff=
+	if [ -s $BASE ]; then
+		cb_diff=$(input_hashes | compare_inputs $BASE)
+		cb_d=$(print -r -- "$cb_diff" | grep -c .)
+	else
+		do_baseline "the first boot record (no update had made one)"
+		cb_d=0
+	fi
+	{
+		print -r -- "boot	$(date '+%Y-%m-%d %H:%M:%S')"
+		print -r -- "status	${cb_st:-unknown}"
+		print -r -- "rules	$cb_rules"
+		print -r -- "pfconf	${cb_conf:--}"
+		print -r -- "inputs	$cb_n files, $cb_d differ from the baseline"
+	} >$BOOTREC.new && mv $BOOTREC.new $BOOTREC || die "cannot write $BOOTREC"
+	rd_close
+	say "boot record: pf ${cb_st:-unknown}, rules $(short $cb_rules), $cb_n boot inputs"
+	if [ "${cb_d:-0}" -gt 0 ]; then
+		say "WARNING: $cb_d boot inputs differ from the baseline ($(head -n 1 $BINFO 2>/dev/null)); as root: d32ready"
+		logger -t d32ready -p daemon.warning -- "$cb_d boot inputs differ from the baseline" 2>/dev/null
+	fi
+	return 0
+}
+
+case ${1:-} in
+""|check) [ $# -le 1 ] || exit 64; cmd_check ;;
+-q) [ $# -eq 1 ] || exit 64; QUIET=1; cmd_check ;;
+boot) [ $# -eq 1 ] || exit 64; cmd_boot ;;
+baseline) [ $# -le 2 ] || exit 64; cmd_baseline "${2:-}" ;;
+-h|--help|help) sed -n '5,13s/^# \{0,1\}//p' /usr/local/d32/sbin/d32ready; exit 0 ;;
+*) print -r -- "usage: d32ready [-q] | boot | baseline [<why>]" >&2; exit 64 ;;
+esac

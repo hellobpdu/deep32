@@ -1,0 +1,5 @@
+interface:
+  display_name: "deep32-describe"
+  short_description: "Deep32 describe lens: add a topic or keywords"
+policy:
+  allow_implicit_invocation: false

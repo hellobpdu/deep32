@@ -1,0 +1,12 @@
+#!/bin/sh
+# test stub for run_tests.py's offline --net test: never touches the network.
+# Prints what "curl -w '%{http_code} %{time_total}'" would; the Hugging Face address times out.
+# usage: called by deep32-inventory.sh in place of curl, with curl's arguments (the address last)
+# exit codes: 0, or 28 (curl's time-out code) for the Hugging Face address
+for a in "$@"; do last="$a"; done
+case "$last" in
+    *huggingface*) printf '000 8.000000'; exit 28 ;;
+    *tailscale*) printf '302 0.120000' ;;
+    *) printf '200 0.042000' ;;
+esac
+exit 0

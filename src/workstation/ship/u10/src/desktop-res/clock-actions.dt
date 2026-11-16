@@ -1,0 +1,21 @@
+# T90 merges these two Desktop_Tools actions into the generated database.
+
+ACTION D32Clock
+{
+    LABEL           Clock (Analog)
+    ARG_COUNT       0
+    ICON            Dtclock
+    TYPE            COMMAND
+    WINDOW_TYPE     NO_STDIO
+    EXEC_STRING     /usr/X11R6/bin/xclock -analog -update 60 -name d32clock
+}
+
+ACTION D32ClockUTC
+{
+    LABEL           Clock (UTC)
+    ARG_COUNT       0
+    ICON            Dtdgclk
+    TYPE            COMMAND
+    WINDOW_TYPE     NO_STDIO
+    EXEC_STRING     /usr/bin/env TZ=UTC /usr/X11R6/bin/xclock -digital -strftime "%H:%M UTC  %a %d %b" -update 60 -name d32clockutc
+}

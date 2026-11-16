@@ -1,0 +1,19 @@
+#!/bin/ksh
+# Root parent; the broker itself creates its separate unprivileged children.
+daemon="/usr/local/d32/sbin/d32-chatd"
+daemon_flags="-f /etc/d32/chatd.conf"
+daemon_user="root"
+daemon_timeout=30
+
+. /etc/rc.d/rc.subr
+
+rc_reload=NO
+rc_pre() {
+	install -d -o root -g wheel -m 0755 /var/run/d32 || return 1
+	[ -f /etc/d32/state/chat/node.key ] &&
+	    [ -f /etc/d32/state/chat/node.crt ] &&
+	    [ -f /etc/d32/state/chat/edge.token ] &&
+	    [ "$(cat /etc/d32/state/edge_front 2>/dev/null)" = on ]
+}
+
+rc_cmd "$1"

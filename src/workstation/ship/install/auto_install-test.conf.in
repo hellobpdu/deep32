@@ -1,0 +1,33 @@
+# /auto_install.conf of the Deep32 First light PREVIEW TEST medium (the the test VM VM only; never written to a stick).
+# Unattended except for the two passphrases: the disk passphrase ("@ASKSECRET@") and, later, the media passphrase are
+# typed over COM1 by the test driver (ship/tools/d32ship-drive.py), which reads them from the build VM's encrypted
+# disk. So neither passphrase rests on this medium or on the build host's disks. The root and
+# test user's passwords are a per-build random TEST password (hash only here; the clear text stays on the build VM).
+System hostname = deep32
+Network interface to configure = done
+DNS domain name = test.invalid
+Password for root account = @ROOT_HASH@
+Public ssh key for root account = none
+Start sshd(8) by default = no
+Do you expect to run the X Window System = yes
+Do you want the X Window System to be started by xenodm(1) = no
+Change the default console to com0 = yes
+Which speed should com0 use = 115200
+Setup a user = d32test
+Full name for user d32test = Deep32 Test
+Password for user d32test = @ROOT_HASH@
+Public ssh key for user d32test = none
+Allow root ssh login = no
+What timezone are you in = UTC
+Which disk is the root disk = @ROOT_DISK@
+Encrypt the root disk with a (p)assphrase or (k)eydisk = p
+New passphrase = @ASKSECRET@
+URL to autopartitioning template for disklabel = file:///@TEMPLATE@
+Location of sets = disk
+Is the disk partition already mounted = no
+Which disk contains the install media = @DUID:@MEDIA_DUID@@
+partition has the install sets = a
+Pathname to the sets = 8.0/amd64
+Set name(s) = -comp* -game* +site*
+Checksum test for site80.tgz failed. Continue anyway = yes
+Unverified sets: site80.tgz. Continue without verification = yes

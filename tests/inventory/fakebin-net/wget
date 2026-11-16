@@ -1,0 +1,6 @@
+#!/bin/sh
+# test stub for run_tests.py's offline --net test: must never be called while the curl stub is present.
+# usage: none (its presence only keeps a real wget out of reach)
+# exit codes: 1 always
+echo "wget stub called" >&2
+exit 1

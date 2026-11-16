@@ -1,0 +1,10 @@
+# pydantic-core 2.46.5 offline build on the build host: crates vendored on the source workstation with
+#   cargo vendor --locked --versioned-dirs (cargo 1.99.1) from the sdist's own Cargo.lock.
+[source.crates-io]
+replace-with = "vendored-sources"
+
+[source.vendored-sources]
+directory = "/build/lanes/pyrag/src/pydantic-core-2.46.5-crates"
+
+[net]
+offline = true

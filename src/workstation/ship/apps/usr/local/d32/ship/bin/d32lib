@@ -1,0 +1,92 @@
+#!/bin/ksh
+# /d32/active/bin/d32lib [-home|-primary|-file PATH]: the Library (ship lane, First light PREVIEW). Until Deep32 Library
+# has its own readers, the encyclopedia is the Kiwix "Computer" Wikipedia served by kiwix-serve on 127.0.0.1:8850
+# (rc.d kiwix_serve, package user _kiwix-serve, loopback only, external links blocked), shown in a PRIVATE Firefox
+# ESR profile of its own; "-home" opens the Library's start page (encyclopedia, Cisco design guides, RFCs);
+# "-primary" (the theme's Search the Selection, Mod4+Space) searches the encyclopedia for the selected text;
+# "-file PATH" shows a text or HTML file (d32read, Help).
+# Update 1: the selection comes from xclip (now installed) and is URL-encoded byte by byte (U19); the profile's
+# user.js, with its network lockdown, is copied in at EVERY launch (U33); a second launch opens a tab in the
+# running Library window through the session's D-Bus (Xsession.d/0140.d32session starts one per CDE session), and
+# says so in a message box when it cannot (U20).
+P=$HOME/.mozilla/d32library
+H=file:///usr/local/share/d32/library/index.html
+U=http://127.0.0.1:8850/
+MSG=/usr/local/d32/ship/libexec/d32-msg
+
+say() {
+	if [ -n "${DISPLAY:-}" ] && [ -x $MSG ]; then
+		$MSG "Library" "$1" >/dev/null 2>&1 &
+	else
+		print -u2 -r -- "d32lib: $1"
+	fi
+}
+
+# urlenc [keep]: stdin to percent-encoding; letters, digits and -._~ stay, and so do the characters in "keep"
+urlenc() {
+	od -An -v -tu1 | awk -v keep="${1:-}" '
+		BEGIN { for (i = 32; i < 127; i++) chr[i] = sprintf("%c", i) }
+		{ for (i = 1; i <= NF; i++) {
+			c = $i + 0
+			if ((c >= 48 && c <= 57) || (c >= 65 && c <= 90) || (c >= 97 && c <= 122) || c == 45 || c == 46 ||
+			    c == 95 || c == 126 || (c in chr && index(keep, chr[c]) > 0))
+				printf "%s", chr[c]
+			else
+				printf "%%%02X", c
+		} }'
+}
+
+case ${1:-} in
+-home)
+	U=$H
+	;;
+-primary)
+	if [ ! -x /usr/local/bin/xclip ]; then
+		say "Search the Selection needs xclip, which is not installed. Update 1 installs it."
+		exit 1
+	fi
+	# the PRIMARY selection, one line, at most 200 characters, trimmed
+	sel=$(/usr/local/bin/xclip -o -selection primary 2>/dev/null | tr '\n\t\r' '   ' | cut -c1-200 |
+		sed 's/^ *//; s/ *$//')
+	if [ -z "$sel" ]; then
+		say "Select a word or a phrase first (drag over it), then choose Search the Selection again."
+		exit 0
+	fi
+	U="http://127.0.0.1:8850/search?pattern=$(print -rn -- "$sel" | urlenc)"
+	;;
+-file)
+	[ -n "${2:-}" ] || { print -u2 "usage: d32lib -file PATH"; exit 64; }
+	f=$2
+	case $f in /*) ;; *) f=$PWD/$f ;; esac
+	U="file://$(print -rn -- "$f" | urlenc /)"
+	;;
+esac
+if [ "${1:-}" != -home ] && [ "${1:-}" != -file ] && ! nc -z -w 2 127.0.0.1 8850 >/dev/null 2>&1; then
+	exec /usr/local/d32/ship/libexec/d32-notyet "Library" "The encyclopedia server (kiwix_serve) is not running. As root: rcctl start kiwix_serve"
+fi
+# the profile and its lockdown, every launch: a page or a stray edit cannot keep a changed pref
+mkdir -p $P && chmod 0700 $P
+cp /usr/local/d32/ship/share/library-user.js $P/user.js
+# Firefox unveils itself early: its remote client needs a working directory it can still see (getcwd), or it
+# fails with "failed to create command line" and hangs on the profile lock; ~/.mozilla is unveiled (build VM test,
+# 2026-11-06)
+cd $P || exit 1
+# running: Firefox's profile lock is a symlink "address:+pid" (its process title hides "--profile", so pgrep -f
+# never matched and the preview always started a second copy, which failed on the lock)
+running() {
+	local l p
+	l=$(readlink $P/lock 2>/dev/null) || return 1
+	p=${l##*+}
+	[[ $p == +([0-9]) ]] && kill -0 "$p" 2>/dev/null
+}
+# one Library window: a second call opens the page as a tab in the running one, through Firefox's remote service on
+# the session bus (one per CDE session, Xsession.d/0140.d32session); without a bus, or if that fails, a message box
+if running; then
+	if [ -n "${DBUS_SESSION_BUS_ADDRESS:-}" ] &&
+	    timeout 20 /usr/local/bin/firefox-esr --profile $P --new-tab "$U" >/dev/null 2>&1; then
+		exit 0
+	fi
+	say "The Library is already open in its own window. Use that window (its tabs hold every page you opened)."
+	exit 0
+fi
+exec /usr/local/bin/firefox-esr --profile $P --class Encyclopedia --name Encyclopedia "$U"

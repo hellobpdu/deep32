@@ -1,0 +1,23 @@
+# Deep32/UX D.32.12u14: Serial Console, a terminal for Cisco console cables (USB serial adapters, cu(1)).
+# Its own file beside the theme's (deep32*.dt) and the ship lane's (d32-ship.dt), so neither is rewritten. Files in
+# this directory are read in name order and the first record of a name wins; no other file has D32SerialConsole.
+set DtDbVersion=1.0
+
+# Paths, as DtDb variables (variables do not carry across files)
+set D32LBIN=/usr/local/d32/bin
+set DTBIN=/usr/local/dt/bin
+
+#--------------------------------------------------------------------------------------------------------------
+# Actions
+# runs: d32-serial (lists /dev/cuaU* and /dev/cua0* that are attached, asks 9600 or 115200, then cu -l PORT -s SPEED)
+ACTION D32SerialConsole
+{
+  LABEL                Serial Console
+  ICON                 D32sess
+  TYPE                 COMMAND
+  ARG_COUNT            0
+  WINDOW_TYPE          NO_STDIO
+  EXEC_HOST            %LocalHost%
+  EXEC_STRING          $DTBIN/dtterm -title "Serial Console" -geometry 100x34 -e $D32LBIN/d32-serial
+  DESCRIPTION          Connect to a Cisco console over a USB serial cable: choose the port and speed, then cu.
+}

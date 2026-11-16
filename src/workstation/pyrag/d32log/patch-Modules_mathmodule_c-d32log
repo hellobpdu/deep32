@@ -1,0 +1,16 @@
+Deep32 (PYTHON-ON-OPENBSD 5.4, G-libm): mathmodule.c's log() calls (math.log, loghelper, lgamma's Lanczos
+logs) go to d32_log, the log production's glibc runs. d32log.h is copied into Modules/ and libd32log.a is linked
+into the math extension by build-py312.sh (MODULE_MATH_LDFLAGS). patch -p0, after the 7.8 port's patches.
+
+Index: Modules/mathmodule.c
+--- Modules/mathmodule.c.orig
++++ Modules/mathmodule.c
+@@ -68,6 +68,8 @@
+ /* For _Py_log1p with workarounds for buggy handling of zeros. */
+ #include "_math.h"
+ #include <stdbool.h>
++/* Deep32 (PYTHON-ON-OPENBSD 5.4, G-libm): every log() call below is d32_log, glibc's log on deep32-engine */
++#include "d32log.h"
+
+ #include "clinic/mathmodule.c.h"
+

@@ -1,0 +1,66 @@
+#!/bin/ksh
+# Start a local X server for the browser. Only Xephyr uses the desktop cookie.
+set -eu
+umask 077
+export PATH=/bin:/usr/bin:/usr/X11R6/bin
+
+fail() {
+	printf '%s\n' "$1" >&2
+	if [ -n "${DISPLAY:-}" ]; then
+		xmessage -center -buttons OK:0 -timeout 15 "Fathom: $1" || :
+	fi
+	exit 1
+}
+
+[ "$#" -eq 0 ] || fail 'Open Fathom from its desktop action and enter the URL inside the browser.'
+case ${DISPLAY:-} in
+	:[0-9]|:[0-9][0-9]|:[0-9].[0-9]|:[0-9][0-9].[0-9]) ;;
+	*) fail 'A local desktop session is required.' ;;
+esac
+
+session=$(mktemp -d /tmp/d32-fathom.XXXXXXXX)
+nested_pid=
+cleanup() {
+	if [ -n "$nested_pid" ]; then
+		kill "$nested_pid" 2>/dev/null || :
+		wait "$nested_pid" 2>/dev/null || :
+	fi
+	rm -f -- "$session/auth" "$session/xephyr.log"
+	rmdir -- "$session"
+}
+trap cleanup EXIT
+trap 'exit 1' HUP INT TERM
+
+number=80
+while [ "$number" -le 99 ]; do
+	if [ ! -e "/tmp/.X${number}-lock" ] && [ ! -e "/tmp/.X11-unix/X${number}" ]; then
+		break
+	fi
+	number=$((number + 1))
+done
+[ "$number" -le 99 ] || fail 'No private display is available.'
+nested=:$number
+cookie=$(openssl rand -hex 16)
+: > "$session/auth"
+printf 'add %s MIT-MAGIC-COOKIE-1 %s\n' "$nested" "$cookie" | xauth -q -f "$session/auth"
+
+Xephyr "$nested" -name Fathom -title Fathom -resizeable -screen 1152x720 \
+	-nolisten tcp -auth "$session/auth" -noreset -extension MIT-SHM \
+	> "$session/xephyr.log" 2>&1 &
+nested_pid=$!
+
+attempt=0
+until env XAUTHORITY="$session/auth" timeout 2 xdpyinfo -display "$nested" >/dev/null 2>&1; do
+	[ "$attempt" -lt 30 ] && kill -0 "$nested_pid" 2>/dev/null || fail 'The private display did not start.'
+	attempt=$((attempt + 1))
+	sleep 0.1
+done
+kill -0 "$nested_pid" 2>/dev/null || fail 'The private display exited.'
+
+# The existing doas rule carries only DISPLAY and allows zero command arguments.
+if ! printf '%s\n' "$cookie" | env DISPLAY="$nested" \
+	/usr/bin/doas -u d32web /usr/local/d32/sbin/fathom-run; then
+	# Closing the outer window also closes its clients.
+	kill -0 "$nested_pid" 2>/dev/null || exit 0
+	fail 'The isolated browser could not start. Close any other Fathom window and try again.'
+fi

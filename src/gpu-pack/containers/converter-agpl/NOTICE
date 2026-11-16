@@ -1,0 +1,34 @@
+SPDX-License-Identifier: AGPL-3.0-or-later
+Copyright (C) 2026 Jeffrey A. Cummings
+
+The Deep32 PDF converter
+
+This folder is the PDF converter part of Deep32: chain.py, worker.py, convert.py,
+the Dockerfile, and the code and configuration under production-converter/
+(adapter.py, pipeline_v21.py, CHAIN.json and the conversion and fetch scripts under
+production-converter/chain/), and the isolated document-styles/ command. It is free software: you can redistribute it and/or
+modify it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or (at your option)
+any later version.
+
+It is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+PURPOSE. See the GNU Affero General Public License for more details.
+
+The full licence text is in AGPL-3.0.txt beside this file. This folder is the
+complete corresponding source of the converter.
+
+The rest of the Deep32 project code is also under AGPL-3.0-or-later and does not
+include, import or link any file in this folder. The Deep32 builder starts these
+programs as separate processes and reads only the files they write.
+
+PyMuPDF, MuPDF, MinerU, vLLM, the model weights and the other dependencies keep their
+own licences and notices. Their licence texts and source offers are in
+payload/licences on the GPU disc.
+
+Project documentation, including production-converter/README.md, is licensed
+under CC-BY-4.0; see the repository LICENSE-DOCS for the full legal code.
+
+The converter has no network listener. If you change it and let other people use
+your changed version over a network, section 13 of the licence requires you to
+offer them its complete corresponding source.

@@ -1,0 +1,110 @@
+#!/bin/ksh
+# d32-dnsup [-q] [-w seconds]: put the DHCP lease's resolvers into pf's <dns> table and unbound's forward-zone
+# (ISO-DESIGN 2.6.3). Root only; run from rc.local at boot and from root's crontab every 5 minutes. It edits a table,
+# never a rule (HARDENING 3.2: no runtime path loads rules), and rewrites unbound's include only when it changed.
+# Only interfaces in group "egress" with AUTOCONF4 (a DHCP client) count: a bench NIC's DHCP server is never trusted
+# for DNS, and a static address has no lease.
+# Update 1 (U26, item 56): leases are only READ (dhcpleasectl -l; without -l it asks dhcpleased for a new lease).
+# With no AUTOCONF4 interface (the LAN-only design: no NIC at boot, the maintenance kit sets a static address) it
+# returns at once, so boot no longer waits 30 s, and it clears any upstream a past lease left behind: the router's
+# resolver is never asked once its lease is gone. unbound refuses every name but Tailscale's anyway (U27).
+set -u
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+quiet=false wait=0
+while getopts "qw:" c; do
+	case $c in
+	q)	quiet=true;;
+	w)	wait=$OPTARG;;
+	*)	echo "usage: d32-dnsup [-q] [-w seconds]" >&2; exit 64;;
+	esac
+done
+[ "$(id -u)" -eq 0 ] || { echo "d32-dnsup: root only" >&2; exit 1; }
+fwd=/var/unbound/etc/d32-forward.conf
+empty="# written by d32-dnsup from the DHCP lease; empty until the first lease"
+
+# anydhcp: some interface runs a DHCP client (it joins "egress" only once its lease sets the default route)
+anydhcp() {
+	ifconfig -a 2>/dev/null | grep -q '^[a-z][a-z0-9]*: flags=.*AUTOCONF4'
+}
+
+# dhcpifs: the egress interfaces that run a DHCP client
+dhcpifs() {
+	local _if
+	for _if in $(ifconfig egress 2>/dev/null | sed -n 's/^\([a-z][a-z0-9]*\): flags=.*/\1/p'); do
+		ifconfig "$_if" 2>/dev/null | sed -n 1p | grep -q 'AUTOCONF4' && echo "$_if"
+	done
+}
+
+servers() {
+	local _if
+	for _if in $(dhcpifs); do
+		dhcpleasectl -l "$_if" 2>/dev/null | sed -n 's/^[[:space:]]*nameservers[[:space:]]*//p'
+	done | tr ' \t' '\n\n' | grep -E '^([0-9]{1,3}\.){3}[0-9]{1,3}$' | sort -u
+}
+
+restart_unbound() {
+	rcctl check unbound >/dev/null 2>&1 && rcctl restart unbound >/dev/null 2>&1
+	return 0
+}
+
+# ensure_unbound (update 15): start unbound when it is enabled but not running. restart_unbound above only
+# restarts a running one, so a start that failed at boot (10 November 2026, after an unclean shutdown) was never
+# tried again and the tailnet came up on Tailscale's built-in fallback only. The include file unbound.conf names
+# is put back first when it is missing. Disabled (flags NO) stays off. A start that fails is logged once per boot
+# (/var/run is emptied at boot). Called before every normal exit: rc.local, cron every 5 minutes, d32-link.
+# It edits no pf file, adds no listener and changes no rc configuration.
+ensure_unbound() {
+	[ -f $fwd ] || { print -r -- "$empty" >$fwd.new && chown root:wheel $fwd.new && chmod 0644 $fwd.new && mv $fwd.new $fwd; }
+	rcctl check unbound >/dev/null 2>&1 && { rm -f /var/run/d32/dnsup.unbound; return 0; }
+	[ "$(rcctl get unbound flags 2>/dev/null)" = NO ] && return 0
+	if rcctl start unbound >/dev/null 2>&1; then
+		logger -t d32-dnsup "unbound was not running: started"
+	elif [ ! -e /var/run/d32/dnsup.unbound ]; then
+		logger -t d32-dnsup "unbound is not running and did not start (unbound-checkconf /var/unbound/etc/unbound.conf)"
+		: >/var/run/d32/dnsup.unbound 2>/dev/null
+	fi
+	return 0
+}
+
+if ! anydhcp; then
+	# no DHCP client at all: nothing to wait for; drop what an earlier lease left
+	if grep -q 'forward-addr' $fwd 2>/dev/null; then
+		print -r -- "$empty" >$fwd.new && chown root:wheel $fwd.new && chmod 0644 $fwd.new && mv $fwd.new $fwd
+		restart_unbound
+		logger -t d32-dnsup "no DHCP interface: upstream resolvers removed"
+	fi
+	pfctl -q -t dns -T flush 2>/dev/null
+	$quiet || echo "d32-dnsup: no DHCP interface (AUTOCONF4) in egress: no upstream resolvers"
+	ensure_unbound
+	exit 0
+fi
+
+ns=$(servers)
+while [ -z "$ns" ] && [ "$wait" -gt 0 ]; do
+	sleep 1; wait=$((wait - 1)); ns=$(servers)
+done
+if [ -z "$ns" ]; then
+	$quiet || echo "d32-dnsup: no DHCP resolvers on egress yet"
+	ensure_unbound
+	exit 0
+fi
+
+new=$(mktemp /tmp/d32-dnsup.XXXXXXXXXX) || exit 1
+{
+	echo "# written by d32-dnsup from the DHCP lease; do not edit"
+	echo "forward-zone:"
+	echo '	name: "."'
+	for a in $ns; do echo "	forward-addr: $a"; done
+} >$new
+changed=false
+if ! cmp -s $new $fwd; then
+	install -o root -g wheel -m 0644 $new $fwd
+	changed=true
+fi
+rm -f $new
+pfctl -q -t dns -T replace $ns
+$changed && restart_unbound
+$changed && logger -t d32-dnsup "upstream resolvers: $(echo $ns)"
+$quiet || echo "d32-dnsup: resolvers $(echo $ns)$($changed && echo ' (changed)')"
+ensure_unbound
+exit 0

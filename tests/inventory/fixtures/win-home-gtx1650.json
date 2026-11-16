@@ -1,0 +1,161 @@
+{
+ "name": "win-home-gtx1650",
+ "about": "Windows 11 Home laptop, Ryzen 5 3550H, 16 GB, GTX 1650 4 GB, VirtualBox, no Hyper-V",
+ "facts": {
+  "os": {
+   "family": "windows",
+   "name": "Windows 11 Home",
+   "edition": "home",
+   "version": "23H2",
+   "build": 22631,
+   "arch": "x64",
+   "wsl_guest": false
+  },
+  "hw": {
+   "vendor": "ASUSTeK COMPUTER INC.",
+   "model": "TUF Gaming FX505DT",
+   "virtual": false
+  },
+  "cpu": {
+   "vendor": "amd",
+   "model": "AMD Ryzen 5 3550H with Radeon Vega Mobile Gfx",
+   "family": 23,
+   "model_id": 24,
+   "stepping": 1,
+   "gen": null,
+   "sockets": 1,
+   "cores": 4,
+   "threads": 8,
+   "p_cores": null,
+   "e_cores": 0,
+   "p_threads": null,
+   "avx": true,
+   "avx2": true,
+   "avx512f": false
+  },
+  "mem": {
+   "total_gb": 15.9,
+   "installed_gb": 16,
+   "free_gb": 6.0
+  },
+  "disks": [
+   {
+    "mount": "C:",
+    "size_gb": 476.0,
+    "free_gb": 120.5,
+    "ssd": true
+   }
+  ],
+  "gpus": [
+   {
+    "name": "NVIDIA GeForce GTX 1650",
+    "vendor": "nvidia",
+    "mem_gb": 4.0,
+    "driver": "566.36",
+    "cc": "7.5"
+   },
+   {
+    "name": "AMD Radeon(TM) Vega 8 Graphics",
+    "vendor": "amd",
+    "mem_gb": 2.0,
+    "driver": "31.0.21921.1000",
+    "cc": null
+   }
+  ],
+  "virt": {
+   "firmware": true,
+   "slat": true,
+   "iommu": null,
+   "hypervisor": false
+  },
+  "hyp": {
+   "hyperv": false,
+   "kvm": false,
+   "proxmox": false,
+   "virtualbox": true,
+   "vmware": false,
+   "libvirt": false
+  },
+  "wsl": {
+   "present": false,
+   "wsl2_distros": 0
+  },
+  "docker": {
+   "present": false,
+   "client": null,
+   "nvidia": null
+  },
+  "tools": {
+   "tailscale": false,
+   "claude": false,
+   "codex": "0.58.0",
+   "gh": false
+  },
+  "ports": {
+   "checked": true,
+   "busy": []
+  },
+  "net": null
+ },
+ "reasoning": [
+  "Classes: the Ryzen 5 3550H has AVX2: modern. 'nvidia geforce gtx 1650' first matches 'geforce gtx 16[0-9][0-9]': gtx16 (Forge experimental), usable; 4 GB is memory tier 0. The Radeon is not NVIDIA and is not classed.",
+  "Sizing: 8 threads, 16 GB installed: tier 0 (tier 1 needs 32 GB). After the host: 6 threads, 12 GB, so the Workstation alone (4, 8) and the Forge alone (2, 12) fit, both together does not.",
+  "Candidates (Windows Home, x64): win-home, two-machines, virtualbox (VirtualBox installed), headend-only. win-nvidia and no-gpu need Pro, Enterprise or Education.",
+  "win-home: ready. type2-hypervisor met by VirtualBox, disk-ws met (120.5 >= 60); Tailscale not found, so auto. Size 'ws': (4, 8).",
+  "two-machines: ready (second-machine in confirm, Tailscale auto). Size 'each': Workstation (4, 8); tier 0 has no Forge range, so the Forge minimum (2, 12), which fits.",
+  "virtualbox: ready. Size 'ws': (4, 8). headend-only: ready (Codex present).",
+  "Order (single machine first, matrix 0.3.0; before, it was win-home, two-machines, virtualbox): all four ready; the one-machine profiles first by rank, win-home 20 and virtualbox 60, then the alternatives (machines 2) by rank, two-machines 40 (third) and headend-only 90 (fourth, not shown).",
+  "Warnings: gpu-experimental, gpu-mem-low (usable card, tier 0)."
+ ],
+ "expect": {
+  "best": "win-home",
+  "fit": "ready",
+  "ranked": [
+   "win-home",
+   "virtualbox",
+   "two-machines"
+  ],
+  "best_missing": [],
+  "best_unknown": [],
+  "best_auto": [
+   "tailscale"
+  ],
+  "best_confirm": [],
+  "cpu_class": "modern",
+  "gpu_class": "gtx16",
+  "gpu_forge": "experimental",
+  "gpu_mem_tier": "0",
+  "tier": 0,
+  "sizes": {
+   "win-home": {
+    "ws": [
+     4,
+     8
+    ],
+    "forge": null
+   },
+   "virtualbox": {
+    "ws": [
+     4,
+     8
+    ],
+    "forge": null
+   },
+   "two-machines": {
+    "ws": [
+     4,
+     8
+    ],
+    "forge": [
+     2,
+     12
+    ]
+   }
+  },
+  "ruled_out": [],
+  "warnings": [
+   "gpu-experimental",
+   "gpu-mem-low"
+  ]
+ }
+}

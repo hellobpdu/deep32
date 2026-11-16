@@ -1,0 +1,31 @@
+#!/bin/ksh
+# /usr/local/d32/libexec/d32-content-import: the disc 2 importer of the Deep32 Workstation. It checks the signed
+# content manifest of disc 2 (contract C2 section 4) and every file on the disc, installs the knowledge base (C3) and
+# the Deep32 Library packs (C5) beside the ones in use, switches to them in one step, checks them and writes the import
+# report (deep32-import-report 1) and console status lines (C6). The work is done by d32-import/d32import.py.
+#   d32-content-import --device cdN    import disc 2 from that drive (the first start runs this)
+#   d32-content-import --resume        carry on with the newest import when it can be carried on
+#   d32-content-import --report        print the current import report and change nothing
+# Exit: 0 imported or already in use; 1 usage; 2 failed (the report says why); 3 another import is running;
+# 4 stopped by a signal (run it again to carry on).
+# Test hooks, read only when D32_ROOT is set: D32_ROOT, D32_PYTHON, D32_STUBS and the D32_TEST_* settings of
+# d32-import/imp_paths.py.
+LC_ALL=C
+export LC_ALL
+umask 077
+if [ -z "${D32_ROOT:-}" ]; then
+	if [ "$(id -u)" != 0 ]; then
+		echo "d32-content-import: run as root" >&2
+		exit 1
+	fi
+	PATH=/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin
+	export PATH
+	py=/usr/local/bin/python3.14
+else
+	if [ -z "${D32_PYTHON:-}" ] || [ -z "${D32_STUBS:-}" ]; then
+		echo "d32-content-import: test mode needs D32_PYTHON and D32_STUBS" >&2
+		exit 1
+	fi
+	py=$D32_PYTHON
+fi
+exec "$py" -I -B "${D32_ROOT:-}/usr/local/d32/libexec/d32-import/d32import.py" --node workstation "$@"

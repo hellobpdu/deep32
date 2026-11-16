@@ -1,0 +1,13 @@
+# Alongside d32-ship.dt; no existing action is overridden.
+set DtDbVersion=1.0
+
+ACTION D32AskDeep32
+{
+  LABEL                Ask Deep32
+  ICON                 D32srch
+  TYPE                 COMMAND
+  WINDOW_TYPE          NO_STDIO
+  EXEC_HOST            %LocalHost%
+  EXEC_STRING          /usr/local/dt/bin/dtterm -title "Ask Deep32" -e /usr/local/d32/bin/d32-ask
+  DESCRIPTION          Ask Codex or Claude Code on the paired PC, grounded on this workstation's RAG.
+}

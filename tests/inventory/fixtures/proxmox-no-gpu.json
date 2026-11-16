@@ -1,0 +1,158 @@
+{
+ "name": "proxmox-no-gpu",
+ "about": "The same Proxmox host with only its onboard Matrox graphics",
+ "facts": {
+  "os": {
+   "family": "linux",
+   "name": "Debian GNU/Linux 12 (bookworm)",
+   "edition": "debian",
+   "version": "12",
+   "build": null,
+   "arch": "x64",
+   "wsl_guest": false,
+   "kernel": "6.8.12-4-pve"
+  },
+  "hw": {
+   "vendor": "Dell Inc.",
+   "model": "PowerEdge R720",
+   "virtual": false
+  },
+  "cpu": {
+   "vendor": "intel",
+   "model": "Intel(R) Xeon(R) CPU E5-2690 v2 @ 3.00GHz",
+   "family": null,
+   "model_id": null,
+   "stepping": null,
+   "gen": null,
+   "sockets": 2,
+   "cores": 20,
+   "threads": 40,
+   "p_cores": null,
+   "e_cores": 0,
+   "p_threads": null,
+   "avx": true,
+   "avx2": false,
+   "avx512f": false
+  },
+  "mem": {
+   "total_gb": 251.8,
+   "installed_gb": null,
+   "free_gb": 200.0
+  },
+  "disks": [
+   {
+    "mount": "/",
+    "size_gb": 94.0,
+    "free_gb": 70.1,
+    "ssd": true
+   },
+   {
+    "mount": "/var/lib/vz",
+    "size_gb": 1800.0,
+    "free_gb": 1500.0,
+    "ssd": false
+   }
+  ],
+  "gpus": [
+   {
+    "name": "Matrox Electronics Systems Ltd. G200eR2",
+    "vendor": "other",
+    "mem_gb": null,
+    "driver": null,
+    "cc": null
+   }
+  ],
+  "virt": {
+   "firmware": true,
+   "slat": true,
+   "iommu": true,
+   "hypervisor": false
+  },
+  "hyp": {
+   "hyperv": false,
+   "kvm": true,
+   "proxmox": true,
+   "virtualbox": false,
+   "vmware": false,
+   "libvirt": false
+  },
+  "wsl": null,
+  "docker": {
+   "present": false,
+   "client": null,
+   "nvidia": false
+  },
+  "tools": {
+   "tailscale": false,
+   "claude": false,
+   "codex": false,
+   "gh": false
+  },
+  "ports": {
+   "checked": true,
+   "busy": []
+  },
+  "net": null
+ },
+ "reasoning": [
+  "Classes: avx as on the RTX 3060 host. Only a Matrox card: no NVIDIA card, so gpu.usable is false and there is no card class.",
+  "Sizing: tier 3; 38 threads and 248 GB after the host.",
+  "Candidates: proxmox-passthrough, no-gpu (no usable card), two-machines, headless, headend-only.",
+  "proxmox-passthrough and headless: gpu-cuda missing (hardware): ruled out.",
+  "no-gpu: ready (KVM is the hypervisor, disk 1500 GB, Tailscale auto). Size 'ws': (8, 16).",
+  "two-machines: ready (one-side met by the room for the Workstation; second-machine in confirm). Size (8, 16) and Forge (8, 32).",
+  "headend-only: changes (agent missing).",
+  "Order: the one-machine no-gpu (ready) first; then the alternatives (machines 2): ready two-machines 40, changes headend-only 90. Unchanged by the single-machine-first order of matrix 0.3.0.",
+  "Warnings: cpu-forge-untested."
+ ],
+ "expect": {
+  "best": "no-gpu",
+  "fit": "ready",
+  "ranked": [
+   "no-gpu",
+   "two-machines",
+   "headend-only"
+  ],
+  "best_missing": [],
+  "best_unknown": [],
+  "best_auto": [
+   "tailscale"
+  ],
+  "best_confirm": [],
+  "cpu_class": "avx",
+  "gpu_class": null,
+  "gpu_forge": null,
+  "gpu_mem_tier": null,
+  "tier": 3,
+  "sizes": {
+   "no-gpu": {
+    "ws": [
+     8,
+     16
+    ],
+    "forge": null
+   },
+   "two-machines": {
+    "ws": [
+     8,
+     16
+    ],
+    "forge": [
+     8,
+     32
+    ]
+   },
+   "headend-only": {
+    "ws": null,
+    "forge": null
+   }
+  },
+  "ruled_out": [
+   "proxmox-passthrough",
+   "headless"
+  ],
+  "warnings": [
+   "cpu-forge-untested"
+  ]
+ }
+}

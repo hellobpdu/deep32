@@ -1,0 +1,107 @@
+d32scr 1
+# Deep32 Library: the Title screen (a 640x480 title card from the asset store). No caption: the card fills the frame.
+# Tags: [d] from the asset store's data, [c] from code constants, [m] measured, [i] our choice.
+
+screen title
+	size 640 480
+	image hilite/title1.dib 0 0               # [d] the title card, 640x480, 8-bit: drawn first (a missing image
+	                                          #     is skipped with a message: the fallback)
+	image e26/title1-26.dib 0 0               # the edition's own card, over the first when the store has it
+	image e26/title26 519 357                 # the year patch, 64x46 at x 519-582, rows 357-402, when the store has it
+	sound hilite/enctheme once                # [d] the title theme from the asset store
+	control enter
+		kind button
+		record 10101                          # [d] control record "|^enter"
+		rect 591 356 49 49                    # [m] frame 0 of ENTER matched in title1.dib at (591,356)
+		strip ui/bitmap/ENTER 3               # [d] 147x49 = 3 frames of 49x49
+		frame normal 0                        # [i] raised
+		frame pressed 1                       # [m] sunken, label shifted (capture 03: the 49x49 area changes)
+		frame hot 2                           # [m] the arrow lights (capture 02)
+		action goto main
+		key Return
+	end
+	# [m] the three tour buttons, template-matched on capture 01 (blurred SSD, rms 11.7-13.8 against the
+	# 16-colour dither): they abut at y 405. Records 10102-10104 [d]. Their panels (World of Library, Getting
+	# Around, Research & Reports; captures 79-82) are not built, so the buttons have no action yet.
+	control worldof
+		kind button
+		record 10102                          # [d] "|^worldof"
+		rect 325 405 84 67                    # [m]
+		strip ui/bitmap/WORLDOF 3             # [d] 252x67 = 3 x 84x67
+		frame normal 0
+	end
+	control getaroun
+		kind button
+		record 10103                          # [d] "|^getaroun"
+		rect 409 405 84 67                    # [m]
+		strip ui/bitmap/GETAROUN 3            # [d] 252x67 = 3 x 84x67
+		frame normal 0
+	end
+	control research
+		kind button
+		record 10104                          # [d] "|^research"
+		rect 493 405 98 67                    # [m]
+		strip ui/bitmap/RESEARCH 3            # [d] 294x67 = 3 x 98x67
+		frame normal 0
+	end
+	# The start-up lines: what the program is and whose it is, in white from x 10. Shown once, at start-up, for
+	# 3,900 ms (`startup`), never when the Title screen is opened again from the Information menu.
+	control startup-1
+		kind label
+		rect 10 421 300 14                    # [i] one line above the original's
+		label "Deep32 Encyclopedia"
+		font ui
+		fg ui:0
+		text-y 11                             # baseline 432
+		align left
+		startup 3900                          # [m256] 1.9 to 5.8 s on the capture lane
+	end
+	control startup-2
+		kind label
+		rect 10 436 300 14                    # [m256] capitals on rows 440-447, from x 10
+		label "Copyright (C) 2026 Jeffrey A. Cummings"
+		font ui
+		fg ui:0
+		text-y 11                             # [m256] baseline 447
+		align left
+		startup 3900
+	end
+	# [m] "Display this screen in the future" (ShowTitleScreen): the ticked box at (10,457), the white label at x 35
+	control showtitle
+		kind toggle
+		record 10074                          # [m256] the ring is entry 31 on all four sides (capture256 01): record 10074
+		                                      #     (FINDWIZARD_CHECKBOX, every slot 31) gives the class frame in entry 31 over
+		                                      #     the strip's own entry-13 ring; record 10083's slots are 13
+		rect 10 457 13 13                     # [m] frame 1 of the 13x13 check box matches the capture (21 of 21 tick pixels)
+		strip ui/bitmap/FINDWIZARD_CHECKBOX 4 # [d] record 10074's bitmap
+		frame normal 0
+		frame checked 1
+		checked                               # on: the title screen is showing
+		action toggle                         # [i] build 3 (W0-F0, plan O3): saved as ShowTitleScreen in LIBRARY.INI
+		prop setting ShowTitleScreen
+	end
+	control showtitle-label
+		kind label
+		rect 35 457 200 13                    # [m]
+		label @15181                          # [d] "Display this screen in the future"
+		font ui
+		fg ui:0
+		align left
+	end
+	# The dedication: "Powered by the hopes and dreams of all current and future network engineers.", in the
+	# start-up lines' face and white, centred in the band left of the tour buttons (x 0-324), on their 15-px pitch;
+	# it breaks once, after "dreams". It keeps off the frame while the start-up lines stand in the same place,
+	# appears when those go (3.9 s) and stays (kind_credits.c).
+	control credits
+		kind credits
+		rect 0 405 325 51                     # [i] x 0-324, rows 405-455
+		font ui                               # the start-up lines' face (Arial 11 px in the e95 set)
+		fg ui:0                               # white, as the start-up lines and the check box's label
+		align centre
+		text-y 12                             # [i] baselines 417, 432 (startup-1's) and 447 (the copyright line's)
+		pitch 15                              # [m256] the start-up lines' pitch
+		data "Powered by the hopes and dreams"
+		data "of all current and future network engineers."
+		prop after startup
+	end
+end

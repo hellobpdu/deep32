@@ -1,0 +1,98 @@
+﻿{
+ "cpu_classes": [
+  {
+   "forge": "yes",
+   "id": "any",
+   "when": [
+    [
+     "os.arch",
+     "eq",
+     "x64"
+    ]
+   ],
+   "workstation": "yes"
+  }
+ ],
+ "gpu_classes": [],
+ "gpu_mem_tiers": [],
+ "hw_profiles": [],
+ "matrix_version": "mini",
+ "ports": [
+  {
+   "port": 7452,
+   "use": "relay"
+  }
+ ],
+ "profiles": [
+  {
+   "id": "mini",
+   "match": [
+    [
+     "os.family",
+     "eq",
+     "windows"
+    ]
+   ],
+   "name": "Mini",
+   "parts": {
+    "forge": "y",
+    "relay": "z",
+    "workstation": "x"
+   },
+   "rank": 1,
+   "requires": [
+    "relay-port"
+   ],
+   "size": "ws",
+   "status": "planned",
+   "target": "supported"
+  }
+ ],
+ "requirements": {
+  "relay-port": {
+   "kind": "fix",
+   "need": "Port 7452 free",
+   "when": [
+    [
+     "port.7452",
+     "eq",
+     false
+    ]
+   ]
+  }
+ },
+ "schema": "deep32.matrix.v1",
+ "sizing": {
+  "forge_alone_min": {
+   "mem_gb": 12,
+   "threads": 2
+  },
+  "host_keeps": {
+   "mem_gb": 4,
+   "threads": 2
+  },
+  "tiers": [
+   {
+    "forge": null,
+    "min_mem_gb": 0,
+    "min_threads": 0,
+    "tier": 0,
+    "ws": {
+     "mem_gb": [
+      8,
+      8
+     ],
+     "threads": [
+      4,
+      4
+     ]
+    }
+   }
+  ],
+  "ws_alone_min": {
+   "mem_gb": 8,
+   "threads": 4
+  }
+ },
+ "warnings": []
+}

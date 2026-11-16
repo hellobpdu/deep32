@@ -1,0 +1,16 @@
+{
+ "guard-array.json": "gaming-state-unreadable",
+ "guard-broken.json": "gaming-state-unreadable",
+ "guard-empty.json": "gaming-state-unreadable",
+ "guard-mode-bool.json": "gaming-state-unreadable",
+ "guard-mode-null.json": "gaming-state-unreadable",
+ "guard-object-no-mode.json": "gaming-state-unreadable",
+ "guard-off-nested-on.json": "clear",
+ "guard-off.json": "clear",
+ "guard-on-bom8.json": "gaming-mode",
+ "guard-on-nested-off.json": "gaming-mode",
+ "guard-on-ps-crlf.json": "gaming-mode",
+ "guard-on-upper.json": "gaming-mode",
+ "guard-on-utf16.json": "gaming-mode",
+ "guard-on.json": "gaming-mode"
+}

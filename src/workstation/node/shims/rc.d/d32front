@@ -1,0 +1,28 @@
+#!/bin/ksh
+#
+# d32front: the TLS front for deep32-gateway (PYTHON-ON-OPENBSD 7.3, design choice 12.4: relayd(8) from base, REUSE).
+# OFF at First light (the final design 0: no TCP listener and no relayd until a remote caller exists). It runs only while
+# /etc/d32/state/edge_front reads "on", which also gives deep32-gateway its 127.0.0.1:8766 backend listener.
+# Remote callers can reach exactly two things through it: POST /mcp (the edge's RemoteGate then allows the MCP
+# handshake, tools/list and the 11 read tools) and GET /health. Every other path and method is refused by relayd.
+# Its own relayd(8) instance with its own configuration, so a base relayd (if ever used) is unaffected.
+
+daemon="/usr/sbin/relayd"
+daemon_flags="-f /etc/d32/relayd.conf"
+
+. /etc/rc.d/rc.subr
+
+rc_reload=NO
+
+rc_configtest() {
+	${daemon} -n ${daemon_flags}
+}
+
+rc_pre() {
+	[[ $(cat /etc/d32/state/edge_front 2>/dev/null) == on ]] || {
+		echo "d32front: the edge front is off (/etc/d32/state/edge_front)" >&2
+		return 1
+	}
+}
+
+rc_cmd $1

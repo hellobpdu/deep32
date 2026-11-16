@@ -1,0 +1,87 @@
+name: deep32-forge
+services:
+  embeddings:
+    image: ${TEI_IMAGE:?immutable image id required}
+    pull_policy: never
+    restart: unless-stopped
+    command: ["--model-id", "jinaai/jina-embeddings-v5-text-small-retrieval", "--revision", "${TEI_REVISION:?revision required}", "--served-model-name", "jina-embeddings-v5-text-small", "--dtype", "float32", "--pooling", "last-token", "--max-batch-tokens", "4096", "--max-client-batch-size", "8"]
+    environment:
+      HF_HUB_OFFLINE: "1"
+      USE_FLASH_ATTENTION: "False"
+    volumes:
+      - /opt/deep32-payload/models/tei:/data:ro
+    networks: [models]
+    gpus: all
+    mem_limit: 8g
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+  reranker:
+    image: ${RERANKER_IMAGE:?immutable image id required}
+    pull_policy: never
+    restart: unless-stopped
+    environment:
+      HF_HOME: /models
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      RERANKER_DTYPE: ${RERANKER_DTYPE:-float16}
+      RERANKER_DEVICE: ${RERANKER_DEVICE:-cuda}
+    volumes:
+      - /opt/deep32-payload/models/reranker:/models/hub:ro
+    networks: [models]
+    gpus: all
+    mem_limit: 9g
+    shm_size: 1g
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+  door:
+    image: ${DOOR_IMAGE:?immutable image id required}
+    pull_policy: never
+    restart: unless-stopped
+    command: ["python", "/app/door.py"]
+    ports: ["127.0.0.1:8081:8081", "127.0.0.1:8082:8082"]
+    secrets: [forge-token]
+    networks: [models, access]
+    read_only: true
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+  converter:
+    image: ${CONVERTER_IMAGE:?immutable image id required}
+    pull_policy: never
+    profiles: [conversion]
+    network_mode: none
+    gpus: all
+    environment:
+      MINERU_HOME: /models
+      MINERU_MODEL_SOURCE: local
+      MINERU_MODEL_SMALL_BACKEND: torch
+      MINERU_MODEL_VLM_ENGINE: vllm
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+    volumes:
+      - /opt/deep32-payload/models/mineru-home:/models:ro
+      - type: tmpfs
+        target: /models/models/.locks
+        tmpfs:
+          size: 1048576
+          mode: 01777
+      - /var/lib/deep32-forge/jobs:/jobs
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    shm_size: 2g
+  status:
+    image: ${DOOR_IMAGE:?immutable image id required}
+    pull_policy: never
+    command: ["python", "/app/status-log.py"]
+    network_mode: none
+    volumes:
+      - /run/deep32-forge:/status:ro
+    read_only: true
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+secrets:
+  forge-token:
+    file: /var/lib/deep32-forge/private/forge-token
+networks:
+  models:
+    internal: true
+  access: {}

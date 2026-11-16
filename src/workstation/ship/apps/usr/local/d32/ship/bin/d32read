@@ -1,0 +1,17 @@
+#!/bin/ksh
+# /d32/active/bin/d32read [FILE]: the Reader of First light PREVIEW (ship lane), until Deep32 Library's Reader lands.
+# PDF, ePub, XPS and images open in MuPDF; HTML and text open in the Library's private browser window (Firefox ESR
+# may read /d32/libcontent: /etc/firefox-esr/unveil.main and unveil.content add it, read-only).
+f=${1:-}
+if [ -z "$f" ]; then
+	exec /d32/active/bin/d32lib -home
+fi
+case $(print -r -- "$f" | tr 'A-Z' 'a-z') in
+*.pdf|*.epub|*.xps|*.cbz|*.fb2|*.png|*.jpg|*.jpeg)
+	exec /usr/local/bin/mupdf "$f"
+	;;
+*)
+	case $f in /*) ;; *) f=$PWD/$f ;; esac
+	exec /d32/active/bin/d32lib -file "$f"
+	;;
+esac

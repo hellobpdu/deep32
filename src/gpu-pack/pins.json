@@ -1,0 +1,524 @@
+{
+  "fetch": {
+    "files": [
+      {
+        "path": "iso/ubuntu-24.04.5-live-server-amd64.iso",
+        "sha256": "97f3d7ffb032c3eb3b23d2c8be9cc76e60c2c1f2c0146ba5ba9fe01cafae0fd8",
+        "url": "https://releases.ubuntu.com/24.04/ubuntu-24.04.5-live-server-amd64.iso"
+      },
+      {
+        "path": "iso/SHA256SUMS",
+        "sha256": "deferred: v1.1 ISO form",
+        "url": "https://releases.ubuntu.com/24.04/SHA256SUMS"
+      },
+      {
+        "path": "iso/SHA256SUMS.gpg",
+        "sha256": "deferred: v1.1 ISO form",
+        "url": "https://releases.ubuntu.com/24.04/SHA256SUMS.gpg"
+      },
+      {
+        "path": "payload/keyrings/ubuntu.gpg",
+        "sha256": "TO-PIN",
+        "url": "https://archive.ubuntu.com/ubuntu/TO-PIN/ubuntu-archive-keyring.gpg"
+      },
+      {
+        "path": "payload/keyrings/ubuntu-release.gpg",
+        "sha256": "deferred: v1.1 ISO form",
+        "url": "deferred: v1.1 ISO form"
+      },
+      {
+        "path": "payload/keyrings/nvidia.gpg",
+        "sha256": "TO-PIN",
+        "url": "https://nvidia.github.io/libnvidia-container/TO-PIN/nvidia.gpg"
+      },
+      {
+        "path": "payload/keyrings/tailscale.gpg",
+        "sha256": "TO-PIN",
+        "url": "https://pkgs.tailscale.com/stable/ubuntu/noble.noarmor.gpg"
+      },
+      {
+        "path": "payload/licences/AGPL-3.0.txt",
+        "sha256": "TO-PIN",
+        "url": "file:///TO-PIN/AGPL-3.0.txt"
+      },
+      {
+        "path": "payload/bin/pairing-helper",
+        "sha256": "TO-PIN",
+        "url": "file:///TO-PIN/pairing-helper"
+      },
+      {
+        "path": "payload/source/production-converter/adapter.py",
+        "sha256": "TO-PIN",
+        "url": "file:///TO-PIN/production-converter/adapter.py"
+      },
+      {
+        "path": "payload/models/mineru-home/config.yaml",
+        "sha256": "TO-PIN",
+        "url": "file:///TO-PIN/config.yaml"
+      }
+    ],
+    "iso_signing_fingerprint": "deferred: v1.1 ISO form",
+    "locks": {
+      "converter": {
+        "index": "https://pypi.org/simple",
+        "sha256": "TO-PIN",
+        "torch_index": "https://download.pytorch.org/whl/cu130",
+        "url": "file:///TO-PIN/converter.lock"
+      },
+      "reranker": {
+        "index": "https://pypi.org/simple",
+        "sha256": "TO-PIN",
+        "torch_index": "https://download.pytorch.org/whl/cu130",
+        "url": "file:///TO-PIN/reranker.lock"
+      }
+    },
+    "repositories": {
+      "nvidia": {
+        "fingerprint": "TO-PIN",
+        "keyring": "payload/keyrings/nvidia.gpg",
+        "metadata": [
+          {
+            "path": "InRelease",
+            "sha256": "TO-PIN",
+            "url": "https://nvidia.github.io/libnvidia-container/stable/deb/amd64/InRelease"
+          },
+          {
+            "path": "Packages.xz",
+            "sha256": "TO-PIN",
+            "url": "https://nvidia.github.io/libnvidia-container/stable/deb/amd64/Packages.xz"
+          }
+        ],
+        "packages": [
+          {
+            "architecture": "amd64",
+            "name": "nvidia-container-toolkit",
+            "path": "TO-PIN/nvidia-container-toolkit_TO-PIN_amd64.deb",
+            "sha256": "TO-PIN",
+            "url": "https://nvidia.github.io/libnvidia-container/stable/deb/amd64/TO-PIN/nvidia-container-toolkit_TO-PIN_amd64.deb",
+            "version": "TO-PIN"
+          },
+          {
+            "architecture": "amd64",
+            "name": "nvidia-container-toolkit-base",
+            "path": "TO-PIN/nvidia-container-toolkit-base_TO-PIN_amd64.deb",
+            "sha256": "TO-PIN",
+            "url": "https://nvidia.github.io/libnvidia-container/stable/deb/amd64/TO-PIN/nvidia-container-toolkit-base_TO-PIN_amd64.deb",
+            "version": "TO-PIN"
+          },
+          {
+            "architecture": "amd64",
+            "name": "libnvidia-container1",
+            "path": "TO-PIN/libnvidia-container1_TO-PIN_amd64.deb",
+            "sha256": "TO-PIN",
+            "url": "https://nvidia.github.io/libnvidia-container/stable/deb/amd64/TO-PIN/libnvidia-container1_TO-PIN_amd64.deb",
+            "version": "TO-PIN"
+          },
+          {
+            "architecture": "amd64",
+            "name": "libnvidia-container-tools",
+            "path": "TO-PIN/libnvidia-container-tools_TO-PIN_amd64.deb",
+            "sha256": "TO-PIN",
+            "url": "https://nvidia.github.io/libnvidia-container/stable/deb/amd64/TO-PIN/libnvidia-container-tools_TO-PIN_amd64.deb",
+            "version": "TO-PIN"
+          }
+        ],
+        "release_dir": ".",
+        "suite": "/",
+        "target": "payload/repos/nvidia"
+      },
+      "tailscale": {
+        "fingerprint": "TO-PIN",
+        "keyring": "payload/keyrings/tailscale.gpg",
+        "metadata": [
+          {
+            "path": "dists/noble/InRelease",
+            "sha256": "TO-PIN",
+            "url": "https://pkgs.tailscale.com/stable/ubuntu/dists/noble/InRelease"
+          },
+          {
+            "path": "dists/noble/main/binary-amd64/Packages.gz",
+            "sha256": "TO-PIN",
+            "url": "https://pkgs.tailscale.com/stable/ubuntu/dists/noble/main/binary-amd64/Packages.gz"
+          }
+        ],
+        "packages": [
+          {
+            "architecture": "amd64",
+            "name": "tailscale",
+            "path": "TO-PIN/tailscale_TO-PIN_amd64.deb",
+            "sha256": "TO-PIN",
+            "url": "https://pkgs.tailscale.com/stable/ubuntu/TO-PIN/tailscale_TO-PIN_amd64.deb",
+            "version": "TO-PIN"
+          }
+        ],
+        "release_dir": "dists/noble",
+        "suite": "noble",
+        "target": "payload/repos/tailscale"
+      },
+      "ubuntu-noble": {
+        "fingerprint": "TO-PIN",
+        "keyring": "payload/keyrings/ubuntu.gpg",
+        "metadata": [
+          {
+            "path": "dists/noble/InRelease",
+            "sha256": "TO-PIN",
+            "url": "https://snapshot.ubuntu.com/ubuntu/TO-PIN/dists/noble/InRelease"
+          },
+          {
+            "path": "dists/noble/main/binary-amd64/Packages.xz",
+            "sha256": "TO-PIN",
+            "url": "https://snapshot.ubuntu.com/ubuntu/TO-PIN/dists/noble/main/binary-amd64/Packages.xz"
+          },
+          {
+            "path": "dists/noble/restricted/binary-amd64/Packages.xz",
+            "sha256": "TO-PIN",
+            "url": "https://snapshot.ubuntu.com/ubuntu/TO-PIN/dists/noble/restricted/binary-amd64/Packages.xz"
+          },
+          {
+            "path": "dists/noble/universe/binary-amd64/Packages.xz",
+            "sha256": "TO-PIN",
+            "url": "https://snapshot.ubuntu.com/ubuntu/TO-PIN/dists/noble/universe/binary-amd64/Packages.xz"
+          },
+          {
+            "path": "dists/noble/multiverse/binary-amd64/Packages.xz",
+            "sha256": "TO-PIN",
+            "url": "https://snapshot.ubuntu.com/ubuntu/TO-PIN/dists/noble/multiverse/binary-amd64/Packages.xz"
+          }
+        ],
+        "packages": [
+          {
+            "architecture": "amd64",
+            "name": "docker.io",
+            "path": "TO-PIN/docker.io_TO-PIN_amd64.deb",
+            "sha256": "TO-PIN",
+            "url": "https://snapshot.ubuntu.com/ubuntu/TO-PIN/TO-PIN/docker.io_TO-PIN_amd64.deb",
+            "version": "TO-PIN"
+          },
+          {
+            "architecture": "amd64",
+            "name": "containerd",
+            "path": "TO-PIN/containerd_TO-PIN_amd64.deb",
+            "sha256": "TO-PIN",
+            "url": "https://snapshot.ubuntu.com/ubuntu/TO-PIN/TO-PIN/containerd_TO-PIN_amd64.deb",
+            "version": "TO-PIN"
+          },
+          {
+            "architecture": "amd64",
+            "name": "runc",
+            "path": "TO-PIN/runc_TO-PIN_amd64.deb",
+            "sha256": "TO-PIN",
+            "url": "https://snapshot.ubuntu.com/ubuntu/TO-PIN/TO-PIN/runc_TO-PIN_amd64.deb",
+            "version": "TO-PIN"
+          },
+          {
+            "architecture": "amd64",
+            "name": "docker-compose-v2",
+            "path": "TO-PIN/docker-compose-v2_TO-PIN_amd64.deb",
+            "sha256": "TO-PIN",
+            "url": "https://snapshot.ubuntu.com/ubuntu/TO-PIN/TO-PIN/docker-compose-v2_TO-PIN_amd64.deb",
+            "version": "TO-PIN"
+          },
+          {
+            "architecture": "amd64",
+            "name": "python3",
+            "path": "TO-PIN/python3_TO-PIN_amd64.deb",
+            "sha256": "TO-PIN",
+            "url": "https://snapshot.ubuntu.com/ubuntu/TO-PIN/TO-PIN/python3_TO-PIN_amd64.deb",
+            "version": "TO-PIN"
+          },
+          {
+            "architecture": "amd64",
+            "name": "openssl",
+            "path": "TO-PIN/openssl_TO-PIN_amd64.deb",
+            "sha256": "TO-PIN",
+            "url": "https://snapshot.ubuntu.com/ubuntu/TO-PIN/TO-PIN/openssl_TO-PIN_amd64.deb",
+            "version": "TO-PIN"
+          },
+          {
+            "architecture": "amd64",
+            "name": "ca-certificates",
+            "path": "TO-PIN/ca-certificates_TO-PIN_amd64.deb",
+            "sha256": "TO-PIN",
+            "url": "https://snapshot.ubuntu.com/ubuntu/TO-PIN/TO-PIN/ca-certificates_TO-PIN_amd64.deb",
+            "version": "TO-PIN"
+          },
+          {
+            "architecture": "amd64",
+            "name": "gnupg",
+            "path": "TO-PIN/gnupg_TO-PIN_amd64.deb",
+            "sha256": "TO-PIN",
+            "url": "https://snapshot.ubuntu.com/ubuntu/TO-PIN/TO-PIN/gnupg_TO-PIN_amd64.deb",
+            "version": "TO-PIN"
+          },
+          {
+            "architecture": "amd64",
+            "name": "util-linux",
+            "path": "TO-PIN/util-linux_TO-PIN_amd64.deb",
+            "sha256": "TO-PIN",
+            "url": "https://snapshot.ubuntu.com/ubuntu/TO-PIN/TO-PIN/util-linux_TO-PIN_amd64.deb",
+            "version": "TO-PIN"
+          }
+        ],
+        "release_dir": "dists/noble",
+        "suite": "noble",
+        "target": "payload/repos/ubuntu"
+      },
+      "ubuntu-security": {
+        "fingerprint": "TO-PIN",
+        "keyring": "payload/keyrings/ubuntu.gpg",
+        "metadata": [
+          {
+            "path": "dists/noble-security/InRelease",
+            "sha256": "TO-PIN",
+            "url": "https://snapshot.ubuntu.com/ubuntu/TO-PIN/dists/noble-security/InRelease"
+          },
+          {
+            "path": "dists/noble-security/main/binary-amd64/Packages.xz",
+            "sha256": "TO-PIN",
+            "url": "https://snapshot.ubuntu.com/ubuntu/TO-PIN/dists/noble-security/main/binary-amd64/Packages.xz"
+          },
+          {
+            "path": "dists/noble-security/restricted/binary-amd64/Packages.xz",
+            "sha256": "TO-PIN",
+            "url": "https://snapshot.ubuntu.com/ubuntu/TO-PIN/dists/noble-security/restricted/binary-amd64/Packages.xz"
+          },
+          {
+            "path": "dists/noble-security/universe/binary-amd64/Packages.xz",
+            "sha256": "TO-PIN",
+            "url": "https://snapshot.ubuntu.com/ubuntu/TO-PIN/dists/noble-security/universe/binary-amd64/Packages.xz"
+          },
+          {
+            "path": "dists/noble-security/multiverse/binary-amd64/Packages.xz",
+            "sha256": "TO-PIN",
+            "url": "https://snapshot.ubuntu.com/ubuntu/TO-PIN/dists/noble-security/multiverse/binary-amd64/Packages.xz"
+          }
+        ],
+        "packages": [],
+        "release_dir": "dists/noble-security",
+        "suite": "noble-security",
+        "target": "payload/repos/ubuntu"
+      },
+      "ubuntu-updates": {
+        "fingerprint": "TO-PIN",
+        "keyring": "payload/keyrings/ubuntu.gpg",
+        "metadata": [
+          {
+            "path": "dists/noble-updates/InRelease",
+            "sha256": "TO-PIN",
+            "url": "https://snapshot.ubuntu.com/ubuntu/TO-PIN/dists/noble-updates/InRelease"
+          },
+          {
+            "path": "dists/noble-updates/main/binary-amd64/Packages.xz",
+            "sha256": "TO-PIN",
+            "url": "https://snapshot.ubuntu.com/ubuntu/TO-PIN/dists/noble-updates/main/binary-amd64/Packages.xz"
+          },
+          {
+            "path": "dists/noble-updates/restricted/binary-amd64/Packages.xz",
+            "sha256": "TO-PIN",
+            "url": "https://snapshot.ubuntu.com/ubuntu/TO-PIN/dists/noble-updates/restricted/binary-amd64/Packages.xz"
+          },
+          {
+            "path": "dists/noble-updates/universe/binary-amd64/Packages.xz",
+            "sha256": "TO-PIN",
+            "url": "https://snapshot.ubuntu.com/ubuntu/TO-PIN/dists/noble-updates/universe/binary-amd64/Packages.xz"
+          },
+          {
+            "path": "dists/noble-updates/multiverse/binary-amd64/Packages.xz",
+            "sha256": "TO-PIN",
+            "url": "https://snapshot.ubuntu.com/ubuntu/TO-PIN/dists/noble-updates/multiverse/binary-amd64/Packages.xz"
+          }
+        ],
+        "packages": [],
+        "release_dir": "dists/noble-updates",
+        "suite": "noble-updates",
+        "target": "payload/repos/ubuntu"
+      }
+    }
+  },
+  "format": "deep32-forge-pins/1",
+  "models": {
+    "mineru_small": {
+      "files": [
+        {
+          "path": "config.json",
+          "sha256": "TO-PIN"
+        },
+        {
+          "path": "model.safetensors",
+          "sha256": "TO-PIN"
+        },
+        {
+          "path": "TO-PIN-complete-snapshot-file-list",
+          "sha256": "TO-PIN"
+        }
+      ],
+      "id": "TO-PIN/MinerU-4_models_torch",
+      "revision": "TO-PIN"
+    },
+    "mineru_vlm": {
+      "files": [
+        {
+          "path": "config.json",
+          "sha256": "TO-PIN"
+        },
+        {
+          "path": "model.safetensors",
+          "sha256": "TO-PIN"
+        },
+        {
+          "path": "TO-PIN-complete-snapshot-file-list",
+          "sha256": "TO-PIN"
+        }
+      ],
+      "id": "TO-PIN/MinerU2.5-Pro-2605-1.2B",
+      "revision": "bff20d4ae2bf202df9f45284b4d43681555a97ed"
+    },
+    "reranker": {
+      "files": [
+        {
+          "path": "config.json",
+          "sha256": "TO-PIN"
+        },
+        {
+          "path": "model.safetensors",
+          "sha256": "50c684b703a1770389cd2992c6ca3c5f76ad0a270e975374c182cde3e5dfb6fe"
+        },
+        {
+          "path": "TO-PIN-complete-snapshot-file-list",
+          "sha256": "TO-PIN"
+        }
+      ],
+      "id": "jinaai/jina-reranker-v3.5",
+      "revision": "e8a93f33f0b22108f8c2364f8484ce3422552fbc"
+    },
+    "tei": {
+      "files": [
+        {
+          "path": "config.json",
+          "sha256": "TO-PIN"
+        },
+        {
+          "path": "model.safetensors",
+          "sha256": "0362107c2b13e18284c5152c4d4f667a4dec4665abdfe4f5e43a9bb799ba2276"
+        },
+        {
+          "path": "TO-PIN-complete-snapshot-file-list",
+          "sha256": "TO-PIN"
+        }
+      ],
+      "id": "jinaai/jina-embeddings-v5-text-small-retrieval",
+      "revision": "6856e76bb72982e58de0620458a4e8b3614da340"
+    }
+  },
+  "packages": [
+    "docker.io=TO-PIN",
+    "containerd=TO-PIN",
+    "runc=TO-PIN",
+    "docker-compose-v2=TO-PIN",
+    "nvidia-container-toolkit=TO-PIN",
+    "nvidia-container-toolkit-base=TO-PIN",
+    "libnvidia-container1=TO-PIN",
+    "libnvidia-container-tools=TO-PIN",
+    "tailscale=TO-PIN",
+    "python3=TO-PIN",
+    "openssl=TO-PIN",
+    "ca-certificates=TO-PIN",
+    "ubuntu-drivers-common=deferred: v1.1 ISO form",
+    "gnupg=TO-PIN",
+    "kmod=deferred: v1.1 ISO form",
+    "util-linux=TO-PIN"
+  ],
+  "release_profile": "pack",
+  "runtime": {
+    "base_archive_sha256": "TO-PIN",
+    "base_image": "TO-PIN",
+    "base_image_id": "TO-PIN",
+    "build_tools": {
+      "python": "TO-PIN",
+      "tar": "TO-PIN",
+      "xorriso": "TO-PIN"
+    },
+    "compose_minimum_version": "2.30.0",
+    "converter_image_id": "TO-PIN",
+    "cuda_minimum_driver": "TO-PIN",
+    "docker_minimum_version": "19.03.0",
+    "door_image_id": "TO-PIN",
+    "mineru_cuda_version": "TO-PIN",
+    "mineru_minimum_driver": "TO-PIN",
+    "nvidia_repository_key_fingerprint": "TO-PIN",
+    "pairing_helper_sha256": "TO-PIN",
+    "production_converter_source_revision": "TO-PIN",
+    "pymupdf_version": "TO-PIN",
+    "python": "3.12.14",
+    "reranker_dtype": "float16",
+    "reranker_image_id": "TO-PIN",
+    "tailscale_repository_key_fingerprint": "TO-PIN",
+    "tei_minimum_driver": "TO-PIN",
+    "windows_cuda13_driver_build": "TO-PIN"
+  },
+  "tei": {
+    "variants": {
+      "ada": {
+        "digest": "TO-PIN",
+        "experimental": false,
+        "tag": "89-1.9"
+      },
+      "ampere80": {
+        "digest": "TO-PIN",
+        "experimental": false,
+        "tag": "1.9"
+      },
+      "ampere86": {
+        "digest": "TO-PIN",
+        "experimental": false,
+        "tag": "86-1.9"
+      },
+      "blackwell100": {
+        "digest": "TO-PIN",
+        "experimental": true,
+        "tag": "100-1.9"
+      },
+      "blackwell120": {
+        "digest": "TO-PIN",
+        "experimental": true,
+        "tag": "120-1.9"
+      },
+      "cpu": {
+        "digest": "TO-PIN",
+        "experimental": true,
+        "tag": "cpu-1.9"
+      },
+      "hopper": {
+        "digest": "TO-PIN",
+        "experimental": false,
+        "tag": "hopper-1.9"
+      },
+      "spark121": {
+        "digest": "TO-PIN",
+        "experimental": true,
+        "tag": "121-1.9"
+      },
+      "turing": {
+        "digest": "TO-PIN",
+        "experimental": true,
+        "tag": "turing-1.9"
+      }
+    },
+    "version": "1.9.4"
+  },
+  "ubuntu": {
+    "driver_packages": [
+      "nvidia-utils-580-server=deferred: v1.1 ISO form",
+      "libnvidia-compute-580-server=deferred: v1.1 ISO form"
+    ],
+    "iso": "ubuntu-24.04.5-live-server-amd64.iso",
+    "kernel_package": "linux-generic=deferred: v1.1 ISO form",
+    "kernel_track": "ga",
+    "module_signer": "deferred: v1.1 ISO form",
+    "module_version": "deferred: v1.1 ISO form",
+    "modules_package": "linux-modules-nvidia-580-server-generic=deferred: v1.1 ISO form",
+    "release": "24.04.5",
+    "sha256": "97f3d7ffb032c3eb3b23d2c8be9cc76e60c2c1f2c0146ba5ba9fe01cafae0fd8"
+  },
+  "version": "s4-kit-1"
+}

@@ -1,0 +1,70 @@
+{
+  "format": "deep32-disc2-assembly/1",
+  "fixture": false,
+  "tools": {
+    "disc": "/opt/deep32-disc2-tools/disc2",
+    "libdata": "/opt/deep32-disc2-tools/disc2",
+    "gates": "/opt/deep32-release/export/gates"
+  },
+  "bundle": "/srv/deep32/disc2-inputs/bundles/FINAL_GENERATION",
+  "blocks": [
+    "/srv/deep32/disc2-inputs/blocks/rfc",
+    "/srv/deep32/disc2-inputs/blocks/cisco",
+    "/srv/deep32/disc2-inputs/blocks/powershell",
+    "/srv/deep32/disc2-inputs/blocks/system"
+  ],
+  "main_packs": "/srv/deep32/disc2-inputs/main-packs-e26/packs",
+  "shelves": {
+    "cisco": "/srv/deep32/disc2-inputs/streams/lib-cisco/packs",
+    "ietf": "/srv/deep32/disc2-inputs/streams/lib-ietf/packs",
+    "encyclopaedia": "/srv/deep32/disc2-inputs/cleared-encyclopaedia/packs"
+  },
+  "code": "/srv/deep32/disc2-inputs/public-code",
+  "ietf_manifest": null,
+  "cisco_types": "/opt/deep32-disc2-tools/disc2/vendor/cisco-catalogue/cisco_types.inc",
+  "release": "1.0.0",
+  "disc_version": "1.0.0",
+  "accepts_system": ["1.0.0"],
+  "created": "2026-11-15T18:30:00Z",
+  "signer_fingerprint": "REPLACE_WITH_PINNED_PRIMARY_FINGERPRINT",
+  "verify_argv": [
+    "python3.15", "-I", "-B",
+    "/opt/deep32-disc2-tools/disc2/vendor/t0114/kb-bundle/hooks/openpgp_verify.py",
+    "--keyring", "/srv/deep32/disc2-inputs/public-release-keyring.gpg",
+    "--fingerprint", "{fingerprint}", "{manifest}", "{sig}"
+  ],
+  "xorriso_argv": ["xorriso"],
+  "time_form": "epoch",
+  "corpus_manifest": "/srv/deep32/disc2-inputs/private-gate-inputs/corpus-names.json",
+  "corpus_manifest_sha256": "REPLACE_WITH_FULL_SHA256",
+  "cut_keys": "/srv/deep32/disc2-inputs/private-gate-inputs/cut-keys-42.txt",
+  "cut_keys_sha256": "REPLACE_WITH_FULL_SHA256",
+  "markings": "/srv/deep32/disc2-inputs/private-gate-inputs/handling-markings.txt",
+  "cut_count": 42,
+  "scan_args": [
+    "--terms", "/srv/deep32/disc2-inputs/private-gate-inputs/terms",
+    "--allow", "/srv/deep32/disc2-inputs/private-gate-inputs/allowlist.tsv",
+    "--excludes", "/srv/deep32/disc2-inputs/private-gate-inputs/excludes.tsv",
+    "--attribution", "/srv/deep32/disc2-inputs/private-gate-inputs/attribution.json",
+    "--assets", "/srv/deep32/disc2-inputs/private-gate-inputs/ASSETS.tsv",
+    "--collisions", "/srv/deep32/disc2-inputs/private-gate-inputs/g13-collisions.tsv",
+    "--g15-profile", "disc",
+    "--ledger", "ledger-v2=/srv/deep32/disc2-inputs/private-gate-inputs/LEDGER-v2.tsv",
+    "--ledger", "attribution=/srv/deep32/disc2-inputs/private-gate-inputs/library-attribution.tsv",
+    "--notice-lines", "/opt/deep32-release/export/gates/notice-lines.json",
+    "--licence-map", "/opt/deep32-release/export/gates/g15-licence-map.json",
+    "--marks", "/srv/deep32/disc2-inputs/private-gate-inputs/marks.tsv",
+    "--marks-allow", "/srv/deep32/disc2-inputs/private-gate-inputs/allowlist-marks.tsv",
+    "--marks-decisions", "/srv/deep32/disc2-inputs/private-gate-inputs/marks-decisions.tsv",
+    "--marks-context", "/opt/deep32-release/export/gates/marks-context.json",
+    "--marks-scope", "/srv/deep32/disc2-inputs/private-gate-inputs/disc2-marks-scope.tsv",
+    "--library-scope", "/srv/deep32/disc2-inputs/private-gate-inputs/library-scope.tsv"
+  ],
+  "root_files": {
+    "THIRD-PARTY-NOTICES.txt": "/srv/deep32/disc2-inputs/notices/THIRD-PARTY-NOTICES.txt",
+    "THIRD-PARTY-LICENSES.txt": "/srv/deep32/disc2-inputs/notices/THIRD-PARTY-LICENSES.txt",
+    "LIBRARY-CREDITS.tsv": "/srv/deep32/disc2-inputs/notices/LIBRARY-CREDITS.tsv",
+    "SYSTEM-FETCH-LIST.tsv": "/srv/deep32/disc2-inputs/notices/SYSTEM-FETCH-LIST.tsv"
+  },
+  "library_approval": "/srv/deep32/disc2-inputs/library-assembly-approval.json"
+}

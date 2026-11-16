@@ -1,0 +1,65 @@
+{
+  "engine": {
+    "source_id": "pub-9a2d58df01fc",
+    "version": "1.0.0"
+  },
+  "gateway": {
+    "source_id": "pub-9a2d58df01fc",
+    "version": "1.0.0"
+  },
+  "images": [
+    {
+      "disc": 1,
+      "name": "deep32-0.1.0-alpha.1-disc1-workstation-amd64.img"
+    },
+    {
+      "disc": 2,
+      "name": "deep32-0.1.0-alpha.1-disc2-content.iso"
+    },
+    {
+      "disc": 3,
+      "name": "deep32-0.1.0-alpha.1-disc3-gpu-pack.iso"
+    }
+  ],
+  "knowledge_base": {
+    "compatibility": {
+      "engine_max": "1.0.0",
+      "engine_min": "1.0.0",
+      "format": "deep32-kb-compat",
+      "version": 1
+    },
+    "derived_generation_id": null,
+    "disc2_build_id": "d32kb-20261115c",
+    "document_set_fingerprint": null,
+    "pending": "Lead fills derived_generation_id and document_set_fingerprint after generation c is final."
+  },
+  "mineru": {
+    "version": "4.0.7"
+  },
+  "minimum_nvidia_drivers": {
+    "cuda_13_0_images": "580.65.06",
+    "tei_cuda_12_9": "575.51.03"
+  },
+  "models": {
+    "embedding": {
+      "id": "jinaai/jina-embeddings-v5-text-small-retrieval",
+      "revision": "6856e76bb72982e58de0620458a4e8b3614da340"
+    },
+    "reranker": {
+      "id": "jinaai/jina-reranker-v3.5",
+      "revision": "e8a93f33f0b22108f8c2364f8484ce3422552fbc"
+    }
+  },
+  "release": {
+    "status": "source-staged",
+    "tag": "v0.1.0-alpha.1",
+    "version": "0.1.0-alpha.1"
+  },
+  "release_key_gpg_fingerprint": "B205B406548627AABF5250D8A078C5F25D025DD6",
+  "licensing": {
+    "code": "AGPL-3.0-or-later",
+    "documentation": "CC-BY-4.0"
+  },
+  "schema": "deep32-code-release",
+  "schema_version": 1
+}

@@ -1,0 +1,21 @@
+#!/bin/ksh
+# /usr/local/d32/libexec/d32-import-again: Try Again of the Import Report window, run in a small Terminal. It asks for
+# the user's password (doas) and carries the import of disc 2 on from where it stopped; the window shows progress.
+R=${D32_ROOT:-}
+. $R/usr/local/d32/libexec/d32-ui-lib.sh || exit 2
+DOAS=${D32_DOAS:-/usr/bin/doas}
+d32ui_say again.head
+echo ""
+$DOAS $R/usr/local/d32/sbin/d32-import-resume
+rc=$?
+echo ""
+case $rc in
+0)	d32ui_say again.done ;;
+3)	d32ui_say again.busy ;;
+*)	d32ui_say again.fail ;;
+esac
+echo ""
+d32ui_fmt pair.close
+echo -n "$D32UI_T"
+read x
+exit $rc

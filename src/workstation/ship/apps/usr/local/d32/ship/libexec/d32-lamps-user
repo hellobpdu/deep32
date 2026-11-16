@@ -1,0 +1,37 @@
+#!/bin/ksh
+# d32-lamps-user: runs in every CDE session (Xsession.d/0130.d32ship), ship lane, First light PREVIEW. Every 20 s it
+# turns root's /var/d32/lamps/rag into the front panel's monitor files: ~/.dt/d32/status.attn (non-empty lights the
+# Deep32 Status lamp: the RAG is down or degraded, or a Deep32 service is not running), tile.MO (retrieval mode: lit
+# with GPU_EXT on) and tile.GN (the degraded components, if any).
+# Update 1 (U07): d32-mcp.py now reads rag_status as it is (text), so "degraded" is real; it lights the lamp too
+# (with GPU_EXT off, dense search and the reranker are down, and the lamp says so).
+set -u
+d=$HOME/.dt/d32
+mkdir -p $d
+while :; do
+	f=/var/d32/lamps/rag
+	if [ -r $f ]; then
+		rag=$(sed -n 's/^rag=//p' $f)
+		svc=$(sed -n 's/^services=//p' $f)
+		gx=$(sed -n 's/^gpu_ext=//p' $f)
+		state=$(print -r -- "$rag" | sed -n 's/.*"state": "\([a-z]*\)".*/\1/p')
+		deg=$(print -r -- "$rag" | sed -n 's/.*"degraded": \[\([^]]*\)\].*/\1/p' | tr -d '"')
+		attn=""
+		case $state in
+		down)		attn="RAG down" ;;
+		degraded)	attn="RAG degraded${deg:+: $deg}" ;;
+		ok)		;;
+		*)		attn="RAG state unknown" ;;
+		esac
+		down=$(print -r -- "$svc" | tr ' ' '\n' | grep '=down' | sed 's/=down$//' | tr '\n' ' ' | sed 's/ *$//')
+		[ -n "$down" ] && attn="${attn:+$attn; }not running: $down"
+		print -rn -- "$attn" >$d/status.attn.new && mv $d/status.attn.new $d/status.attn
+		mo=""
+		[ "$gx" = on ] && mo="GPU_EXT"
+		print -rn -- "$mo" >$d/tile.MO
+		print -rn -- "$deg" >$d/tile.GN
+	else
+		print -rn -- "no status yet" >$d/status.attn
+	fi
+	sleep 20
+done

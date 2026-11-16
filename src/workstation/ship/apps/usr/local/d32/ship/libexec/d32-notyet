@@ -1,0 +1,20 @@
+#!/bin/ksh
+# d32-notyet: what a front-panel or Application Manager action runs when this First light PREVIEW does not have its
+# program yet (ship lane). Shows a small CDE message box naming the program and saying that a later release brings
+# it. Called through a symlink named after the missing program, or as: d32-notyet NAME [TEXT].
+# Update 1 (U16): the box is d32-msg (title and folded text); CDE's dterror.ds took every argument as the message.
+name=${0##*/}
+if [ "$name" = d32-notyet ]; then
+	name=${1:-This tool}
+	[ $# -gt 0 ] && shift
+fi
+text=${1:-"$name is not in this release yet. Its place on the front panel is kept so nothing moves when it arrives."}
+msg=/usr/local/d32/ship/libexec/d32-msg
+if [ -n "${DISPLAY:-}" ] && [ -x $msg ] && [ -x /usr/local/dt/bin/dtksh ]; then
+	$msg "Deep32/UX: $name" "$text" >/dev/null 2>&1 &
+elif [ -n "${DISPLAY:-}" ]; then
+	/usr/X11R6/bin/xmessage -center -title "Deep32/UX: $name" "$text" >/dev/null 2>&1 &
+else
+	print -u2 -r -- "$text"
+fi
+exit 0

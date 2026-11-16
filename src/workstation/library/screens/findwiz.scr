@@ -1,0 +1,1731 @@
+d32scr 1
+# Deep32 Library: the complete Find Wizard, retaining the intro and category geometry from the 1995 captures (15-28;
+# AUTHENTICITY.md). Build 1 had the wizard as an inferred, centred overlay with a 47-px button strip and a Cancel
+# button; the captures show a captioned window docked on the article page instead:
+# [m] the window: (10,65) in the work area, 511x356, a 1-px black frame; [m256] a 15-px caption in entry 27 (rows
+#     1-15; the "light edges" on rows 1 and 15 were the 16-colour dither) carrying the spaced capitals of string
+#     13450 "FIND WIZARD" in white after a marker, and "Close" in entry 31 after a 1-px entry-7 bar at its right
+#     end; on the first page FINDIT_SCREEN from row 16, on the areas page the picture column (entry 28) from row 16
+#     and a black rule along the page's top and left (row 16 from x 128, column 128), the page (129,17) 381x338.
+# [m] Back and Next sit at the bottom left of the page, (16,307) and (75,307); Find (the areas page) at the top
+#     right, (408,26); the nine category buttons abut in two columns at x 150 and 320, rows 131 + 43k; the radios
+#     read "No" and "Yes" (strings 20535, 20536) at (147,87) and (147,108).
+# [d] FINDIT_SCREEN 510x344 (the first page), FW_CAT_BMP 127x161, FINDWIZARD_CATBUTT1-9 680x43 (CATBUTT5 680x44)
+#     = 4 frames of 170x43, FINDWIZARD_NEXT/BACK 156x39 = 4 x 39x39, FINDWIZARD_FIND 360x29 = 4 x 90x29,
+#     FINDWIZARD_RADIOBUTTON_1 48x12 = 4 x 12x12.
+# Frame meanings of the record-made push buttons and radios [c] (seg19:14b1; artefacts PALETTE.md 3): push buttons
+# 0 at rest, 1 pressed, 2 disabled, 3 under the pointer; radio 0 clear, 1 set or down, 2 disabled, 3 under the
+# pointer. Category buttons, from the pixels: 0 a white box, 1 ticked, 2 an empty grey box, 3 a grey tick. [m] 2 is
+# the disabled look: with "No" set all nine show an empty grey box (captures 20 and 24; pressing one then changes
+# nothing). [i] 3 disabled while ticked; 2 also while pressed (a pushed Windows check box is grey).
+# Colours are ui:<n> (the interface colour table, read from the store). [m256] every one is its table entry exactly
+# on the 256-colour captures (15-27): caption 27, the areas page 13, the picture column 28, the question and the
+# rule under it 12, Close 31.
+# Build 2: the category buttons are his own (the category-art lane's Find Wizard strips, 680x43 = 4 x 170x43:
+# normal, checked, pressed, disabled; `category <n>` draws e26/fw/<id>), his twenty categories on two pages of ten in
+# the Library's nine slots and the tenth it left empty; the missing questions below retain this frame.
+
+block wizcaption
+	control cap
+		kind bar
+		rect 1 1 509 15                       # [m256] rows 1-15, entry 27 throughout (was rows 2-14 between light edges)
+		bg ui:27                              # [m256]
+		label @13450                          # [d] "FIND WIZARD"
+		upper
+		tracking 3                            # [m256] as the main caption: every glyph on the capture's columns (3.1 put
+		                                      #     "WIZARD" 1 px right)
+		text-y 12                             # [m] baseline on row 13 of the window
+		font ui
+		fg ui:0                               # [m] white lettering and marker
+		marker
+		text-x 17                             # [m] marker at 5-11, lettering from 17
+	end
+	control close-bar
+		kind panel
+		rect 475 4 1 9                        # [m256] a 1-px bar in entry 7 before "Close" (frame x 486, rows 85-93)
+		bg ui:7
+	end
+	control close
+		kind label
+		rect 476 3 33 11                      # [m] "Close" from x 479 to 503 (frame 491-514 on capture256 20)
+		bg ui:27
+		fg ui:31                              # [m256] entry 31 (16 colours: white)
+		label @6003                           # [d] "Close"
+		font ui10                             # [m256] Arial 10 px: 24x7 ink at x 491-514, rows 86-92 (Arial 11 is 26x8)
+		align centre
+		text-y 9                              # [m256] glyphs end on frame row 92
+		action close
+		key Escape
+	end
+	control frame-bottom
+		kind panel
+		rect 0 355 511 1                      # the black frame's bottom row and right column (FINDIT_SCREEN is
+		bg ui:15                              # 510x344, wider and taller than the page; it is drawn first)
+	end
+	control frame-right
+		kind panel
+		rect 510 0 1 356
+		bg ui:15
+	end
+end
+
+screen findwiz
+	size 511 356
+	origin 10 65                              # [m] in the work area of the screen under it
+	over *                                    # [m] over the page in front (the article on captures 15-28)
+	ground ui:15                              # [m] the black frame
+	image ui/bitmap/FINDIT_SCREEN 1 16        # [m256] at (1,16): frame (12,97), 98.4% of its pixels exact on capture256 15
+	                                          #     (the 16-colour match had put it at (1,15)); its first row, entry 28,
+	                                          #     is the line under the caption, where a black rule was drawn before
+	uses wizcaption
+	control back
+		kind button
+		record 10081                          # [d] "|^FINDWIZARD_BACK"
+		rect 16 307 39 39                     # [m] capture 15
+		strip ui/bitmap/FINDWIZARD_BACK 4
+		frame normal 0
+		frame pressed 1
+		frame disabled 2
+		frame hot 3
+		disabled                              # nothing to go back to on the first page
+	end
+	control next
+		kind button
+		record 10080                          # [d] "|^FINDWIZARD_NEXT"
+		rect 75 307 39 39                     # [m] capture 17: pressing Next changes 37x37 at (76,308) inside it
+		strip ui/bitmap/FINDWIZARD_NEXT 4
+		frame normal 0
+		frame pressed 1
+		frame disabled 2
+		frame hot 3
+		action finder.next "Next page"
+		key Return
+	end
+end
+
+screen findwiz-areas
+	size 511 356
+	origin 10 65
+	over *
+	ground ui:15
+	uses wizcaption
+	control picture-column
+		kind panel
+		rect 1 16 127 339                     # [m256] the dark column, x 1-127 (frame 12-138), rows 16-354
+		bg ui:28
+	end
+	control page-rule
+		kind panel
+		rect 128 16 382 1                     # [m256] a black rule along the page's top, frame x 139-520, row 97
+		bg ui:15
+	end
+	control column-rule
+		kind panel
+		rect 128 16 1 339                     # [m256] and down its left, frame x 139 (the 16-colour dither had hidden
+		bg ui:15                              #     it in the column's black)
+	end
+	control picture
+		kind image
+		rect 1 16 127 161                     # [m256] at frame (12,97), every pixel exact (capture256 20)
+		strip ui/bitmap/FW_CAT_BMP@ui 1       # [m256] through the interface palette (xassets.c, SCREEN-FORMAT.md)
+	end
+	control panel
+		kind panel
+		rect 129 17 381 338                   # [m256] from frame x 140 (was 141)
+		bg ui:13
+	end
+	# [m256] The question is not string 20546: the 256-colour capture reads "Do you want to search for articles" and
+	# "in one or more categories?", two strings of the period program's data segment (file offset 78,545, after the
+	# CATBUTT names, before "Yes" and "No"; not in the string table), set as two lines in Arial 13 px regular, entry
+	# 12 (the 16-colour capture had suggested a larger bold face); ink from x 159. A rule in entry 12 runs under it.
+	control question
+		kind label
+		rect 147 46 300 13                    # [m256] capitals on frame rows 127-136
+		label "Do you want to search for articles"
+		font body                             # [m256] Arial 13 px regular ([i] it follows the type size; S is 13 px)
+		fg ui:12                              # [m256] entry 12 exactly
+		                                      # [m256] ink x 159-350, no extra spacing
+		text-y 10                             # [m256] 5 and 1 ink pixels differ from capture256 20 (of 430, 334)
+		align left
+	end
+	control question-2
+		kind label
+		rect 147 59 300 13                    # [m256] capitals on frame rows 140-149
+		label "in one or more categories?"
+		font body
+		fg ui:12
+		                                      # [m256] ink x 159-310
+		text-y 10                             # [m256] 5 and 1 ink pixels differ from capture256 20 (of 430, 334)
+		align left
+	end
+	control question-rule
+		kind panel
+		rect 147 76 351 1                     # [m256] frame x 158-508, row 157, entry 12
+		bg ui:12
+	end
+	# [m256] The radios are FINDWIZARD_RADIOBUTTON_5 (record 10088: every frame slot 13, the page's colour), the
+	# design for this page's ground: a 10-px circle with entry-11 edges; its 12x12 frame sits at (147,86) and
+	# (147,107), 1 px higher than measured through the 16-colour dither, and the class frame paints its outer ring
+	# in entry 13 (capture256 20, 25). The lettering stays where capture 20 matched it pixel for pixel (text-y 11).
+	control all
+		kind radio
+		record 10088                          # [d] "|^FINDWIZARD_RADIOBUTTON_5"
+		rect 147 86 160 12                    # [m256]
+		strip ui/bitmap/FINDWIZARD_RADIOBUTTON_5 4
+		frame normal 0                        # [c] the radio frames (style 0x40, type 0x09; seg19:14b1):
+		frame checked 1                       #     at rest 0, down or set 1, disabled 2 (grey ring), under the
+		frame pressed 1                       #     pointer 3 (the same pixels as 0)
+		frame disabled 2
+		frame hot 3
+		label @20535                          # [d] "No": not only some areas, so all of them
+		fg ui:15                              # [m] black on the light page
+		text-y 11                             # [m] the lettering's baseline as before (frame row 178)
+		group scope
+		state scope-all                       # shared with the other category page
+		checked
+		action select
+	end
+	control some
+		kind radio
+		record 10088
+		rect 147 107 160 12                   # [m256]
+		strip ui/bitmap/FINDWIZARD_RADIOBUTTON_5 4
+		frame normal 0
+		frame checked 1
+		frame pressed 1
+		frame disabled 2
+		frame hot 3
+		label @20536                          # [d] "Yes": only the areas ticked below
+		fg ui:15
+		text-y 11
+		group scope
+		state scope-some
+		action select
+	end
+	control cat1
+		kind toggle
+		rect 150 131 170 43                   # [m] (161,212) on capture 20
+		category 1                           # his 1st category (TAXONOMY.json order); its strip is his art
+		strip e26/fw 4                        #     e26/fw/<id>: 680x43 = 4 x 170x43, normal, checked, pressed, disabled
+		frame normal 0
+		frame checked 1
+		frame pressed 2
+		frame disabled 2                      # [m] the empty grey box while "No" is set (captures 20, 24), his frame 2
+		frame checked-disabled 3              # [i] his frame 3: the grey tick
+		group areas
+		enabled-by some
+		action toggle
+	end
+	control cat2
+		kind toggle
+		rect 150 174 170 43
+		category 2                           # his 2nd category (TAXONOMY.json order); its strip is his art
+		strip e26/fw 4                        #     e26/fw/<id>: 680x43 = 4 x 170x43, normal, checked, pressed, disabled
+		frame normal 0
+		frame checked 1
+		frame pressed 2
+		frame disabled 2                      # [m] the empty grey box while "No" is set (captures 20, 24), his frame 2
+		frame checked-disabled 3              # [i] his frame 3: the grey tick
+		group areas
+		enabled-by some
+		action toggle
+	end
+	control cat3
+		kind toggle
+		rect 150 217 170 43
+		category 3                           # his 3rd category (TAXONOMY.json order); its strip is his art
+		strip e26/fw 4                        #     e26/fw/<id>: 680x43 = 4 x 170x43, normal, checked, pressed, disabled
+		frame normal 0
+		frame checked 1
+		frame pressed 2
+		frame disabled 2                      # [m] the empty grey box while "No" is set (captures 20, 24), his frame 2
+		frame checked-disabled 3              # [i] his frame 3: the grey tick
+		group areas
+		enabled-by some
+		action toggle
+	end
+	control cat4
+		kind toggle
+		rect 150 260 170 43
+		category 4                           # his 4th category (TAXONOMY.json order); its strip is his art
+		strip e26/fw 4                        #     e26/fw/<id>: 680x43 = 4 x 170x43, normal, checked, pressed, disabled
+		frame normal 0
+		frame checked 1
+		frame pressed 2
+		frame disabled 2                      # [m] the empty grey box while "No" is set (captures 20, 24), his frame 2
+		frame checked-disabled 3              # [i] his frame 3: the grey tick
+		group areas
+		enabled-by some
+		action toggle
+	end
+	control cat5
+		kind toggle
+		rect 150 303 170 43
+		category 5                           # his 5th category (TAXONOMY.json order); its strip is his art
+		strip e26/fw 4                        #     e26/fw/<id>: 680x43 = 4 x 170x43, normal, checked, pressed, disabled
+		frame normal 0
+		frame checked 1
+		frame pressed 2
+		frame disabled 2                      # [m] the empty grey box while "No" is set (captures 20, 24), his frame 2
+		frame checked-disabled 3              # [i] his frame 3: the grey tick
+		group areas
+		enabled-by some
+		action toggle
+	end
+	control cat6
+		kind toggle
+		rect 320 131 170 43                   # [m] (331,212) on capture 20
+		category 6                           # his 6th category (TAXONOMY.json order); its strip is his art
+		strip e26/fw 4                        #     e26/fw/<id>: 680x43 = 4 x 170x43, normal, checked, pressed, disabled
+		frame normal 0
+		frame checked 1
+		frame pressed 2
+		frame disabled 2                      # [m] the empty grey box while "No" is set (captures 20, 24), his frame 2
+		frame checked-disabled 3              # [i] his frame 3: the grey tick
+		group areas
+		enabled-by some
+		action toggle
+	end
+	control cat7
+		kind toggle
+		rect 320 174 170 43
+		category 7                           # his 7th category (TAXONOMY.json order); its strip is his art
+		strip e26/fw 4                        #     e26/fw/<id>: 680x43 = 4 x 170x43, normal, checked, pressed, disabled
+		frame normal 0
+		frame checked 1
+		frame pressed 2
+		frame disabled 2                      # [m] the empty grey box while "No" is set (captures 20, 24), his frame 2
+		frame checked-disabled 3              # [i] his frame 3: the grey tick
+		group areas
+		enabled-by some
+		action toggle
+	end
+	control cat8
+		kind toggle
+		rect 320 217 170 43
+		category 8                           # his 8th category (TAXONOMY.json order); its strip is his art
+		strip e26/fw 4                        #     e26/fw/<id>: 680x43 = 4 x 170x43, normal, checked, pressed, disabled
+		frame normal 0
+		frame checked 1
+		frame pressed 2
+		frame disabled 2                      # [m] the empty grey box while "No" is set (captures 20, 24), his frame 2
+		frame checked-disabled 3              # [i] his frame 3: the grey tick
+		group areas
+		enabled-by some
+		action toggle
+	end
+	control cat9
+		kind toggle
+		rect 320 260 170 43
+		category 9                           # his 9th category (TAXONOMY.json order); its strip is his art
+		strip e26/fw 4                        #     e26/fw/<id>: 680x43 = 4 x 170x43, normal, checked, pressed, disabled
+		frame normal 0
+		frame checked 1
+		frame pressed 2
+		frame disabled 2                      # [m] the empty grey box while "No" is set (captures 20, 24), his frame 2
+		frame checked-disabled 3              # [i] his frame 3: the grey tick
+		group areas
+		enabled-by some
+		action toggle
+	end
+	control cat10
+		kind toggle
+		rect 320 303 170 43                   # [i] the tenth slot, empty in the period design (nine areas)
+		category 10                           # his 10th category (TAXONOMY.json order); its strip is his art
+		strip e26/fw 4                        #     e26/fw/<id>: 680x43 = 4 x 170x43, normal, checked, pressed, disabled
+		frame normal 0
+		frame checked 1
+		frame pressed 2
+		frame disabled 2                      # [m] the empty grey box while "No" is set (captures 20, 24), his frame 2
+		frame checked-disabled 3              # [i] his frame 3: the grey tick
+		group areas
+		enabled-by some
+		action toggle
+	end
+	control find
+		kind button
+		record 10082                          # [d] "|^FINDWIZARD_FIND"; its frame slots 3-6 are all entry 28, so the
+		                                      #     class's 1-px ring is entry 28 in every state (black at 16 colours
+		                                      #     on all four sides, captures 20, 26, 27), not the strip's #52845B
+		rect 408 26 90 29                     # [m] (419,107) on capture 20; pressing changes 88x27 at (420,108)
+		strip ui/bitmap/FINDWIZARD_FIND 4
+		frame normal 0
+		frame pressed 1
+		frame disabled 2
+		frame hot 3
+		action wizard.find "Search"
+		key Return
+	end
+	control back
+		kind button
+		record 10081
+		rect 16 307 39 39                     # [m]
+		strip ui/bitmap/FINDWIZARD_BACK 4
+		frame normal 0
+		frame pressed 1
+		frame disabled 2
+		frame hot 3
+		action finder.back "Previous page"
+	end
+	control next
+		kind button
+		record 10080
+		rect 75 307 39 39                     # [m]
+		strip ui/bitmap/FINDWIZARD_NEXT 4
+		frame normal 0
+		frame pressed 1
+		frame disabled 2
+		frame hot 3
+		action finder.next "Next page"
+	end
+end
+
+# The second page of his categories (11-20): TAXONOMY.json asks for two pages of 2x5 (its geometry,
+# find_wizard_category_pages). Next continues to optional subcategories, then Media and Time.
+# The radios and ticks are shared with the first page (state).
+screen findwiz-areas-2
+	size 511 356
+	origin 10 65
+	over *
+	ground ui:15
+	uses wizcaption
+	control picture-column
+		kind panel
+		rect 1 16 127 339                     # [m256] the dark column, x 1-127 (frame 12-138), rows 16-354
+		bg ui:28
+	end
+	control page-rule
+		kind panel
+		rect 128 16 382 1                     # [m256] a black rule along the page's top, frame x 139-520, row 97
+		bg ui:15
+	end
+	control column-rule
+		kind panel
+		rect 128 16 1 339                     # [m256] and down its left, frame x 139 (the 16-colour dither had hidden
+		bg ui:15                              #     it in the column's black)
+	end
+	control picture
+		kind image
+		rect 1 16 127 161                     # [m256] at frame (12,97), every pixel exact (capture256 20)
+		strip ui/bitmap/FW_CAT_BMP@ui 1       # [m256] through the interface palette (xassets.c, SCREEN-FORMAT.md)
+	end
+	control panel
+		kind panel
+		rect 129 17 381 338                   # [m256] from frame x 140 (was 141)
+		bg ui:13
+	end
+	# [m256] The question is not string 20546: the 256-colour capture reads "Do you want to search for articles" and
+	# "in one or more categories?", two strings of the period program's data segment (file offset 78,545, after the
+	# CATBUTT names, before "Yes" and "No"; not in the string table), set as two lines in Arial 13 px regular, entry
+	# 12 (the 16-colour capture had suggested a larger bold face); ink from x 159. A rule in entry 12 runs under it.
+	control question
+		kind label
+		rect 147 46 300 13                    # [m256] capitals on frame rows 127-136
+		label "Do you want to search for articles"
+		font body                             # [m256] Arial 13 px regular ([i] it follows the type size; S is 13 px)
+		fg ui:12                              # [m256] entry 12 exactly
+		                                      # [m256] ink x 159-350, no extra spacing
+		text-y 10                             # [m256] 5 and 1 ink pixels differ from capture256 20 (of 430, 334)
+		align left
+	end
+	control question-2
+		kind label
+		rect 147 59 300 13                    # [m256] capitals on frame rows 140-149
+		label "in one or more categories?"
+		font body
+		fg ui:12
+		                                      # [m256] ink x 159-310
+		text-y 10                             # [m256] 5 and 1 ink pixels differ from capture256 20 (of 430, 334)
+		align left
+	end
+	control question-rule
+		kind panel
+		rect 147 76 351 1                     # [m256] frame x 158-508, row 157, entry 12
+		bg ui:12
+	end
+	# [m256] The radios are FINDWIZARD_RADIOBUTTON_5 (record 10088: every frame slot 13, the page's colour), the
+	# design for this page's ground: a 10-px circle with entry-11 edges; its 12x12 frame sits at (147,86) and
+	# (147,107), 1 px higher than measured through the 16-colour dither, and the class frame paints its outer ring
+	# in entry 13 (capture256 20, 25). The lettering stays where capture 20 matched it pixel for pixel (text-y 11).
+	control all
+		kind radio
+		record 10088                          # [d] "|^FINDWIZARD_RADIOBUTTON_5"
+		rect 147 86 160 12                    # [m256]
+		strip ui/bitmap/FINDWIZARD_RADIOBUTTON_5 4
+		frame normal 0                        # [c] the radio frames (style 0x40, type 0x09; seg19:14b1):
+		frame checked 1                       #     at rest 0, down or set 1, disabled 2 (grey ring), under the
+		frame pressed 1                       #     pointer 3 (the same pixels as 0)
+		frame disabled 2
+		frame hot 3
+		label @20535                          # [d] "No": not only some areas, so all of them
+		fg ui:15                              # [m] black on the light page
+		text-y 11                             # [m] the lettering's baseline as before (frame row 178)
+		group scope
+		state scope-all                       # shared with the other category page
+		checked
+		action select
+	end
+	control some
+		kind radio
+		record 10088
+		rect 147 107 160 12                   # [m256]
+		strip ui/bitmap/FINDWIZARD_RADIOBUTTON_5 4
+		frame normal 0
+		frame checked 1
+		frame pressed 1
+		frame disabled 2
+		frame hot 3
+		label @20536                          # [d] "Yes": only the areas ticked below
+		fg ui:15
+		text-y 11
+		group scope
+		state scope-some
+		action select
+	end
+	control cat11
+		kind toggle
+		rect 150 131 170 43                   # [m] (161,212) on capture 20
+		category 11                           # his 11th category (TAXONOMY.json order); its strip is his art
+		strip e26/fw 4                        #     e26/fw/<id>: 680x43 = 4 x 170x43, normal, checked, pressed, disabled
+		frame normal 0
+		frame checked 1
+		frame pressed 2
+		frame disabled 2                      # [m] the empty grey box while "No" is set (captures 20, 24), his frame 2
+		frame checked-disabled 3              # [i] his frame 3: the grey tick
+		group areas
+		enabled-by some
+		action toggle
+	end
+	control cat12
+		kind toggle
+		rect 150 174 170 43
+		category 12                           # his 12th category (TAXONOMY.json order); its strip is his art
+		strip e26/fw 4                        #     e26/fw/<id>: 680x43 = 4 x 170x43, normal, checked, pressed, disabled
+		frame normal 0
+		frame checked 1
+		frame pressed 2
+		frame disabled 2                      # [m] the empty grey box while "No" is set (captures 20, 24), his frame 2
+		frame checked-disabled 3              # [i] his frame 3: the grey tick
+		group areas
+		enabled-by some
+		action toggle
+	end
+	control cat13
+		kind toggle
+		rect 150 217 170 43
+		category 13                           # his 13th category (TAXONOMY.json order); its strip is his art
+		strip e26/fw 4                        #     e26/fw/<id>: 680x43 = 4 x 170x43, normal, checked, pressed, disabled
+		frame normal 0
+		frame checked 1
+		frame pressed 2
+		frame disabled 2                      # [m] the empty grey box while "No" is set (captures 20, 24), his frame 2
+		frame checked-disabled 3              # [i] his frame 3: the grey tick
+		group areas
+		enabled-by some
+		action toggle
+	end
+	control cat14
+		kind toggle
+		rect 150 260 170 43
+		category 14                           # his 14th category (TAXONOMY.json order); its strip is his art
+		strip e26/fw 4                        #     e26/fw/<id>: 680x43 = 4 x 170x43, normal, checked, pressed, disabled
+		frame normal 0
+		frame checked 1
+		frame pressed 2
+		frame disabled 2                      # [m] the empty grey box while "No" is set (captures 20, 24), his frame 2
+		frame checked-disabled 3              # [i] his frame 3: the grey tick
+		group areas
+		enabled-by some
+		action toggle
+	end
+	control cat15
+		kind toggle
+		rect 150 303 170 43
+		category 15                           # his 15th category (TAXONOMY.json order); its strip is his art
+		strip e26/fw 4                        #     e26/fw/<id>: 680x43 = 4 x 170x43, normal, checked, pressed, disabled
+		frame normal 0
+		frame checked 1
+		frame pressed 2
+		frame disabled 2                      # [m] the empty grey box while "No" is set (captures 20, 24), his frame 2
+		frame checked-disabled 3              # [i] his frame 3: the grey tick
+		group areas
+		enabled-by some
+		action toggle
+	end
+	control cat16
+		kind toggle
+		rect 320 131 170 43                   # [m] (331,212) on capture 20
+		category 16                           # his 16th category (TAXONOMY.json order); its strip is his art
+		strip e26/fw 4                        #     e26/fw/<id>: 680x43 = 4 x 170x43, normal, checked, pressed, disabled
+		frame normal 0
+		frame checked 1
+		frame pressed 2
+		frame disabled 2                      # [m] the empty grey box while "No" is set (captures 20, 24), his frame 2
+		frame checked-disabled 3              # [i] his frame 3: the grey tick
+		group areas
+		enabled-by some
+		action toggle
+	end
+	control cat17
+		kind toggle
+		rect 320 174 170 43
+		category 17                           # his 17th category (TAXONOMY.json order); its strip is his art
+		strip e26/fw 4                        #     e26/fw/<id>: 680x43 = 4 x 170x43, normal, checked, pressed, disabled
+		frame normal 0
+		frame checked 1
+		frame pressed 2
+		frame disabled 2                      # [m] the empty grey box while "No" is set (captures 20, 24), his frame 2
+		frame checked-disabled 3              # [i] his frame 3: the grey tick
+		group areas
+		enabled-by some
+		action toggle
+	end
+	control cat18
+		kind toggle
+		rect 320 217 170 43
+		category 18                           # his 18th category (TAXONOMY.json order); its strip is his art
+		strip e26/fw 4                        #     e26/fw/<id>: 680x43 = 4 x 170x43, normal, checked, pressed, disabled
+		frame normal 0
+		frame checked 1
+		frame pressed 2
+		frame disabled 2                      # [m] the empty grey box while "No" is set (captures 20, 24), his frame 2
+		frame checked-disabled 3              # [i] his frame 3: the grey tick
+		group areas
+		enabled-by some
+		action toggle
+	end
+	control cat19
+		kind toggle
+		rect 320 260 170 43
+		category 19                           # his 19th category (TAXONOMY.json order); its strip is his art
+		strip e26/fw 4                        #     e26/fw/<id>: 680x43 = 4 x 170x43, normal, checked, pressed, disabled
+		frame normal 0
+		frame checked 1
+		frame pressed 2
+		frame disabled 2                      # [m] the empty grey box while "No" is set (captures 20, 24), his frame 2
+		frame checked-disabled 3              # [i] his frame 3: the grey tick
+		group areas
+		enabled-by some
+		action toggle
+	end
+	control cat20
+		kind toggle
+		rect 320 303 170 43                   # [i] the tenth slot, empty in the period design (nine areas)
+		category 20                           # his 20th category (TAXONOMY.json order); its strip is his art
+		strip e26/fw 4                        #     e26/fw/<id>: 680x43 = 4 x 170x43, normal, checked, pressed, disabled
+		frame normal 0
+		frame checked 1
+		frame pressed 2
+		frame disabled 2                      # [m] the empty grey box while "No" is set (captures 20, 24), his frame 2
+		frame checked-disabled 3              # [i] his frame 3: the grey tick
+		group areas
+		enabled-by some
+		action toggle
+	end
+	control find
+		kind button
+		record 10082                          # [d] "|^FINDWIZARD_FIND"; its frame slots 3-6 are all entry 28, so the
+		                                      #     class's 1-px ring is entry 28 in every state (black at 16 colours
+		                                      #     on all four sides, captures 20, 26, 27), not the strip's #52845B
+		rect 408 26 90 29                     # [m] (419,107) on capture 20; pressing changes 88x27 at (420,108)
+		strip ui/bitmap/FINDWIZARD_FIND 4
+		frame normal 0
+		frame pressed 1
+		frame disabled 2
+		frame hot 3
+		action wizard.find "Search"
+		key Return
+	end
+	control back
+		kind button
+		record 10081
+		rect 16 307 39 39                     # [m]
+		strip ui/bitmap/FINDWIZARD_BACK 4
+		frame normal 0
+		frame pressed 1
+		frame disabled 2
+		frame hot 3
+		action finder.back "Previous page"
+	end
+	control next
+		kind button
+		record 10080
+		rect 75 307 39 39                     # [m]
+		strip ui/bitmap/FINDWIZARD_NEXT 4
+		frame normal 0
+		frame pressed 1
+		frame disabled 2
+		frame hot 3
+		action finder.next "Next page"
+	end
+end
+
+
+# [i] Added pages use the measured 1995 frame and page rectangles, with own labels. VM goldens are required.
+block wizpage
+	control picture-column
+		kind panel
+		rect 1 16 127 339
+		bg ui:28
+	end
+	control page-rule
+		kind panel
+		rect 128 16 382 1
+		bg ui:15
+	end
+	control column-rule
+		kind panel
+		rect 128 16 1 339
+		bg ui:15
+	end
+	control panel
+		kind panel
+		rect 129 17 381 338
+		bg ui:13
+	end
+end
+
+block wizfind
+	control find
+		kind button
+		rect 408 26 90 29
+		record 10082
+		strip ui/bitmap/FINDWIZARD_FIND 4
+		frame normal 0
+		frame pressed 1
+		frame disabled 2
+		frame hot 3
+		action wizard.find "Search"
+		key Return
+	end
+end
+
+block wiznav
+	control back
+		kind button
+		rect 16 307 39 39
+		record 10081
+		strip ui/bitmap/FINDWIZARD_BACK 4
+		frame normal 0
+		frame pressed 1
+		frame disabled 2
+		frame hot 3
+		action finder.back "Previous page"
+	end
+	control next
+		kind button
+		rect 75 307 39 39
+		record 10080
+		strip ui/bitmap/FINDWIZARD_NEXT 4
+		frame normal 0
+		frame pressed 1
+		frame disabled 2
+		frame hot 3
+		action finder.next "Next page"
+	end
+end
+
+screen findwiz-words
+	size 511 356
+	origin 10 65
+	over *
+	ground ui:15
+	prop focus box1
+	uses wizcaption
+	uses wizpage
+	uses wizfind
+	uses wiznav
+	control title
+		kind label
+		rect 147 46 254 30
+		label "Words or an e26q request"
+		font ui13
+		fg ui:12
+		text-y 11
+		align left
+	end
+	control box1
+		kind field
+		rect 147 87 345 38
+		bg ui:0
+		fg ui:15
+		font ui
+		prop multiline yes
+		prop maxlen 512
+		action wizard.find "Search"
+	end
+	control and1
+		kind button
+		rect 147 126 44 24
+		record 10063
+		strip ui/bitmap/ENCWOR_AND 3
+		frame normal 0
+		frame checked 1
+		prop operator and
+		prop join 1
+		action find.word-op and1
+	end
+	control or1
+		kind button
+		rect 191 126 44 24
+		record 10064
+		strip ui/bitmap/ENCWOR_OR 3
+		frame normal 0
+		frame checked 1
+		prop operator or
+		prop join 1
+		action find.word-op or1
+	end
+	control not1
+		kind button
+		rect 235 126 44 24
+		record 10065
+		strip ui/bitmap/ENCWOR_NOT 3
+		frame normal 0
+		frame checked 1
+		prop operator not
+		prop join 1
+		action find.word-op not1
+	end
+	control near1
+		kind button
+		rect 279 126 44 24
+		record 10066
+		strip ui/bitmap/ENCWOR_NEAR 3
+		frame normal 0
+		frame checked 1
+		prop operator near
+		prop join 1
+		action find.word-op near1
+	end
+	control box2
+		kind field
+		rect 147 152 345 38
+		bg ui:14
+		fg ui:15
+		font ui
+		prop multiline yes
+		prop maxlen 512
+		action wizard.find "Search"
+	end
+	control and2
+		kind button
+		rect 147 191 44 24
+		record 10063
+		strip ui/bitmap/ENCWOR_AND 3
+		frame normal 0
+		frame checked 1
+		prop operator and
+		prop join 2
+		action find.word-op and2
+	end
+	control or2
+		kind button
+		rect 191 191 44 24
+		record 10064
+		strip ui/bitmap/ENCWOR_OR 3
+		frame normal 0
+		frame checked 1
+		prop operator or
+		prop join 2
+		action find.word-op or2
+	end
+	control not2
+		kind button
+		rect 235 191 44 24
+		record 10065
+		strip ui/bitmap/ENCWOR_NOT 3
+		frame normal 0
+		frame checked 1
+		prop operator not
+		prop join 2
+		action find.word-op not2
+	end
+	control near2
+		kind button
+		rect 279 191 44 24
+		record 10066
+		strip ui/bitmap/ENCWOR_NEAR 3
+		frame normal 0
+		frame checked 1
+		prop operator near
+		prop join 2
+		action find.word-op near2
+	end
+	control box3
+		kind field
+		rect 147 217 345 38
+		bg ui:14
+		fg ui:15
+		font ui
+		prop multiline yes
+		prop maxlen 512
+		action wizard.find "Search"
+	end
+	control scope-all
+		kind radio
+		rect 147 271 62 18
+		label "All"
+		font ui
+		bg ui:13
+		fg ui:15
+		group word-scope
+		state finder-scope-all
+		source finder-scope
+		prop scope all
+		action finder.scope all
+		checked
+	end
+	control scope-last
+		kind radio
+		rect 259 271 62 18
+		label "Last"
+		font ui
+		bg ui:13
+		fg ui:15
+		group word-scope
+		state finder-scope-last
+		source finder-scope
+		prop scope last
+		action finder.scope last
+	end
+	control scope-current
+		kind radio
+		rect 371 271 62 18
+		label "Current"
+		font ui
+		bg ui:13
+		fg ui:15
+		group word-scope
+		state finder-scope-current
+		source finder-scope
+		prop scope current
+		action finder.scope current
+	end
+	control past
+		kind button
+		rect 147 307 108 22
+		label "Past Requests"
+		font ui
+		bg ui:14
+		fg ui:15
+		action finder.past "Past Requests"
+	end
+	control hints
+		kind button
+		rect 261 307 70 22
+		label "Hints"
+		font ui
+		bg ui:14
+		fg ui:15
+		action finder.hints "Hints"
+	end
+end
+
+screen findwiz-subcategories
+	size 511 356
+	origin 10 65
+	over *
+	ground ui:15
+	uses wizcaption
+	uses wizpage
+	uses wizfind
+	uses wiznav
+	control title
+		kind label
+		rect 147 46 254 30
+		label "Optional subcategory"
+		font ui13
+		fg ui:12
+		text-y 11
+		align left
+	end
+	control areas
+		kind catpanel
+		rect 147 66 357 285
+	end
+end
+
+screen findwiz-media
+	size 511 356
+	origin 10 65
+	over *
+	ground ui:15
+	uses wizcaption
+	uses wizpage
+	uses wizfind
+	uses wiznav
+	control title
+		kind label
+		rect 147 46 254 30
+		label "Media filters"
+		font ui13
+		fg ui:12
+		text-y 11
+		align left
+	end
+	control m-pic
+		kind toggle
+		rect 147 98 69 73
+		record 10030
+		strip ui/bitmap/ENCMED_PIC 3
+		frame normal 0
+		frame checked 1
+		frame pressed 2
+		source finder-media
+		prop media image
+		state finder-media-image
+		action finder.media image
+	end
+	control m-pic-label
+		kind label
+		rect 137 171 89 14
+		label "Images"
+		font ui
+		fg ui:15
+		text-y 11
+		align centre
+	end
+	control m-map
+		kind toggle
+		rect 236 98 69 73
+		record 10031
+		strip ui/bitmap/ENCMED_MAP 3
+		frame normal 0
+		frame checked 1
+		frame pressed 2
+		source finder-media
+		prop media maths
+		state finder-media-maths
+		action finder.media maths
+	end
+	control m-map-label
+		kind label
+		rect 226 171 89 14
+		label "Maths"
+		font ui
+		fg ui:15
+		text-y 11
+		align centre
+	end
+	control m-ani
+		kind toggle
+		rect 325 98 69 73
+		record 10032
+		strip ui/bitmap/ENCMED_ANI 3
+		frame normal 0
+		frame checked 1
+		frame pressed 2
+		source finder-media
+		prop media pdf
+		state finder-media-pdf
+		action finder.media pdf
+	end
+	control m-ani-label
+		kind label
+		rect 315 171 89 14
+		label "PDF"
+		font ui
+		fg ui:15
+		text-y 11
+		align centre
+	end
+	control m-aud
+		kind toggle
+		rect 414 98 69 73
+		record 10033
+		strip ui/bitmap/ENCMED_AUD 3
+		frame normal 0
+		frame checked 1
+		frame pressed 2
+		source finder-media
+		prop media audio
+		state finder-media-audio
+		action finder.media audio
+	end
+	control m-aud-label
+		kind label
+		rect 404 171 89 14
+		label "Audio"
+		font ui
+		fg ui:15
+		text-y 11
+		align centre
+	end
+	control m-int
+		kind toggle
+		rect 184 221 69 73
+		record 10034
+		strip ui/bitmap/ENCMED_INT 3
+		frame normal 0
+		frame checked 1
+		frame pressed 2
+		source finder-media
+		prop media interactivity
+		state finder-media-interactivity
+		action finder.media interactivity
+	end
+	control m-int-label
+		kind label
+		rect 174 294 89 14
+		label "Interactivity"
+		font ui
+		fg ui:15
+		text-y 11
+		align centre
+	end
+	control m-vid
+		kind toggle
+		rect 280 221 69 73
+		record 10035
+		strip ui/bitmap/ENCMED_VID 3
+		frame normal 0
+		frame checked 1
+		frame pressed 2
+		source finder-media
+		prop media video
+		state finder-media-video
+		action finder.media video
+	end
+	control m-vid-label
+		kind label
+		rect 270 294 89 14
+		label "Video"
+		font ui
+		fg ui:15
+		text-y 11
+		align centre
+	end
+	control m-cha
+		kind toggle
+		rect 376 221 69 73
+		record 10036
+		strip ui/bitmap/ENCMED_CHA 3
+		frame normal 0
+		frame checked 1
+		frame pressed 2
+		source finder-media
+		prop media table
+		state finder-media-table
+		action finder.media table
+	end
+	control m-cha-label
+		kind label
+		rect 366 294 89 14
+		label "Tables"
+		font ui
+		fg ui:15
+		text-y 11
+		align centre
+	end
+	control m-cli
+		kind button
+		rect 147 68 70 18
+		label "CLI"
+		font ui
+		bg ui:14
+		fg ui:15
+		action finder.media cli
+		source finder-media
+		prop media cli
+		state finder-media-cli
+	end
+end
+
+screen findwiz-time
+	size 511 356
+	origin 10 65
+	over *
+	ground ui:15
+	prop focus year-from
+	uses wizcaption
+	uses wizpage
+	uses wizfind
+	uses wiznav
+	control title
+		kind label
+		rect 147 46 254 30
+		label "Years: BC or AD"
+		font ui13
+		fg ui:12
+		text-y 11
+		align left
+	end
+	control year-from
+		kind field
+		rect 147 90 141 38
+		bg ui:0
+		fg ui:15
+		font ui13
+		prop maxlen 14
+		action wizard.find "Search"
+	end
+	control from-bc
+		kind button
+		rect 290 94 18 14
+		record 10042
+		strip ui/bitmap/ENCTIM_BC 4
+		frame normal 0
+		frame checked 1
+		frame pressed 1
+		frame disabled 2
+		frame hot 3
+		source finder-era
+		prop endpoint from
+		prop era bc
+		prop field year-from
+		action finder.time from-bc
+	end
+	control from-ad
+		kind button
+		rect 290 109 18 14
+		record 10043
+		strip ui/bitmap/ENCTIM_AD 4
+		frame normal 0
+		frame checked 1
+		frame pressed 1
+		frame disabled 2
+		frame hot 3
+		source finder-era
+		prop endpoint from
+		prop era ad
+		prop field year-from
+		action finder.time from-ad
+	end
+	control year-to
+		kind field
+		rect 329 90 141 38
+		bg ui:0
+		fg ui:15
+		font ui13
+		prop maxlen 14
+		action wizard.find "Search"
+	end
+	control to-bc
+		kind button
+		rect 472 94 18 14
+		record 10042
+		strip ui/bitmap/ENCTIM_BC 4
+		frame normal 0
+		frame checked 1
+		frame pressed 1
+		frame disabled 2
+		frame hot 3
+		source finder-era
+		prop endpoint to
+		prop era bc
+		prop field year-to
+		action finder.time to-bc
+	end
+	control to-ad
+		kind button
+		rect 472 109 18 14
+		record 10043
+		strip ui/bitmap/ENCTIM_AD 4
+		frame normal 0
+		frame checked 1
+		frame pressed 1
+		frame disabled 2
+		frame hot 3
+		source finder-era
+		prop endpoint to
+		prop era ad
+		prop field year-to
+		action finder.time to-ad
+	end
+	control picture
+		kind timeslider
+		rect 147 146 345 184
+		strip ui/bitmap/TIMEDKFIL 1
+		frame normal 0
+		prop year-from year-from
+		prop year-to year-to
+	end
+	control scale-information
+		kind button
+		rect 335 332 157 18
+		label "Scale information"
+		font ui
+		bg ui:14
+		fg ui:15
+		action finder.timeline "Time scale artwork"
+	end
+end
+
+screen findwiz-place
+	size 511 356
+	origin 10 65
+	over *
+	ground ui:15
+	prop focus place-id
+	uses wizcaption
+	uses wizpage
+	uses wizfind
+	control title
+		kind label
+		rect 147 46 254 30
+		label "Place"
+		font ui13
+		fg ui:12
+		text-y 11
+		align left
+	end
+	control place-id
+		kind field
+		rect 147 90 345 32
+		bg ui:0
+		fg ui:15
+		font ui13
+		prop maxlen 255
+		action wizard.find "Search"
+	end
+	control place-help
+		kind label
+		rect 147 134 345 60
+		label "Enter an indexed place identifier. Leave this field empty to search every place."
+		font ui13
+		fg ui:12
+		align left
+		pitch 16
+	end
+	control regions
+		kind button
+		rect 147 204 160 20
+		label "Regions"
+		font ui
+		bg ui:14
+		fg ui:15
+		action finder.place regions
+	end
+	control countries
+		kind button
+		rect 324 204 160 20
+		label "Countries"
+		font ui
+		bg ui:14
+		fg ui:15
+		action finder.place countries
+	end
+	control political
+		kind button
+		rect 147 236 160 20
+		label "Political areas"
+		font ui
+		bg ui:14
+		fg ui:15
+		action finder.place political
+	end
+	control cities
+		kind button
+		rect 324 236 160 20
+		label "Cities"
+		font ui
+		bg ui:14
+		fg ui:15
+		action finder.place cities
+	end
+	control place-art-note
+		kind label
+		rect 147 278 345 22
+		label "Place is optional."
+		font ui13
+		fg ui:12
+		align left
+	end
+	control back
+		kind button
+		rect 16 307 39 39
+		record 10081
+		strip ui/bitmap/FINDWIZARD_BACK 4
+		frame normal 0
+		frame pressed 1
+		frame disabled 2
+		frame hot 3
+		action finder.back "Previous page"
+	end
+	control next
+		kind button
+		rect 75 307 39 39
+		record 10080
+		strip ui/bitmap/FINDWIZARD_NEXT 4
+		frame normal 0
+		frame pressed 1
+		frame disabled 2
+		frame hot 3
+		action wizard.find "Search"
+	end
+end
+
+screen finder-results
+	size 605 335
+	origin 10 65
+	over *
+	ground ui:15
+	control ground
+		kind panel
+		rect 1 16 603 318
+		bg ui:31
+	end
+	control cap
+		kind bar
+		rect 1 1 603 15
+		bg ui:27
+		fg ui:0
+		label "Search Results"
+		font ui
+		tracking 3
+		upper
+		marker
+		text-x 17
+		text-y 12
+	end
+	control close
+		kind label
+		rect 570 3 33 11
+		bg ui:27
+		fg ui:31
+		label @6003
+		font ui10
+		align centre
+		text-y 9
+		action close
+		key Escape
+	end
+	control status
+		kind label
+		rect 7 24 590 20
+		source finder-status
+		font ui
+		fg ui:15
+		align left
+		text-y 14
+	end
+	control results
+		kind finder-results
+		rect 7 50 590 230
+	end
+	control save-list
+		kind button
+		rect 7 294 100 22
+		label "Save / Open List"
+		font ui
+		bg ui:14
+		fg ui:15
+		action finder.lists "Saved Lists"
+	end
+	control catalogue
+		kind button
+		rect 111 294 96 22
+		label "Catalogue only"
+		font ui
+		bg ui:14
+		fg ui:15
+		source finder-catalogue
+		action finder.catalogue "Catalogue only"
+	end
+	control gallery
+		kind button
+		rect 211 294 62 22
+		label "Gallery"
+		font ui
+		bg ui:14
+		fg ui:15
+		disabled                              # u14: no Media Gallery yet; greyed instead of the "later build" box
+		action finder.gallery "Media Gallery"
+	end
+	control packs
+		kind button
+		rect 277 294 112 22
+		label "Pack information"
+		font ui
+		bg ui:14
+		fg ui:15
+		action finder.multiple-packs "Library packs"
+	end
+	control new-search
+		kind button
+		rect 393 294 98 22
+		label "Find Wizard"
+		font ui
+		bg ui:14
+		fg ui:15
+		action goto findwiz
+	end
+	control past
+		kind button
+		rect 495 294 49 22
+		label "Past"
+		font ui
+		bg ui:14
+		fg ui:15
+		action finder.past "Past Requests"
+	end
+	control hints
+		kind button
+		rect 548 294 45 22
+		label "Hints"
+		font ui
+		bg ui:14
+		fg ui:15
+		action finder.hints "Hints"
+	end
+end
+
+screen finder-past
+	size 430 315
+	origin 10 65
+	over *
+	ground ui:15
+	control ground
+		kind panel
+		rect 1 16 428 298
+		bg ui:31
+	end
+	control cap
+		kind bar
+		rect 1 1 428 15
+		bg ui:27
+		fg ui:0
+		label "Past Requests"
+		font ui
+		tracking 3
+		upper
+		marker
+		text-x 17
+		text-y 12
+	end
+	control close
+		kind label
+		rect 395 3 33 11
+		bg ui:27
+		fg ui:31
+		label @6003
+		font ui10
+		align centre
+		text-y 9
+		action close
+		key Escape
+	end
+	control past
+		kind finder-past
+		rect 10 35 410 240
+	end
+	control delete
+		kind button
+		rect 10 281 110 22
+		label "Clear requests"
+		font ui
+		bg ui:14
+		fg ui:15
+		action finder.delete-past "Clear requests"
+	end
+	control new-search
+		kind button
+		rect 126 281 100 22
+		label "Find Wizard"
+		font ui
+		bg ui:14
+		fg ui:15
+		action goto findwiz
+	end
+end
+
+screen finder-hints
+	size 430 315
+	origin 10 65
+	over *
+	ground ui:15
+	control ground
+		kind panel
+		rect 1 16 428 298
+		bg ui:31
+	end
+	control cap
+		kind bar
+		rect 1 1 428 15
+		bg ui:27
+		fg ui:0
+		label "Search Hints"
+		font ui
+		tracking 3
+		upper
+		marker
+		text-x 17
+		text-y 12
+	end
+	control close
+		kind label
+		rect 395 3 33 11
+		bg ui:27
+		fg ui:31
+		label @6003
+		font ui10
+		align centre
+		text-y 9
+		action close
+		key Escape
+	end
+	control syntax
+		kind label
+		rect 12 36 400 85
+		label "Use words, quoted phrases, AND, OR, NOT, or NEAR. Parentheses group terms. A suffix * matches a word prefix. The default NEAR distance is eight words."
+		font ui13
+		fg ui:15
+		align left
+		pitch 17
+	end
+	control wizard
+		kind button
+		rect 12 272 100 22
+		label "Find Wizard"
+		font ui
+		bg ui:14
+		fg ui:15
+		action goto findwiz
+	end
+	control scope-help
+		kind label
+		rect 12 126 400 85
+		label "All searches the active Library pack. Last narrows the last result set. Current searches the open item. Fields retain your request as you move through the wizard."
+		font ui13
+		fg ui:15
+		align left
+		pitch 17
+	end
+	control near-label
+		kind label
+		rect 12 229 94 22
+		label "Near distance"
+		font ui
+		fg ui:15
+		align left
+	end
+	control near-value
+		kind field
+		rect 112 229 46 22
+		font ui
+		bg ui:0
+		fg ui:15
+		prop text 8
+		prop maxlen 4
+		action finder.scope "Apply hints"
+	end
+	control title-mode
+		kind toggle
+		rect 175 229 120 22
+		label "Titles only"
+		font ui
+		bg ui:14
+		fg ui:15
+		source finder-scope
+		prop scope title
+		action finder.scope title
+	end
+	control highlights
+		kind button
+		rect 304 229 108 22
+		label "Highlights"
+		font ui
+		bg ui:14
+		fg ui:15
+		disabled                              # u14: not built yet; greyed instead of the "later build" box
+		action finder.highlights "Search highlights"
+	end
+end
+
+screen finder-lists
+	size 430 270
+	origin 10 65
+	over *
+	ground ui:15
+	control ground
+		kind panel
+		rect 1 16 428 253
+		bg ui:31
+	end
+	control cap
+		kind bar
+		rect 1 1 428 15
+		bg ui:27
+		fg ui:0
+		label "Saved Lists"
+		font ui
+		tracking 3
+		upper
+		marker
+		text-x 17
+		text-y 12
+	end
+	control close
+		kind label
+		rect 395 3 33 11
+		bg ui:27
+		fg ui:31
+		label @6003
+		font ui10
+		align centre
+		text-y 9
+		action close
+		key Escape
+	end
+	control list-label
+		kind label
+		rect 12 36 400 22
+		label "List name"
+		font ui13
+		fg ui:15
+		align left
+	end
+	control list-name
+		kind field
+		rect 12 64 400 24
+		bg ui:0
+		fg ui:15
+		font ui
+		prop maxlen 79
+		action finder.save "Save List"
+	end
+	control list-help
+		kind label
+		rect 12 105 400 92
+		label "Choose a name to save this search and its filters. Enter the same name to open it later."
+		font ui13
+		fg ui:15
+		align left
+		pitch 17
+	end
+	control save
+		kind button
+		rect 12 214 112 24
+		label "Save List"
+		font ui
+		bg ui:14
+		fg ui:15
+		action finder.save "Save List"
+	end
+	control open-list
+		kind button
+		rect 134 214 112 24
+		label "Open List"
+		font ui
+		bg ui:14
+		fg ui:15
+		action finder.open-list "Open List"
+	end
+	control minimise-after-select
+		kind toggle
+		record 10074
+		rect 12 244 400 18
+		strip ui/bitmap/FINDWIZARD_CHECKBOX 4
+		frame normal 0
+		frame checked 1
+		frame disabled 2
+		frame checked-disabled 3
+		label "Minimise Pinpointer after selecting an article"
+		font ui
+		fg ui:15
+		text-y 12
+		prop setting MinimisePinpointerAfterSelect
+		action toggle
+	end
+end

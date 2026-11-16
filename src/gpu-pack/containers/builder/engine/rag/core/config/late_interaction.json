@@ -1,0 +1,23 @@
+{
+  "model": "lightonai/Agent-ModernColBERT",
+  "revision": null,
+  "embedding_dimension": 128,
+  "index_name": "colbert",
+  "device": "cpu",
+  "document_batch_size": 4,
+  "query_batch_size": 1,
+  "num_threads": 12,
+  "use_fast": true,
+  "nbits": 4,
+  "kmeans_niters": 4,
+  "max_points_per_centroid": 256,
+  "use_triton_kmeans": false,
+  "seed": 42,
+  "n_ivf_probe": 8,
+  "n_full_scores": 8192,
+  "search_batch_size": 1024,
+  "show_progress": false,
+  "keep_generations": 2,
+  "expected_pylate_version": "1.6.0",
+  "expected_fast_plaid_version": "1.4.6.2110"
+}

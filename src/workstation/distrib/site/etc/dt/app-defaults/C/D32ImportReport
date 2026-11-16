@@ -1,0 +1,5 @@
+! D32ImportReport: Deep32 Import Report (d32-import-report). Colours, shadows and faces come from the session; only
+! the faces of the step and pack lists and of the state line are set here.
+D32ImportReport*steps*fontList:	-dt-interface user-medium-r-normal-m*-*-*-*-*-*-*-iso8859-1
+D32ImportReport*units.fontList:	-dt-interface user-medium-r-normal-m*-*-*-*-*-*-*-iso8859-1
+D32ImportReport*state.fontList:	-dt-interface system-medium-r-normal-l*-*-*-*-*-*-*-iso8859-1

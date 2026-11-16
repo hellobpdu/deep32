@@ -1,0 +1,159 @@
+d32scr 1
+
+screen pinpointer-cisco
+	size 605 350
+	origin 10 65
+	over *
+	ground ui:15
+	prop viewport native-pinned
+	prop focus query
+	prop tab-order "query search type scope-current scope-entire tree previous next retry close"
+	control body
+		kind panel
+		rect 1 16 603 333
+		bg ui:31
+	end
+	control title
+		kind bar
+		rect 1 1 603 15
+		bg ui:27
+		fg ui:0
+		label "Cisco Library"
+		font ui
+		tracking 3
+		upper
+		marker
+		text-x 17
+		text-y 12
+	end
+	control query-label
+		kind label
+		rect 8 24 50 20
+		label "Keyword"
+		font ui
+		fg ui:15
+		align left
+		text-y 14
+	end
+	control query
+		kind field
+		rect 60 24 459 20
+		bg ui:0
+		fg ui:15
+		font ui
+		prop maxlen 127
+		action cisco.search "Search"
+	end
+	control search
+		kind button
+		rect 525 24 72 20
+		label "Search"
+		font ui
+		bg ui:14
+		fg ui:15
+		action cisco.search "Search"
+	end
+	control type
+		kind button
+		rect 8 50 210 20
+		label "All Cisco publications"
+		source cisco-type
+		font ui
+		bg ui:14
+		fg ui:15
+		marker
+		action menu cisco-subtypes
+	end
+	control scope-current
+		kind radio
+		rect 230 50 113 20
+		label "Current topic"
+		font ui
+		bg ui:14
+		fg ui:15
+		group cisco-scope
+		source cisco-scope
+		prop scope current
+		action cisco.scope current
+	end
+	control scope-entire
+		kind radio
+		rect 349 50 113 20
+		label "Entire Library"
+		font ui
+		bg ui:14
+		fg ui:15
+		group cisco-scope
+		source cisco-scope
+		prop scope entire
+		action cisco.scope entire
+	end
+	control tree-border
+		kind panel
+		rect 7 75 591 226
+		bg ui:15
+	end
+	control tree
+		kind cisco-tree
+	rect 8 76 589 224
+		bg ui:0
+		fg ui:15
+		font ui
+		action cisco.open "Open selected"
+	end
+	control status
+		kind label
+		rect 8 302 589 18
+		source cisco-status
+		font ui
+		fg ui:15
+		align left
+		text-y 13
+	end
+	control previous
+		kind button
+		rect 8 322 81 20
+		label "Previous"
+		font ui
+		bg ui:14
+		fg ui:15
+		action cisco.previous "Previous"
+	end
+	control next
+		kind button
+		rect 95 322 81 20
+		label "Next"
+		font ui
+		bg ui:14
+		fg ui:15
+		action cisco.next "Next"
+	end
+	control retry
+		kind button
+		rect 182 322 81 20
+		label "Retry"
+		font ui
+		bg ui:14
+		fg ui:15
+		action cisco.retry "Retry"
+	end
+	control close
+		kind button
+		rect 516 322 81 20
+		label "Back"
+		font ui
+		bg ui:14
+		fg ui:15
+		action cisco.close "Back"
+		key Escape
+	end
+end
+
+# The dynamic Pinpointer menu supplies All, ConfigGuide, WhitePaper,
+# ValidatedDesign, TechNote and Other as cisco.type arguments.
+menu cisco-subtypes
+	record 1
+	items record
+	item-height 16
+	width 210
+end

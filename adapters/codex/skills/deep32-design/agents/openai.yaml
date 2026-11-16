@@ -1,0 +1,5 @@
+interface:
+  display_name: "deep32-design"
+  short_description: "Deep32 design lens: add a topic or keywords"
+policy:
+  allow_implicit_invocation: false

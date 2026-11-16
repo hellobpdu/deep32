@@ -1,0 +1,10 @@
+# Deep32 Workstation login class (BASE lane). login.conf(5): /etc/login.conf.d/<class> takes precedence over
+# /etc/login.conf; "tc=" reaches only this file and /etc/login.conf, so each class is complete in itself.
+# d32web, the Web domain (BROWSER-MEDIA 4.1): Firefox ESR as Fathom.
+d32web:\
+	:datasize-cur=4096M:\
+	:datasize-max=4096M:\
+	:openfiles-cur=2048:\
+	:maxproc-cur=512:\
+	:coredumpsize=0:\
+	:tc=default:

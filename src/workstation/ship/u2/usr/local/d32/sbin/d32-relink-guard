@@ -1,0 +1,121 @@
+#!/bin/ksh
+# /usr/local/d32/sbin/d32-relink-guard: keeps the relink tree of /etc/rc root-owned and immutable (Deep32/UX
+# update 2, U02; ISO-DESIGN 2.7). Root only.
+#
+#   d32-relink-guard check   read-only: every entry under /usr/share/relink/usr must be owned by root, have no group or
+#                            other write bit, and carry schg. Lists what does not; exit 0 = all good.
+#   d32-relink-guard close   puts that right: chown root, directories 0755, files without group/other write, then
+#                            schg on every directory and file of the tree. Idempotent; silent when nothing changes.
+#                            rc.securelevel runs it at every boot (securelevel 0, after /etc/rc's relink), so a
+#                            syspatch, a syspatch -r or an upgrade that put OpenBSD's own modes back (base80.tgz ships
+#                            usr, usr/bin and usr/sbin as build:wheel 0770) is corrected in the same boot.
+#   d32-relink-guard open    clears schg on the tree, securelevel 0 only: BEFORE syspatch, syspatch -r or an OpenBSD
+#                            upgrade in the boot window, which must replace files in it. Run "close" after (rc.securelevel
+#                            does it anyway at the end of that boot window).
+#
+# Why: /etc/rc (reorder_libs) extracts /usr/share/relink/usr/*/*/*.tar and runs the install.sh inside AS ROOT AT
+# SECURELEVEL 0, before rc.securelevel, at every boot. Whoever can write that tree runs code as root in the next boot
+# window. The boot relink only READS usr/: it makes its work directories in /usr/share/relink itself
+# (mktemp -d _rebuild.*) and installs into /usr/lib, /usr/libexec, /usr/bin and /usr/sbin; the kernel relink works
+# in /usr/share/relink/kernel at securelevel 1. So neither of those two is touched here, and flagging usr/ breaks
+# neither relink (proved in a copy of the tree on the build VM, tests/hardening/relink-test.sh).
+# Residual risk, said plainly (as for / and /etc): /usr/share/relink itself cannot be immutable (rc writes in it), so
+# root at runtime could rename it away and plant a whole new tree. An immutable directory cannot be renamed or
+# removed, so usr/ itself cannot be swapped out from under its name.
+#
+# Test hooks (refused unless D32RG_TEST=1): D32RG_ROOT=<prefix> works on a copy of the tree, D32RG_FLAG=uchg stands in
+# for schg on a host at securelevel 1.
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+export PATH
+umask 022
+set -u
+
+ROOT= FLAG=schg NOFLAG=noschg
+if [ "${D32RG_TEST:-0}" = 1 ]; then
+	ROOT=${D32RG_ROOT:-}
+	FLAG=${D32RG_FLAG:-schg}
+	case $FLAG in schg) NOFLAG=noschg ;; uchg) NOFLAG=nouchg ;; *) print -u2 "d32-relink-guard: bad D32RG_FLAG"; exit 64 ;; esac
+fi
+T=$ROOT/usr/share/relink/usr
+ME=d32-relink-guard
+
+say() { print -r -- "$ME: $*"; }
+log() { logger -t $ME -p daemon.notice -- "$*" 2>/dev/null; }
+die() { print -u2 -r -- "$ME: $*"; logger -t $ME -p daemon.err -- "$*" 2>/dev/null; exit 1; }
+
+[ "$(id -u)" = 0 ] || die "run as root"
+[ -d $T ] && [ ! -L $T ] || die "$T is missing or not a directory"
+[ -L $ROOT/usr/share/relink ] && die "$ROOT/usr/share/relink is a symlink"
+
+# bad PATH: does this entry break the policy? (prints the reasons; read-only)
+flags_of() { ls -ldo -- "$1" | awk '{ print $5 }'; }
+bad() {
+	typeset p=$1 why= f
+	[ -L "$p" ] && { print "symlink"; return 0; }
+	[ "$(stat -f %u -- "$p")" = 0 ] || why="$why owner"
+	[ $(( 8#$(stat -f %Lp -- "$p") & 8#022 )) = 0 ] || why="$why group/other-write"
+	[ -d "$p" ] && [ "$(stat -f %Lp -- "$p")" != 755 ] && why="$why dir-mode"
+	f=$(flags_of "$p")
+	case ",$f," in *,$FLAG,*) ;; *) why="$why no-$FLAG" ;; esac
+	[ -n "$why" ] && { print -r -- "${why# }"; return 0; }
+	return 1
+}
+
+level() { sysctl -n kern.securelevel; }
+entries() { find $T \( -type d -o -type f -o -type l \) | sort; }
+
+case ${1:-} in
+check)
+	n=0 b=0
+	while IFS= read -r p; do
+		n=$((n + 1))
+		if r=$(bad "$p"); then b=$((b + 1)); print -r -- "BAD ${p#$ROOT} ($r)"; fi
+	done <<-EOF
+$(entries)
+EOF
+	other=$(find $T ! -type d ! -type f ! -type l | wc -l | tr -d ' ')
+	[ "$other" = 0 ] || { b=$((b + other)); print "BAD $other entries that are neither file, directory nor symlink"; }
+	say "checked $n entries under ${T#$ROOT}: $b not as they should be"
+	[ $b = 0 ]
+	;;
+close)
+	fixed=0 flagged=0 lv=$(level)
+	while IFS= read -r p; do
+		r=$(bad "$p") || continue
+		case $r in
+		symlink)
+			die "unexpected symlink ${p#$ROOT}: not touched, look at it by hand" ;;
+		no-$FLAG)
+			chflags $FLAG "$p" || die "chflags $FLAG ${p#$ROOT}"
+			flagged=$((flagged + 1)); continue ;;
+		esac
+		# owner or mode wrong: clear the flag first (securelevel 0 only, if it is set)
+		case ",$(flags_of "$p")," in
+		*,$FLAG,*)
+			[ "$FLAG" = schg ] && [ "$lv" -gt 0 ] && die "${p#$ROOT} is $FLAG and wrong ($r), and securelevel is $lv: needs the boot window"
+			chflags $NOFLAG "$p" || die "chflags $NOFLAG ${p#$ROOT}" ;;
+		esac
+		chown root "$p" || die "chown ${p#$ROOT}"
+		if [ -d "$p" ]; then chmod 0755 "$p"; else chmod go-w "$p"; fi || die "chmod ${p#$ROOT}"
+		chflags $FLAG "$p" || die "chflags $FLAG ${p#$ROOT}"
+		fixed=$((fixed + 1))
+		log "fixed ${p#$ROOT} ($r)"
+	done <<-EOF
+$(entries)
+EOF
+	if [ $fixed != 0 ] || [ $flagged != 0 ]; then
+		say "${T#$ROOT}: $fixed entries corrected, $flagged more set $FLAG"
+		log "${T#$ROOT}: $fixed entries corrected, $flagged more set $FLAG"
+	fi
+	;;
+open)
+	[ "$FLAG" = schg ] && [ "$(level)" -gt 0 ] && die "securelevel is $(level): schg can be cleared only in the boot window"
+	chflags -R $NOFLAG $T || die "chflags -R $NOFLAG ${T#$ROOT}"
+	say "${T#$ROOT}: $FLAG cleared for syspatch or an upgrade; run \"$ME close\" when it is done"
+	log "${T#$ROOT}: $FLAG cleared"
+	;;
+*)
+	print -u2 "usage: $ME check | close | open"
+	exit 64
+	;;
+esac

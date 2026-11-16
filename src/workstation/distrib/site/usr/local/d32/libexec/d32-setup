@@ -1,0 +1,189 @@
+#!/usr/local/dt/bin/dtksh
+# /usr/local/d32/libexec/d32-setup: Deep32 First Start, the window that shows where the first start of this Workstation
+# stands (contract C6) and what to do next: the Tailscale sign-in address, attaching disc 2, the import, a pairing code.
+#   d32-setup            the window; it reads the state every two seconds
+#   d32-setup -auto      at login (Xsession.d): open the window only while the first start is not finished
+#   d32-setup -text      the same state once, as text
+#   d32-setup -model T   print the window's model for the helper output on standard input and transport T (tests)
+# The state comes from root's d32-setup-status through one doas rule with no arguments; the sign-in address and a
+# pairing code are held in this process only while their step waits, and are never written to a file or a log.
+# Laid out as the Style Manager dialogs and Desktop Look are: framed groups, a separator, one row of equal buttons.
+PATH=/usr/local/dt/bin:/usr/X11R6/bin:/usr/bin:/bin:/usr/local/bin
+R=${D32_ROOT:-}
+. $R/usr/local/d32/libexec/d32-ui-lib.sh || exit 2
+DOAS=${D32_DOAS:-/usr/bin/doas}
+HELPER=$R/usr/local/d32/sbin/d32-setup-status
+NODECONF=$R/etc/d32/node.conf
+TAB='	'
+
+transport() {
+	typeset t=tailnet l
+	if [ -r "$NODECONF" ]; then
+		while IFS= read -r l; do
+			case $l in transport=loopback) t=loopback ;; esac
+		done < "$NODECONF"
+	fi
+	print -r -- "$t"
+}
+status() { $DOAS -n "$HELPER" 2>/dev/null; }
+model_lines() {
+	print -r -- "open	$D32UI_OPEN"
+	print -r -- "head	$D32UI_HEAD"
+	print -r -- "text1	$D32UI_TEXT1"
+	print -r -- "text2	$D32UI_TEXT2"
+	[ -n "$D32UI_ADDR" ] && print -r -- "addr	$D32UI_ADDR"
+	[ -n "$D32UI_CGRP" ] && print -r -- "code	$D32UI_CGRP" && print -r -- "spell	$D32UI_CSPELL" &&
+		print -r -- "left	$D32UI_CLEFT"
+	print -r -n -- "$D32UI_ROWS" | while IFS='|' read -r w s m; do print -r -- "row	$w	$s	$m"; done
+}
+
+case ${1:-} in
+-model)	d32ui_setup_model "$(cat)" "${2:-tailnet}"
+	model_lines
+	exit 0 ;;
+-text)	d32ui_setup_model "$(status)" "$(transport)"
+	print -r -n -- "$D32UI_ROWS" | while IFS='|' read -r w s m; do printf '  %-8s %s\n' "$w" "$s"; done
+	print -r -- ""
+	for t in "$D32UI_HEAD" "$D32UI_TEXT1" "$D32UI_ADDR" "$D32UI_CGRP" "$D32UI_CSPELL" "$D32UI_CLEFT" "$D32UI_TEXT2"; do
+		[ -n "$t" ] && print -r -- "$t"
+	done
+	exit 0 ;;
+-auto)	st=$(status)
+	# no answer at all (no doas rule, no helper): say nothing at login rather than open the window at every login
+	[ -n "$st" ] || exit 0
+	d32ui_setup_model "$st" "$(transport)"
+	[ "$D32UI_OPEN" = yes ] || exit 0
+	[ -n "${DISPLAY:-}" ] || exit 0 ;;
+'')	;;
+*)	print -u2 "usage: d32-setup [-auto | -text]"; exit 2 ;;
+esac
+[ -n "${DISPLAY:-}" ] || exec "$0" -text
+
+. /usr/local/dt/lib/dtksh/DtFuncs.dtsh
+say() { d32ui_fmt "$@"; print -r -- "$D32UI_T"; }
+fold64() { print -r -- "$1" | fold -s -w 64 | sed 's/[[:space:]]*$//'; }
+pad() { typeset s="$1"; while [ ${#s} -lt $2 ]; do s="$s "; done; print -r -- "$s"; }
+MONO="-dt-interface user-medium-r-normal-m*-*-*-*-*-*-*-iso8859-1"
+BOLD="-dt-interface user-bold-r-normal-m*-*-*-*-*-*-*-iso8859-1"
+LAST="-"
+LASTPOLL=-10
+CODE_SHOWN=""
+CODE_T0=0
+CODE_EXP=0
+
+refresh() {
+	typeset n=0 w s m st
+	if [ $((SECONDS - LASTPOLL)) -ge 2 ]; then st=$(status); LASTPOLL=$SECONDS; else st=$LAST; fi
+	if [ "$st" != "$LAST" ]; then
+		LAST=$st
+		d32ui_setup_model "$st" "$TRANSPORT"
+		print -r -n -- "$D32UI_ROWS" | while IFS='|' read -r w s m; do
+			eval "XtSetValues \$ROW$n labelString:\"\$(pad \"\$w\" 9)\$s\""
+			if [ "$m" = current ]; then eval "XtSetValues \$ROW$n fontList:\"\$BOLD\""
+			else eval "XtSetValues \$ROW$n fontList:\"\$MONO\""; fi
+			eval "XtManageChild \$ROW$n"
+			n=$((n + 1))
+		done
+		n=$(print -r -n -- "$D32UI_ROWS" | grep -c .)
+		while [ $n -lt 8 ]; do eval "XtUnmanageChild \$ROW$n"; n=$((n + 1)); done
+		XtSetValues $HEAD labelString:"$(fold64 "$D32UI_HEAD")"
+		if [ -n "$D32UI_TEXT1" ]; then XtSetValues $TEXT1 labelString:"$(fold64 "$D32UI_TEXT1")"; XtManageChild $TEXT1
+		else XtUnmanageChild $TEXT1; fi
+		if [ -n "$D32UI_ADDR" ]; then
+			XtSetValues $ADDR value:"$D32UI_ADDR"
+			XtManageChild $AROW
+		else
+			XtSetValues $ADDR value:""
+			XtUnmanageChild $AROW
+		fi
+		if [ -n "$D32UI_CGRP" ]; then
+			CODE_T0=$SECONDS CODE_EXP=$D32C6_expires CODE_SHOWN=1
+			XtSetValues $CODE labelString:"$D32UI_CGRP"
+			XtSetValues $SPELL labelString:"$(fold64 "$D32UI_CSPELL")"
+			XtSetValues $LEFT labelString:"$D32UI_CLEFT"
+			XtManageChild $CODE; XtManageChild $SPELL; XtManageChild $LEFT
+		else
+			hide_code
+		fi
+		if [ -n "$D32UI_TEXT2" ]; then XtSetValues $TEXT2 labelString:"$(fold64 "$D32UI_TEXT2")"; XtManageChild $TEXT2
+		else XtUnmanageChild $TEXT2; fi
+		D32UI_ADDR= D32UI_CGRP= D32UI_CSPELL= D32C6_signin= D32C6_pair=
+	fi
+	# a code is never shown past the five minutes it works for (contract C8), whatever the status file says
+	if [ -n "$CODE_SHOWN" ]; then
+		rem=$((CODE_EXP - (SECONDS - CODE_T0)))
+		if [ $rem -le 0 ]; then
+			hide_code
+		else
+			d32ui_mmss $rem
+			d32ui_fmt setup.pairing.left left "$D32UI_T"
+			XtSetValues $LEFT labelString:"$D32UI_T"
+		fi
+	fi
+	XtAddTimeOut TID 1000 refresh
+}
+hide_code() {
+	XtSetValues $CODE labelString:" "
+	XtSetValues $SPELL labelString:" "
+	XtSetValues $LEFT labelString:" "
+	XtUnmanageChild $CODE; XtUnmanageChild $SPELL; XtUnmanageChild $LEFT
+	CODE_SHOWN=
+}
+close_cb() { exit 0; }
+import_cb() { $R/usr/local/d32/libexec/d32-import-report & }
+pair_cb() { $R/usr/local/d32/libexec/d32-pair & }
+help_cb() { DtkshDisplayInformationDialog "$(say setup.help.title)" "" "$(say setup.help)"; }
+
+TRANSPORT=$(transport)
+XtInitialize TOP d32Setup D32Setup "$@"
+XtSetValues $TOP title:"$(say app.setup.title)" iconName:"$(say app.setup.icon)" allowShellResize:true
+XtCreateManagedWidget FORM form XmForm $TOP horizontalSpacing:10 verticalSpacing:10 marginWidth:10 marginHeight:10
+
+# the steps, as the console's start-up checklist shows them
+XtCreateManagedWidget SFRAME sframe XmFrame $FORM topAttachment:ATTACH_FORM leftAttachment:ATTACH_FORM
+XtCreateManagedWidget STITLE stitle XmLabel $SFRAME childType:FRAME_TITLE_CHILD labelString:"$(say setup.frame.steps)"
+XtCreateManagedWidget SRC steps XmRowColumn $SFRAME orientation:VERTICAL marginWidth:10 marginHeight:8 spacing:2
+i=0
+while [ $i -lt 8 ]; do
+	XtCreateManagedWidget W row$i XmLabel $SRC alignment:ALIGNMENT_BEGINNING labelString:" " fontList:"$MONO"
+	eval ROW$i=\$W
+	i=$((i + 1))
+done
+
+# what to do now
+XtCreateManagedWidget NFRAME nframe XmFrame $FORM topAttachment:ATTACH_FORM leftAttachment:ATTACH_WIDGET \
+	leftWidget:$SFRAME rightAttachment:ATTACH_FORM
+XtSetValues $SFRAME bottomAttachment:ATTACH_OPPOSITE_WIDGET bottomWidget:$NFRAME
+XtCreateManagedWidget NTITLE ntitle XmLabel $NFRAME childType:FRAME_TITLE_CHILD labelString:"$(say setup.frame.now)"
+XtCreateManagedWidget NRC now XmRowColumn $NFRAME orientation:VERTICAL marginWidth:10 marginHeight:8 spacing:8
+XtCreateManagedWidget HEAD head XmLabel $NRC alignment:ALIGNMENT_BEGINNING labelString:" "
+XtCreateManagedWidget TEXT1 text1 XmLabel $NRC alignment:ALIGNMENT_BEGINNING labelString:" "
+XtCreateManagedWidget AROW addressRow XmRowColumn $NRC orientation:HORIZONTAL marginWidth:0 marginHeight:0 spacing:8
+XtCreateManagedWidget ALABEL addressLabel XmLabel $AROW labelString:"$(say setup.signin.label)"
+XtCreateManagedWidget ADDR address XmTextField $AROW editable:false cursorPositionVisible:false columns:46 value:""
+XtCreateManagedWidget CODE code XmLabel $NRC alignment:ALIGNMENT_CENTER labelString:" "
+XtCreateManagedWidget SPELL spell XmLabel $NRC alignment:ALIGNMENT_BEGINNING labelString:" "
+XtCreateManagedWidget LEFT left XmLabel $NRC alignment:ALIGNMENT_BEGINNING labelString:" "
+XtCreateManagedWidget TEXT2 text2 XmLabel $NRC alignment:ALIGNMENT_BEGINNING labelString:" "
+
+XtCreateManagedWidget SEP sep XmSeparator $FORM topAttachment:ATTACH_WIDGET topWidget:$NFRAME \
+	leftAttachment:ATTACH_FORM rightAttachment:ATTACH_FORM
+XtCreateManagedWidget BUTTONS buttons XmForm $FORM fractionBase:43 topAttachment:ATTACH_WIDGET topWidget:$SEP \
+	leftAttachment:ATTACH_FORM rightAttachment:ATTACH_FORM bottomAttachment:ATTACH_FORM
+n=0
+for b in btn.close btn.import btn.pairing btn.help; do
+	XtCreateManagedWidget B b$n XmPushButton $BUTTONS labelString:"$(say $b)" topAttachment:ATTACH_FORM \
+		bottomAttachment:ATTACH_FORM leftAttachment:ATTACH_POSITION leftPosition:$((1 + n * 11)) \
+		rightAttachment:ATTACH_POSITION rightPosition:$((10 + n * 11))
+	case $b in
+	btn.close)   XtAddCallback $B activateCallback close_cb; CLOSEB=$B ;;
+	btn.import)  XtAddCallback $B activateCallback import_cb ;;
+	btn.pairing) XtAddCallback $B activateCallback pair_cb ;;
+	btn.help)    XtAddCallback $B activateCallback help_cb ;;
+	esac
+	n=$((n + 1))
+done
+XtSetValues $FORM defaultButton:$CLOSEB
+refresh
+XtRealizeWidget $TOP
+XtMainLoop

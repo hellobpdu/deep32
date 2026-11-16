@@ -1,0 +1,585 @@
+#!/bin/ksh
+# d32-link: Deep32's network link.
+#
+# The laptop's one way out, up by itself whenever a cable is in: DHCP on the wired port that has a carrier (em0,
+# or the dock's ure0; no Wi-Fi), unbound forwarding to the lease's resolvers (d32-dnsup), and Tailscale (tailscaled
+# with --no-logs-no-support; no MagicDNS, no routes, no exit node, no Tailscale SSH). Over the tailnet, to the hub
+# named in link.conf only (set at pairing; none by default): Ask's relay (:7450), GPU_EXT (Tailscale Serve :443 and
+# :8443) and time (NTP). /etc/pf.conf decides what may leave (<ts_infra>, the
+# tailnet group, <gpu_hub>, <relay_hub>, <ntp>); this script edits tables and interface groups, never rules.
+#
+#   d32-link on [em0|ure0]        up now, and automatic again (the watcher); without a Tailscale login yet it shows
+#                                 the login link and waits for it in this terminal (Ctrl+C leaves it to the watcher)
+#   d32-link off                  everything off until the next boot: LAN only, no default route
+#   d32-link disable | enable     off across reboots | automatic again
+#   d32-link login [--qr]         the one-time Tailscale login in this terminal (its link; a QR code with --qr)
+#   d32-link status               link, address, tailnet and the hub, GPU_EXT, Ask
+#   d32-link watch                the watcher /etc/rc.d/d32link runs at every boot: every 10 s, up when a wired port
+#                                 has a carrier, down when it loses it; before the first login it keeps the login link
+#                                 in /var/db/d32link/login-url
+#   d32-link tick                 one watcher round (tests)
+# Root only: the desktop user runs it as "doas /usr/local/d32/sbin/d32-link ..." with a password (doas.conf, no persist).
+# D32LINK_DRYRUN=1 prints every command that would change something instead of running it (queries still run).
+# Test hooks (root only; doas resets the environment): D32LINK_ROOT (a scratch root for its own files),
+# D32LINK_PATH (stub commands first), D32LINK_SBIN (stub Deep32 tools).
+set -u
+umask 077
+R=${D32LINK_ROOT:-}
+DRY=${D32LINK_DRYRUN:-0}
+PATH=${D32LINK_PATH:+$D32LINK_PATH:}/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin
+export PATH
+SBIN=${D32LINK_SBIN:-/usr/local/d32/sbin}
+CONF=$R/etc/d32/link.conf
+EN=$R/etc/d32/state/link		# "disabled" keeps it off across reboots (FIX-19 runtime state)
+GPUSET=$R/etc/d32/state/gpu_ext
+TSI=$R/etc/d32/pf/ts_infra
+RUN=$R/var/run/d32
+ST=$RUN/link				# "dhcp IF" or "lan IF IP": the link this boot
+HOLD=$RUN/link.hold			# off until the next boot (d32-link off)
+LOCK=$RUN/link.lock
+MD=$R/var/db/d32maint
+SSHD=/usr/sbin/sshd
+DB=$R/var/db/d32link
+URLF=$DB/login-url
+UPPID=$DB/up.pid
+UPOUT=$DB/up.out
+TSDIR=$R/var/db/tailscale		# tailscaled's own state: made here, never read
+WATCH=0 LOCKED=0 TTY=0
+MODE= IF= LIP= LEASE= PICKED=
+[ -t 0 ] && [ -t 1 ] && TTY=1
+
+# ---- settings (/etc/d32/link.conf, schg) ----------------------------------------------------------------------
+HUB= PORTS="em0 ure0"
+TSHOST=deep32 INTERVAL=10 MKEY=
+
+say() {	# a line for the terminal (the watcher's go to syslog only, unless it is a dry run) and syslog
+	{ [ $WATCH = 1 ] && [ $DRY != 1 ]; } || print -r -- "d32-link: $*"
+	[ $DRY = 1 ] || logger -t d32-link -- "$*" 2>/dev/null
+	return 0
+}
+die() { say "$*"; exit 1; }
+usage() {
+	print -u2 'usage: d32-link on [em0|ure0] | off | disable | enable | login [--qr] | status | watch'
+	exit 64
+}
+isip() { print -r -- "$1" | grep -Eq '^([0-9]{1,3}\.){3}[0-9]{1,3}$'; }
+
+readconf() {
+	typeset l
+	[ -f "$CONF" ] && [ ! -L "$CONF" ] || die "missing $CONF"
+	while IFS= read -r l || [ -n "$l" ]; do
+		case $l in ''|'#'*) continue ;; esac
+		case $l in
+		hub=*)		HUB=${l#hub=} ;;
+		ports=*)	PORTS=${l#ports=} ;;
+		hostname=*)	TSHOST=${l#hostname=} ;;
+		interval=*)	INTERVAL=${l#interval=} ;;
+		maint_key=*)	MKEY=${l#maint_key=} ;;
+		*)		die "link.conf: unknown line: ${l%%=*}" ;;
+		esac
+	done <"$CONF"
+	[ -z "$HUB" ] || isip "$HUB" || die "link.conf: hub must be an IPv4 address, or empty (no hub yet)"
+	for l in $PORTS; do case $l in em[0-9]|ure[0-9]|hvn[0-9]|vio[0-9]|vmx[0-9]) ;; *) die "link.conf: ports may be em0..em9, ure0..ure9, hvn0..hvn9, vio0..vio9, vmx0..vmx9" ;; esac; done
+	case $TSHOST in *[!a-z0-9-]*|'') die "link.conf: hostname [a-z0-9-] only" ;; esac
+	case $INTERVAL in *[!0-9]*|''|0) die "link.conf: interval in seconds" ;; esac
+	[ -z "$MKEY" ] || d32_maint_key_ok "$MKEY" || die "maint_key"
+	TSUP="--hostname=$TSHOST --accept-dns=false --accept-routes=false --shields-up=false --ssh=false"
+}
+
+# ---- doing and not doing ---------------------------------------------------------------------------------------
+x() {	# a command that changes something (printed instead in a dry run)
+	if [ $DRY = 1 ]; then print -r -- "+ $*"; return 0; fi
+	"$@"
+}
+xq() {	# the same, its output discarded (services started here must not hold this script's output open)
+	if [ $DRY = 1 ]; then print -r -- "+ $*"; return 0; fi
+	"$@" >/dev/null 2>&1
+}
+wr() {	# PATH MODE: stdin into PATH, as a new file renamed into place
+	if [ $DRY = 1 ]; then cat >/dev/null; print -r -- "+ write ${1#$R} ($2)"; return 0; fi
+	cat >"$1.new" && chmod $2 "$1.new" && mv -f "$1.new" "$1"
+}
+mark() { print -r -- "${2:-x}" | wr $RUN/link.$1 0600; }
+nap() { [ $DRY = 1 ] || sleep $1; }
+once() {	# KEY MESSAGE: say it when it differs from the last one said under KEY (the watcher repeats itself)
+	typeset k=$1 f
+	shift
+	f=$RUN/link.say.$k
+	[ "$(cat $f 2>/dev/null)" = "$*" ] && return 0
+	say "$*"
+	[ $DRY = 1 ] || print -r -- "$*" >$f 2>/dev/null
+	return 0
+}
+alive() { typeset p; p=$(cat "$1" 2>/dev/null) && [ -n "$p" ] && kill -0 "$p" 2>/dev/null; }
+
+lock() {	# wait|try: one d32-link change at a time (the watcher tries; commands wait)
+	typeset n=0 p
+	[ $DRY = 1 ] || [ $LOCKED = 1 ] && return 0
+	install -d -o root -g wheel -m 0755 $RUN 2>/dev/null || mkdir -p $RUN
+	while ! mkdir $LOCK 2>/dev/null; do
+		p=$(cat $LOCK/pid 2>/dev/null)
+		if [ -z "$p" ]; then sleep 1; p=$(cat $LOCK/pid 2>/dev/null); fi
+		if [ -n "$p" ] && kill -0 "$p" 2>/dev/null; then
+			[ "$1" = try ] && return 1
+			n=$((n + 1))
+			[ $n -lt 90 ] || die "another d32-link is still working (pid $p)"
+			sleep 1
+		else
+			rm -rf $LOCK		# its owner is gone
+		fi
+	done
+	print $$ >$LOCK/pid
+	LOCKED=1
+}
+unlock() { [ $LOCKED = 1 ] && rm -rf $LOCK; LOCKED=0; return 0; }
+
+# ---- what is there (queries: run in a dry run too) -------------------------------------------------------------
+present() { ifconfig "$1" >/dev/null 2>&1; }
+isup() { ifconfig "$1" 2>/dev/null | sed -n 1p | grep -q '<UP[,>]'; }
+carrier() { ifconfig "$1" 2>/dev/null | grep -q 'status: active'; }
+autoconf4() { ifconfig "$1" 2>/dev/null | sed -n 1p | grep -q 'AUTOCONF4'; }
+v4of() { ifconfig "$1" 2>/dev/null | awk '$1 == "inet" { print $2 }'; }
+ingroup() { ifconfig "$1" 2>/dev/null | awk '$1 == "groups:" { for (i = 2; i <= NF; i++) print $i }' | grep -qx "$2"; }
+members() { ifconfig "$1" 2>/dev/null | sed -n 's/^\([a-z][a-z0-9]*\): flags=.*/\1/p'; }
+defif() { route -n get -inet default 2>/dev/null | awk '$1 == "interface:" { print $2 }'; }
+defgw() { route -n get -inet default 2>/dev/null | awk '$1 == "gateway:" { print $2 }'; }
+hasdef() { route -n get -inet default >/dev/null 2>&1; }
+running() { rcctl check "$1" >/dev/null 2>&1; }
+tblshow() { pfctl -t "$1" -T show 2>/dev/null | tr -d ' '; }
+enabled() { [ "$(cat $EN 2>/dev/null)" != disabled ]; }
+iflist() { ifconfig 2>/dev/null | sed -n 's/^\([a-z][a-z0-9]*\): flags=.*/\1/p'; }	# OpenBSD's ifconfig has no -l (2026-11-07)
+tsjson() { tailscale status --json 2>/dev/null; }
+tsstate() { tsjson | sed -n 's/^[[:space:]]*"BackendState":[[:space:]]*"\([A-Za-z]*\)".*/\1/p' | sed -n 1p; }
+tsurl() { tsjson | sed -n 's|^[[:space:]]*"AuthURL":[[:space:]]*"\(https://[^"]*\)".*|\1|p' | sed -n 1p; }
+tsip() { tailscale ip -4 2>/dev/null | grep -E '^100\.([0-9]{1,3}\.){2}[0-9]{1,3}$' | sed -n 1p; }
+tunof() {	# ADDR: the tun interface that has it
+	typeset i
+	for i in $(iflist); do
+		case $i in tun*) v4of $i | grep -qxF "$1" && { print -r -- $i; return 0; } ;; esac
+	done
+	return 1
+}
+rdstate() {
+	MODE= IF= LIP=
+	[ -f $ST ] && [ ! -L $ST ] || return 1
+	read -r MODE IF LIP <$ST || :
+	case $MODE in
+	dhcp|lan) case " $PORTS " in *" $IF "*) return 0 ;; esac ;;
+	esac
+	MODE= IF= LIP=
+	return 1
+}
+portok() { case " $PORTS " in *" $1 "*) return 0 ;; esac; return 1; }
+
+# ---- pieces ----------------------------------------------------------------------------------------------------
+portup() {	# PORT: up with no address of its own (it shows its carrier only when up), out of the home group
+	present $1 || return 1
+	ingroup $1 home && xq ifconfig $1 -group home
+	isup $1 || xq ifconfig $1 up
+	return 0
+}
+pick() {	# [SECONDS]: PICKED = the first port of $PORTS with a carrier (they are brought up to sense it)
+	typeset p n=0
+	for p in $PORTS; do portup $p; done
+	while :; do
+		for p in $PORTS; do carrier $p && { PICKED=$p; return 0; }; done
+		[ $n -lt ${1:-0} ] && [ $DRY != 1 ] || return 1
+		sleep 1
+		n=$((n + 1))
+	done
+}
+stopup() {	# the background "tailscale up" of a first run, and its output
+	alive $UPPID && xq kill "$(cat $UPPID)"
+	[ -e $UPPID ] || [ -e $UPOUT ] && x rm -f $UPPID $UPOUT
+	return 0
+}
+
+infra() {	# base|full: <ts_infra> = the shipped list + the control plane's addresses now (+ the DERP map, full)
+	typeset t n now last
+	now=$(date +%s)
+	last=$(cat $RUN/link.infra 2>/dev/null)
+	[ $1 = full ] && [ -n "$last" ] && [ $((now - last)) -lt 1800 ] && return 0
+	t=$(mktemp /tmp/d32-link.XXXXXXXXXX) || return 1
+	{
+		grep -v '^#' $TSI 2>/dev/null
+		for n in controlplane.tailscale.com login.tailscale.com controlplane.tailscale.com; do
+			dig +short +time=2 +tries=1 A $n @127.0.0.1 2>/dev/null
+		done
+		[ $1 = full ] && tailscale debug derp-map 2>/dev/null | grep -Eo '"IPv4": *"[0-9.]+"' | sed 's/.*"\([0-9.]*\)"$/\1/'
+	} | grep -E '^([0-9]{1,3}\.){3}[0-9]{1,3}(/[0-9]{1,2})?$' | sort -u >$t
+	n=$(wc -l <$t | tr -d ' ')
+	[ "$n" -gt 0 ] && xq pfctl -t ts_infra -T replace -f $t
+	rm -f $t
+	[ $1 = full ] && mark infra $now
+	once infra "ts_infra: $n Tailscale control-plane and DERP addresses ($1)"
+}
+
+d32_maint_key_ok() {
+    [ "$#" = 1 ] || return 1
+    case $1 in ''|*[![:print:]]*) return 1;; esac
+    printf '%s\n' "$1" | LC_ALL=C grep -Eq '^ssh-ed25519 [A-Za-z0-9+/]{68}={0,2}( [A-Za-z0-9@._-]{1,64})?$'
+}
+
+d32_maint_tailip() {
+    printf '%s\n' "$1" | LC_ALL=C grep -Eq '^100\.(6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])\.([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5])$'
+}
+
+maint_open() {
+    typeset a=$1 p=$2 k=$3
+    # Only the paired tailnet peer may use the explicitly selected key.
+    [ -n "$MKEY" ] && [ -n "$p" ] || return 0
+    [ "$k" = tailnet ] || return 1
+    d32_maint_tailip "$a" && d32_maint_tailip "$p" || return 1
+    d32_maint_key_ok "$MKEY" || return 1
+    [ "$(cat $RUN/link.maint 2>/dev/null)" = "$k $a $p" ] && alive $MD/sshd.pid && return 0
+    maint_close || return 1
+    xq install -d -o root -g wheel -m 0700 $MD || { maint_close; return 1; }
+    if ! printf '%s\n' "from=\"$p\",no-agent-forwarding,no-port-forwarding,no-X11-forwarding,no-user-rc $MKEY" |
+        wr $MD/authorized_keys 0600; then maint_close; return 1; fi
+    if [ ! -f $MD/hostkey ]; then
+        xq ssh-keygen -q -t ed25519 -N '' -C d32maint -f $MD/hostkey || { maint_close; return 1; }
+    fi
+    if ! wr $MD/sshd_config 0600 <<EOF
+# d32maint: a separate sshd; the system sshd stays disabled.
+ListenAddress $a
+Port 22
+HostKey $MD/hostkey
+PidFile $MD/sshd.pid
+AuthorizedKeysFile $MD/authorized_keys
+PermitRootLogin prohibit-password
+AllowUsers root@$p
+PubkeyAuthentication yes
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+AllowAgentForwarding no
+AllowTcpForwarding no
+AllowStreamLocalForwarding no
+X11Forwarding no
+PermitTunnel no
+PermitUserEnvironment no
+ClientAliveInterval 60
+Subsystem sftp internal-sftp
+EOF
+    then maint_close; return 1; fi
+    # Validate before opening the same two table windows used by the laptop.
+    if ! xq $SSHD -t -f $MD/sshd_config; then maint_close; return 1; fi
+    xq pfctl -t inb_peers -T replace $p || { maint_close; return 1; }
+    xq pfctl -t inb_local -T replace $a || { maint_close; return 1; }
+    xq pfctl -t ping_in -T add $p || { maint_close; return 1; }
+    if ! xq $SSHD -f $MD/sshd_config; then maint_close; return 1; fi
+    if ! printf '%s\n' "$k $a $p" | wr $RUN/link.maint 0600; then maint_close; return 1; fi
+}
+maint_close() {
+    typeset o failed=0
+    if alive $MD/sshd.pid; then xq kill "$(cat $MD/sshd.pid)" || failed=1; fi
+    xq pfctl -t inb_peers -T flush || failed=1
+    xq pfctl -t inb_local -T flush || failed=1
+    for o in $HUB; do
+        xq pfctl -t ping_in -T delete $o || failed=1
+        xq pfctl -k $o || failed=1
+    done
+    xq pfctl -k label -k inb || failed=1
+    x rm -f $MD/authorized_keys $MD/sshd_config $MD/sshd.pid $MD/link $RUN/link.maint || failed=1
+    return $failed
+}
+
+up_dhcp() {	# PORT: DHCP on this port only (returns 2 with no carrier)
+	typeset p=$1
+	portup $p || { say "no interface $p (interfaces: $(iflist))"; return 1; }
+	carrier $p || { nap 3; carrier $p; } || { say "$p has no carrier: plug the cable in (the laptop's port or the dock's)"; return 2; }
+	xq install -d -o root -g wheel -m 0755 $RUN
+	x rm -f $RUN/link.ts $RUN/link.maint $RUN/link.gpu $RUN/link.ntp $RUN/link.infra $RUN/link.dns
+	xq ifconfig $p inet6 -autoconf
+	xq ifconfig $p inet autoconf
+	running dhcpleased || xq rcctl -f start dhcpleased
+	print -r -- "dhcp $p" | wr $ST 0600
+	MODE=dhcp IF=$p LIP=
+	say "link: $p up, DHCP on this port only"
+}
+
+firstrun() {	# no Tailscale login yet: the login link, kept for the person at the console
+	typeset url
+	xq install -d -o root -g wheel -m 0700 $DB
+	if [ $WATCH = 1 ] && ! alive $UPPID; then
+		# "tailscale up" sets the preferences and asks control for a login, then waits for the approval
+		if [ $DRY = 1 ]; then print -r -- "+ tailscale up $TSUP --timeout=0 >${UPOUT#$R} 2>&1 &"
+		else
+			tailscale up $TSUP --timeout=0 >$UPOUT 2>&1 </dev/null &
+			print $! >$UPPID
+			sleep 3
+		fi
+	fi
+	url=$(tsurl)
+	[ -n "$url" ] || url=$(grep -Eo 'https://login\.tailscale\.com/[A-Za-z0-9/_?=.-]+' $UPOUT 2>/dev/null | tail -1)
+	if [ -n "$url" ] && [ "$(cat $URLF 2>/dev/null)" != "$url" ]; then
+		print -r -- "$url" | wr $URLF 0600
+		[ $DRY = 1 ] || logger -t d32link -- "Tailscale needs a one-time login: the link is in /var/db/d32link/login-url"
+	fi
+	once ts "Tailscale needs a one-time login (URL in /var/db/d32link/login-url)"
+}
+
+finish() {	# Tailscale runs: the tailnet group, the infra table, GPU_EXT, time
+	typeset ip tun g
+	ip=$(tsip)
+	[ -n "$ip" ] || { once ts "Tailscale: running, no tailnet address yet"; return 3; }
+	tun=$(tunof $ip) || { once ts "Tailscale: $ip is on no tun interface yet"; return 3; }
+	ingroup $tun tailnet || xq ifconfig $tun group tailnet
+	stopup
+	[ -e $URLF ] && x rm -f $URLF
+	infra full
+	maint_open "$ip" "$HUB" tailnet || return 1
+	if [ ! -f $RUN/link.gpu ]; then
+		if xq $SBIN/d32-gpu-ext on; then g="on (d32accel started; it checks the hub's models first)"
+		else g="did not start (doas d32-link status)"; fi
+		mark gpu
+		say "GPU_EXT: $g"
+	fi
+	if [ ! -f $RUN/link.ntp ]; then
+		running ntpd && xq rcctl restart ntpd
+		mark ntp
+	fi
+	[ "$(cat $RUN/link.ts 2>/dev/null)" = "$ip" ] || mark ts "$ip"
+	once ts "tailnet up: $TSHOST $ip on $tun; hub ${HUB:-(none set)} for Ask :7450, GPU_EXT :443/:8443 and time"
+	return 0
+}
+
+converge() {	# the DHCP link one step further. 0 tailnet up, 1 down, 3 waiting, 4 needs the one-time login
+	typeset s
+	carrier $IF || { say "link: $IF lost its carrier"; down auto; return 1; }
+	LEASE=$(v4of $IF | sed -n 1p)
+	if [ -z "$LEASE" ] || [ "$(defif)" != "$IF" ]; then once dhcp "link: $IF waiting for a DHCP lease"; return 3; fi
+	once dhcp "link: $IF $LEASE, default route via $(defgw)"
+	if [ -z "$(tblshow dns)" ]; then
+		if [ -f $RUN/link.dns ]; then xq $SBIN/d32-dnsup -q; else xq $SBIN/d32-dnsup -q -w 10; mark dns; fi
+	fi
+	if ! running tailscaled; then
+		infra base
+		xq install -d -o root -g wheel -m 0700 $TSDIR
+		xq rcctl -f start tailscaled || { once ts "tailscaled did not start (rcctl -f start tailscaled)"; return 3; }
+		nap 2
+	fi
+	s=$(tsstate)
+	case $s in
+	Running)		finish; return $? ;;
+	NeedsLogin)		firstrun; return 4 ;;
+	Stopped)		# logged in, switched off (the last d32-link off): on again
+				xq tailscale up $TSUP --timeout=30s; return 3 ;;
+	NeedsMachineAuth)	once ts "Tailscale: deep32 waits for approval in the admin console (Machines)"; return 3 ;;
+	*)			once ts "Tailscale: ${s:-starting}"; return 3 ;;
+	esac
+}
+
+down() {	# hold|auto: what the link brought up goes; the node ends LAN only, with no default route
+	typeset why=$1 i a n=0 ifs
+	rdstate
+	stopup
+	maint_close
+	[ "$(cat $GPUSET 2>/dev/null)" = on ] && xq $SBIN/d32-gpu-ext off
+	if running tailscaled; then
+		[ "$(tsstate)" = Running ] && xq tailscale down
+		for i in $(members tailnet); do xq ifconfig $i -group tailnet; done
+		xq rcctl stop tailscaled
+	fi
+	# the ports: on a lost carrier only the link's own (kept up to see the cable come back); off: all of them, down
+	if [ $why = hold ]; then ifs=$PORTS; else ifs=$IF; fi
+	for i in $ifs; do
+		present $i || continue
+		autoconf4 $i && xq ifconfig $i inet -autoconf
+		for a in $(v4of $i); do xq ifconfig $i inet $a delete; done
+		[ "$MODE" = lan ] && [ $i = "$IF" ] && xq ifconfig $i -group bench
+		[ $why = hold ] && isup $i && xq ifconfig $i down
+	done
+	running dhcpleased && xq rcctl stop dhcpleased
+	while hasdef && [ $n -lt 5 ]; do
+		xq route -qn delete -inet default
+		n=$((n + 1))
+		[ $DRY = 1 ] && break
+	done
+	xq $SBIN/d32-dnsup -q
+	x rm -f $ST $RUN/link.ts $RUN/link.gpu $RUN/link.ntp $RUN/link.infra $RUN/link.dns
+	[ $DRY = 1 ] || rm -f $RUN/link.say.*
+	if [ $DRY != 1 ] && hasdef; then say "WARNING: a default route is still there (route -n show -inet)"; return 1; fi
+	say "link off${IF:+ ($IF)}: LAN only, no default route"
+	MODE= IF= LIP=
+	return 0
+}
+
+tick() {	# one watcher round
+	typeset p
+	enabled || return 0
+	[ -f $HOLD ] && return 0
+	lock try || return 0
+	if rdstate; then
+		[ $MODE = dhcp ] && converge
+	elif pick 0; then
+		up_dhcp $PICKED && converge
+	else
+		once nolink "no wired port has a carrier: waiting for a cable (ports: $PORTS)"
+	fi
+	unlock
+}
+
+# ---- verbs -----------------------------------------------------------------------------------------------------
+login_fg() {	# [--qr]: the login in this terminal: "tailscale up" shows the link (and a QR code) and waits
+	print
+	print "Tailscale login for deep32 (once). Open the link below in any browser where you are signed in to"
+	print "Tailscale and press Connect; this waits up to 15 minutes. Ctrl+C stops waiting here: the link stays"
+	print "in /var/db/d32link/login-url and the laptop finishes by itself after the approval."
+	print
+	x tailscale up $TSUP --timeout=15m ${1:+--qr} || return 1
+	typeset n=0 r=3
+	while [ $n -lt 10 ]; do
+		converge; r=$?
+		[ $r = 3 ] || break
+		nap 3; n=$((n + 1))
+		[ $DRY = 1 ] && break
+	done
+	return $r
+}
+
+cmd_on() {
+	typeset want= a p r=3 n=0
+	for a; do
+		case $a in
+		-*)	usage ;;
+		*)	portok "$a" || die "unknown port $a (ports: $PORTS)"; want=$a ;;
+		esac
+	done
+	enabled || die "the link is disabled across reboots: doas /usr/local/d32/sbin/d32-link enable"
+	lock wait
+	[ -e $HOLD ] && x rm -f $HOLD
+	if rdstate; then
+		if [ $MODE = lan ] || { [ -n "$want" ] && [ "$want" != "$IF" ]; }; then
+			down auto
+		else
+			say "already on: DHCP on $IF"
+		fi
+	fi
+	if [ -z "$MODE" ]; then
+		if [ -n "$want" ]; then p=$want
+		else pick 10 && p=$PICKED || { say "no wired port has a carrier: plug the cable in (the laptop's port or the dock's) and run this again"; exit 2; }
+		fi
+		up_dhcp $p
+		case $? in 0) ;; 2) exit 2 ;; *) exit 1 ;; esac
+	fi
+	# from now on the watcher keeps it up (and rc.d/d32link starts it at every boot)
+	running d32link || xq rcctl start d32link
+	while :; do
+		converge; r=$?
+		case $r in 0|1|4) break ;; esac
+		n=$((n + 1))
+		[ $n -lt 20 ] && [ $DRY != 1 ] || break
+		sleep 3
+	done
+	if [ $r = 4 ]; then
+		if [ $TTY = 1 ] && [ $DRY != 1 ]; then
+			login_fg
+		else
+			say "Tailscale needs its one-time login: the link is in /var/db/d32link/login-url (or: doas d32-link login)"
+		fi
+	fi
+	unlock
+	status
+}
+
+cmd_off() {
+	lock wait
+	print hold | wr $HOLD 0600
+	down hold
+}
+
+cmd_login() {
+	typeset qr= r=3 n=0 p
+	case ${1:-} in --qr) qr=--qr ;; '') ;; *) usage ;; esac
+	enabled || die "the link is disabled across reboots: doas /usr/local/d32/sbin/d32-link enable"
+	lock wait
+	[ -e $HOLD ] && x rm -f $HOLD
+	if ! rdstate || [ $MODE != dhcp ]; then
+		[ "$MODE" = lan ] && down auto
+		pick 10 && p=$PICKED || { say "no wired port has a carrier: plug the cable in first"; exit 2; }
+		up_dhcp $p || exit $?
+	fi
+	running d32link || xq rcctl start d32link
+	while :; do
+		converge; r=$?
+		case $r in 0|1|4) break ;; esac
+		n=$((n + 1))
+		[ $n -lt 20 ] && [ $DRY != 1 ] || break
+		sleep 3
+	done
+	case $r in
+	0)	say "Tailscale is logged in already (deep32 $(tsip))" ;;
+	4)	login_fg $qr ;;
+	*)	say "the link is not ready for the login yet (doas d32-link status)"; exit 1 ;;
+	esac
+	unlock
+	status
+}
+
+status() {
+	typeset p s ip a
+	rdstate
+	print "Deep32 link"
+	if ! enabled; then	print "  setting      DISABLED across reboots (doas /usr/local/d32/sbin/d32-link enable)"
+	elif [ -f $HOLD ]; then	print "  setting      off until the next boot (doas /usr/local/d32/sbin/d32-link on)"
+	else			print "  setting      automatic: up whenever a wired port has a cable"
+	fi
+	print "  watcher      $(running d32link && print running || print 'not running')"
+	for p in $PORTS; do
+		present $p || continue
+		a=$(v4of $p | tr '\n' ' ')
+		print "  port $p     $(carrier $p && print carrier || print 'no carrier')$(autoconf4 $p && print ', DHCP')${a:+, $a}"
+	done
+	case $MODE in
+	dhcp)	print "  link         DHCP on $IF, default route $(hasdef && print "via $(defgw) ($(defif))" || print 'none yet')" ;;
+	lan)	print "  link         LAN-only maintenance on $IF, $LIP (no DHCP, no Tailscale)" ;;
+	*)	print "  link         off: LAN only, $(hasdef && print 'BUT A DEFAULT ROUTE EXISTS' || print 'no default route')" ;;
+	esac
+	print "  resolvers    $(tblshow dns | tr '\n' ' ')"
+	if running tailscaled; then
+		s=$(tsstate)
+		case $s in
+		Running)	ip=$(tsip)
+				print "  Tailscale    running: $TSHOST $ip${ip:+ on $(tunof $ip)}"
+				print "  hub          $(tailscale status 2>/dev/null | awk -v h=$HUB '$1 == h { $1 = ""; sub(/^ /, ""); print; f = 1 } END { if (!f) print "(not in the peer list)" }')" ;;
+		NeedsLogin)	print "  Tailscale    needs one-time login (URL in /var/db/d32link/login-url)" ;;
+		*)		print "  Tailscale    ${s:-starting}" ;;
+		esac
+	else
+		print "  Tailscale    not running"
+	fi
+	print "  ts_infra     $(tblshow ts_infra | grep -c .) addresses"
+	print "  GPU_EXT"
+	$SBIN/d32-gpu-ext status 2>&1 | sed -n '1,12s/^/    /p'
+	print "  Ask"
+	$SBIN/d32-chatctl status 2>&1 | sed -n '1,12s/^/    /p'
+	return 0
+}
+
+[ "$(id -u)" = 0 ] || { print -u2 "d32-link: root only: doas /usr/local/d32/sbin/d32-link ${*:-status}"; exit 1; }
+[ $# -ge 1 ] || usage
+readconf
+trap 'unlock' EXIT
+trap 'exit 1' HUP INT TERM
+verb=$1
+shift
+case $verb in
+on)		cmd_on "$@" ;;
+off)		[ $# = 0 ] || usage; cmd_off ;;
+disable)	[ $# = 0 ] || usage; lock wait; print disabled | wr $EN 0600; print hold | wr $HOLD 0600; down hold
+		say "disabled across reboots (doas /usr/local/d32/sbin/d32-link enable)" ;;
+enable)		[ $# = 0 ] || usage; lock wait; print enabled | wr $EN 0600; cmd_on ;;
+login)		[ $# -le 1 ] || usage; cmd_login "$@" ;;
+status)		[ $# = 0 ] || usage; status ;;
+tick)		[ $# = 0 ] || usage; WATCH=1; tick ;;
+watch)		[ $# = 0 ] || usage
+		[ $DRY = 1 ] && die "watch has no dry run (D32LINK_DRYRUN=1 d32-link tick shows one round)"
+		WATCH=1
+		trap 'say "watcher stopped"; unlock; exit 0' HUP INT TERM
+		say "watcher started: every ${INTERVAL}s, up when $PORTS has a cable, down when it goes"
+		while :; do
+			tick
+			sleep $INTERVAL
+		done ;;
+*)		usage ;;
+esac

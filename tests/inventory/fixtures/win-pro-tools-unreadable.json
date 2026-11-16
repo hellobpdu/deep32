@@ -1,0 +1,158 @@
+{
+ "name": "win-pro-tools-unreadable",
+ "about": "Windows 11 Pro, Ryzen 7 5800X, 32 GB, RTX 3080 10 GB, Hyper-V on, WSL not installed; the tool checks could not run (null)",
+ "facts": {
+  "os": {
+   "family": "windows",
+   "name": "Windows 11 Pro",
+   "edition": "pro",
+   "version": "24H2",
+   "build": 26100,
+   "arch": "x64",
+   "wsl_guest": false
+  },
+  "hw": {
+   "vendor": "Gigabyte Technology Co., Ltd.",
+   "model": "B550 AORUS ELITE V2",
+   "virtual": false
+  },
+  "cpu": {
+   "vendor": "amd",
+   "model": "AMD Ryzen 7 5800X 8-Core Processor",
+   "family": 25,
+   "model_id": 33,
+   "stepping": 0,
+   "gen": null,
+   "sockets": 1,
+   "cores": 8,
+   "threads": 16,
+   "p_cores": null,
+   "e_cores": 0,
+   "p_threads": null,
+   "avx": true,
+   "avx2": true,
+   "avx512f": false
+  },
+  "mem": {
+   "total_gb": 31.9,
+   "installed_gb": 32,
+   "free_gb": 20.0
+  },
+  "disks": [
+   {
+    "mount": "C:",
+    "size_gb": 1863.0,
+    "free_gb": 600.0,
+    "ssd": true
+   }
+  ],
+  "gpus": [
+   {
+    "name": "NVIDIA GeForce RTX 3080",
+    "vendor": "nvidia",
+    "mem_gb": 10.0,
+    "driver": "566.36",
+    "cc": "8.6"
+   }
+  ],
+  "virt": {
+   "firmware": true,
+   "slat": true,
+   "iommu": true,
+   "hypervisor": true
+  },
+  "hyp": {
+   "hyperv": true,
+   "kvm": false,
+   "proxmox": false,
+   "virtualbox": false,
+   "vmware": false,
+   "libvirt": false
+  },
+  "wsl": {
+   "present": false,
+   "wsl2_distros": 0
+  },
+  "docker": {
+   "present": false,
+   "client": null,
+   "nvidia": null
+  },
+  "tools": {
+   "tailscale": null,
+   "claude": null,
+   "codex": null,
+   "gh": null
+  },
+  "ports": {
+   "checked": true,
+   "busy": []
+  },
+  "net": null
+ },
+ "reasoning": [
+  "Purpose (under matrix 0.2.0): a profile with only unknowns (unconfirmed) outranks one that needs a change, whatever their ranks. Since matrix 0.3.0 (single machine first) that holds within each group; here the unconfirmed profile is an alternative, so the purpose is now: a one-machine profile that needs a change and has an unknown still comes before ready and unconfirmed alternatives. Fit before rank within a group is shown by linux-cloud-l4 and the alternatives edge cases in run_tests.py.",
+  "Classes: the Ryzen 7 5800X has AVX2: modern. The RTX 3080 is rtx30 (Forge yes, upstream stable), usable; 10.0 GB is tier 8 (tier 11 needs 10.5).",
+  "Sizing: 16 threads, 32 GB installed: tier 2. After the host: 14 threads, 28 GB.",
+  "Candidates (Windows Pro, x64): win-nvidia, two-machines, headend-only (no-gpu: the card is usable; win-home, virtualbox, vmware, baremetal and esxi do not match).",
+  "win-nvidia: changes. Missing wsl2; agent unknown (the tool versions could not be read); Tailscale unknown, auto. Size 'both': threads (6, 4) fit 14; memory (16, 16) = 32 > 28 twice, then (12, 16): Workstation (6, 12), Forge (4, 16).",
+  "two-machines: ready (second-machine in confirm, Tailscale auto). Size (6, 16) and Forge (4, 16).",
+  "headend-only: unconfirmed (agent unknown; Tailscale auto).",
+  "Order (single machine first, matrix 0.3.0; before, it was two-machines, headend-only, win-nvidia): the one-machine win-nvidia (changes) first; then the alternatives (machines 2) by fit: ready two-machines, unconfirmed headend-only. The best lists missing wsl2, unknown agent, Tailscale in auto.",
+  "Warnings: gpu-mem-8."
+ ],
+ "expect": {
+  "best": "win-nvidia",
+  "fit": "changes",
+  "ranked": [
+   "win-nvidia",
+   "two-machines",
+   "headend-only"
+  ],
+  "best_missing": [
+   "wsl2"
+  ],
+  "best_unknown": [
+   "agent"
+  ],
+  "best_auto": [
+   "tailscale"
+  ],
+  "best_confirm": [],
+  "cpu_class": "modern",
+  "gpu_class": "rtx30",
+  "gpu_forge": "yes",
+  "gpu_mem_tier": "8",
+  "tier": 2,
+  "sizes": {
+   "win-nvidia": {
+    "ws": [
+     6,
+     12
+    ],
+    "forge": [
+     4,
+     16
+    ]
+   },
+   "two-machines": {
+    "ws": [
+     6,
+     16
+    ],
+    "forge": [
+     4,
+     16
+    ]
+   },
+   "headend-only": {
+    "ws": null,
+    "forge": null
+   }
+  },
+  "ruled_out": [],
+  "warnings": [
+   "gpu-mem-8"
+  ]
+ }
+}

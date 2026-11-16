@@ -1,0 +1,1221 @@
+#!/bin/ksh
+# /usr/local/d32/sbin/d32upd: the Deep32/UX update driver, v2 (ISO-DESIGN 2.7 and 12.2-12.3,
+# the update 1 notes section 4). Root only; the desktop user reaches it through doas, with his password.
+#
+#   d32upd status               the driver, the release and seq, the key, pending work, the last boot window, the sets
+#   d32upd verify <dir>         check a set where it lies (signature, file list, seq); changes nothing
+#   d32upd stage <dir>          also "fetch". Copies the set to /var/db/d32upd/u<seq>, verifies the copy, runs the
+#                               dry run, asks for local confirmation, keeps a rollback copy, runs apply.sh (the
+#                               live phase) and writes /d32/var/pending for the boot window
+#   d32upd apply-staged         the boot window. rc.securelevel runs it at securelevel 0 after the disk passphrase
+#                               (or type it in single user after "mount -a"). It runs maint.sh of the pending set,
+#                               or the pending revert. With nothing pending it says nothing and exits 0.
+#   d32upd revert [<release>]   undo the last set d32upd applied: at once if its boot-window phase has not run,
+#                               else at the next boot
+#   d32upd version              prints "d32upd 2"
+#
+# v2 over v1 (same set contract, same state layout: v2 reads what v1 wrote, so a set v1 installed can be reverted):
+# - the boot window ignores ^C, ^\ and hangup, so a key pressed at the console cannot cut it half way (the 60 minute
+#   limit still stops a hung maint.sh); TERM (shutdown) still leaves the half-done marker for the next boot;
+# - after maint.sh it checks every boot input the window changed (sh -n on the rc files, pfctl -nf, unbound-checkconf,
+#   ntpd -n, doas -C, fstab, login.conf, ttys) and that the update path survives (rc.securelevel still runs
+#   d32upd apply-staged, d32upd parses, a release key is there); a failure is a failed window: everything restored;
+# - restores put a file back as a new file renamed into place, so a running script (rc.securelevel itself) keeps
+#   reading the old one; in place only where the directory takes no new name (schg at runtime);
+# - it follows sysctl.conf, wsconsctl.conf and login.conf changes at once, and says that rc.conf.local changes wait
+#   for the next boot; it follows the configuration after an interrupted window is put back, too;
+# - it records each boot window's result in /var/db/d32upd/last-window and prints it as one line on the console;
+# - after an install or a revert it has d32ready record the new known-good boot inputs (d32ready baseline).
+#
+# No network code at all: a set arrives on a stick or through the LAN kit's scp and is named by a local path.
+# Trust: one release key, /etc/signify/d32-release.pub (or deep32-release.pub). The seq floor is /etc/d32/release (schg). Every argument is untrusted: the doas
+# rule lets the desktop user pass any. The boot window runs only signed scripts from a copy it verifies again, and restores only
+# from copies d32upd made itself, only into the paths the signed MANIFEST.tsv names.
+#
+# THE SET (d32-update-D.32.NN/), all of it covered by SHA256.sig (signify -S -e over SHA256):
+#   SET.json      "release": "D.32.12u1", "seq": 1 (an integer above the active seq); optional "requires" or
+#                 "base_release": "<release>" (the active release must be exactly this)
+#   MANIFEST.tsv  tab separated: path, phase, type, then anything (mode, owner, group, before, after). d32upd reads
+#                 three columns: rows of phase live or slotA are copied before apply.sh, rows of phase schg (or
+#                 maint, boot) before maint.sh; rows of type pkg or fw (package and firmware) are the set's own and
+#                 rollback.sh's. Other paths explicit and absolute, from [A-Za-z0-9._+@,=:/-]. List every directory
+#                 whose mode or flags a phase changes, as its own row, so a revert puts it back.
+#   apply.sh      the live phase, at runtime (securelevel 1): "sh apply.sh check" is the dry run (changes nothing,
+#                 exit 0 = this node is fit), "sh apply.sh" applies. On failure it restores what it changed itself
+#                 and exits non-zero; d32upd then puts its own copy back as well.
+#   maint.sh      the boot-window phase, at securelevel 0, no terminal (stdin is /dev/null), early daemons up (pf
+#                 loaded, syslogd, unbound, ntpd), no other services yet. Exit 0 = done; else it restores itself.
+#                 It writes /etc/d32/release ("D.32.12u1 seq 1", or a second line "seq 1"); if it does not, d32upd
+#                 does. d32upd reloads pf, and restarts unbound and ntpd, when the phase changed their files.
+#                 rc.conf.local and sysctl.conf changes take effect at the next boot unless maint.sh applies them.
+#   rollback.sh   optional: "sh rollback.sh live" undoes what files cannot (packages, firmware, a service restart).
+#                 In the boot window (D32UPD_WINDOW=boot) it must start no service.
+#   anything else the scripts use (payload files), in subdirectories as needed. No symlinks, no other file types.
+# The scripts run with cwd = the staged set, umask 022, a clean environment: PATH, HOME, D32UPD=1, D32UPD_DRIVER (2),
+# D32UPD_ID, D32UPD_SET, D32UPD_RELEASE, D32UPD_SEQ, D32UPD_PHASE (check, live, maint, revert), D32UPD_WINDOW
+# (runtime, boot), D32UPD_LOG, D32UPD_RB (this set's rollback directory, d32upd's own copies; the set may keep its
+# own elsewhere). Output goes to the terminal or console and to /var/log/d32-update.log. Time limit 60 minutes each.
+# A maint.sh that replaces a file a running process reads (/etc/rc.securelevel, this file) must do it with a new
+# file renamed into place (install -S, or a copy then mv), never by writing into the old file (cp, cat >).
+#
+# STATE (/var/db/d32upd, root 0700): u<seq>/ the staged copies; state/u<seq> key=value records; rollback/u<seq>/
+# live/ (made at runtime) and maint/ (made in the boot window, then schg); history (one tab-separated line per
+# event); last-window (the last boot window: date, set, release, result, detail). /d32/var/pending holds
+# "apply u<seq>" or "revert u<seq>"; the boot window renames it pending.running while it works, so a run cut short
+# (power, panic) is put back at the next boot instead of being run again.
+# Residual risk, said plainly: as for every schg file on this node, root at runtime could rename a parent
+# directory that is not schg (/var/db, /etc/d32) and plant look-alikes; d32upd does not defend against that.
+
+PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/X11R6/bin:/usr/local/sbin:/usr/local/bin
+export PATH
+# The boot window runs before rc builds the shared-library cache (ldconfig), so programs under /usr/local
+# (python3.14 and what it loads, e.g. libintl) need their library directories named (2026-11-07: update 2's
+# first boot window failed on exactly this). Harmless at runtime, where the cache already lists them.
+LD_LIBRARY_PATH=/usr/local/lib:/usr/X11R6/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
+export LD_LIBRARY_PATH
+umask 077
+set -o pipefail
+
+VERSION=2
+DB=/var/db/d32upd
+PENDING=/d32/var/pending
+RUNNING=/d32/var/pending.running
+LOG=/var/log/d32-update.log
+RELFILE=/etc/d32/release
+LAST=$DB/last-window
+SELF=/usr/local/d32/sbin/d32upd
+READY=/usr/local/d32/sbin/d32ready
+TMO=3600
+# the files the next boot depends on: snapshot before the boot window, checked and followed after it
+BOOTCRIT="/etc/rc /etc/rc.conf /etc/rc.conf.local /etc/rc.securelevel /etc/rc.local /etc/rc.shutdown /etc/netstart
+/etc/rc.d/rc.subr /etc/fstab /etc/ttys /etc/login.conf /etc/doas.conf /etc/sysctl.conf /etc/wsconsctl.conf
+/etc/pf.conf /etc/ntpd.conf /var/unbound/etc/unbound.conf $SELF"
+# of those, the ones that must exist after a window
+MUSTEXIST="/etc/rc /etc/rc.conf /etc/rc.securelevel /etc/netstart /etc/rc.d/rc.subr /etc/fstab /etc/ttys
+/etc/login.conf /etc/pf.conf $SELF"
+NL='
+'
+T=
+LOCKED=0
+WINDOW=runtime
+VERB=
+S_ID= S_REL= S_SEQ= S_REQ=
+ACT_REL= ACT_SEQ=
+PUB=
+
+say() { print -r -- "d32upd: $*"; }
+log() { print -r -- "$(date '+%Y-%m-%d %H:%M:%S') [$WINDOW] $*" >>$LOG 2>/dev/null; }
+note() { say "$*"; log "$*"; }
+warn() { say "$*" >&2; log "WARN $*"; logger -t d32upd -p daemon.warning -- "$*" 2>/dev/null; }
+die() { say "$*" >&2; log "FAIL $*"; logger -t d32upd -p daemon.err -- "$*" 2>/dev/null; exit 1; }
+usage() {
+	sed -n '5,15s/^# \{0,1\}//p' $SELF 2>/dev/null ||
+		print -r -- "usage: d32upd status | verify <dir> | stage <dir> | apply-staged | revert [<release>] | version"
+	exit ${1:-64}
+}
+
+cleanup() {
+	[ -n "$T" ] && rm -rf "$T"
+	[ $LOCKED = 1 ] && rm -rf $DB/.lock
+}
+
+# ---- checks on names and numbers -------------------------------------------------------------------------------
+
+valid_seq() {
+	case $1 in ""|*[!0-9]*) return 1 ;; esac
+	[ ${#1} -le 6 ]
+}
+valid_release() {
+	case $1 in ""|[!A-Za-z0-9]*|*[!A-Za-z0-9._+-]*) return 1 ;; esac
+	[ ${#1} -le 64 ]
+}
+valid_id() {
+	case $1 in u*) valid_seq "${1#u}" || return 1 ;; *) return 1 ;; esac
+	[ "$1" = "u$((10#${1#u}))" ]
+}
+safe_rel() {	# a member name inside a set
+	case $1 in ""|/*|*//*|./*|*/|*/.|*/./*|.|..|../*|*/..|*/../*) return 1 ;; esac
+	case $1 in *[!A-Za-z0-9._+@,=:/-]*) return 1 ;; esac
+	return 0
+}
+safe_abs() {	# a target path on the node (MANIFEST.tsv)
+	case $1 in /?*) ;; *) return 1 ;; esac
+	case $1 in *//*|*/|*/.|*/./*|*/..|*/../*) return 1 ;; esac
+	case $1 in *[!A-Za-z0-9._+@,=:/-]*) return 1 ;; esac
+	return 0
+}
+no_link_above() {	# no component of the path above its last one is a symlink
+	nl_p=${1%/*}
+	while [ -n "$nl_p" ]; do
+		[ -L "$nl_p" ] && return 1
+		nl_p=${nl_p%/*}
+	done
+	return 0
+}
+
+# ---- setup, lock, key, active release --------------------------------------------------------------------------
+
+setup() {
+	[ "$(id -u)" = 0 ] || die "run it as root: doas d32upd $VERB"
+	[ -L $DB ] && die "$DB is a symlink: refused"
+	if [ ! -d $DB ]; then
+		install -d -o root -g wheel -m 0700 $DB || die "cannot make $DB"
+	fi
+	chmod 0700 $DB
+	[ -d $DB/state ] || mkdir -m 0700 $DB/state || die "cannot make $DB/state"
+	[ -d $DB/rollback ] || mkdir -m 0700 $DB/rollback || die "cannot make $DB/rollback"
+	trap cleanup EXIT
+	trap 'exit 1' HUP INT TERM
+}
+
+lock() {
+	if ! mkdir $DB/.lock 2>/dev/null; then
+		lk_pid=$(cat $DB/.lock/pid 2>/dev/null)
+		case $lk_pid in ""|*[!0-9]*) lk_pid= ;; esac
+		if [ $WINDOW = boot ] || [ -z "$lk_pid" ] || ! kill -0 "$lk_pid" 2>/dev/null; then
+			rm -rf $DB/.lock
+			mkdir $DB/.lock || die "cannot take the lock $DB/.lock"
+		else
+			die "another d32upd is running (pid $lk_pid)"
+		fi
+	fi
+	LOCKED=1
+	print $$ >$DB/.lock/pid
+	for lk_t in $DB/tmp.*; do
+		[ -d "$lk_t" ] && rm -rf "$lk_t"
+	done
+	T=$(mktemp -d $DB/tmp.XXXXXXXXXX) || die "no temporary directory"
+}
+
+pick_key() {
+	PUB=
+	for pk in /etc/signify/d32-release.pub /etc/signify/deep32-release.pub; do
+		if [ -f $pk ]; then
+			PUB=$pk
+			return 0
+		fi
+	done
+	die "no release key in /etc/signify (d32-release.pub or deep32-release.pub)"
+}
+
+active_release() {	# ACT_REL, ACT_SEQ from /etc/d32/release; no seq in it (the PREVIEW) reads as 0
+	[ -f $RELFILE ] || die "no $RELFILE"
+	ACT_REL=$(awk 'NF { print $1; exit }' $RELFILE)
+	ar_s=$(grep -Eio 'seq["'"'"' =:]*[0-9]+' $RELFILE | grep -Eo '[0-9]+$' | sort -u)
+	case $(print -r -- "$ar_s" | grep -c .) in
+	0) ACT_SEQ=0 ;;
+	1) ACT_SEQ=$ar_s ;;
+	*) die "$RELFILE names more than one seq" ;;
+	esac
+	valid_seq "$ACT_SEQ" || die "$RELFILE: the seq is not a number"
+	ACT_SEQ=$((10#$ACT_SEQ))
+}
+
+# ---- state records ---------------------------------------------------------------------------------------------
+
+state_get() {	# id key
+	[ -f $DB/state/$1 ] || return 0
+	awk -v k="$2" 'index($0, k "=") == 1 { v = substr($0, length(k) + 2) } END { print v }' $DB/state/$1
+}
+state_set() {	# id key value
+	ss_f=$DB/state/$1
+	{
+		[ -f $ss_f ] && grep -v "^$2=" $ss_f
+		print -r -- "$2=$3"
+	} >$ss_f.new && mv $ss_f.new $ss_f
+}
+hist() {	# id release event detail
+	printf '%s\t%s\t%s\t%s\t%s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$1" "$2" "$3" "$4" >>$DB/history
+	log "event $1 $2 $3 $4"
+}
+write_pending() {	# action id
+	[ -d /d32/var ] || die "/d32/var is missing"
+	print -r -- "$1 $2" >$PENDING.new && chmod 0600 $PENDING.new && mv $PENDING.new $PENDING ||
+		die "cannot write $PENDING"
+	sync
+}
+
+# ---- verification ----------------------------------------------------------------------------------------------
+
+sig_and_list() {	# dir: verify SHA256.sig (a private copy) and read the signed list into $T/names
+	if [ ! -f "$1/SHA256.sig" ] || [ -L "$1/SHA256.sig" ]; then
+		say "no SHA256.sig in $1" >&2
+		return 1
+	fi
+	rm -f $T/sig $T/msg $T/names
+	cp "$1/SHA256.sig" $T/sig || return 1
+	if ! signify -V -e -q -p $PUB -x $T/sig -m $T/msg 2>$T/err; then
+		sed 's/^/  /' $T/err >&2
+		say "signature: FAIL against $PUB" >&2
+		return 1
+	fi
+	sed -n 's/^SHA256 (\(.*\)) = [0-9a-f]\{64\}$/\1/p' $T/msg >$T/names
+	if [ "$(grep -c '' $T/msg)" != "$(grep -c '' $T/names)" ]; then
+		say "the signed list has a line that is not \"SHA256 (name) = hash\"" >&2
+		return 1
+	fi
+	[ -s $T/names ] || { say "the signed list is empty" >&2; return 1; }
+	while read -r sl_n; do
+		if ! safe_rel "$sl_n"; then
+			say "the signed list names an unsafe path: $sl_n" >&2
+			return 1
+		fi
+		case $sl_n in SHA256|SHA256.sig) say "the signed list names $sl_n itself" >&2; return 1 ;; esac
+	done <$T/names
+	if [ -n "$(sort $T/names | uniq -d)" ]; then
+		say "the signed list names a file twice" >&2
+		return 1
+	fi
+	for sl_n in SET.json MANIFEST.tsv apply.sh maint.sh; do
+		grep -qxF -- "$sl_n" $T/names || { say "the set has no $sl_n" >&2; return 1; }
+	done
+	return 0
+}
+
+check_hashes() {	# dir: every signed file is there with its hash (signify -C over the same private copy)
+	if ! (cd "$1" && signify -C -p $PUB -x $T/sig) >$T/chk 2>&1; then
+		grep -v ': OK$' $T/chk | sed 's/^/  /' >&2
+		say "file check: FAIL" >&2
+		return 1
+	fi
+	return 0
+}
+
+exact_set() {	# dir: nothing in it but the signed files and their directories
+	(cd "$1" && find . -mindepth 1 ! -type f ! -type d -print) >$T/odd 2>&1
+	(cd "$1" && find . -mindepth 1 -name '*[!A-Za-z0-9._+@,=:-]*' -print) >>$T/odd 2>&1
+	(cd "$1" && find . -type f -print) | sed 's|^\./||' | sort >$T/have
+	{
+		cat $T/names
+		print SHA256.sig
+		[ -f "$1/SHA256" ] && print SHA256
+	} | sort >$T/want
+	(cd "$1" && find . -mindepth 1 -type d -print) | sed 's|^\./||' | sort >$T/dhave
+	awk -F/ '{ p = ""; for (i = 1; i < NF; i++) { p = (i == 1) ? $1 : p "/" $i; print p } }' $T/names |
+		sort -u >$T/dwant
+	es_bad=0
+	if [ -s $T/odd ]; then
+		say "the set holds $(grep -c '' $T/odd) entries that are not plain files or directories, or have unsafe names" >&2
+		es_bad=1
+	fi
+	{ comm -23 $T/have $T/want; comm -23 $T/dhave $T/dwant; } >$T/extra
+	if [ -s $T/extra ]; then
+		say "not in the signed list: $(head -n 20 $T/extra | tr '\n' ' ')" >&2
+		es_bad=1
+	fi
+	if [ -f "$1/SHA256" ] && ! cmp -s "$1/SHA256" $T/msg; then
+		say "SHA256 differs from the signed list in SHA256.sig" >&2
+		es_bad=1
+	fi
+	return $es_bad
+}
+
+jstr() {	# key, flattened json: the string values of that key, one per line
+	print -r -- "$2" | grep -Eo "\"$1\"[[:space:]]*:[[:space:]]*\"[^\"]*\"" | sed 's/^.*:[[:space:]]*"//; s/"$//'
+}
+read_setjson() {	# file: S_REL S_SEQ S_REQ
+	rs_flat=$(tr '\n\r\t' '   ' <"$1")
+	S_REL=$(jstr release "$rs_flat")
+	S_REQ=$(jstr requires "$rs_flat")
+	rs_base=$(jstr base_release "$rs_flat")
+	if [ -n "$rs_base" ]; then	# the update-1 bundle's name for the same rule
+		if [ -n "$S_REQ" ] && [ "$S_REQ" != "$rs_base" ]; then
+			say "SET.json: \"requires\" and \"base_release\" disagree" >&2
+			return 1
+		fi
+		S_REQ=$rs_base
+	fi
+	S_SEQ=$(print -r -- "$rs_flat" | grep -Eo '"seq"[[:space:]]*:[[:space:]]*[0-9]+' | sed 's/^.*:[[:space:]]*//')
+	if ! valid_release "$S_REL"; then
+		say "SET.json: one \"release\" name is needed ([A-Za-z0-9._+-], at most 64)" >&2
+		return 1
+	fi
+	if ! valid_seq "$S_SEQ"; then
+		say "SET.json: one integer \"seq\" is needed" >&2
+		return 1
+	fi
+	S_SEQ=$((10#$S_SEQ))
+	if [ -n "$S_REQ" ] && ! valid_release "$S_REQ"; then
+		say "SET.json: \"requires\" is not one release name" >&2
+		return 1
+	fi
+	S_ID=u$S_SEQ
+	return 0
+}
+
+manifest_paths() {	# manifest, live|maint: the target paths of that phase (package and firmware rows are the set's own)
+	awk -F'\t' -v want="$2" '
+	/^#/ || NF < 2 || $1 == "path" { next }
+	{
+		ty = tolower($3)
+		if (ty == "pkg" || ty == "fw" || ty == "package" || ty == "firmware") next
+		ph = tolower($2)
+		if (want == "live" && (ph == "live" || ph == "slota" || ph == "slot-a")) print $1
+		if (want == "maint" && (ph == "schg" || ph == "maint" || ph == "boot")) print $1
+	}' "$1" | sort -u
+}
+manifest_check() {	# manifest: every live or boot-window path is a safe, explicit, absolute path
+	{ manifest_paths "$1" live; manifest_paths "$1" maint; } >$T/mpaths
+	while read -r mc_p; do
+		if ! safe_abs "$mc_p"; then
+			say "MANIFEST.tsv: path refused (absolute, explicit, [A-Za-z0-9._+@,=:/-] only): $mc_p" >&2
+			return 1
+		fi
+	done <$T/mpaths
+	return 0
+}
+
+verify_copy() {	# dir: the whole check (signature, hashes, exact set, SET.json, MANIFEST.tsv)
+	sig_and_list "$1" && check_hashes "$1" && exact_set "$1" && read_setjson "$1/SET.json" &&
+		manifest_check "$1/MANIFEST.tsv"
+}
+
+seq_ok() { [ $S_SEQ -gt $ACT_SEQ ]; }
+req_ok() { [ -z "$S_REQ" ] || [ "$S_REQ" = "$ACT_REL" ]; }
+
+resolve_dir() {	# untrusted path -> R
+	case $1 in ""|*"$NL"*) die "name the set's directory" ;; esac
+	rd_a=$1
+	case $rd_a in -*) rd_a=./$rd_a ;; esac
+	[ -d "$rd_a" ] || die "$1: not a directory"
+	R=$(cd -P "$rd_a" 2>/dev/null && pwd -P) || die "$1: cannot enter it"
+}
+
+have_tty() { (exec </dev/tty) 2>/dev/null; }
+need_tty() {
+	have_tty || die "$VERB needs a terminal for its local confirmation: run it at the console or in a terminal window"
+}
+confirm() {	# word, what: the operator types the word on the terminal (never stdin, never an argument)
+	if ! have_tty; then
+		say "local confirmation needs a terminal: run it at the console or in a terminal window" >&2
+		return 1
+	fi
+	print -r -- "d32upd: $2" >/dev/tty
+	print -rn -- "d32upd: type $1 to go ahead (anything else stops): " >/dev/tty
+	cf_a=
+	read -r cf_a </dev/tty || return 1
+	[ "$cf_a" = "$1" ]
+}
+
+# ---- running a set's script ------------------------------------------------------------------------------------
+
+run_script() {	# set dir, script, phase name, [argument]
+	(
+		cd "$1" || exit 1
+		umask 022
+		exec env -i PATH=$PATH HOME=/root LOGNAME=root USER=root TERM=${TERM:-dumb} \
+		    D32UPD=1 D32UPD_DRIVER=$VERSION D32UPD_ID=$S_ID D32UPD_SET="$1" D32UPD_RELEASE=$S_REL D32UPD_SEQ=$S_SEQ \
+		    D32UPD_PHASE=$3 D32UPD_WINDOW=$WINDOW D32UPD_LOG=$LOG D32UPD_RB=$DB/rollback/$S_ID \
+		    timeout -k 60 $TMO /bin/sh ./$2 ${4:+"$4"} </dev/null
+	) 2>&1 | tee -a $LOG
+}
+
+# ---- rollback copies -------------------------------------------------------------------------------------------
+
+stat4() { stat -f '%Lp %u %g %f' -- "$1"; }
+
+capture() {	# id, live|maint, set dir: the state of every path the phase may change, before it runs
+	c_rb=$DB/rollback/$1/$2
+	if [ -e $c_rb ]; then
+		[ "$(sysctl -n kern.securelevel)" -le 0 ] && chflags -R 0 $c_rb 2>/dev/null
+		rm -rf $c_rb || { warn "cannot clear the old rollback copy $c_rb"; return 1; }
+	fi
+	mkdir -p $c_rb || return 1
+	chmod 0700 $DB/rollback/$1 $c_rb
+	manifest_paths "$3/MANIFEST.tsv" $2 >$c_rb/paths
+	[ $2 = maint ] && print -r -- $RELFILE >>$c_rb/paths
+	sort -u -o $c_rb/paths $c_rb/paths
+	: >$c_rb/record
+	: >$c_rb/members
+	while read -r c_p; do
+		safe_abs "$c_p" || { warn "MANIFEST path refused: $c_p"; return 1; }
+		no_link_above "$c_p" || { warn "a directory above $c_p is a symlink: refused"; return 1; }
+		if [ -L "$c_p" ]; then
+			print -r -- "L - - - - - $c_p" >>$c_rb/record
+			print -r -- "${c_p#/}" >>$c_rb/members
+		elif [ -f "$c_p" ]; then
+			c_st=$(stat4 "$c_p") || return 1
+			print -r -- "F $c_st $(sha256 -q -- "$c_p") $c_p" >>$c_rb/record
+			print -r -- "${c_p#/}" >>$c_rb/members
+		elif [ -d "$c_p" ]; then
+			c_st=$(stat4 "$c_p") || return 1
+			print -r -- "D $c_st - $c_p" >>$c_rb/record
+		elif [ -e "$c_p" ]; then
+			warn "$c_p is neither a file nor a directory: refused"
+			return 1
+		else
+			print -r -- "N - - - - - $c_p" >>$c_rb/record
+		fi
+	done <$c_rb/paths
+	# the directories they sit in: a phase may make a directory schg; a restore puts its flags back last
+	sed 's|/[^/]*$||' $c_rb/paths | sort -u >$T/parents
+	while read -r c_d; do
+		[ -n "$c_d" ] && [ -d "$c_d" ] && [ ! -L "$c_d" ] || continue
+		grep -qxF -- "$c_d" $c_rb/paths && continue
+		c_st=$(stat4 "$c_d") || return 1
+		print -r -- "P $c_st - $c_d" >>$c_rb/record
+	done <$T/parents
+	if [ -s $c_rb/members ]; then
+		(cd / && tar -cpf $c_rb/files.tar $(cat $c_rb/members)) || { warn "the rollback copy could not be written"; return 1; }
+	fi
+	(cd $c_rb && sha256 paths record members $(ls files.tar 2>/dev/null)) >$c_rb/sum.new && mv $c_rb/sum.new $c_rb/sum ||
+		return 1
+	print -r -- "$(date '+%Y-%m-%d %H:%M:%S') $2 copy, $(grep -c '' $c_rb/record) paths" >$c_rb/ok
+	chmod 0600 $c_rb/*
+	if [ $2 = maint ]; then	# made at securelevel 0: immutable until the next boot window
+		chflags schg $c_rb/* && chflags schg $c_rb || { warn "cannot make $c_rb immutable"; return 1; }
+	fi
+	return 0
+}
+
+mp_of() {	# the mount point a path is on (or would be on)
+	mo_x=$1
+	while [ ! -e "$mo_x" ] && [ -n "$mo_x" ]; do mo_x=${mo_x%/*}; done
+	[ -z "$mo_x" ] && mo_x=/
+	df -P "$mo_x" 2>/dev/null | awk 'NR == 2 { print $NF }'
+}
+is_ro() { mount | awk -v m="$1" '$3 == m && /read-only/ { f = 1 } END { exit !f }'; }
+mount_opts() {	# mount point: the options to keep across a remount, each with a leading comma
+	mount | awk -v m="$1" '$3 == m {
+		sub(/^[^(]*\(/, ""); sub(/\)[^)]*$/, ""); n = split($0, a, /, */); o = ""
+		for (i = 1; i <= n; i++) if (a[i] ~ /^(nodev|nosuid|noexec|noatime|wxallowed|softdep|sync|async)$/) o = o "," a[i]
+		print o }'
+}
+set_flags() {	# flags as stat %f prints them, path
+	sf_c=$(stat -f %f -- "$2") || return 1
+	[ "$sf_c" = "$1" ] && return 0
+	chflags "$(printf '%o' "$1")" "$2" 2>/dev/null && return 0
+	warn "cannot set the flags of $2 back (securelevel $(sysctl -n kern.securelevel))"
+	return 1
+}
+
+restore() {	# id, live|maint, verified set dir: check the copy, then put it back
+	restore_check "$@" && restore_do "$1" "$2"
+}
+
+put_back() {	# extracted copy, target, the tar it came from: the old file as a NEW file renamed into place, so a
+		# process still reading the current one (sh running /etc/rc.securelevel) keeps it whole. Where the directory
+		# takes no new name (schg at runtime) or the entry is a symlink, tar puts it back in place, as v1 did.
+	pb_t=${2%/*}/.d32upd-put.$$
+	if [ ! -L "$1" ] && [ -f "$1" ] && [ ! -L "$2" ] && [ ! -d "$2" ]; then
+		if cp -p -- "$1" "$pb_t" 2>/dev/null && mv -f -- "$pb_t" "$2" 2>/dev/null; then
+			return 0
+		fi
+		rm -f -- "$pb_t" 2>/dev/null
+	fi
+	(cd / && tar -xpf "$3" "${2#/}")
+}
+
+restore_check() {	# id, live|maint, verified set dir: is the copy whole, and d32upd's, and inside the signed MANIFEST?
+	r_rb=$DB/rollback/$1/$2
+	if [ ! -f $r_rb/ok ]; then
+		warn "no complete rollback copy for $1 ($2)"
+		return 1
+	fi
+	if ! (cd $r_rb && sha256 -q -c sum) >/dev/null 2>&1; then
+		warn "the rollback copy for $1 ($2) fails its own checksums: not used"
+		return 1
+	fi
+	# only the paths the signed MANIFEST names for this phase, and the directories they sit in
+	manifest_paths "$3/MANIFEST.tsv" $2 >$T/allow
+	[ $2 = maint ] && print -r -- $RELFILE >>$T/allow
+	sort -u -o $T/allow $T/allow
+	sed 's|/[^/]*$||' $T/allow | sort -u >$T/allowp
+	: >$T/rpaths.$2
+	: >$T/fmembers
+	while read -r r_ty r_mo r_u r_g r_fl r_h r_p r_more; do
+		if [ -n "$r_more" ] || ! safe_abs "$r_p" || ! no_link_above "$r_p"; then
+			warn "the rollback copy for $1 ($2) has a line d32upd did not write: not used"
+			return 1
+		fi
+		case $r_ty in
+		F|L|D|N) grep -qxF -- "$r_p" $T/allow ;;
+		P) grep -qxF -- "$r_p" $T/allowp ;;
+		*) false ;;
+		esac || { warn "the rollback copy for $1 ($2) names $r_p, which the signed MANIFEST does not: not used"; return 1; }
+		print -r -- "$r_p" >>$T/rpaths.$2
+		case $r_ty in F|L) print -r -- "${r_p#/}" >>$T/fmembers ;; esac
+	done <$r_rb/record
+	if ! cmp -s $T/fmembers $r_rb/members; then
+		warn "the rollback copy for $1 ($2): its tar list does not match its record: not used"
+		return 1
+	fi
+	return 0
+}
+
+restore_do() {	# id, live|maint (after restore_check): put the copy back; 0 when every path is back
+	r_rb=$DB/rollback/$1/$2
+	r_rc=0
+	r_sl=$(sysctl -n kern.securelevel)
+	# read-only file systems on the way (slot A) go read-write for the restore, then back
+	: >$T/romp
+	while read -r r_p; do
+		r_m=$(mp_of "$r_p")
+		[ -n "$r_m" ] && is_ro "$r_m" && print -r -- "$r_m" >>$T/romp
+	done <$T/rpaths.$2
+	sort -u -o $T/romp $T/romp
+	while read -r r_m; do
+		mount -u -o "rw$(mount_opts "$r_m")" "$r_m" || { warn "cannot mount $r_m read-write"; r_rc=1; }
+	done <$T/romp
+	# the boot window clears the flags first (at securelevel 1 schg cannot be cleared, so runtime does not try):
+	# the paths, and the directories they sit in, so a file can come back as a new file; the record puts the
+	# directories' flags back last
+	if [ "$r_sl" -le 0 ]; then
+		while read -r r_p; do
+			[ -e "$r_p" ] && [ ! -L "$r_p" ] && chflags 0 "$r_p"
+		done <$T/rpaths.$2
+		while read -r r_ty r_mo r_u r_g r_fl r_h r_p; do
+			[ $r_ty = P ] && [ -d "$r_p" ] && [ ! -L "$r_p" ] && chflags 0 "$r_p"
+		done <$r_rb/record
+	fi
+	if [ -s $r_rb/members ]; then
+		r_x=$T/rs.$2
+		rm -rf $r_x
+		if mkdir -m 0700 $r_x && (cd $r_x && tar -xpf $r_rb/files.tar $(cat $r_rb/members)); then
+			while read -r r_m; do
+				put_back "$r_x/$r_m" "/$r_m" "$r_rb/files.tar" || { warn "/$r_m could not be put back"; r_rc=1; }
+			done <$r_rb/members
+		else
+			warn "tar could not read the rollback copy $r_rb/files.tar"
+			r_rc=1
+		fi
+		rm -rf $r_x
+	fi
+	# paths the set made go away, deepest first (a new directory after the files the set put in it)
+	awk '$1 == "N" { print $NF }' $r_rb/record | sort -r >$T/new.$2
+	while read -r r_p; do
+		if [ -L "$r_p" ] || [ -f "$r_p" ]; then
+			rm -f -- "$r_p" || r_rc=1
+		elif [ -d "$r_p" ]; then
+			rmdir -- "$r_p" 2>/dev/null || warn "left $r_p: a directory that is not empty"
+		elif [ -e "$r_p" ]; then
+			warn "left $r_p: not a file"
+			r_rc=1
+		fi
+	done <$T/new.$2
+	while read -r r_ty r_mo r_u r_g r_fl r_h r_p; do	# contents, modes, owners, flags
+		case $r_ty in
+		F)
+			if [ -f "$r_p" ] && [ ! -L "$r_p" ] && [ "$(sha256 -q -- "$r_p")" = "$r_h" ]; then
+				chown "$r_u:$r_g" "$r_p" && chmod "$r_mo" "$r_p" || r_rc=1
+				set_flags "$r_fl" "$r_p" || r_rc=1
+			else
+				warn "$r_p is not back"
+				r_rc=1
+			fi
+			;;
+		D)
+			[ -d "$r_p" ] || [ -e "$r_p" ] || mkdir -p "$r_p"
+			if [ -d "$r_p" ] && [ ! -L "$r_p" ]; then
+				chown "$r_u:$r_g" "$r_p" && chmod "$r_mo" "$r_p" || r_rc=1
+				set_flags "$r_fl" "$r_p" || r_rc=1
+			else
+				warn "$r_p is not back as a directory"
+				r_rc=1
+			fi
+			;;
+		L)
+			[ -L "$r_p" ] || { warn "$r_p is not back"; r_rc=1; }
+			;;
+		esac
+	done <$r_rb/record
+	while read -r r_ty r_mo r_u r_g r_fl r_h r_p; do	# the directories' own flags last
+		[ $r_ty = P ] && [ -d "$r_p" ] && [ ! -L "$r_p" ] || continue
+		set_flags "$r_fl" "$r_p" || r_rc=1
+	done <$r_rb/record
+	while read -r r_m; do
+		mount -u -o "ro$(mount_opts "$r_m")" "$r_m" || { warn "cannot mount $r_m read-only again"; r_rc=1; }
+	done <$T/romp
+	return $r_rc
+}
+
+# ---- configuration the boot window must start using ------------------------------------------------------------
+
+conf_snapshot() {	# before|after: the hashes of the files the next boot depends on ("-" for absent)
+	for cs_f in $BOOTCRIT; do
+		cs_h=$(sha256 -q -- $cs_f 2>/dev/null)
+		print -r -- "$cs_f ${cs_h:--}"
+	done >$T/conf.$1
+}
+conf_changed() {	# the BOOTCRIT files whose hash differs between the two snapshots
+	awk 'NR == FNR { h[$1] = $2; next } h[$1] != $2 { print $1 }' $T/conf.before $T/conf.after
+}
+
+fstab_ok() {	# file: every entry has its fields, a mount point that exists (or none), and / is there
+	awk '!/^[[:space:]]*(#|$)/ { n++; if (NF < 4) bad = 1; if ($2 == "/") root = 1; print $2 }
+	    END { exit (bad || !root || !n) }' "$1" >$T/fsmp || return 1
+	while read -r fo_m; do
+		[ "$fo_m" = none ] || [ -d "$fo_m" ] || return 1
+	done <$T/fsmp
+	return 0
+}
+check_one() {	# file: prints why it would break the boot, returns 1; or returns 0
+	case $1 in
+	/etc/rc|/etc/rc.conf|/etc/rc.conf.local|/etc/rc.securelevel|/etc/rc.local|/etc/rc.shutdown|/etc/netstart|/etc/rc.d/rc.subr)
+		sh -n "$1" 2>/dev/null || { print "does not parse (sh -n)"; return 1; }
+		;;
+	$SELF)
+		[ -x "$1" ] || { print "is not executable"; return 1; }
+		ksh -n "$1" 2>/dev/null || { print "does not parse (ksh -n)"; return 1; }
+		grep -q 'apply-staged' "$1" || { print "has no apply-staged verb"; return 1; }
+		;;
+	/etc/pf.conf)
+		pfctl -nf "$1" >>$LOG 2>&1 || { print "does not parse (pfctl -nf)"; return 1; }
+		;;
+	/var/unbound/etc/unbound.conf)
+		if [ -x /usr/sbin/unbound-checkconf ]; then
+			unbound-checkconf "$1" >>$LOG 2>&1 || { print "fails unbound-checkconf"; return 1; }
+		fi
+		;;
+	/etc/ntpd.conf)
+		ntpd -n -f "$1" >>$LOG 2>&1 || { print "fails ntpd -n"; return 1; }
+		;;
+	/etc/doas.conf)
+		doas -C "$1" >>$LOG 2>&1 || { print "fails doas -C"; return 1; }
+		;;
+	/etc/fstab)
+		fstab_ok "$1" || { print "has an entry without its fields or mount point, or no /"; return 1; }
+		;;
+	/etc/login.conf)
+		rm -f $T/lc.db
+		cap_mkdb -f $T/lc "$1" >>$LOG 2>&1 || { print "fails cap_mkdb"; return 1; }
+		;;
+	/etc/ttys)
+		grep -q '^console[[:space:]]' "$1" || { print "has no console line"; return 1; }
+		;;
+	esac
+	return 0
+}
+window_check() {	# after maint.sh: would the next boot, and the next update, still work? 0 = yes
+	conf_snapshot after
+	conf_changed >$T/changed
+	wc_bad=0
+	while read -r wc_f; do
+		if [ ! -e "$wc_f" ]; then
+			case " $(print -r -- $MUSTEXIST) " in
+			*" $wc_f "*) warn "boot check: $wc_f was removed"; wc_bad=1 ;;
+			*) note "boot check: $wc_f removed" ;;
+			esac
+			continue
+		fi
+		if wc_why=$(check_one "$wc_f"); then
+			note "boot check: $wc_f changed: OK"
+		else
+			warn "boot check: $wc_f $wc_why"
+			wc_bad=1
+		fi
+	done <$T/changed
+	# whatever the set did, the update path itself must survive it
+	if grep -qxF /etc/rc.securelevel $T/changed &&
+	    ! grep -q '^[^#]*/usr/local/d32/sbin/d32upd apply-staged' /etc/rc.securelevel 2>/dev/null; then
+		warn "boot check: /etc/rc.securelevel no longer runs d32upd apply-staged"
+		wc_bad=1
+	fi
+	wc_k=0
+	for wc_p in /etc/signify/d32-release.pub /etc/signify/deep32-release.pub; do
+		[ -f $wc_p ] && wc_k=1
+	done
+	[ $wc_k = 1 ] || { warn "boot check: no release key is left in /etc/signify"; wc_bad=1; }
+	return $wc_bad
+}
+
+conf_follow() {	# start using what the window changed (rc read most of it before rc.securelevel)
+	conf_snapshot after
+	conf_changed >$T/follow
+	while read -r cf_f; do
+		case $cf_f in
+		/etc/pf.conf)
+			[ -f /etc/pf.conf ] || continue
+			if pfctl -nf /etc/pf.conf >>$LOG 2>&1; then
+				pfctl -f /etc/pf.conf >>$LOG 2>&1 && note "pf: /etc/pf.conf changed in this window: loaded"
+			else
+				warn "pf: /etc/pf.conf does not parse; the rules loaded at boot stay"
+			fi
+			;;
+		/var/unbound/etc/unbound.conf)
+			rcctl check unbound >/dev/null 2>&1 && rcctl restart unbound >/dev/null 2>&1 &&
+				note "unbound: restarted on its new configuration"
+			;;
+		/etc/ntpd.conf)
+			rcctl check ntpd >/dev/null 2>&1 && rcctl restart ntpd >/dev/null 2>&1 &&
+				note "ntpd: restarted on its new configuration"
+			;;
+		/etc/sysctl.conf)
+			[ -s /etc/sysctl.conf ] && sysctl -f /etc/sysctl.conf >>$LOG 2>&1 &&
+				note "sysctl: /etc/sysctl.conf applied"
+			;;
+		/etc/wsconsctl.conf)
+			if [ -x /sbin/wsconsctl ] && [ -f /etc/wsconsctl.conf ]; then
+				sed -e 's/#.*//' -e '/^[[:space:]]*$/d' /etc/wsconsctl.conf | while read -r cf_l; do
+					eval "wsconsctl $cf_l" >>$LOG 2>&1
+				done
+				note "wsconsctl: /etc/wsconsctl.conf applied"
+			fi
+			;;
+		/etc/login.conf)
+			[ -f /etc/login.conf.db ] && cap_mkdb /etc/login.conf >>$LOG 2>&1 &&
+				note "login.conf: its database rebuilt"
+			;;
+		/etc/rc.conf|/etc/rc.conf.local)
+			note "$cf_f changed: rc read it before this window, so it takes effect at the next boot"
+			;;
+		esac
+	done <$T/follow
+}
+
+# ---- the boot window's record ----------------------------------------------------------------------------------
+
+last_window() {	# id release result detail: one record, and one line on the console
+	printf '%s\t%s\t%s\t%s\t%s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$1" "$2" "$3" "$4" >$LAST.new &&
+		chmod 0600 $LAST.new && mv $LAST.new $LAST
+	print -r -- "d32upd: boot window: $1 $2: $3${4:+ ($4)}"
+	log "window $1 $2 $3 $4"
+}
+ready_baseline() {	# why: d32ready records the boot inputs as they are now (only in the window; never fatal)
+	[ -x $READY ] || return 0
+	if $READY baseline "$1" >>$LOG 2>&1; then
+		log "d32ready baseline: $1"
+	else
+		warn "d32ready could not record the new boot inputs; d32ready will report them as changed"
+	fi
+}
+
+release_record() {	# after maint.sh: /etc/d32/release must name the set and its seq (the downgrade floor)
+	active_release
+	[ "$ACT_REL" = "$S_REL" ] && [ "$ACT_SEQ" = "$S_SEQ" ] && return 0
+	warn "maint.sh did not record $S_REL seq $S_SEQ in $RELFILE: d32upd writes it"
+	chflags 0 $RELFILE 2>/dev/null
+	print -r -- "$S_REL seq $S_SEQ" >$RELFILE.new && chmod 0644 $RELFILE.new && mv $RELFILE.new $RELFILE &&
+		chflags schg $RELFILE
+	active_release
+}
+
+last_applied() {	# L_ID: the set of the highest seq whose live phase is applied
+	L_ID=
+	la_best=-1
+	for la_f in $DB/state/u*; do
+		[ -f "$la_f" ] || continue
+		la_i=${la_f##*/}
+		valid_id "$la_i" || continue
+		[ "$(state_get $la_i live)" = applied ] || continue
+		if [ ${la_i#u} -gt $la_best ]; then
+			la_best=${la_i#u}
+			L_ID=$la_i
+		fi
+	done
+	[ -n "$L_ID" ]
+}
+
+# ---- verbs -----------------------------------------------------------------------------------------------------
+
+cmd_status() {
+	setup
+	active_release
+	PUB=
+	for pk in /etc/signify/d32-release.pub /etc/signify/deep32-release.pub; do
+		[ -f $pk ] && { PUB=$pk; break; }
+	done
+	print -r -- "driver       d32upd $VERSION"
+	print -r -- "release      $ACT_REL (seq $ACT_SEQ), securelevel $(sysctl -n kern.securelevel)"
+	print -r -- "key          ${PUB:-none}${PUB:+ (sha256 $(sha256 -q $PUB | cut -c1-16))}"
+	if [ -s $LAST ]; then
+		print -r -- "last window  $(head -n 1 $LAST | tr '\t' ' ')"
+	fi
+	if [ -f $RUNNING ]; then
+		print -r -- "half done    $(head -n 1 $RUNNING) (the next boot puts it back)"
+	fi
+	if [ -f $PENDING ]; then
+		print -r -- "pending      $(head -n 1 $PENDING) (the next boot finishes it)"
+	else
+		print -r -- "pending      none"
+	fi
+	ls $DB/state 2>/dev/null | sed -n 's/^u\([0-9][0-9]*\)$/\1/p' | sort -n >$DB/.status.$$
+	while read -r st_n; do
+		st_i=u$st_n
+		print -r -- "set $st_i       $(state_get $st_i release) seq $(state_get $st_i seq): live $(state_get $st_i live), boot window $(state_get $st_i maint)$(r=$(state_get $st_i revert); [ -n "$r" ] && print -n ", revert $r"), staged $(state_get $st_i staged)"
+	done <$DB/.status.$$
+	rm -f $DB/.status.$$
+	[ -f $DB/applied ] && print -r -- "by hand      $DB/applied ($(stat -f '%Sm' $DB/applied))"
+	if [ -s $DB/history ]; then
+		print -r -- "last events:"
+		tail -n 6 $DB/history | sed 's/^/  /'
+	fi
+	return 0
+}
+
+cmd_verify() {
+	setup
+	lock
+	pick_key
+	active_release
+	resolve_dir "$1"
+	vf_d=$R
+	sig_and_list "$vf_d" || die "refused: $vf_d"
+	check_hashes "$vf_d" || die "refused: $vf_d"
+	exact_set "$vf_d" || warn "(stage copies only the signed files, so these stay behind)"
+	read_setjson "$vf_d/SET.json" || die "refused: $vf_d"
+	manifest_check "$vf_d/MANIFEST.tsv" || die "refused: $vf_d"
+	note "signature OK ($PUB), $(grep -c '' $T/names) files OK: $S_REL, seq $S_SEQ"
+	seq_ok || die "refused: seq $S_SEQ is at or below the active $ACT_REL (seq $ACT_SEQ); only d32upd revert goes back"
+	req_ok || die "refused: the set requires $S_REQ, the active release is $ACT_REL"
+	say "fit to stage over $ACT_REL (seq $ACT_SEQ): doas d32upd stage $vf_d"
+	return 0
+}
+
+cmd_stage() {
+	setup
+	need_tty
+	lock
+	pick_key
+	active_release
+	[ -d /d32/var ] || die "/d32/var is missing: this node has no boot-window state directory"
+	[ -e $RUNNING ] && die "the last boot window did not finish: reboot first (d32upd status)"
+	[ -e $PENDING ] && die "\"$(head -n 1 $PENDING)\" waits for the boot window: reboot to finish it, or d32upd revert"
+	resolve_dir "$1"
+	sg_src=$R
+	case $sg_src in $DB|$DB/*) die "name the set on its medium or in the drop directory, not inside $DB" ;; esac
+	note "stage: set from $sg_src (key $PUB)"
+	# 1. the signature first, before anything else in the set is read
+	sig_and_list "$sg_src" || die "refused: nothing copied"
+	# 2. copy only the signed files
+	{
+		cat $T/names
+		print SHA256.sig
+		[ -f "$sg_src/SHA256" ] && print SHA256
+	} >$T/copy
+	sg_need=$( (cd "$sg_src" && du -k $(cat $T/copy) 2>/dev/null) | awk '{ s += $1 } END { print s + 0 }')
+	sg_free=$(df -k $DB | awk 'NR == 2 { print $4 }')
+	[ "$sg_free" -gt $((sg_need * 3 + 65536)) ] || die "not enough room in $DB: the set is $sg_need KB, $sg_free KB free"
+	sg_inc=$DB/incoming
+	rm -rf $sg_inc
+	mkdir -m 0700 $sg_inc || die "cannot make $sg_inc"
+	while read -r sg_n; do
+		case $sg_n in */*) mkdir -p "$sg_inc/${sg_n%/*}" ;; esac
+		[ -f "$sg_src/$sg_n" ] || die "$sg_n is missing from $sg_src"
+		cp -- "$sg_src/$sg_n" "$sg_inc/$sg_n" || die "cannot copy $sg_n"
+		sg_m=$(stat -L -f %Lp -- "$sg_src/$sg_n") || die "cannot read the mode of $sg_n"
+		chmod "$(printf '%o' $((8#$sg_m & 8#755)))" "$sg_inc/$sg_n"
+	done <$T/copy
+	chown -R root:wheel $sg_inc
+	find $sg_inc -type d -exec chmod 0700 {} +
+	# 3. the whole check, on the copy
+	if ! verify_copy $sg_inc; then
+		rm -rf $sg_inc
+		die "the copy does not verify: nothing staged"
+	fi
+	if ! seq_ok; then
+		rm -rf $sg_inc
+		die "refused: $S_REL has seq $S_SEQ, at or below the active $ACT_REL (seq $ACT_SEQ); only d32upd revert goes back"
+	fi
+	if ! req_ok; then
+		rm -rf $sg_inc
+		die "refused: $S_REL requires $S_REQ, the active release is $ACT_REL"
+	fi
+	if [ "$(state_get $S_ID live)" = applied ]; then
+		rm -rf $sg_inc
+		die "$S_ID ($(state_get $S_ID release)) is applied: d32upd revert it first"
+	fi
+	if [ -e $DB/$S_ID ] && [ ! -f $DB/state/$S_ID ]; then
+		rm -rf $sg_inc
+		die "$DB/$S_ID exists and is not d32upd's (a set applied by hand?): move it away first"
+	fi
+	rm -rf $DB/$S_ID
+	mv $sg_inc $DB/$S_ID || die "cannot move the copy into $DB/$S_ID"
+	rm -f $DB/state/$S_ID
+	state_set $S_ID release "$S_REL"
+	state_set $S_ID seq "$S_SEQ"
+	state_set $S_ID src "$sg_src"
+	state_set $S_ID staged "$(date '+%Y-%m-%d %H:%M:%S')"
+	state_set $S_ID live none
+	state_set $S_ID maint none
+	hist $S_ID "$S_REL" staged "seq $S_SEQ from $sg_src"
+	note "staged $S_REL (seq $S_SEQ) in $DB/$S_ID: signature OK, $(grep -c '' $T/names) files OK, nothing else in it"
+	for sg_s in apply.sh maint.sh rollback.sh; do
+		[ -f $DB/$S_ID/$sg_s ] || continue
+		sh -n $DB/$S_ID/$sg_s || die "$sg_s does not parse: nothing changed"
+	done
+	# 4. the dry run, then the operator
+	say "dry run (apply.sh check):"
+	if ! run_script $DB/$S_ID apply.sh check check; then
+		state_set $S_ID live refused
+		hist $S_ID "$S_REL" dry-run-refused "-"
+		die "the dry run refused this node: nothing changed"
+	fi
+	if ! confirm "$S_REL" "apply $S_REL (seq $S_SEQ) over $ACT_REL (seq $ACT_SEQ): the live phase now, the rest in the boot window at the next boot."; then
+		hist $S_ID "$S_REL" not-confirmed "-"
+		die "not confirmed: nothing changed (the set stays staged; run stage again to apply it)"
+	fi
+	# 5. the rollback copy, then the live phase
+	capture $S_ID live $DB/$S_ID || die "no rollback copy: nothing changed"
+	note "live phase: apply.sh"
+	if run_script $DB/$S_ID apply.sh live; then
+		state_set $S_ID live applied
+		state_set $S_ID live_at "$(date '+%Y-%m-%d %H:%M:%S')"
+		write_pending apply $S_ID
+		hist $S_ID "$S_REL" live-applied "pending written"
+		note "live phase done. Reboot and type the disk passphrase: the boot window installs the rest (maint.sh)."
+		return 0
+	fi
+	warn "apply.sh failed: putting the live files back from d32upd's copy"
+	if restore $S_ID live $DB/$S_ID; then sg_r=restored; else sg_r="restore incomplete"; fi
+	state_set $S_ID live failed
+	hist $S_ID "$S_REL" live-failed "$sg_r"
+	die "the live phase failed ($sg_r); nothing waits for the boot window. See $LOG"
+}
+
+boot_refuse() {	# id, why
+	warn "boot window: $2: nothing installed, the old state boots"
+	[ -f $DB/state/$1 ] && state_set $1 maint refused
+	hist $1 "${S_REL:--}" boot-refused "$2"
+	last_window $1 "${S_REL:--}" "REFUSED, nothing installed" "$2"
+	return 1
+}
+
+boot_apply() {	# id
+	ba_d=$DB/$1
+	note "boot window: installing $1"
+	[ -d $ba_d ] || { boot_refuse $1 "no staged copy $ba_d"; return 1; }
+	verify_copy $ba_d || { boot_refuse $1 "the staged copy does not verify"; return 1; }
+	[ "$S_ID" = "$1" ] || { boot_refuse $1 "the staged copy is $S_ID, not $1"; return 1; }
+	seq_ok || { boot_refuse $1 "seq $S_SEQ is at or below the active $ACT_REL (seq $ACT_SEQ)"; return 1; }
+	req_ok || { boot_refuse $1 "it requires $S_REQ, the active release is $ACT_REL"; return 1; }
+	[ "$(state_get $1 live)" = applied ] || { boot_refuse $1 "its live phase is not applied"; return 1; }
+	capture $1 maint $ba_d || { boot_refuse $1 "no rollback copy"; return 1; }
+	print captured >>$RUNNING
+	sync
+	conf_snapshot before
+	note "boot window: maint.sh of $S_REL (seq $S_SEQ)"
+	ba_why=
+	if ! run_script $ba_d maint.sh maint; then
+		ba_why="maint.sh failed"
+	elif ! window_check; then
+		ba_why="the boot check failed"
+	fi
+	if [ -z "$ba_why" ]; then
+		release_record
+		conf_follow
+		state_set $1 maint applied
+		state_set $1 maint_at "$(date '+%Y-%m-%d %H:%M:%S')"
+		hist $1 "$S_REL" installed "now $ACT_REL seq $ACT_SEQ"
+		ready_baseline "d32upd: $S_REL (seq $S_SEQ) installed"
+		note "$S_REL installed (seq $S_SEQ)"
+		last_window $1 "$S_REL" INSTALLED "now $ACT_REL seq $ACT_SEQ"
+		return 0
+	fi
+	warn "boot window: $ba_why: putting the boot-window files back"
+	if restore $1 maint $ba_d; then ba_r=restored; else ba_r="restore incomplete"; fi
+	conf_follow
+	state_set $1 maint failed
+	hist $1 "$S_REL" boot-failed "$ba_why, $ba_r"
+	warn "$S_REL is not installed ($ba_r). Its live phase stays applied: d32upd revert undoes it. See $LOG"
+	if [ "$ba_r" = restored ]; then
+		last_window $1 "$S_REL" "FAILED, the old state is back" "$ba_why"
+	else
+		last_window $1 "$S_REL" "FAILED, RESTORE INCOMPLETE" "$ba_why; see $LOG"
+	fi
+	return 1
+}
+
+boot_revert() {	# id [retry]: a retry (the last boot window stopped half way) skips the active-release check
+	br_d=$DB/$1
+	note "boot window: reverting $1"
+	[ -d $br_d ] && verify_copy $br_d || {
+		warn "boot window: the staged copy of $1 does not verify: nothing reverted"
+		state_set $1 revert refused
+		hist $1 - revert-refused "does not verify"
+		return 1
+	}
+	if [ "$S_ID" != "$1" ] || { [ "${2:-}" != retry ] && [ "$ACT_REL" != "$S_REL" ]; }; then
+		warn "boot window: the active release is $ACT_REL, not $S_REL: nothing reverted"
+		state_set $1 revert refused
+		hist $1 "$S_REL" revert-refused "active $ACT_REL"
+		return 1
+	fi
+	# both copies are checked before anything is put back, so a bad copy reverts nothing rather than half
+	if ! restore_check $1 maint $br_d || ! restore_check $1 live $br_d; then
+		warn "boot window: a rollback copy of $1 cannot be used: nothing reverted"
+		state_set $1 revert refused
+		hist $1 "$S_REL" revert-refused "rollback copy"
+		return 1
+	fi
+	conf_snapshot before
+	br_rc=0
+	restore_do $1 maint || br_rc=1
+	if [ -f $br_d/rollback.sh ]; then
+		run_script $br_d rollback.sh revert live || { warn "rollback.sh live failed"; br_rc=1; }
+	fi
+	restore_do $1 live || br_rc=1
+	conf_follow
+	active_release
+	if [ $br_rc = 0 ]; then
+		state_set $1 live reverted
+		state_set $1 maint reverted
+		state_set $1 revert done
+		hist $1 "$S_REL" reverted "now $ACT_REL seq $ACT_SEQ"
+		ready_baseline "d32upd: $S_REL (seq $S_SEQ) reverted, $ACT_REL active"
+		note "$S_REL reverted: $ACT_REL (seq $ACT_SEQ) is active"
+		last_window $1 "$S_REL" REVERTED "now $ACT_REL seq $ACT_SEQ"
+		return 0
+	fi
+	state_set $1 revert incomplete
+	hist $1 "$S_REL" revert-incomplete "now $ACT_REL seq $ACT_SEQ"
+	warn "the revert of $S_REL is incomplete: see $LOG"
+	last_window $1 "$S_REL" "REVERT INCOMPLETE" "now $ACT_REL seq $ACT_SEQ; see $LOG"
+	return 1
+}
+
+boot_interrupted() {	# the last boot window stopped half way: put it back, never run it again
+	read -r bi_act bi_id bi_rest <$RUNNING
+	warn "the last boot window stopped half way ($bi_act $bi_id): putting it back"
+	if valid_id "$bi_id" && [ -d $DB/$bi_id ] && verify_copy $DB/$bi_id; then
+		case $bi_act in
+		apply)
+			if grep -qx captured $RUNNING; then
+				conf_snapshot before
+				if restore $bi_id maint $DB/$bi_id; then bi_r=restored; else bi_r="restore incomplete"; fi
+				conf_follow	# rc loaded the half-done files at this boot: start using the old ones again
+			else
+				bi_r="stopped before its copy: nothing had changed"
+			fi
+			state_set $bi_id maint interrupted
+			hist $bi_id "$S_REL" boot-interrupted "$bi_r"
+			warn "$bi_id: $bi_r. Its live phase stays applied: d32upd revert undoes it"
+			case $bi_r in
+			"restore incomplete") last_window $bi_id "$S_REL" "INTERRUPTED, RESTORE INCOMPLETE" "see $LOG" ;;
+			*) last_window $bi_id "$S_REL" "INTERRUPTED, the old state is back" "$bi_r" ;;
+			esac
+			;;
+		revert)
+			boot_revert $bi_id retry
+			;;
+		esac
+	else
+		warn "the half-done work names no set that verifies: nothing put back; see $LOG"
+	fi
+	mv $RUNNING $DB/interrupted.$(date '+%Y%m%d%H%M%S') 2>/dev/null || rm -f $RUNNING
+	sync
+}
+
+cmd_apply_staged() {
+	[ -e $PENDING ] || [ -e $RUNNING ] || return 0
+	# A key pressed at the console must not cut the window half way. ^C, ^\ and ^Z go to the console's process
+	# group, and OpenBSD's ksh does not pass an ignored signal on to the commands it runs (tee, tar, cp would
+	# die). So the window leaves that group first: timeout(1) gives its command a process group of its own, and
+	# "timeout 0" sets no time limit. The shell's own ^C is ignored as well. maint.sh keeps its 60 minute limit, and
+	# TERM (a shutdown) still leaves the half-done marker, so the next boot puts it back.
+	if [ "${D32UPD_PGRP:-}" != 1 ] && [ -x /usr/bin/timeout ]; then
+		export D32UPD_PGRP=1
+		exec /usr/bin/timeout 0 $SELF apply-staged
+	fi
+	WINDOW=boot
+	setup
+	trap '' INT QUIT TSTP HUP
+	as_sl=$(sysctl -n kern.securelevel)
+	if [ "$as_sl" -gt 0 ]; then
+		warn "apply-staged runs only in the boot window (securelevel 0; now $as_sl): the pending work stays"
+		exit 1
+	fi
+	lock
+	pick_key
+	active_release
+	[ -e $RUNNING ] && boot_interrupted
+	[ -e $PENDING ] || return 0
+	read -r as_act as_id as_rest <$PENDING
+	case $as_act in
+	apply|revert) ;;
+	*) as_id= ;;
+	esac
+	if ! valid_id "$as_id"; then
+		mv $PENDING $DB/pending.bad.$(date '+%Y%m%d%H%M%S')
+		warn "boot window: $PENDING held no \"apply u<seq>\" or \"revert u<seq>\" line: set aside, nothing done"
+		return 1
+	fi
+	mv $PENDING $RUNNING || die "cannot mark the boot window as running"
+	sync
+	as_rc=0
+	case $as_act in
+	apply) boot_apply $as_id || as_rc=1 ;;
+	revert) boot_revert $as_id || as_rc=1 ;;
+	esac
+	rm -f $RUNNING
+	sync
+	return $as_rc
+}
+
+cmd_revert() {
+	rv_want=$1
+	[ -z "$rv_want" ] || valid_release "$rv_want" || die "not a release name: $rv_want"
+	setup
+	need_tty
+	lock
+	pick_key
+	active_release
+	[ -e $RUNNING ] && die "the last boot window did not finish: reboot first"
+	if ! last_applied; then
+		[ -f $DB/applied ] && die "no set applied by d32upd to revert. Update 1 went on by hand: its rollback is boot -s, then sh rollback.sh schg in /var/db/d32upd/u1 (the update 1 notes 4.6)"
+		die "no set applied by d32upd to revert"
+	fi
+	rv_d=$DB/$L_ID
+	verify_copy $rv_d || die "the staged copy of $L_ID does not verify any more: the revert needs it"
+	[ "$S_ID" = "$L_ID" ] || die "the staged copy in $rv_d is $S_ID, not $L_ID"
+	if [ -n "$rv_want" ] && [ "$rv_want" != "$S_REL" ]; then
+		die "the last set is $S_REL, not $rv_want: v1 reverts only the last set"
+	fi
+	rv_pa= rv_pi=
+	[ -f $PENDING ] && read -r rv_pa rv_pi rv_rest <$PENDING
+	if [ "$(state_get $S_ID maint)" = applied ]; then
+		[ "$rv_pa" = revert ] && die "the revert of $rv_pi is already scheduled: reboot"
+		[ "$ACT_REL" = "$S_REL" ] || die "the active release is $ACT_REL, not $S_REL: nothing to revert"
+		[ -f $DB/rollback/$S_ID/maint/ok ] || die "no boot-window rollback copy for $S_ID"
+		confirm "$S_REL" "revert $S_REL (seq $S_SEQ) at the next boot: the boot window puts back every file it changed." ||
+			die "not confirmed: nothing changed"
+		write_pending revert $S_ID
+		state_set $S_ID revert scheduled
+		hist $S_ID "$S_REL" revert-scheduled "-"
+		note "revert of $S_REL scheduled. Reboot and type the disk passphrase: the boot window puts the old files back."
+		return 0
+	fi
+	restore_check $S_ID live $rv_d || die "the live rollback copy of $S_ID cannot be used: nothing changed"
+	confirm "$S_REL" "revert $S_REL (seq $S_SEQ) now: its boot-window phase is not in place ($(state_get $S_ID maint)), so the live phase is undone at once." ||
+		die "not confirmed: nothing changed"
+	if [ "$rv_pa $rv_pi" = "apply $S_ID" ]; then
+		rm -f $PENDING
+		sync
+	fi
+	rv_rc=0
+	if [ -f $rv_d/rollback.sh ]; then
+		run_script $rv_d rollback.sh revert live || { warn "rollback.sh live failed"; rv_rc=1; }
+	fi
+	restore_do $S_ID live || rv_rc=1
+	if [ $rv_rc = 0 ]; then
+		state_set $S_ID live reverted
+		state_set $S_ID revert done
+		hist $S_ID "$S_REL" live-reverted "-"
+		note "the live phase of $S_REL is undone; nothing waits for the boot window"
+		return 0
+	fi
+	state_set $S_ID live revert-incomplete
+	hist $S_ID "$S_REL" live-revert-incomplete "-"
+	die "the revert of $S_REL is incomplete: see $LOG"
+}
+
+main() {
+	VERB=${1:-}
+	[ $# -gt 0 ] && shift
+	case $VERB in
+	status) [ $# -eq 0 ] || usage; cmd_status ;;
+	verify) [ $# -eq 1 ] || usage; cmd_verify "$1" ;;
+	stage|fetch) [ $# -eq 1 ] || usage; cmd_stage "$1" ;;
+	apply-staged) [ $# -eq 0 ] || usage; cmd_apply_staged ;;
+	revert) [ $# -le 1 ] || usage; cmd_revert "${1:-}" ;;
+	version) [ $# -eq 0 ] || usage; print -r -- "d32upd $VERSION" ;;
+	help|-h|--help) usage 0 ;;
+	*) usage ;;
+	esac
+}
+
+# one compound command: ksh has read all of it before it runs, so a set may replace this file
+{
+	main "$@"
+	exit $?
+}

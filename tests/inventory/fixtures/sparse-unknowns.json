@@ -1,0 +1,119 @@
+{
+ "name": "sparse-unknowns",
+ "about": "Almost nothing readable (as from the shell version on Windows): the verdict must degrade, not fail",
+ "facts": {
+  "os": {
+   "family": "windows",
+   "name": null,
+   "edition": null,
+   "version": null,
+   "build": null,
+   "arch": "x64",
+   "wsl_guest": null
+  },
+  "hw": {
+   "vendor": null,
+   "model": null,
+   "virtual": null
+  },
+  "cpu": {
+   "vendor": null,
+   "model": null,
+   "family": null,
+   "model_id": null,
+   "stepping": null,
+   "gen": null,
+   "sockets": 1,
+   "cores": null,
+   "threads": null,
+   "p_cores": null,
+   "e_cores": null,
+   "p_threads": null,
+   "avx": null,
+   "avx2": null,
+   "avx512f": null
+  },
+  "mem": {
+   "total_gb": null,
+   "installed_gb": null,
+   "free_gb": null
+  },
+  "disks": null,
+  "gpus": null,
+  "virt": {
+   "firmware": null,
+   "slat": null,
+   "iommu": null,
+   "hypervisor": null
+  },
+  "hyp": {
+   "hyperv": null,
+   "kvm": null,
+   "proxmox": null,
+   "virtualbox": null,
+   "vmware": null,
+   "libvirt": null
+  },
+  "wsl": null,
+  "docker": {
+   "present": null,
+   "client": null,
+   "nvidia": null
+  },
+  "tools": {
+   "tailscale": null,
+   "claude": null,
+   "codex": null,
+   "gh": null
+  },
+  "ports": {
+   "checked": false,
+   "busy": []
+  },
+  "net": null
+ },
+ "reasoning": [
+  "Classes: no processor fact is readable, so every class test is unknown or false: no class. gpus is null: card facts unknown.",
+  "Sizing: no threads and no memory: no tier.",
+  "Candidates: only two-machines and headend-only match for certain (Windows, x64). The others depend on the unknown edition, hypervisors or hardware model, and an unknown match is not a match.",
+  "two-machines: unconfirmed. cpu-supported and one-side unknown; second-machine in confirm; Tailscale unknown, auto (never lowers the fit).",
+  "headend-only: unconfirmed. agent unknown; Tailscale auto.",
+  "Order: both are alternatives (machines 2) and no one-machine profile matches, so they come out best; both unconfirmed, so by rank: two-machines 40, headend-only 90. Unchanged by the single-machine-first order of matrix 0.3.0."
+ ],
+ "expect": {
+  "best": "two-machines",
+  "fit": "unconfirmed",
+  "ranked": [
+   "two-machines",
+   "headend-only"
+  ],
+  "best_missing": [],
+  "best_unknown": [
+   "cpu-supported",
+   "one-side"
+  ],
+  "best_auto": [
+   "tailscale"
+  ],
+  "best_confirm": [
+   "second-machine"
+  ],
+  "cpu_class": null,
+  "gpu_class": null,
+  "gpu_forge": null,
+  "gpu_mem_tier": null,
+  "tier": null,
+  "sizes": {
+   "two-machines": {
+    "ws": null,
+    "forge": null
+   },
+   "headend-only": {
+    "ws": null,
+    "forge": null
+   }
+  },
+  "ruled_out": [],
+  "warnings": []
+ }
+}

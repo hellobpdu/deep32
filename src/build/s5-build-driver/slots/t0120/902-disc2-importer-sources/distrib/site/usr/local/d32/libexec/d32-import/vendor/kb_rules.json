@@ -1,0 +1,68 @@
+{
+  "allowed_path_prefixes": [
+    "/etc/deep32/",
+    "/opt/deep32/",
+    "/var/lib/deep32/"
+  ],
+  "format": "deep32-kb-rules",
+  "format_version": 1,
+  "glossary_categories": [
+    "automation",
+    "bgp",
+    "eigrp",
+    "fhrp",
+    "ip",
+    "ipv6",
+    "ise-message",
+    "isis",
+    "l2",
+    "mpls",
+    "multicast",
+    "ops",
+    "ospf",
+    "policy",
+    "qos",
+    "rip",
+    "routing",
+    "sda",
+    "sdwan",
+    "security",
+    "services",
+    "vpn"
+  ],
+  "glossary_ref_patterns": [
+    "^doc:[a-z0-9][a-z0-9-]*$",
+    "^RFC [0-9]+(?: \u00a7[A-Za-z0-9._-]+)?$",
+    "^(IEEE|ISO/IEC) \\S.*$"
+  ],
+  "kept_collections": [
+    "cisco",
+    "powershell",
+    "rfc",
+    "system"
+  ],
+  "manifest_entry_keys": [
+    "bytes",
+    "doc_key",
+    "doc_kind",
+    "doc_type",
+    "family",
+    "license",
+    "near_duplicate_of",
+    "page_url",
+    "path",
+    "platform",
+    "redistribute",
+    "release",
+    "release_note",
+    "sha256",
+    "source_url",
+    "terms_url",
+    "title"
+  ],
+  "max_member_bytes": 2147483647,
+  "opt_in_collections": [
+    "powershell",
+    "system"
+  ]
+}

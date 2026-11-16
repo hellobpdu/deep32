@@ -1,0 +1,8 @@
+#!/bin/sh
+# test stub for run_tests.py's probe test: prints canned output, changes nothing
+# usage: called by deep32-inventory.sh in place of the real command, with its arguments
+# exit codes: 0
+case "$*" in
+  *01?00.0*) echo '01:00.0 "VGA compatible controller" "NVIDIA Corporation" "GA106 [GeForce RTX 3060 Lite Hash Rate]" -ra1 "Micro-Star International Co., Ltd. [MSI]" "Device 397d"' ;;
+  *00?02.0*) echo '00:02.0 "VGA compatible controller" "Intel Corporation" "AlderLake-S GT1" -r0c "Micro-Star International Co., Ltd. [MSI]" "Device 7d25"' ;;
+esac

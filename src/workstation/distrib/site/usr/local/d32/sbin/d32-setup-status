@@ -1,0 +1,30 @@
+#!/bin/ksh
+# /usr/local/d32/sbin/d32-setup-status: the first start's current state for the desktop's First Start window.
+# Root only (the status file is root's, contract C6); the desktop user reaches it through one doas rule with no
+# arguments. Prints at most two lines and changes nothing:
+#   line 1: the current C6 status line, only when it is a valid one (the C6 rules: a sign-in address or a pairing code
+#           appear only while their step waits, and no token, key or hash can pass)
+#   line 2: done=yes when the first start has finished, else done=no
+# Exit 0, or 2 with no output on any argument, 3 when not run as root.
+LC_ALL=C
+export LC_ALL
+[ $# -eq 0 ] || exit 2
+if [ -z "${D32_ROOT:-}" ]; then
+	[ "$(id -u)" = 0 ] || exit 3
+	PATH=/bin:/usr/bin:/sbin:/usr/sbin
+fi
+. ${D32_ROOT:-}/usr/local/d32/libexec/d32-ui-lib.sh || exit 2
+f=${D32_ROOT:-}/var/run/d32/c6/status
+line=
+if [ -f "$f" ] && [ ! -h "$f" ]; then
+	IFS= read -r line < "$f" || :
+fi
+if [ -n "$line" ] && d32ui_c6 "$line"; then
+	echo "$line"
+fi
+if [ -f ${D32_ROOT:-}/var/db/d32/firstboot/done ]; then
+	echo done=yes
+else
+	echo done=no
+fi
+exit 0

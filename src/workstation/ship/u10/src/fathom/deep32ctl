@@ -1,0 +1,70 @@
+#!/bin/ksh
+# Console control for the existing d32web-only packet filter tables.
+set -eu
+export PATH=/bin:/usr/bin:/sbin:/usr/sbin
+umask 077
+
+if [ "$#" -ne 2 ] || [ "$1" != web ] || [ "$(id -u)" -ne 0 ]; then
+	printf 'Usage: doas %s web status|off|direct\n' "$0" >&2
+	exit 64
+fi
+
+if [ "${D32_WEB_LOCKED:-}" != 1 ]; then
+	exec /usr/bin/perl -e '
+		use Fcntl qw(O_CREAT O_NOFOLLOW O_RDWR LOCK_EX LOCK_NB F_SETFD);
+		sysopen(my $lock, "/var/run/d32-fathom-web.lock", O_CREAT | O_NOFOLLOW | O_RDWR, 0600)
+		    or die "Web control lock: $!\n";
+		flock($lock, LOCK_EX | LOCK_NB) or die "Web access is already being changed. Try again.\n";
+		fcntl($lock, F_SETFD, 0) or die "Web control lock: $!\n";
+		$ENV{D32_WEB_LOCKED} = 1;
+		exec { $ARGV[0] } @ARGV or die "Web control: $!\n";
+	' "$0" "$@"
+fi
+
+table() {
+	/sbin/pfctl -q -t "$@"
+}
+
+disable_web() {
+	# Close new connections first, then revoke established Web states.
+	failed=0
+	table web_direct -T flush || failed=1
+	table web_proxy -T flush || failed=1
+	table web_dns -T flush || failed=1
+	/sbin/pfctl -q -k label -k web || failed=1
+	return "$failed"
+}
+
+case $2 in
+	status)
+		direct=$(table web_direct -T show)
+		proxy=$(table web_proxy -T show)
+		dns=$(table web_dns -T show)
+		if [ -z "$direct$proxy$dns" ]; then
+			echo OFF
+		elif [ -n "$direct" ] && [ -n "$dns" ] && [ -z "$proxy" ]; then
+			echo DIRECT
+		elif [ -n "$proxy" ] && [ -z "$direct$dns" ]; then
+			echo HOME
+		else
+			echo 'Web tables are inconsistent. Use web off to close access.' >&2
+			exit 1
+		fi
+		;;
+	off)
+		disable_web
+		echo 'Web access is off.'
+		;;
+	direct)
+		[ -t 0 ] || { echo 'Open a local terminal to enable Web access.' >&2; exit 64; }
+		/sbin/pfctl -s info | grep -q '^Status: Enabled' || exit 65
+		disable_web
+		trap 'disable_web' EXIT
+		trap 'exit 1' HUP INT TERM
+		table web_dns -T replace 127.0.0.1 ::1
+		table web_direct -T replace 0.0.0.0/0 ::/0
+		trap - EXIT HUP INT TERM
+		echo 'Direct Web access is on for Fathom.'
+		;;
+	*) echo 'Web modes for this workstation are status, off and direct.' >&2; exit 64 ;;
+esac

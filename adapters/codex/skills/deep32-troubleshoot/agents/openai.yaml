@@ -1,0 +1,5 @@
+interface:
+  display_name: "deep32-troubleshoot"
+  short_description: "Deep32 troubleshoot lens: add a topic or keywords"
+policy:
+  allow_implicit_invocation: false

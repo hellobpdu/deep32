@@ -1,0 +1,16 @@
+[Unit]
+Description=Deep32 Forge first boot
+After=network-online.target docker.service tailscaled.service cloud-final.service
+Wants=network-online.target docker.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /opt/deep32-forge/firstboot/firstboot.py
+UMask=0077
+Restart=on-failure
+RestartSec=10
+StandardOutput=null
+StandardError=null
+
+[Install]
+WantedBy=multi-user.target

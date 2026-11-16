@@ -1,0 +1,9 @@
+#!/bin/sh
+# test stub for run_tests.py's offline --net test: "gh auth status" says signed in; never touches the network.
+# usage: called by deep32-inventory.sh in place of gh, with gh's arguments
+# exit codes: 0
+case "$*" in
+    "auth status"*) exit 0 ;;
+    *--version*) echo "gh version 2.63.0 (2024-11-27)" ;;
+esac
+exit 0

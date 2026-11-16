@@ -1,0 +1,4 @@
+Source: https://raw.githubusercontent.com/bitcoin/bips/master/bip-0039/english.txt
+Retrieved: 2026-11-05
+SHA-256: 2f5eed53a4727b4bf8880d8f3f199efc90e58503646d9ff8eff3a2ed3b24dbda
+The BIP-39 English wordlist (2,048 words); BIP-39 is distributed under the BSD-2-Clause licence per the bitcoin/bips repository; ISO-DESIGN 8.2 notes MIT. Recheck at build.

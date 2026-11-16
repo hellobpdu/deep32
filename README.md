@@ -10,7 +10,7 @@ Retrieval-augmented question answering for network and security engineering.<br>
 Answers are built from a local corpus of RFCs and Cisco documentation, and every quotation is string-matched against the source before use.
 
 <p>
-  <a href="#getting-deep32"><img alt="Release: 1.0 this week" src="https://img.shields.io/badge/release-1.0_this_week-9a6700?style=flat-square"></a>
+  <a href="#getting-deep32"><img alt="Release: 0.1.0-alpha.1" src="https://img.shields.io/badge/release-0.1.0--alpha.1-9a6700?style=flat-square"></a>
   <a href="#mcp-tools"><img alt="Interface: Model Context Protocol" src="https://img.shields.io/badge/interface-Model_Context_Protocol-0969da?style=flat-square"></a>
   <a href="#retrieval-pipeline"><img alt="Retrieval: BM25, dense, rerank" src="https://img.shields.io/badge/retrieval-BM25_%2B_dense_%2B_rerank-1a7f37?style=flat-square"></a>
   <a href="#verifying"><img alt="Signed with OpenPGP" src="https://img.shields.io/badge/signed-OpenPGP-8250df?style=flat-square"></a>
@@ -22,7 +22,7 @@ Answers are built from a local corpus of RFCs and Cisco documentation, and every
 </div>
 
 > [!NOTE]
-> Version 1.0 is scheduled for release this week as three signed images: a workstation, its content and a GPU pack (see [Getting Deep32](#getting-deep32)). The measurements on this page are from my development setup.
+> 0.1.0-alpha.1 is the first public release: the source and the signed Workstation image, with the GPU pack and content images following in the next few days (see [Getting Deep32](#getting-deep32)). The measurements on this page are from my development setup.
 
 ## Background
 
@@ -388,7 +388,7 @@ Latency on my development setup (same engine and models as 1.0, on the Xeon and 
 
 ## Getting Deep32
 
-1.0 is not on the release page yet. The procedure below applies once it is published.
+0.1.0-alpha.1 is an alpha. The Workstation image is on the release page now. The GPU pack and the content image are still being assembled and will be added to the same release in the next few days; until then the Workstation installs but cannot search.
 
 The release installs without any of my keys, logins or network settings. It is three images, covered by one signed checksum list.
 
@@ -410,6 +410,8 @@ The larger images exceed GitHub's size limit for a release file and are split in
 ```
 
 - No keys, tokens or logins are shipped on any image. Each install generates its own.
+- The guided Workstation install needs a disk of 160 GB or more in this alpha. A smaller layout is planned for the beta.
+- The research skills for Claude Code and Codex are in `adapters/`, and [INSTALL.md](INSTALL.md) shows how to connect an agent to the gateway by hand. The Ask window needs the relay, which comes with the one-step headend installer (Deep32 Connect) in a later release.
 - The GPU pack needs an NVIDIA driver of at least 580.65.06, Docker and the NVIDIA Container Toolkit. If one is missing, the installer names it and stops before changing anything. A bootable GPU installer that sets these up is planned for a later release.
 - Every node joins the installer's own Tailscale network. The layout is the same whether the nodes share one machine or sit on several.
 - Claude Code and Codex are supported first. An OpenAI-compatible adapter for locally served models is designed for a later release.
@@ -423,7 +425,7 @@ The larger images exceed GitHub's size limit for a release file and are split in
 - [ ] Design document covering the architecture and the verification method
 - [ ] Answer-level evaluation with verification on and off
 - [ ] Code release
-- [ ] Signed release images (1.0, this week)
+- [x] Signed release images (0.1.0-alpha.1: Workstation; GPU pack and content images to follow)
 - [ ] Bootable GPU installer
 - [ ] Archived releases with a DOI
 
@@ -465,7 +467,7 @@ sha256sum -c SHA256SUMS
   title  = {Deep32: Retrieval-augmented question answering for network and security engineering},
   year   = {2026},
   url    = {https://github.com/hellobpdu/deep32},
-  note   = {Pre-release}
+  note   = {Version 0.1.0-alpha.1}
 }
 ```
 
@@ -473,7 +475,9 @@ A DOI will be added with the first archived release.
 
 ## License
 
-Code is under the PolyForm Noncommercial License 1.0.0 and documentation under CC BY-NC 4.0. The PDF converter is the exception: it uses MinerU and PyMuPDF, both AGPL-3.0, so it lives in its own folder under AGPL-3.0 and its source ships with it. Third-party software, models and documents keep their own terms. Both Jina models are licensed CC BY-NC 4.0.
+Code is licensed under AGPL-3.0-or-later and documentation under CC-BY-4.0. See [LICENSING.md](LICENSING.md), [LICENSE](LICENSE) and [LICENSE-DOCS](LICENSE-DOCS) for the grants and full licence texts. Third-party software, models and documents keep their own terms. Both Jina models are licensed CC BY-NC 4.0. Artwork and sounds keep the terms recorded in the asset ledger.
+
+The names are the trademarks of their owners, used only to describe compatibility, and Deep32 is not affiliated with or endorsed by them.
 
 ## Author
 

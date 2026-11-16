@@ -1,0 +1,13 @@
+# 0130.d32-setup: sourced by Xsession (ksh) for every CDE session. Once the window manager is up, opens the First
+# Start window, which stays closed when the first start of this Workstation is finished (d32-setup -auto decides).
+if [ -x /usr/local/d32/libexec/d32-setup ]; then
+	(
+		i=0
+		while [ $i -lt 60 ]; do
+			/usr/X11R6/bin/xprop -root _MOTIF_WM_INFO 2>/dev/null | grep -q ' = ' && break
+			sleep 1
+			i=$((i + 1))
+		done
+		exec /usr/local/d32/libexec/d32-setup -auto
+	) </dev/null >/dev/null 2>&1 &
+fi

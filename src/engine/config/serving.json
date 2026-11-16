@@ -1,0 +1,7 @@
+{
+  "generation": null,
+  "max_concurrent_searches": 1,
+  "search_queue_timeout_seconds": 30,
+  "max_queued_searches": 16,
+  "preload_sources": true
+}

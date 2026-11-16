@@ -1,0 +1,316 @@
+#!/bin/ksh
+# d32-firstboot: console accounts, per-install tokens and disc 2 hand-off.
+# Usage: d32-firstboot boot | resume | status
+# Exit: 0 done, 1 failed, 2 usage, 4 not root, 5 test loop limit.
+# Files: /var/db/d32/firstboot, /var/run/d32/c6, /var/log/d32-firstboot.log.
+# Test hooks: D32_ROOT, D32_PATH, D32_TEST_BOOTID, C6_SERIAL, C6_REPEAT,
+# D32_FB_POLL, D32_FB_PROBE, D32_FB_MAXLOOPS. Timing hooks need D32_ROOT.
+PATH=${D32_PATH:-/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin}
+export PATH
+[ -n "${D32_ROOT-}" ] || [ "$(id -u)" = 0 ] || exit 4
+case ${1-}/$# in boot/1|resume/1|status/1) ;; *) exit 2;; esac
+D32_FB_DIR=${D32_ROOT-}/var/db/d32/firstboot
+if [ "$1" = resume ] && [ -f "$D32_FB_DIR/done" ]; then exit 0; fi
+. "${D32_ROOT-}/usr/local/d32/libexec/d32-c6.sh"
+. "${D32_ROOT-}/usr/local/d32/libexec/d32-settings.sh"
+C6_DIR=${C6_DIR:-${D32_ROOT-}/var/run/d32/c6}
+if [ "$1" = status ]; then
+    D32_FB_LINE=$(c6_current 2>/dev/null) || D32_FB_LINE=none
+    echo "status $D32_FB_LINE"
+    for D32_FB_MARK in console.done tailnet.done content.done done; do
+        D32_FB_LINE=missing
+        [ ! -f "$D32_FB_DIR/$D32_FB_MARK" ] || IFS= read -r D32_FB_LINE <"$D32_FB_DIR/$D32_FB_MARK"
+        echo "$D32_FB_MARK $D32_FB_LINE"
+    done
+    exit 0
+fi
+if [ "$1" = resume ] && [ ! -f "$D32_FB_DIR/console.done" ] && [ -f "$C6_DIR/boot" ]; then
+    IFS= read -r D32_FB_BOOT <"$C6_DIR/boot"
+    D32_FB_LINE=$(c6_current 2>/dev/null) || D32_FB_LINE=
+    case $D32_FB_LINE in *" boot=$D32_FB_BOOT "*' state=failed'*) exit 1;; esac
+fi
+umask 077
+mkdir -p "$D32_FB_DIR" "${D32_ROOT-}/var/log" || exit 1
+chmod 0700 "$D32_FB_DIR"
+D32_FB_LOG=${D32_ROOT-}/var/log/d32-firstboot.log
+: >>"$D32_FB_LOG"
+chmod 0600 "$D32_FB_LOG"
+c6_setup workstation console || exit 1
+C6_VERSION=$(sed -n '1{s/[[:space:]].*//;p;}' "${D32_ROOT-}/etc/d32/release" 2>/dev/null)
+C6_NAME=$(sed -n 's/^node_name=//p' "${D32_ROOT-}/etc/d32/node.conf" 2>/dev/null)
+D32_FB_LOCKED=0
+D32_REARM='/usr/local/d32/sbin/d32-firstboot boot </dev/console >/dev/console 2>&1'
+
+_d32f_log() {
+    echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) $1 $2" >>"$D32_FB_LOG"
+}
+_d32f_mark() {
+    echo "$(date -u +%Y-%m-%dT%H:%M:%SZ)${2-}" >"$D32_FB_DIR/$1.new" &&
+        chmod 0600 "$D32_FB_DIR/$1.new" && mv "$D32_FB_DIR/$1.new" "$D32_FB_DIR/$1"
+}
+_d32f_cleanup() {
+    c6_hold_stop || :
+    [ "$D32_FB_LOCKED" != 1 ] || rm -rf "$D32_FB_DIR/follow.lock"
+}
+trap '_d32f_cleanup' EXIT
+trap 'exit 1' HUP INT TERM
+if [ -n "${C6_NOTE-}" ] && ! grep -qF "$C6_NOTE" "$D32_FB_LOG"; then
+    _d32f_log console "$C6_NOTE"
+fi
+_d32f_fail() {
+    c6_hold_stop || :
+    C6_QUIET_SCREEN=0
+    c6_set "$1" failed "error=$2" "msg=$3" || :
+    _d32f_log "$1" "$2"
+    return 1
+}
+_d32f_rearm() {
+    local _d32f=${D32_ROOT-}/etc/rc.firsttime
+    if [ -f "$_d32f" ] && grep -qxF "$D32_REARM" "$_d32f"; then return 0; fi
+    {
+        [ ! -f "$_d32f" ] || cat "$_d32f"
+        echo "$D32_REARM"
+    } >"$_d32f.new" && chmod 0644 "$_d32f.new" && mv "$_d32f.new" "$_d32f"
+}
+_d32f_disarm() {
+    local _d32f=${D32_ROOT-}/etc/rc.firsttime
+    [ -f "$_d32f" ] || return 0
+    grep -vxF "$D32_REARM" "$_d32f" >"$_d32f.new" || [ "$?" = 1 ] || return 1
+    if [ ! -s "$_d32f.new" ]; then rm -f "$_d32f.new" "$_d32f"; else
+        chmod 0644 "$_d32f.new" && mv "$_d32f.new" "$_d32f" || return 1
+        _d32f_log console 'other first-start commands kept'
+    fi
+}
+_d32f_locked() {
+    local _d32line _d32name _d32hash
+    while IFS= read -r _d32line; do
+        _d32name=${_d32line%%:*}
+        [ "$_d32name" = "$1" ] || continue
+        _d32hash=${_d32line#*:}; _d32hash=${_d32hash%%:*}
+        [ "$_d32hash" = '*************' ]; return $?
+    done <"${D32_ROOT-}/etc/master.passwd"
+    return 1
+}
+_d32f_token() {
+    [ "${#1}" = 64 ] || return 1
+    case $1 in *[!0-9a-f]*) return 1;; esac
+}
+_d32f_keys() {
+    local _d32f1=${D32_ROOT-}/etc/d32/core.env _d32f2=${D32_ROOT-}/etc/d32/edge.env
+    local _d32f3=${D32_ROOT-}/etc/d32/state/mcp.token _d32line _d32c1= _d32c2= _d32m= _d32stored=
+    local _d32n1=0 _d32n2=0 _d32nm=0 _d32ns=0 _d32newc _d32newm _d32f _d32ln
+    c6_set keys running || return 1
+    if [ ! -f "$_d32f1" ] && [ ! -f "$_d32f2" ]; then
+        c6_set keys done 'msg=no search engine on this image'; return $?
+    fi
+    [ -f "$_d32f1" ] && [ -f "$_d32f2" ] || { _d32f_fail keys WS_KEYS 'token files incomplete'; return 1; }
+    while IFS= read -r _d32line; do
+        case $_d32line in RAG_CORE_API_TOKEN=*) _d32n1=$((_d32n1 + 1)); _d32c1=${_d32line#*=};; esac
+    done <"$_d32f1"
+    while IFS= read -r _d32line; do
+        case $_d32line in
+        RAG_CORE_API_TOKEN=*) _d32n2=$((_d32n2 + 1)); _d32c2=${_d32line#*=};;
+        RAG_MCP_TOKENS=*) _d32nm=$((_d32nm + 1)); _d32m=${_d32line#*=};;
+        esac
+    done <"$_d32f2"
+    [ "$_d32n1/$_d32n2/$_d32nm" = 1/1/1 ] || { _d32f_fail keys WS_KEYS 'token files incomplete'; return 1; }
+    if [ -f "$_d32f3" ]; then
+        while IFS= read -r _d32line; do _d32ns=$((_d32ns + 1)); _d32stored=$_d32line; done <"$_d32f3"
+        [ -z "$_d32line" ] || _d32ns=0
+    fi
+    if [ "$_d32ns" = 1 ] && _d32f_token "$_d32c1" && _d32f_token "$_d32c2" &&
+        _d32f_token "$_d32m" && [ "$_d32c1" = "$_d32c2" ] && [ "$_d32m" = "$_d32stored" ]; then
+        c6_set keys done 'msg=tokens kept'; return $?
+    fi
+    _d32newc=$(openssl rand -hex 32) && _d32newm=$(openssl rand -hex 32) &&
+        _d32f_token "$_d32newc" && _d32f_token "$_d32newm" || { _d32f_fail keys WS_KEYS 'token files incomplete'; return 1; }
+    for _d32f in "$_d32f1" "$_d32f2"; do
+        {
+            _d32ln=0
+            while IFS= read -r _d32line; do
+                _d32ln=$((_d32ln + 1))
+                case $_d32line in
+                RAG_CORE_API_TOKEN=*) echo "RAG_CORE_API_TOKEN=$_d32newc";;
+                RAG_MCP_TOKENS=*) echo "RAG_MCP_TOKENS=$_d32newm";;
+                *) sed -n "${_d32ln}p" "$_d32f";;
+                esac
+            done <"$_d32f"
+        } >"$_d32f.new" && chmod 0400 "$_d32f.new" && chown root:wheel "$_d32f.new" &&
+            mv "$_d32f.new" "$_d32f" || { _d32f_fail keys WS_KEYS 'token files incomplete'; return 1; }
+    done
+    install -d -o root -g wheel -m 0700 "${D32_ROOT-}/etc/d32/state" || return 1
+    echo "$_d32newm" >"$_d32f3.new" && chmod 0600 "$_d32f3.new" && chown root:wheel "$_d32f3.new" &&
+        mv "$_d32f3.new" "$_d32f3" || { _d32f_fail keys WS_KEYS 'token files incomplete'; return 1; }
+    c6_set keys done 'msg=tokens made'
+}
+_d32f_boot() {
+    local _d32user _d32ul=0 _d32rl=0 _d32who _d32names= _d32msg
+    _d32f_rearm || return 1
+    if [ ! -f "$D32_FB_DIR/console.done" ]; then
+        c6_set firstboot running || return 1
+        d32s_node_read "${D32_ROOT-}/etc/d32/node.conf" || { _d32f_fail firstboot WS_NODE_CONF 'node settings are missing or invalid'; return 1; }
+        _d32user=$(cat "${D32_ROOT-}/etc/d32/desktop-user" 2>/dev/null)
+        d32s_ok_user_name "$_d32user" && id -u "$_d32user" >/dev/null 2>&1 || { _d32f_fail firstboot WS_ACCOUNT 'the desktop account is missing or invalid'; return 1; }
+        _d32f_locked "$_d32user" && _d32ul=1
+        _d32f_locked root && _d32rl=1
+        [ "$_d32ul" != 1 ] || _d32names=$_d32user
+        [ "$_d32rl" != 1 ] || _d32names="$_d32names root"
+        if [ -n "$_d32names" ]; then
+            if [ "$_d32ul/$_d32rl" = 1/1 ]; then
+                _d32msg="set the passwords for $_d32user and root on the console of this machine"
+            else
+                _d32who=root; [ "$_d32ul" != 1 ] || _d32who=$_d32user
+                _d32msg="set the password for $_d32who on the console of this machine"
+            fi
+            c6_set firstboot waiting "msg=$_d32msg" || return 1
+            C6_QUIET_SCREEN=1
+            c6_hold_start || return 1
+            for _d32who in $_d32names; do
+                echo "Set the password for $_d32who."
+                until passwd "$_d32who"; do echo "The password for $_d32who was not set. Try again."; done
+            done
+            c6_hold_stop || :
+            C6_QUIET_SCREEN=0
+        fi
+        c6_set firstboot done || return 1
+        _d32f_keys || return 1
+    fi
+    _d32f_mark console.done || return 1
+    _d32f_disarm
+}
+_d32f_waiting() {
+    local _d32wanted="$*"
+    if [ "${D32_FB_WANTED-}" != "$_d32wanted" ]; then
+        c6_set "$@" || return 1
+        D32_FB_WANTED=$_d32wanted
+    fi
+    c6_hold_start
+}
+_d32f_probe() {
+    local _d32dev _d32mounts _d32count=0
+    D32_FB_DEVICE=
+    _d32mounts=$(mount)
+    mkdir -p "$D32_FB_DIR/probe" && chmod 0700 "$D32_FB_DIR/probe" || return 1
+    for _d32dev in $(d32_cd_devices); do
+        case $_d32mounts in *"/dev/$_d32dev"[a-p]' on '*|*"/dev/$_d32dev on "*) continue;; esac
+        if d32_cd_mount "$_d32dev" "$D32_FB_DIR/probe" >/dev/null 2>&1; then
+            if [ -f "$D32_FB_DIR/probe/MANIFEST.json" ] && [ -f "$D32_FB_DIR/probe/MANIFEST.json.asc" ] &&
+                [ -d "$D32_FB_DIR/probe/kb" ] && [ -d "$D32_FB_DIR/probe/corpus" ] && [ -d "$D32_FB_DIR/probe/library" ]; then
+                _d32count=$((_d32count + 1)); D32_FB_DEVICE=$_d32dev
+            fi
+        fi
+        d32_cd_umount "$D32_FB_DIR/probe" >/dev/null 2>&1 || :
+    done
+    case $_d32count in
+    0) _d32f_waiting content waiting 'msg=attach disc 2 (content) to this machine'; return 1;;
+    1) c6_hold_stop || :
+       c6_set content done "msg=disc 2 found on $D32_FB_DEVICE" && _d32f_mark content.done " $D32_FB_DEVICE";;
+    *) _d32f_waiting content waiting 'msg=more than one disc 2 is attached: leave one'; return 1;;
+    esac
+}
+_d32f_resume() {
+    local _d32line _d32boot _d32pid= _d32json _d32state _d32url _d32ip _d32safe
+    local _d32loops=0 _d32poll=2 _d32probe=10 _d32limit=0 _d32rc _d32before _d32after
+    local _d32fallback _d32result
+    IFS= read -r _d32boot <"$C6_DIR/boot"
+    if [ ! -f "$D32_FB_DIR/console.done" ]; then
+        _d32line=$(c6_current 2>/dev/null) || _d32line=
+        case $_d32line in *" boot=$_d32boot "*' state=failed'*) return 1;; esac
+        _d32f_fail firstboot WS_FIRSTBOOT_ORDER 'the first-start console step has not finished'; return 1
+    fi
+    if ! mkdir "$D32_FB_DIR/follow.lock" 2>/dev/null; then
+        [ ! -r "$D32_FB_DIR/follow.lock/pid" ] || IFS= read -r _d32pid <"$D32_FB_DIR/follow.lock/pid"
+        case $_d32pid in ''|*[!0-9]*) return 0;; esac
+        if kill -0 "$_d32pid" 2>/dev/null; then return 0; fi
+        rm -rf "$D32_FB_DIR/follow.lock"
+        mkdir "$D32_FB_DIR/follow.lock" || return 1
+    fi
+    D32_FB_LOCKED=1
+    echo "$$" >"$D32_FB_DIR/follow.lock/pid" || return 1
+    d32s_node_read "${D32_ROOT-}/etc/d32/node.conf" || { _d32f_fail firstboot WS_NODE_CONF 'node settings are missing or invalid'; return 1; }
+    if [ -n "${D32_ROOT-}" ]; then
+        _d32poll=${D32_FB_POLL:-2}; _d32probe=${D32_FB_PROBE:-10}; _d32limit=${D32_FB_MAXLOOPS:-0}
+    fi
+    while :; do
+        _d32loops=$((_d32loops + 1))
+        if [ "$D32S_NODE_transport" != loopback ] && [ ! -f "$D32_FB_DIR/tailnet.done" ]; then
+            _d32json=$({ tailscale status --json 2>/dev/null; _d32rc=$?; echo "d32_result=$_d32rc"; } |
+                sed -n -e '/^d32_result=/p' \
+                -e 's/^[[:space:]]*"BackendState":[[:space:]]*"\([A-Za-z]*\)".*/state=\1/p' \
+                -e 's|^[[:space:]]*"AuthURL":[[:space:]]*"\(https://[^"]*\)".*|url=\1|p')
+            _d32state= _d32fallback= _d32result=1
+            while [ -n "$_d32json" ]; do
+                case $_d32json in *'
+'*) _d32line=${_d32json%%'
+'*}; _d32json=${_d32json#*'
+'};;
+                *) _d32line=$_d32json; _d32json=;; esac
+                case $_d32line in
+                state=*) [ -n "$_d32state" ] || _d32state=${_d32line#state=};;
+                url=*) [ -n "$_d32fallback" ] || _d32fallback=${_d32line#url=};;
+                d32_result=0) _d32result=0;;
+                esac
+            done
+            [ "$_d32result" = 0 ] || _d32state=
+            _d32url=
+            if [ -f "${D32_ROOT-}/var/db/d32link/login-url" ]; then
+                {
+                    IFS= read -r _d32url || _d32url=
+                    _d32line=
+                    if IFS= read -r _d32line || [ -n "$_d32line" ]; then _d32url=; fi
+                } <"${D32_ROOT-}/var/db/d32link/login-url"
+            fi
+            if ! c6_encode 1 workstation signin waiting "boot=$_d32boot" "signin=$_d32url" >/dev/null; then
+                _d32url=$_d32fallback
+                c6_encode 1 workstation signin waiting "boot=$_d32boot" "signin=$_d32url" >/dev/null || _d32url=
+            fi
+            _d32line=
+            [ ! -f "${D32_ROOT-}/etc/d32/state/link" ] || IFS= read -r _d32line <"${D32_ROOT-}/etc/d32/state/link"
+            if [ "$_d32line" = disabled ]; then
+                _d32f_waiting signin waiting 'msg=the network link is switched off (d32-link enable)'
+            else
+                case $_d32state in
+                '') _d32f_waiting signin waiting 'msg=waiting for a network cable and Tailscale';;
+                NeedsLogin)
+                    if [ -n "$_d32url" ]; then _d32f_waiting signin waiting "signin=$_d32url"; else
+                        _d32f_waiting signin waiting 'msg=waiting for the sign-in address'
+                    fi;;
+                NeedsMachineAuth) _d32f_waiting signin waiting 'msg=approve this machine in the Tailscale admin console';;
+                Running)
+                    _d32ip=$(tailscale ip -4 2>/dev/null | grep -E '^100\.([0-9]{1,3}\.){2}[0-9]{1,3}$' | sed -n 1p)
+                    if [ -n "$_d32ip" ]; then
+                        c6_hold_stop || :
+                        c6_set signin done && c6_set tailnet done "msg=tailnet address $_d32ip" && _d32f_mark tailnet.done || return 1
+                    else
+                        _d32f_waiting signin waiting 'msg=signed in, waiting for the tailnet address'
+                    fi;;
+                *)
+                    _d32safe=$_d32state
+                    case $_d32safe in ''|*[!A-Za-z]*) _d32safe=unknown;; esac
+                    [ "${#_d32safe}" -le 32 ] || _d32safe=unknown
+                    _d32f_waiting signin waiting "msg=Tailscale state $_d32safe";;
+                esac
+            fi
+        else
+            if _d32f_probe; then
+                c6_hold_stop || :
+                if [ ! -x "${D32_ROOT-}/usr/local/d32/libexec/d32-content-import" ]; then
+                    _d32f_fail import WS_NO_IMPORTER 'no disc 2 importer is installed in this build'; return 1
+                fi
+                _d32before=$(c6_current 2>/dev/null) || _d32before=
+                "${D32_ROOT-}/usr/local/d32/libexec/d32-content-import" --device "$D32_FB_DEVICE" </dev/null >>"$D32_FB_LOG" 2>&1
+                _d32rc=$?
+                if [ "$_d32rc" = 0 ]; then _d32f_mark done; return $?; fi
+                _d32after=$(c6_current 2>/dev/null) || _d32after=
+                if [ "$_d32after" != "$_d32before" ]; then
+                    case $_d32after in *' state=failed '*) return 1;; esac
+                fi
+                _d32f_fail import WS_IMPORT_HOOK "the importer stopped with status $_d32rc"; return 1
+            fi
+        fi
+        [ "$_d32limit" = 0 ] || [ "$_d32loops" -lt "$_d32limit" ] || return 5
+        if [ "$D32S_NODE_transport" = loopback ] || [ -f "$D32_FB_DIR/tailnet.done" ]; then sleep "$_d32probe"; else sleep "$_d32poll"; fi
+    done
+}
+case $1 in boot) _d32f_boot;; resume) _d32f_resume;; esac
+exit $?

@@ -1,0 +1,151 @@
+{
+ "name": "linux-ryzen-rtx4090",
+ "about": "Ubuntu 24.04, Ryzen 9 7950X, 128 GB, RTX 4090, KVM, Docker with the NVIDIA toolkit",
+ "facts": {
+  "os": {
+   "family": "linux",
+   "name": "Ubuntu 24.04.1 LTS",
+   "edition": "ubuntu",
+   "version": "24.04",
+   "build": null,
+   "arch": "x64",
+   "wsl_guest": false,
+   "kernel": null
+  },
+  "hw": {
+   "vendor": "Micro-Star International Co., Ltd.",
+   "model": "MS-7E12",
+   "virtual": false
+  },
+  "cpu": {
+   "vendor": "amd",
+   "model": "AMD Ryzen 9 7950X 16-Core Processor",
+   "family": 25,
+   "model_id": 97,
+   "stepping": 2,
+   "gen": null,
+   "sockets": 1,
+   "cores": 16,
+   "threads": 32,
+   "p_cores": null,
+   "e_cores": 0,
+   "p_threads": null,
+   "avx": true,
+   "avx2": true,
+   "avx512f": true
+  },
+  "mem": {
+   "total_gb": 124.9,
+   "installed_gb": null,
+   "free_gb": 100.0
+  },
+  "disks": [
+   {
+    "mount": "/",
+    "size_gb": 1863.0,
+    "free_gb": 1500.0,
+    "ssd": true
+   }
+  ],
+  "gpus": [
+   {
+    "name": "NVIDIA GeForce RTX 4090",
+    "vendor": "nvidia",
+    "mem_gb": 24.0,
+    "driver": "560.35.03",
+    "cc": "8.9"
+   }
+  ],
+  "virt": {
+   "firmware": true,
+   "slat": true,
+   "iommu": true,
+   "hypervisor": false
+  },
+  "hyp": {
+   "hyperv": false,
+   "kvm": true,
+   "proxmox": false,
+   "virtualbox": false,
+   "vmware": false,
+   "libvirt": true
+  },
+  "wsl": null,
+  "docker": {
+   "present": true,
+   "client": "27.3.1",
+   "nvidia": true
+  },
+  "tools": {
+   "tailscale": "1.76.6",
+   "claude": "2.1.0",
+   "codex": false,
+   "gh": "2.62.0"
+  },
+  "ports": {
+   "checked": true,
+   "busy": []
+  },
+  "net": null
+ },
+ "reasoning": [
+  "Classes: the Ryzen 9 7950X has AVX2: modern. The RTX 4090 is rtx40 (Forge yes, upstream stable), usable; 24 GB is tier 11.",
+  "Sizing: 32 threads; 124.9 GB visible: 126 GB; tier 3. After the host: 30 threads, 122 GB.",
+  "Candidates (Linux, not Proxmox): linux-nvidia, two-machines, headless, headend-only. no-gpu does not match because the card is usable.",
+  "linux-nvidia: ready. KVM, driver, Docker, toolkit, disk (1500 GB) and ports all met; headend-elsewhere cannot be checked, so it is in confirm and does not lower the fit. Size 'both': threads (8, 8) fit 30, memory (16, 32) fit 122.",
+  "two-machines: ready. Size (8, 16) and Forge (8, 32). headless: ready (every check met). Size 'forge': (8, 32). headend-only: ready (Claude Code).",
+  "Order (single machine first, matrix 0.3.0; before, it was linux-nvidia, two-machines, headless): all ready; the one-machine profiles first by rank, linux-nvidia 10 and headless 50, then the alternatives (machines 2) by rank, two-machines 40 (third) and headend-only 90 (fourth, not shown).",
+  "Warnings: none."
+ ],
+ "expect": {
+  "best": "linux-nvidia",
+  "fit": "ready",
+  "ranked": [
+   "linux-nvidia",
+   "headless",
+   "two-machines"
+  ],
+  "best_missing": [],
+  "best_unknown": [],
+  "best_auto": [],
+  "best_confirm": [
+   "headend-elsewhere"
+  ],
+  "cpu_class": "modern",
+  "gpu_class": "rtx40",
+  "gpu_forge": "yes",
+  "gpu_mem_tier": "11",
+  "tier": 3,
+  "sizes": {
+   "linux-nvidia": {
+    "ws": [
+     8,
+     16
+    ],
+    "forge": [
+     8,
+     32
+    ]
+   },
+   "headless": {
+    "ws": null,
+    "forge": [
+     8,
+     32
+    ]
+   },
+   "two-machines": {
+    "ws": [
+     8,
+     16
+    ],
+    "forge": [
+     8,
+     32
+    ]
+   }
+  },
+  "ruled_out": [],
+  "warnings": []
+ }
+}

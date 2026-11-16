@@ -1,0 +1,239 @@
+d32scr 1
+# Deep32 Library: the article view, laid out as the period design's "Text, Outline" view (1995 capture 35; the period's view
+# for an article with no media, which is every RFC article). Work-area coordinates: the screen sits at origin 1 16
+# under the caption (main.scr). [m] = measured on the 1995 captures (AUTHENTICITY.md), [c] code constants, [d] disc
+# data, [i] inferred.
+# Build 1 had an inferred layout here (a dark left column holding Views, Related Articles and Media panels, the title
+# band over the text pane only); the captures replace it: the band runs the full width, the page under it is white
+# with the watermark engraving on the left, the outline sits on that page under a Views caption bar, the Related
+# Articles button closes the column, and the text pane starts at x 158 under its section bar.
+# Colours are ui:<n>, entries of the interface colour table read from the store (artefacts PALETTE.md). Caption
+# and section bars default to entry 12, their lettering is entry 14 ([m256]: the 256-colour captures show every
+# interface colour as its table entry exactly; [m] values before them came through the 16-colour dither).
+
+screen article
+	size 640 463                              # [c] the work area
+	origin 1 16                               # [m]
+	ground ui:15
+	uses caption
+	uses topbar
+	control back-history
+		kind button
+		rect 483 1 13 18
+		font ui
+		marker
+		action menu article-history
+	end
+	control page
+		kind panel
+		rect 0 58 640 405                     # [m] white under the band (capture 35)
+		bg ui:0
+	end
+	control column
+		kind panel
+		rect 0 58 158 405                     # [m] the watermark side of the page: x 0-157 (the text pane starts at 158)
+		source watermark
+		strip wtrmark/bitmap/W_PHYS_9 1
+	end
+	control cap-views
+		kind bar
+		rect 10 65 138 17                     # [m] x 10-147, rows 65-81 (capture 35)
+		label @14664                          # [d] "Views"
+		font ui
+		fg ui:14                              # [m256] entry 14 (16 colours: VGA light grey; entry 30 had been taken)
+		marker
+		marker-fg ui:13                       # [m256] the marker in entry 13 in the outline views (capture256 34, 35,
+		                                      #     93; entry 14 in the Main view, 05, 30)
+		text-x 16                             # [m] marker at 5-11, lettering from 16
+		action menu views                     # build 3 (W0-F0): the Views menu, record 12070 (W2-ARTICLE builds the views)
+	end
+	control outline
+		kind outline
+		rect 0 86 148 347                     # the pane and its own scroll bar (kind_outline.c, W1-LAYOUT)
+		prop pane-x 18                        # [m] the pane x 18-147: the current row's band (capture 35)
+		prop bar "0 2 16 345"                # [m] its scroll bar at frame x 1-16, rows 104-448 (capture 35; AUTHENTICITY 7.6)
+	end
+	control btn-related
+		kind button
+		record 10048                          # [d] text button "Related Articles"
+		rect 10 435 138 18                    # [m256] frame x 11-148, rows 451-468 (capture256 30, 35; the 16-colour
+		                                      #     dither had put the right edge at 149)
+		font ui
+		action article.related "Related Articles"
+	end
+	control band
+		kind label
+		rect 0 19 640 39                      # [c] the 39-px band at y 19, [m] the full width (captures 05, 30, 35)
+		font title
+		bg ui:15                              # black band, white title (1995 captures)
+		fg ui:0
+		text-x 4                              # [m] the title's first letter (an "A", no side bearing) starts at x 4 of the band (capture 35)
+		text-y 29                             # [m] baseline 29 px below the band's top
+		source title
+	end
+	control section
+		kind bar
+		rect 158 65 459 17                    # [m] x 158-616, rows 65-81 (capture 35)
+		source section
+		font ui
+		fg ui:14                              # [m256] lettering and marker in entry 14 (capture256 35)
+		marker
+		text-x 16                             # [m] as the Views bar
+		action menu article-text
+	end
+	control section-menu
+		kind bar
+		rect 158 65 18 17
+		font ui
+		fg ui:14
+		marker
+		action menu article-text
+	end
+	control reader-zoom
+		kind bar
+		rect 560 65 56 17
+		font ui
+		fg ui:14
+		marker
+		text-x 15
+		label "Zoom"
+		action menu article-zoom
+	end
+	control reader-font
+		kind bar
+		rect 507 65 52 17
+		font ui
+		fg ui:14
+		marker
+		text-x 15
+		label "Text"
+		action menu article-font
+	end
+	control return-results
+		kind button
+		rect 445 65 61 17
+		font ui
+		label "Results"
+		action pin.return-results "Return to Results"
+	end
+	control text
+		kind article
+		rect 158 82 480 381                   # [m] the text starts at x 158 under the section bar; the scroll bar
+		text-x 0                              #     below takes the last 16 px (x 622-637)
+	end
+	# [m] the period design's own scroll column at x 622-637 (template-matched on captures 29, 30, 35): the previous- and
+	# next-section buttons beside the section bar, the up arrow, the track with its thumb, the down arrow. Frames
+	# [c] as every record-made push button: 0 at rest, 1 pressed, 2 disabled, 3 under the pointer. [m256] The arrows
+	# rest on frame 0, flat (entry-28 glyph on entry 31, no frame), and the thumb is MTHUMB frame 0, solid entry 13
+	# (capture256 29, 30, 31, 34, 35). The 16-colour captures had shown a raised arrow with a black glyph and a black
+	# thumb, read then as frames 3 and 1. Each arrow shows 16 of its strip's 17 rows: the track covers the up
+	# arrow's last row (row 114 is the track's), the window's bottom border the down arrow's (row 479).
+	control sb-ground
+		kind panel
+		rect 622 58 16 26                     # [m256] frame x 623-638, rows 74-99: entry 31 round and between the
+		bg ui:31                              #     section buttons (row 86), on short articles too (capture256 05)
+	end
+	control sec-prev
+		kind button
+		rect 622 58 16 12                     # [m] (623,74) on the captures
+		strip ui/bitmap/PREVMED 4             # [d] 64x12 = 4 x 16x12
+		frame normal 0
+		frame pressed 1
+		frame disabled 2
+		frame hot 3
+		action section-prev
+	end
+	control sec-next
+		kind button
+		rect 622 71 16 12                     # [m] (623,87)
+		strip ui/bitmap/NEXTMED 4             # [d]
+		frame normal 0
+		frame pressed 1
+		frame disabled 2
+		frame hot 3
+		action section-next
+	end
+	control sb-up
+		kind button
+		rect 622 82 16 16                     # [m] (623,98): glyph rows 103-109, its shadow on row 113 (capture 35)
+		strip ui/bitmap/MAINUP 4              # [d] 64x17 = 4 x 16x17
+		frame normal 0                        # [m256] flat at rest
+		frame pressed 1
+		frame disabled 2
+		frame hot 3
+		action scroll-up
+	end
+	control sb-track
+		kind scrollbar
+		rect 622 98 16 349                    # [m] rows 114-462 on the captures (the dither's dotted rows 114 and 462)
+		bg ui:31                              # [m256] entry 31 exactly (the 16-colour dither averaged to rgb 226,224,217)
+		strip ui/bitmap/MTHUMB 4              # [d] 48x14 = 4 x 12x14
+		frame normal 0                        # [m256] solid entry 13, 12x14 at x 625-636 (black at 16 colours)
+	end
+	control sb-down
+		kind button
+		rect 622 447 16 16                    # [m] (623,463): glyph rows 468-474 (capture 29), shadow on row 478 (30)
+		strip ui/bitmap/MAINDN 4              # [d]
+		frame normal 0                        # [m256] as the up arrow
+		frame pressed 1
+		frame disabled 2
+		frame hot 3
+		action scroll-down
+	end
+	# ARTICLE additions are hidden for the legacy sample so the measured layout remains its baseline.
+	control media-frame
+		kind mediaframe
+		rect 164 82 287 360
+		prop cursor magnify
+	end
+	control article-chips
+		kind article-chips
+		rect 10 84 138 29
+	end
+	control reading-buttons
+		kind article-buttons
+		rect 10 358 138 72
+	end
+	control article-status
+		kind bar
+		rect 164 443 474 19
+		font ui
+		bg ui:14
+		fg ui:15
+		text-x 3
+		text-y 13
+		source article-status
+	end
+	control article-progress
+		kind label
+		rect 472 443 162 19
+		font ui
+		fg ui:15
+		align right
+		text-y 13
+		source article-progress
+	end
+	control article-forward
+		kind button
+		rect 106 435 49 18
+		font ui
+		label "Forward"
+		action article.forward "Go Forward"
+	end
+	# u14 S12: the native reader's 3-px reading-progress bar under the section bar (article_features.c places it;
+	# the 640x480 letterbox hides it)
+	control read-progress
+		kind panel
+		rect 158 82 459 3
+		bg ui:0
+		source article-readbar
+	end
+end
+
+menu article-history
+	record 1
+	items record
+	item-height 16
+	width 350
+	at 146 35
+end

@@ -1,0 +1,150 @@
+{
+ "name": "win-pro-rtx5090",
+ "about": "Windows 11 Pro, Ryzen 7 9800X3D, 64 GB, RTX 5090 (an experimental class), everything in place",
+ "facts": {
+  "os": {
+   "family": "windows",
+   "name": "Windows 11 Pro",
+   "edition": "pro",
+   "version": "24H2",
+   "build": 26100,
+   "arch": "x64",
+   "wsl_guest": false
+  },
+  "hw": {
+   "vendor": "ASUSTeK COMPUTER INC.",
+   "model": "ROG STRIX X870E-E",
+   "virtual": false
+  },
+  "cpu": {
+   "vendor": "amd",
+   "model": "AMD Ryzen 7 9800X3D 8-Core Processor",
+   "family": null,
+   "model_id": null,
+   "stepping": null,
+   "gen": null,
+   "sockets": 1,
+   "cores": 8,
+   "threads": 16,
+   "p_cores": null,
+   "e_cores": 0,
+   "p_threads": null,
+   "avx": true,
+   "avx2": true,
+   "avx512f": true
+  },
+  "mem": {
+   "total_gb": 63.6,
+   "installed_gb": 64,
+   "free_gb": 50.0
+  },
+  "disks": [
+   {
+    "mount": "C:",
+    "size_gb": 1863.0,
+    "free_gb": 1700.0,
+    "ssd": true
+   }
+  ],
+  "gpus": [
+   {
+    "name": "NVIDIA GeForce RTX 5090",
+    "vendor": "nvidia",
+    "mem_gb": 31.8,
+    "driver": "581.57",
+    "cc": "12.0"
+   }
+  ],
+  "virt": {
+   "firmware": true,
+   "slat": true,
+   "iommu": true,
+   "hypervisor": true
+  },
+  "hyp": {
+   "hyperv": true,
+   "kvm": false,
+   "proxmox": false,
+   "virtualbox": false,
+   "vmware": false,
+   "libvirt": false
+  },
+  "wsl": {
+   "present": true,
+   "wsl2_distros": 1
+  },
+  "docker": {
+   "present": true,
+   "client": "28.0.1",
+   "nvidia": null
+  },
+  "tools": {
+   "tailscale": "1.90.1",
+   "claude": "2.1.0",
+   "codex": "0.58.0",
+   "gh": "2.80.0"
+  },
+  "ports": {
+   "checked": true,
+   "busy": []
+  },
+  "net": null
+ },
+ "reasoning": [
+  "Classes: the Ryzen 7 9800X3D has AVX2: modern. The RTX 5090 is rtx50 (Forge experimental, upstream experimental), usable; 31.8 GB is tier 11.",
+  "Sizing: 16 threads, 64 GB: tier 3. After the host: 14 threads, 60 GB.",
+  "Candidates: win-nvidia, two-machines, headend-only (no-gpu: the card is usable).",
+  "win-nvidia: ready (everything in place). Size 'both': threads (8, 8) = 16 > 14, (8, 6) fit; memory (16, 32) fit 60: Workstation (8, 16), Forge (6, 32).",
+  "two-machines: ready. Size (8, 16) and Forge (8, 32). headend-only: ready.",
+  "Order: the one-machine win-nvidia first; then the alternatives (machines 2) by rank: two-machines 40, headend-only 90. All ready. Unchanged by the single-machine-first order of matrix 0.3.0.",
+  "Warnings: gpu-experimental (gpu-upstream-experimental needs Forge yes)."
+ ],
+ "expect": {
+  "best": "win-nvidia",
+  "fit": "ready",
+  "ranked": [
+   "win-nvidia",
+   "two-machines",
+   "headend-only"
+  ],
+  "best_missing": [],
+  "best_unknown": [],
+  "best_auto": [],
+  "best_confirm": [],
+  "cpu_class": "modern",
+  "gpu_class": "rtx50",
+  "gpu_forge": "experimental",
+  "gpu_mem_tier": "11",
+  "tier": 3,
+  "sizes": {
+   "win-nvidia": {
+    "ws": [
+     8,
+     16
+    ],
+    "forge": [
+     6,
+     32
+    ]
+   },
+   "two-machines": {
+    "ws": [
+     8,
+     16
+    ],
+    "forge": [
+     8,
+     32
+    ]
+   },
+   "headend-only": {
+    "ws": null,
+    "forge": null
+   }
+  },
+  "ruled_out": [],
+  "warnings": [
+   "gpu-experimental"
+  ]
+ }
+}

@@ -1,0 +1,33 @@
+#!/bin/ksh
+#
+# d32link: the d32-link watcher. pkg_scripts starts it at every boot, after
+# d32edge and before d32chat (unbound, a base daemon, is up before any package daemon). Every 10 s it brings the
+# wired link up when em0 or the dock's ure0 has a cable (DHCP on that port, unbound's upstream, Tailscale, then Ask,
+# GPU_EXT and time over the tailnet to the hub set in link.conf) and takes it down when the cable goes.
+#  - "rcctl stop d32link" is "d32-link off" (off until the next boot or "rcctl start d32link");
+#  - "doas /usr/local/d32/sbin/d32-link disable" keeps it off across reboots (the watcher then idles);
+#  - tailscaled is never in pkg_scripts: the watcher starts it ("rcctl -f start tailscaled") only with a link up.
+# The watcher is a ksh loop, so pexp names the interpreter too (rc.subr's own would not match the process).
+
+daemon="/usr/local/d32/sbin/d32-link"
+daemon_flags="watch"
+daemon_logger="daemon.info"
+daemon_timeout=30
+
+. /etc/rc.d/rc.subr
+
+pexp="/bin/ksh /usr/local/d32/sbin/d32-link watch"
+rc_bg=YES
+rc_reload=NO
+
+rc_pre() {
+	install -d -o root -g wheel -m 0755 /var/run/d32 && rm -f /var/run/d32/link.hold
+}
+
+rc_stop() {
+	pkill -${rc_stop_signal} -T "${daemon_rtable}" -xf "${pexp}"
+	/usr/local/d32/sbin/d32-link off >/dev/null 2>&1
+	return 0
+}
+
+rc_cmd $1

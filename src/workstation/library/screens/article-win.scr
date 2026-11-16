@@ -1,0 +1,220 @@
+d32scr 1
+# Floating article panes use the period's caption, flat paper and one-pixel frame. Geometry is inferred where a
+# matching capture has not yet been gated. Each pane retains its own content, row ids and source marking.
+block article-caption-bar
+	control window-cap
+		kind bar
+		rect 1 1 358 15
+		font ui
+		bg ui:27
+		inactive-bg ui:12
+		fg ui:0
+		label "Article"
+		text-x 17
+		upper
+		tracking 3
+		text-y 12
+		marker
+		action menu window
+	end
+	control window-close
+		kind label
+		rect 323 3 33 11
+		font ui10
+		bg ui:27
+		fg ui:31
+		label "Close"
+		align centre
+		text-y 9
+		action close
+		key Escape
+	end
+end
+block article-window
+	control window-paper
+		kind panel
+		rect 1 16 358 263
+		bg ui:31
+	end
+	uses article-caption-bar
+end
+block article-text-pane
+	control entries
+		kind article-list
+		rect 8 26 344 244
+	end
+end
+screen article-outline
+	size 360 280
+	origin 20 100
+	over *
+	ground ui:15
+	prop window-title Outline
+	prop room main
+	uses article-window
+	control outline-tree
+		kind outline
+		rect 8 44 344 208
+		prop pane-x 18
+		prop bar "0 0 16 202"
+	end
+	control top-marking
+		kind label
+		rect 8 19 344 22
+		font small
+		fg ui:15
+		source article-marking
+	end
+	control bottom-marking
+		kind label
+		rect 8 255 344 22
+		font small
+		fg ui:15
+		source article-marking
+	end
+end
+screen article-related
+	size 360 280
+	origin 30 110
+	over *
+	ground ui:15
+	prop window-title "Related Articles"
+	prop room main
+	uses article-window
+	uses article-text-pane
+end
+screen article-further
+	size 360 280
+	origin 130 160
+	over *
+	ground ui:15
+	prop window-title "Further Reading"
+	prop room main
+	uses article-window
+	uses article-text-pane
+end
+screen article-dictionary
+	size 360 280
+	origin 240 90
+	over *
+	ground ui:15
+	prop window-title Dictionary
+	prop room main
+	uses article-window
+	uses article-text-pane
+end
+screen article-attribution
+	size 360 280
+	origin 200 170
+	over *
+	ground ui:15
+	prop window-title "Source and attribution"
+	prop room main
+	uses article-window
+	uses article-text-pane
+end
+screen article-caption
+	size 360 280
+	origin 220 160
+	over *
+	ground ui:15
+	prop window-title Caption
+	prop room main
+	uses article-window
+	uses article-text-pane
+end
+# u14 M18: Tools > Back List, this session's places, newest first (article_features.c backlist_open)
+screen article-backlist
+	size 360 280
+	origin 60 80
+	over *
+	ground ui:15
+	prop window-title "Back List"
+	prop room main
+	uses article-window
+	uses article-text-pane
+end
+screen article-page
+	size 360 120
+	origin 140 160
+	over *
+	ground ui:15
+	prop window-title "Go to page"
+	prop room main
+	uses article-caption-bar
+	control page-ground
+		kind panel
+		rect 1 16 358 103
+		bg ui:31
+	end
+	control prompt
+		kind label
+		rect 12 30 120 20
+		font ui
+		fg ui:15
+		label "Source page number:"
+	end
+	control page-number
+		kind field
+		rect 145 28 100 23
+		sunken
+		prop maxlen 7
+		action article.page-submit "Go to page"
+	end
+	control go
+		kind button
+		rect 260 28 80 23
+		font ui
+		label "Go"
+		action article.page-submit "Go to Page"
+	end
+end
+screen article-media-menu
+	size 360 120
+	origin 200 100
+	over *
+	ground ui:15
+	prop window-title Media
+	prop room main
+	uses article-caption-bar
+	control menu-ground
+		kind panel
+		rect 1 16 358 103
+		bg ui:31
+	end
+	control caption
+		kind button
+		rect 12 28 100 24
+		font ui
+		label "Caption"
+		action article.caption "Caption"
+	end
+	control original
+		kind button
+		rect 124 28 100 24
+		font ui
+		label "Open"
+		action article.media-open "Open"
+	end
+	control expand
+		kind button
+		rect 236 28 100 24
+		font ui
+		label "Expand"
+		action article.enlarge "Expand"
+	end
+	control copy-media
+		kind button
+		rect 12 70 212 24
+		font ui
+		label "Copy Image and Caption"
+		action article.copy-media "Copy Image and Caption"
+	end
+	control factbox
+		kind button
+		rect 236 70 100 24
+		font ui
+		label "Fact Box"
+		action article.factbox "Fact Box"
+	end
+end

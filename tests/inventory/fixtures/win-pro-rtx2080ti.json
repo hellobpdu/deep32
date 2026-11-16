@@ -1,0 +1,165 @@
+{
+ "name": "win-pro-rtx2080ti",
+ "about": "Windows 11 Pro, i5-10600K, 48 GB, RTX 2080 Ti 11 GB, Hyper-V and WSL2, two Deep32 ports busy",
+ "facts": {
+  "os": {
+   "family": "windows",
+   "name": "Windows 11 Pro",
+   "edition": "pro",
+   "version": "24H2",
+   "build": 26100,
+   "arch": "x64",
+   "wsl_guest": false
+  },
+  "hw": {
+   "vendor": "ASRock",
+   "model": "Z490 Steel Legend",
+   "virtual": false
+  },
+  "cpu": {
+   "vendor": "intel",
+   "model": "Intel(R) Core(TM) i5-10600K CPU @ 4.10GHz",
+   "family": 6,
+   "model_id": 165,
+   "stepping": 5,
+   "gen": null,
+   "sockets": 1,
+   "cores": 6,
+   "threads": 12,
+   "p_cores": null,
+   "e_cores": 0,
+   "p_threads": null,
+   "avx": true,
+   "avx2": true,
+   "avx512f": false
+  },
+  "mem": {
+   "total_gb": 47.9,
+   "installed_gb": 48,
+   "free_gb": 21.6
+  },
+  "disks": [
+   {
+    "mount": "C:",
+    "size_gb": 476.3,
+    "free_gb": 61.4,
+    "ssd": true
+   },
+   {
+    "mount": "D:",
+    "size_gb": 1863.0,
+    "free_gb": 142.7,
+    "ssd": true
+   }
+  ],
+  "gpus": [
+   {
+    "name": "NVIDIA GeForce RTX 2080 Ti",
+    "vendor": "nvidia",
+    "mem_gb": 11.0,
+    "driver": "566.36",
+    "cc": "7.5"
+   }
+  ],
+  "virt": {
+   "firmware": true,
+   "slat": true,
+   "iommu": null,
+   "hypervisor": true
+  },
+  "hyp": {
+   "hyperv": true,
+   "kvm": false,
+   "proxmox": false,
+   "virtualbox": false,
+   "vmware": false,
+   "libvirt": false
+  },
+  "wsl": {
+   "present": true,
+   "wsl2_distros": 1
+  },
+  "docker": {
+   "present": false,
+   "client": null,
+   "nvidia": null
+  },
+  "tools": {
+   "tailscale": "1.76.6",
+   "claude": "2.1.0",
+   "codex": "0.58.0",
+   "gh": false
+  },
+  "ports": {
+   "checked": true,
+   "busy": [
+    7452,
+    8082
+   ]
+  },
+  "net": null
+ },
+ "reasoning": [
+  "Classes: the i5-10600K has AVX2, so modern (Workstation yes, Forge yes). 'nvidia geforce rtx 2080 ti' matches 'geforce rtx 20[6-8]0': rtx20 (Forge yes, upstream experimental), usable; 11 GB is memory tier 11 (10.5 or more).",
+  "Sizing: 12 threads (no efficient cores) and 48 GB installed: tier 2 (12 threads, 32 GB; tier 3 needs 16 threads and 64 GB). After the host keeps 2 threads and 4 GB: 10 threads, 44 GB.",
+  "Candidates (Windows Pro, x64): win-nvidia, two-machines, headend-only. no-gpu does not match because the card is usable; win-home (edition), virtualbox and vmware (not installed), baremetal (no known model) and esxi do not match.",
+  "win-nvidia (machines 1): changes. Missing disk-both (most free space 142.7 GB < 160), ports-relay (7452 busy), ports-forge (8082 busy); agent met (Claude Code), Tailscale present. Size 'both': threads (6, 4) fit 10, memory (16, 16) fit 44.",
+  "two-machines (machines 2, an alternative): ready. cpu-supported and one-side met; second-machine cannot be checked, so it is listed in confirm; Tailscale present. Size 'each': Workstation (6, 16) from tier 2, Forge (4, 16) from tier 2.",
+  "headend-only (machines 2, an alternative): ready. Claude Code present (agent met), Tailscale present. No size.",
+  "Order (single machine first, matrix 0.3.0; before, it was two-machines, headend-only, win-nvidia): the one-machine win-nvidia can run here (it needs changes, no hardware), so it comes first whatever its fit; then the alternatives, both ready, by rank: two-machines 40, headend-only 90.",
+  "Warnings: gpu-upstream-experimental (Forge yes, upstream experimental) and ports-busy (2 busy)."
+ ],
+ "expect": {
+  "best": "win-nvidia",
+  "fit": "changes",
+  "ranked": [
+   "win-nvidia",
+   "two-machines",
+   "headend-only"
+  ],
+  "best_missing": [
+   "disk-both",
+   "ports-relay",
+   "ports-forge"
+  ],
+  "best_unknown": [],
+  "best_auto": [],
+  "best_confirm": [],
+  "cpu_class": "modern",
+  "gpu_class": "rtx20",
+  "gpu_forge": "yes",
+  "gpu_mem_tier": "11",
+  "tier": 2,
+  "sizes": {
+   "win-nvidia": {
+    "ws": [
+     6,
+     16
+    ],
+    "forge": [
+     4,
+     16
+    ]
+   },
+   "two-machines": {
+    "ws": [
+     6,
+     16
+    ],
+    "forge": [
+     4,
+     16
+    ]
+   },
+   "headend-only": {
+    "ws": null,
+    "forge": null
+   }
+  },
+  "ruled_out": [],
+  "warnings": [
+   "gpu-upstream-experimental",
+   "ports-busy"
+  ]
+ }
+}

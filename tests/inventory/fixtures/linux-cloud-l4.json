@@ -1,0 +1,155 @@
+{
+ "name": "linux-cloud-l4",
+ "about": "A cloud VM: Ubuntu 24.04, 16 vCPU, 64 GB, NVIDIA L4, Docker with the toolkit, 250 GB free, no KVM (nested virtualisation is up to the provider)",
+ "facts": {
+  "os": {
+   "family": "linux",
+   "name": "Ubuntu 24.04.1 LTS",
+   "edition": "ubuntu",
+   "version": "24.04",
+   "build": null,
+   "arch": "x64",
+   "wsl_guest": false,
+   "kernel": null
+  },
+  "hw": {
+   "vendor": "Google",
+   "model": "Google Compute Engine",
+   "virtual": true
+  },
+  "cpu": {
+   "vendor": "intel",
+   "model": "Intel(R) Xeon(R) CPU @ 2.20GHz",
+   "family": null,
+   "model_id": null,
+   "stepping": null,
+   "gen": null,
+   "sockets": 1,
+   "cores": 8,
+   "threads": 16,
+   "p_cores": null,
+   "e_cores": 0,
+   "p_threads": null,
+   "avx": true,
+   "avx2": true,
+   "avx512f": true
+  },
+  "mem": {
+   "total_gb": 62.8,
+   "installed_gb": null,
+   "free_gb": 50.0
+  },
+  "disks": [
+   {
+    "mount": "/",
+    "size_gb": 290.0,
+    "free_gb": 250.0,
+    "ssd": null
+   }
+  ],
+  "gpus": [
+   {
+    "name": "NVIDIA L4",
+    "vendor": "nvidia",
+    "mem_gb": 22.5,
+    "driver": "550.90.07",
+    "cc": "8.9"
+   }
+  ],
+  "virt": {
+   "firmware": null,
+   "slat": null,
+   "iommu": null,
+   "hypervisor": true
+  },
+  "hyp": {
+   "hyperv": false,
+   "kvm": false,
+   "proxmox": false,
+   "virtualbox": false,
+   "vmware": false,
+   "libvirt": false
+  },
+  "wsl": null,
+  "docker": {
+   "present": true,
+   "client": "27.3.1",
+   "nvidia": true
+  },
+  "tools": {
+   "tailscale": "1.76.6",
+   "claude": false,
+   "codex": false,
+   "gh": false
+  },
+  "ports": {
+   "checked": true,
+   "busy": []
+  },
+  "net": null
+ },
+ "reasoning": [
+  "Purpose: a profile missing KVM, which may be impossible on a cloud VM, must not outrank a profile that is ready. Under the old rule (rank first) linux-nvidia was best here.",
+  "Classes: the Xeon has AVX2: modern. 'nvidia l4' matches '(^|nvidia )l4($| )': ada-dc (Forge experimental, upstream stable), usable; 22.5 GB is tier 11.",
+  "Sizing: 16 threads; 62.8 GB visible, half rounded up (32) doubled: 64 GB; tier 3 (16 threads, 64 GB). After the host: 14 threads, 60 GB.",
+  "Candidates: linux-nvidia, two-machines, headless, headend-only (no-gpu: the card is usable).",
+  "linux-nvidia: changes. Missing kvm; virt-slat and virt-firmware unknown; headend-elsewhere in confirm. Size 'both': threads (8, 8) = 16 > 14, (8, 6) fit; memory (16, 32) fit 60: Workstation (8, 16), Forge (6, 32).",
+  "two-machines: ready. Size (8, 16) and Forge (8, 32).",
+  "headless: ready. Driver, Docker, toolkit, disk (250 >= 100), ports, Tailscale all met. Size 'forge': (8, 32).",
+  "headend-only: changes (agent missing).",
+  "Order (single machine first, matrix 0.3.0; before, it was two-machines, headless, linux-nvidia): the one-machine profiles first, by fit: ready headless (rank 50), then changes linux-nvidia (rank 10): within the group fit still comes before rank, so the profile missing KVM stays behind the ready one. Then the alternatives (machines 2): ready two-machines (third), changes headend-only (fourth, not shown).",
+  "Warnings: gpu-experimental, is-vm."
+ ],
+ "expect": {
+  "best": "headless",
+  "fit": "ready",
+  "ranked": [
+   "headless",
+   "linux-nvidia",
+   "two-machines"
+  ],
+  "best_missing": [],
+  "best_unknown": [],
+  "best_auto": [],
+  "best_confirm": [],
+  "cpu_class": "modern",
+  "gpu_class": "ada-dc",
+  "gpu_forge": "experimental",
+  "gpu_mem_tier": "11",
+  "tier": 3,
+  "sizes": {
+   "headless": {
+    "ws": null,
+    "forge": [
+     8,
+     32
+    ]
+   },
+   "linux-nvidia": {
+    "ws": [
+     8,
+     16
+    ],
+    "forge": [
+     6,
+     32
+    ]
+   },
+   "two-machines": {
+    "ws": [
+     8,
+     16
+    ],
+    "forge": [
+     8,
+     32
+    ]
+   }
+  },
+  "ruled_out": [],
+  "warnings": [
+   "gpu-experimental",
+   "is-vm"
+  ]
+ }
+}

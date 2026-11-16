@@ -1,0 +1,158 @@
+#!/usr/local/dt/bin/dtksh
+# /usr/local/d32/libexec/d32-import-report: Deep32 Import Report, the window that shows the import of disc 2.
+# It reads the importer's report (/var/db/d32/import/report.json, root:_d32users 0440; the import report contract),
+# through d32-uijson, which checks it and turns it into finished lines from the strings table. It changes nothing;
+# Try Again opens a small Terminal that asks for the user's password and carries the import on.
+#   d32-import-report            the window
+#   d32-import-report -text      the same lines once, as text, for a terminal
+# Laid out as the Style Manager dialogs and Desktop Look are: framed groups, a separator, one row of equal buttons.
+PATH=/usr/local/dt/bin:/usr/X11R6/bin:/usr/bin:/bin:/usr/local/bin
+R=${D32_ROOT:-}
+LIB=$R/usr/local/d32/libexec/d32-ui-lib.sh
+UIJSON=$R/usr/local/d32/libexec/d32-uijson
+REPORT=${D32_IMPORT_REPORT:-$R/var/db/d32/import/report.json}
+AGAIN=$R/usr/local/d32/libexec/d32-import-again
+. "$LIB" || exit 2
+TAB='	'
+
+lines() { "$UIJSON" report "$REPORT" 2>/dev/null; }
+
+if [ "${1:-}" = -text ] || [ -z "${DISPLAY:-}" ]; then
+	lines | while IFS='|' read -r k a b c d; do
+		case $k in
+		step)	printf '  %-8s %s\n' "$a" "$b" ;;
+		unit)	printf '  %-46s %9s  %s\n' "$a" "$b" "$c" ;;
+		live|pct|again) ;;
+		*)	print -r -- "$a" ;;
+		esac
+	done
+	exit 0
+fi
+
+. /usr/local/dt/lib/dtksh/DtFuncs.dtsh
+
+pad() { typeset s="$1"; while [ ${#s} -lt $2 ]; do s="$s "; done; print -r -- "$s"; }
+say() { d32ui_fmt "$@"; print -r -- "$D32UI_T"; }
+
+POLL=2000
+refresh() {
+	typeset out k a b c d n=0 problems=0 hint=" " note=" " live=no again=no err=""
+	out=$(lines)
+	XmListDeleteAllItems $UNITS
+	XmListDeleteAllItems $PROBS
+	while IFS='|' read -r k a b c d; do
+		case $k in
+		live)	live=$a ;;
+		error)	err=$a ;;
+		version) XtSetValues $VERSION labelString:"$a" ;;
+		sig)	XtSetValues $SIG labelString:"$a" ;;
+		state)	XtSetValues $STATE labelString:"$a" ;;
+		times)	XtSetValues $TIMES labelString:"$a" ;;
+		attempt) XtSetValues $ATTEMPT labelString:"$a"; XtManageChild $ATTEMPT ;;
+		pct)	XtSetValues $SCALE value:$a ;;
+		progress) XtSetValues $PROG labelString:"$a" ;;
+		kb)	XtSetValues $KB labelString:"$a" ;;
+		meaning) XtSetValues $MEANING labelString:"$a" ;;
+		note)	note=$a ;;
+		step)	if [ $n -lt 10 ]; then
+				eval "XtSetValues \$STEP$n labelString:\"\$(pad \"\$a\" 9)\$b\""
+				if [ "$d" = current ]; then eval "XtSetValues \$STEP$n fontList:\"\$BOLD\""
+				else eval "XtSetValues \$STEP$n fontList:\"\$MONO\""; fi
+			fi
+			n=$((n + 1)) ;;
+		unit)	XmListAddItemUnselected $UNITS "$(pad "$a" 46) $(pad "$b" 8)  $c" 0 ;;
+		problem) XmListAddItemUnselected $PROBS "$a" 0 ;;
+		hint)	hint=$a ;;
+		again)	again=$a ;;
+		esac
+	done <<-EOF
+	$out
+	EOF
+	if [ -n "$err" ]; then
+		XtSetValues $STATE labelString:"$err"
+		live=yes
+	fi
+	XtSetValues $HINT labelString:"$hint"
+	XtSetValues $NOTE labelString:"$note"
+	if [ "$again" = yes ]; then XtSetSensitive $AGAINB true; else XtSetSensitive $AGAINB false; fi
+	if [ "$live" = yes ]; then POLL=2000; else POLL=10000; fi
+	XtAddTimeOut TID $POLL refresh
+}
+again_cb() {
+	XtSetSensitive $AGAINB false
+	dtterm -sl 0 -title "$(say again.title)" -geometry 80x12 -e "$AGAIN" &
+}
+close_cb() { exit 0; }
+help_cb() { DtkshDisplayInformationDialog "$(say report.help.title)" "" "$(say report.help)"; }
+
+XtInitialize TOP d32ImportReport D32ImportReport "$@"
+XtSetValues $TOP title:"$(say app.import.title)" iconName:"$(say app.import.icon)" allowShellResize:true
+MONO="-dt-interface user-medium-r-normal-m*-*-*-*-*-*-*-iso8859-1"
+BOLD="-dt-interface user-bold-r-normal-m*-*-*-*-*-*-*-iso8859-1"
+XtCreateManagedWidget FORM form XmForm $TOP horizontalSpacing:10 verticalSpacing:10 marginWidth:10 marginHeight:10
+
+# Disc 2: version, signature, state, times, progress
+XtCreateManagedWidget DFRAME dframe XmFrame $FORM topAttachment:ATTACH_FORM leftAttachment:ATTACH_FORM \
+	rightAttachment:ATTACH_FORM
+XtCreateManagedWidget DTITLE dtitle XmLabel $DFRAME childType:FRAME_TITLE_CHILD labelString:"$(say report.frame.disc)"
+XtCreateManagedWidget DRC disc XmRowColumn $DFRAME orientation:VERTICAL marginWidth:10 marginHeight:8 spacing:4
+for w in VERSION SIG STATE TIMES; do
+	XtCreateManagedWidget $w $(print -r -- $w | tr A-Z a-z) XmLabel $DRC alignment:ALIGNMENT_BEGINNING labelString:" "
+done
+XtCreateWidget ATTEMPT attempt XmLabel $DRC alignment:ALIGNMENT_BEGINNING labelString:" "
+XtCreateManagedWidget SCALE progressBar XmScale $DRC orientation:HORIZONTAL minimum:0 maximum:100 value:0 \
+	showValue:false editable:false sensitive:true scaleWidth:400
+for w in PROG KB MEANING NOTE; do
+	XtCreateManagedWidget $w $(print -r -- $w | tr A-Z a-z) XmLabel $DRC alignment:ALIGNMENT_BEGINNING labelString:" "
+done
+
+# Steps (left) and what is installed (right)
+XtCreateManagedWidget SFRAME sframe XmFrame $FORM topAttachment:ATTACH_WIDGET topWidget:$DFRAME \
+	leftAttachment:ATTACH_FORM
+XtCreateManagedWidget STITLE stitle XmLabel $SFRAME childType:FRAME_TITLE_CHILD labelString:"$(say report.frame.steps)"
+XtCreateManagedWidget SRC steps XmRowColumn $SFRAME orientation:VERTICAL marginWidth:10 marginHeight:8 spacing:2
+i=0
+while [ $i -lt 10 ]; do
+	XtCreateManagedWidget W step$i XmLabel $SRC alignment:ALIGNMENT_BEGINNING labelString:" " fontList:"$MONO"
+	eval STEP$i=\$W
+	i=$((i + 1))
+done
+XtCreateManagedWidget UFRAME uframe XmFrame $FORM topAttachment:ATTACH_WIDGET topWidget:$DFRAME \
+	leftAttachment:ATTACH_WIDGET leftWidget:$SFRAME rightAttachment:ATTACH_FORM
+XtSetValues $SFRAME bottomAttachment:ATTACH_OPPOSITE_WIDGET bottomWidget:$UFRAME
+XtCreateManagedWidget UTITLE utitle XmLabel $UFRAME childType:FRAME_TITLE_CHILD labelString:"$(say report.frame.units)"
+XmCreateScrolledList UNITS $UFRAME units visibleItemCount:10 fontList:"$MONO" selectionPolicy:BROWSE_SELECT \
+	scrollBarDisplayPolicy:AS_NEEDED
+XtManageChild $UNITS
+
+# Problems and what to do
+XtCreateManagedWidget PFRAME pframe XmFrame $FORM topAttachment:ATTACH_WIDGET topWidget:$SFRAME \
+	leftAttachment:ATTACH_FORM rightAttachment:ATTACH_FORM
+XtCreateManagedWidget PTITLE ptitle XmLabel $PFRAME childType:FRAME_TITLE_CHILD labelString:"$(say report.frame.problems)"
+XtCreateManagedWidget PRC problems XmRowColumn $PFRAME orientation:VERTICAL marginWidth:10 marginHeight:8 spacing:4
+XmCreateScrolledList PROBS $PRC problemList visibleItemCount:3 selectionPolicy:BROWSE_SELECT \
+	scrollBarDisplayPolicy:AS_NEEDED
+XtManageChild $PROBS
+XtCreateManagedWidget HINT hint XmLabel $PRC alignment:ALIGNMENT_BEGINNING labelString:" "
+
+XtCreateManagedWidget SEP sep XmSeparator $FORM topAttachment:ATTACH_WIDGET topWidget:$PFRAME \
+	leftAttachment:ATTACH_FORM rightAttachment:ATTACH_FORM
+XtCreateManagedWidget BUTTONS buttons XmForm $FORM fractionBase:32 topAttachment:ATTACH_WIDGET topWidget:$SEP \
+	leftAttachment:ATTACH_FORM rightAttachment:ATTACH_FORM bottomAttachment:ATTACH_FORM
+n=0
+for b in btn.close btn.again btn.help; do
+	XtCreateManagedWidget B b$n XmPushButton $BUTTONS labelString:"$(say $b)" topAttachment:ATTACH_FORM \
+		bottomAttachment:ATTACH_FORM leftAttachment:ATTACH_POSITION leftPosition:$((1 + n * 11)) \
+		rightAttachment:ATTACH_POSITION rightPosition:$((10 + n * 11))
+	case $b in
+	btn.close) XtAddCallback $B activateCallback close_cb; CLOSEB=$B ;;
+	btn.again) XtAddCallback $B activateCallback again_cb; AGAINB=$B ;;
+	btn.help)  XtAddCallback $B activateCallback help_cb ;;
+	esac
+	n=$((n + 1))
+done
+XtSetValues $FORM defaultButton:$CLOSEB
+XtSetSensitive $AGAINB false
+refresh
+XtRealizeWidget $TOP
+XtMainLoop

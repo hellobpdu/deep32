@@ -1,0 +1,75 @@
+d32scr 1
+# Deep32 Library: dialog boxes in the period design's own dialog style (the Settings dialog, 256-colour capture 63): a captioned
+# window with a black 1-px frame, the 15-px caption in entry 27 with the marker and spaced capitals in white, "Close"
+# in entry 31 after a 1-px entry-7 bar; the body in entry 28 with its lettering in entry 31; a right-hand column in
+# entry 12 holding the text buttons (OK: record 10071, face 28, label 14, frame 13).
+# Work-area coordinates; "over *": the box lies over whichever full screen is in front.
+
+block dlgcaption
+	control cap
+		kind bar
+		rect 1 1 358 15                       # [m256] as the Settings and Find Wizard captions: rows 1-15, entry 27
+		bg ui:27
+		source notice-title
+		upper
+		tracking 3
+		text-y 12
+		font ui
+		fg ui:0
+		marker
+		text-x 17
+	end
+	control close-bar
+		kind panel
+		rect 322 4 1 9                        # [m256] 36 px from the right edge, as the Find Wizard's and Pinpointer's
+		bg ui:7
+	end
+	control close
+		kind label
+		rect 323 3 33 11
+		bg ui:27
+		fg ui:31
+		label @6003                           # [d] "Close"
+		font ui10
+		align centre
+		text-y 9
+		action close
+		key Escape
+	end
+end
+
+# "coming in a later build": the rooms a menu names that Deep32 Library has not built yet (Atlas, Media Gallery,
+# Timeline, the Tools, Help, Settings, About, Printer Setup) and catalogue titles whose text is not imported yet
+screen notice
+	size 360 140                              # [i] a small box of the Settings dialog's kind (its own is 525x260)
+	origin 140 150                            # [i] centred on the work area
+	over *
+	ground ui:15                              # the black frame
+	uses dlgcaption
+	control body
+		kind panel
+		rect 1 16 260 123
+		bg ui:28                              # [m256] the Settings dialog's ground
+	end
+	control column
+		kind panel
+		rect 261 16 98 123
+		bg ui:12                              # [m256] its right-hand column (capture256 63: x 469-597)
+	end
+	control text
+		kind label
+		rect 16 34 232 90
+		source notice-text
+		font ui
+		fg ui:31                              # [m256] the Settings dialog's lettering
+		align left
+	end
+	control ok
+		kind button
+		record 10071                          # [d] "OK": face 28, label 14, idle frame 13 (capture256 63, 72x21)
+		rect 274 36 72 21                     # [m256] 13 px into the column, 20 px under the caption, as Settings' OK
+		font ui
+		action close
+		key Return
+	end
+end
