@@ -3,6 +3,8 @@ message: "If you use or refer to Deep32, please cite it as below."
 type: software
 license: AGPL-3.0-or-later
 version: 0.1.0-alpha.1
+doi: 10.5281/zenodo.24272647
+date-released: "2026-11-16"
 title: "Deep32: Retrieval-augmented question answering for network and security engineering"
 abstract: >-
   Deep32 answers network and security engineering questions from a local, versioned corpus of RFCs and vendor

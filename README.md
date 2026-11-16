@@ -11,6 +11,7 @@ Answers are built from a local corpus of RFCs and Cisco documentation, and every
 
 <p>
   <a href="#getting-deep32"><img alt="Release: 0.1.0-alpha.1" src="https://img.shields.io/badge/release-0.1.0--alpha.1-9a6700?style=flat-square"></a>
+  <a href="https://doi.org/10.5281/zenodo.24272647"><img alt="DOI 10.5281/zenodo.24272647" src="https://img.shields.io/badge/DOI-10.5281%2Fzenodo.24272647-1682d4?style=flat-square"></a>
   <a href="#mcp-tools"><img alt="Interface: Model Context Protocol" src="https://img.shields.io/badge/interface-Model_Context_Protocol-0969da?style=flat-square"></a>
   <a href="#retrieval-pipeline"><img alt="Retrieval: BM25, dense, rerank" src="https://img.shields.io/badge/retrieval-BM25_%2B_dense_%2B_rerank-1a7f37?style=flat-square"></a>
   <a href="#verifying"><img alt="Signed with OpenPGP" src="https://img.shields.io/badge/signed-OpenPGP-8250df?style=flat-square"></a>
@@ -427,7 +428,7 @@ The larger images exceed GitHub's size limit for a release file and are split in
 - [ ] Code release
 - [x] Signed release images (0.1.0-alpha.1: Workstation; GPU pack and content images to follow)
 - [ ] Bootable GPU installer
-- [ ] Archived releases with a DOI
+- [x] Archived releases with a DOI (Zenodo)
 
 ## Limitations
 
@@ -467,11 +468,12 @@ sha256sum -c SHA256SUMS
   title  = {Deep32: Retrieval-augmented question answering for network and security engineering},
   year   = {2026},
   url    = {https://github.com/hellobpdu/deep32},
+  doi    = {10.5281/zenodo.24272647},
   note   = {Version 0.1.0-alpha.1}
 }
 ```
 
-A DOI will be added with the first archived release.
+Deep32 is archived on Zenodo. [10.5281/zenodo.24272647](https://doi.org/10.5281/zenodo.24272647) always resolves to the latest version; this release, 0.1.0-alpha.1, is [10.5281/zenodo.24272648](https://doi.org/10.5281/zenodo.24272648).
 
 ## License
 
