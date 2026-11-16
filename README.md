@@ -23,7 +23,7 @@ Answers are built from a local corpus of RFCs and Cisco documentation, and every
 </div>
 
 > [!NOTE]
-> To install Deep32, see [Quick start](#quick-start). 0.1.0-alpha.1 is the first public release: the source and the signed Workstation image, with the GPU pack and the content image being added to the same release now. The measurements on this page are from my development setup.
+> To install Deep32, see [Quick start](#quick-start). 0.1.0-alpha.1 is the first public release: the source, the signed Workstation image and the GPU pack, with the content image being added to the same release now. The measurements on this page are from my development setup.
 
 <p align="center">
   <img alt="The Deep32 Workstation desktop. The Ask window shows a cited answer about BGP keepalive and hold timers; a network calculator, a text editor and the desktop style menu are open beside it." src="docs/screenshots/workstation-desktop.png" width="100%">
@@ -444,7 +444,7 @@ Latency on my development setup (same engine and models as 1.0, on the Xeon and 
 
 ## Getting Deep32
 
-0.1.0-alpha.1 is an alpha. The Workstation image is on the release page now. The GPU pack and the content image are still being assembled and will be added to the same release in the next few days; until then the Workstation installs but cannot search.
+0.1.0-alpha.1 is an alpha. The Workstation image and the GPU pack are on the release page now. The content image is still being assembled and will be added to the same release shortly; until then the Workstation installs but cannot search.
 
 The release installs without any of my keys, logins or network settings. It is three images, covered by one signed checksum list.
 
@@ -494,7 +494,7 @@ Run it from a clone of this repository, as in [Quick start](#quick-start): it re
 - [ ] Design document covering the architecture and the verification method
 - [ ] Answer-level evaluation with verification on and off
 - [ ] Code release
-- [x] Signed release images (0.1.0-alpha.1: Workstation; GPU pack and content images to follow)
+- [x] Signed release images (0.1.0-alpha.1: Workstation and GPU pack; content image to follow)
 - [ ] Bootable GPU installer
 - [x] Archived releases with a DOI (Zenodo)
 
