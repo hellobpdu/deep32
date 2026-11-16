@@ -1,0 +1,2 @@
+# <ts_infra>: Tailscale control plane and DERP addresses. Shipped in signed sets by the Tailscale lane (A8);
+# empty until then, so root reaches no control plane (fail closed).

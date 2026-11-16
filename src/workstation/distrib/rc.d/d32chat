@@ -1,0 +1,40 @@
+#!/bin/ksh
+#
+# d32chat: the chat broker behind Encarta 26's Ask room (item 41)
+# Deep32 Workstation rc.d SKELETON (BASE lane, D.32.12). The INTEG/ENCARTA lanes own the broker; BASE keeps the contract below.
+#
+# Contract (rc.subr(8) conventions):
+#  - runs as _d32chat; its login class is "d32chat" (/etc/login.conf.d/d32chat, schg): rc.subr picks the class named
+#    after the script, so limits and fixed environment live there, not in rc.conf.local;
+#  - rc_reload=NO: a configuration change needs a local restart (ISO 3.1 item 8);
+#  - root work (pre-binding sockets with their owner and mode, creating run-time directories) happens in rc_pre or in
+#    the launcher before it drops to _d32chat; the launcher then imports, binds, unveils and pledges, in that order;
+#  - one program to him, separate processes underneath: the Encarta 26 UI has no network; this broker holds no
+#    network either (pf blocks _d32chat): the D32U/1 link runs in the link children as _d32uph/_d32upw. If the
+#    broker becomes their root parent, daemon_user becomes root and the class stays d32chat;
+#  - until the real launcher is installed, a TEST image (marker /etc/d32/standin) runs /usr/local/d32/libexec/d32-standin
+#    in its place, which proves the user, class and rc plumbing and nothing else. Real images never carry the marker
+#    (release/lint.sh refuses it).
+
+daemon="/usr/local/d32/sbin/d32chat-launch"
+daemon_user="_d32chat"
+daemon_flags=""
+daemon_timeout=60
+
+. /etc/rc.d/rc.subr
+
+rc_bg=YES
+rc_reload=NO
+
+_standin=/usr/local/d32/libexec/d32-standin
+if [[ ! -x /usr/local/d32/sbin/d32chat-launch && -f /etc/d32/standin && -x $_standin ]]; then
+	daemon=$_standin
+	daemon_flags=d32chat
+	pexp="/bin/ksh $_standin d32chat"
+fi
+
+rc_pre() {
+	install -d -o root -g wheel -m 0755 /var/run/d32
+}
+
+rc_cmd $1

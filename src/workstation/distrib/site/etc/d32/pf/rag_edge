@@ -1,0 +1,2 @@
+# <rag_edge> (const): production deep32-gateway's tailnet address for REMOTE (FIX-20: its ts.net name goes into
+# /etc/hosts by the pairing verb). Empty: REMOTE is off.

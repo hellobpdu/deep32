@@ -1,0 +1,3 @@
+# <gpu_hub> (const): the paired GPU node's tailnet address, written when the Forge is paired and loaded in
+# the boot window. Empty: GPU_EXT is off. GPU_EXT, dense search and the reranker go there through Tailscale
+# Serve (:443 and :8443), user _d32gpu only.

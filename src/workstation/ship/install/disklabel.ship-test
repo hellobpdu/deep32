@@ -1,0 +1,13 @@
+/		1G
+swap		1G
+/tmp		1G
+/var		2G
+/usr		3G
+/usr/X11R6	1G
+/usr/local	5G
+/home		1G
+/d32/a		5G
+/d32/b		512M
+/d32/var	512M
+/d32/audit	256M
+/d32/libcontent	10G-*

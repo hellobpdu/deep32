@@ -1,0 +1,5 @@
+stty com0 115200
+set tty com0
+echo Deep32/UX D.32.12 First light PREVIEW TEST medium (d32test keys; not for a real machine)
+set timeout 3
+set image /bsd

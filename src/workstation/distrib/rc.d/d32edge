@@ -1,0 +1,39 @@
+#!/bin/ksh
+#
+# d32edge: production deep32-gateway (CPython 3.14) as _d32edge, the RAG_EDGE of First light
+# Deep32 Workstation rc.d SKELETON (BASE lane, D.32.12). PYRAG owns the launcher and replaces this file; BASE keeps the contract below.
+#
+# Contract (rc.subr(8) conventions):
+#  - runs as _d32edge; its login class is "d32edge" (/etc/login.conf.d/d32edge, schg): rc.subr picks the class named
+#    after the script, so limits and fixed environment live there, not in rc.conf.local;
+#  - rc_reload=NO: a configuration change needs a local restart (ISO 3.1 item 8);
+#  - root work (pre-binding sockets with their owner and mode, creating run-time directories) happens in rc_pre or in
+#    the launcher before it drops to _d32edge; the launcher then imports, binds, unveils and pledges, in that order;
+#  - one pre-bound UNIX socket per caller class (FIX-06/FIX-07): edge.sock 0660 root:_d32users,
+#    edge-airgap.sock 0660 root:_d32airc; no TCP listener and no relayd at First light;
+#  - until the real launcher is installed, a TEST image (marker /etc/d32/standin) runs /usr/local/d32/libexec/d32-standin
+#    in its place, which proves the user, class and rc plumbing and nothing else. Real images never carry the marker
+#    (release/lint.sh refuses it).
+
+daemon="/usr/local/d32/sbin/d32edge-launch"
+daemon_user="_d32edge"
+daemon_flags=""
+daemon_timeout=60
+
+. /etc/rc.d/rc.subr
+
+rc_bg=YES
+rc_reload=NO
+
+_standin=/usr/local/d32/libexec/d32-standin
+if [[ ! -x /usr/local/d32/sbin/d32edge-launch && -f /etc/d32/standin && -x $_standin ]]; then
+	daemon=$_standin
+	daemon_flags=d32edge
+	pexp="/bin/ksh $_standin d32edge"
+fi
+
+rc_pre() {
+	install -d -o root -g wheel -m 0755 /var/run/d32
+}
+
+rc_cmd $1

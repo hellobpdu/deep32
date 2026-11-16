@@ -1,0 +1,3 @@
+echo Deep32 Workstation 0.1.0-alpha.1 (alpha). Guided install: it asks for the disk, the passphrases and the passwords.
+set timeout 10
+set image /bsd

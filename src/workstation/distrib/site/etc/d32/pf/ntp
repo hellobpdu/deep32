@@ -1,0 +1,2 @@
+# <ntp> (const): NTP servers by address (ntpd resolves no names), written when the hub is paired. Empty: no
+# network time (the RTC keeps it). No public NTP. Keep in step with /etc/ntpd.conf.
