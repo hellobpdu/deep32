@@ -23,7 +23,7 @@ Answers are built from a local corpus of RFCs and Cisco documentation, and every
 </div>
 
 > [!NOTE]
-> To install Deep32, see [Quick start](#quick-start). 0.1.0-alpha.1 is the first public release: the source and all three signed images, the Workstation, the content image and the GPU pack. The measurements on this page are from my development setup.
+> To install Deep32, see [Quick start](#quick-start). 0.1.0-alpha.1 is the first public release of the source. I have withdrawn its three images while I finish the install; 0.1.0-alpha.2 brings them back with a working setup. The measurements on this page are from my development setup.
 
 <p align="center">
   <img alt="The Deep32 Workstation desktop. The Ask window shows a cited answer about BGP keepalive and hold timers; a network calculator, a text editor and the desktop style menu are open beside it." src="docs/screenshots/workstation-desktop.png" width="100%">
@@ -50,6 +50,9 @@ If you've ever read an RFC, you know that they're constantly being updated and o
 All four can be checked mechanically. The agent starts with no documents and answers only from passages it retrieves, or states that the corpus does not cover the question. Quotations are string-matched against the stored text; no model is involved in that check. Every input to an answer is versioned, from document hashes up to whole index generations, so one build can be compared with the next and rolled back. Retrieval runs on your own hardware. The LLM is the only hosted component.
 
 ## Quick start
+
+> [!NOTE]
+> The alpha.1 images are withdrawn until 0.1.0-alpha.2, so the download commands below have nothing to fetch yet. The steps stay here because alpha.2 keeps the same commands.
 
 Everything runs from a clone of this repository. The download tool checks every disc against the release key in
 `install/`, so use the copy in the clone rather than one downloaded on its own.
@@ -447,7 +450,7 @@ Latency on my development setup (same engine and models as 1.0, on the Xeon and 
 
 ## Getting Deep32
 
-0.1.0-alpha.1 is an alpha. All three images are on the release page.
+0.1.0-alpha.1 is an alpha. I have withdrawn its images until 0.1.0-alpha.2, which brings them back with a working install, hosted permanently.
 
 The release installs without any of my keys, logins or network settings. It is three images, covered by one signed checksum list.
 
