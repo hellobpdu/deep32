@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="226" viewBox="0 0 1000 226" role="img" aria-labelledby="t d">
+<title id="t">Anatomy of one reranked search</title>
+<desc id="d">Approximate timeline of a median reranked search, derived from the medians of separate runs on 2 November 2026: the keyword leg (BM25) takes about 125 ms and the vector leg (query embedding and exact scan) about 122 ms, in parallel; fusion and folding end at about 140 ms; the cross-encoder reranks the top 15 until about 542 ms.</desc>
+<metadata><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description rdf:about=""><dc:title>Anatomy of one reranked search</dc:title><dc:creator>Jeffrey A. Cummings</dc:creator><dc:rights>Copyright (C) 2026 Jeffrey A. Cummings</dc:rights><dc:source>https://github.com/hellobpdu/deep32</dc:source></rdf:Description></rdf:RDF></metadata>
+<style>.s{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans',Helvetica,Arial,sans-serif}.m{font-family:ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,'Liberation Mono',monospace}</style>
+<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 1L9.5 5L0 9z" fill="#59636e"/></marker></defs>
+<text x="24" y="24" class="m" font-size="11.5" font-weight="400" fill="#59636e" letter-spacing="1.6">ANATOMY OF ONE RERANKED SEARCH · MEDIAN</text>
+<line x1="200" y1="44" x2="200" y2="196" stroke="#d1d9e0" stroke-dasharray="2 4"/>
+<text x="200" y="214" class="m" font-size="11.5" font-weight="400" fill="#59636e" text-anchor="middle">0 ms</text>
+<line x1="332.1428571428571" y1="44" x2="332.1428571428571" y2="196" stroke="#d1d9e0" stroke-dasharray="2 4"/>
+<text x="332.1428571428571" y="214" class="m" font-size="11.5" font-weight="400" fill="#59636e" text-anchor="middle">100 ms</text>
+<line x1="464.2857142857143" y1="44" x2="464.2857142857143" y2="196" stroke="#d1d9e0" stroke-dasharray="2 4"/>
+<text x="464.2857142857143" y="214" class="m" font-size="11.5" font-weight="400" fill="#59636e" text-anchor="middle">200 ms</text>
+<line x1="596.4285714285714" y1="44" x2="596.4285714285714" y2="196" stroke="#d1d9e0" stroke-dasharray="2 4"/>
+<text x="596.4285714285714" y="214" class="m" font-size="11.5" font-weight="400" fill="#59636e" text-anchor="middle">300 ms</text>
+<line x1="728.5714285714286" y1="44" x2="728.5714285714286" y2="196" stroke="#d1d9e0" stroke-dasharray="2 4"/>
+<text x="728.5714285714286" y="214" class="m" font-size="11.5" font-weight="400" fill="#59636e" text-anchor="middle">400 ms</text>
+<line x1="860.7142857142857" y1="44" x2="860.7142857142857" y2="196" stroke="#d1d9e0" stroke-dasharray="2 4"/>
+<text x="860.7142857142857" y="214" class="m" font-size="11.5" font-weight="400" fill="#59636e" text-anchor="middle">500 ms</text>
+<text x="24" y="69" class="s" font-size="14.5" font-weight="400" fill="#1f2328">Keyword leg</text>
+<rect x="200.0" y="54" width="165.2" height="20" rx="3" fill="#256abf"/>
+<text x="373.17857142857144" y="69" class="s" font-size="12.5" font-weight="400" fill="#59636e">BM25 · FTS5</text>
+<text x="24" y="105" class="s" font-size="14.5" font-weight="400" fill="#1f2328">Vector leg</text>
+<rect x="200.0" y="90" width="161.2" height="20" rx="3" fill="#256abf"/>
+<text x="369.2142857142857" y="105" class="s" font-size="12.5" font-weight="400" fill="#59636e">embed + exact scan</text>
+<text x="24" y="141" class="s" font-size="14.5" font-weight="400" fill="#1f2328">Fuse and fold</text>
+<rect x="365.2" y="126" width="19.8" height="20" rx="3" fill="#86b6ef"/>
+<text x="393" y="141" class="s" font-size="12.5" font-weight="400" fill="#59636e">RRF k=60</text>
+<text x="24" y="177" class="s" font-size="14.5" font-weight="600" fill="#1f2328">Rerank</text>
+<rect x="385.0" y="162" width="531.2" height="20" rx="3" fill="#2a78d6"/>
+<text x="906.2142857142857" y="176.5" class="s" font-size="12.5" font-weight="600" fill="#ffffff" text-anchor="end">cross-encoder · top 15</text>
+<line x1="916.2142857142857" y1="44" x2="916.2142857142857" y2="196" stroke="#1f2328" stroke-width="1.5"/>
+<text x="916.2142857142857" y="40" class="s" font-size="13" font-weight="700" fill="#1f2328" text-anchor="middle">542 ms</text>
+</svg>

@@ -1,54 +1,54 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="422" viewBox="0 0 1000 422" role="img" aria-labelledby="t d">
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="458" viewBox="0 0 1000 458" role="img" aria-labelledby="t d">
 <title id="t">Corpus documents by kind</title>
 <desc id="d">Documents by kind. IETF: 365 RFCs. Cisco, 489: 263 TechNotes, 126 configuration guides, 48 command references, 17 API guides, 15 validated designs, 14 white papers, 3 MIBs, 3 release notes. PowerShell, 241, opt-in: 156 about topics, 40 conceptual articles, 28 cmdlet reference documents, 14 on 7.x differences, 3 other.</desc>
 <metadata><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description rdf:about=""><dc:title>Corpus documents by kind</dc:title><dc:creator>Jeffrey A. Cummings</dc:creator><dc:rights>Copyright (C) 2026 Jeffrey A. Cummings</dc:rights><dc:source>https://github.com/hellobpdu/deep32</dc:source></rdf:Description></rdf:RDF></metadata>
 <style>.s{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans',Helvetica,Arial,sans-serif}.m{font-family:ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,'Liberation Mono',monospace}</style>
 <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 1L9.5 5L0 9z" fill="#59636e"/></marker></defs>
-<text x="24" y="24" class="m" font-size="10.5" font-weight="400" fill="#59636e" letter-spacing="1.6">DOCUMENTS BY KIND</text>
-<text x="976" y="24" class="s" font-size="12" font-weight="400" fill="#59636e" text-anchor="end">1,095 documents (system collection not shown)</text>
-<text x="24" y="60" class="m" font-size="11.5" font-weight="600" fill="#59636e" letter-spacing="1.2">IETF · 365</text>
-<text x="224" y="86" class="s" font-size="13" font-weight="400" fill="#1f2328" text-anchor="end">RFCs</text>
-<path d="M236 76H832Q836 76 836 80V83Q836 87 832 87H236Z" fill="#2a78d6"/>
-<text x="844" y="86" class="s" font-size="13" font-weight="400" fill="#59636e">365</text>
-<text x="24" y="110" class="m" font-size="11.5" font-weight="600" fill="#59636e" letter-spacing="1.2">CISCO · 489</text>
-<text x="224" y="136" class="s" font-size="13" font-weight="400" fill="#1f2328" text-anchor="end">TechNotes</text>
-<path d="M236 126H664.33Q668.33 126 668.33 130V133Q668.33 137 664.33 137H236Z" fill="#2a78d6"/>
-<text x="676.3287671232877" y="136" class="s" font-size="13" font-weight="400" fill="#59636e">263</text>
-<text x="224" y="156" class="s" font-size="13" font-weight="400" fill="#1f2328" text-anchor="end">Configuration guides</text>
-<path d="M236 146H439.12Q443.12 146 443.12 150V153Q443.12 157 439.12 157H236Z" fill="#2a78d6"/>
-<text x="451.1232876712329" y="156" class="s" font-size="13" font-weight="400" fill="#59636e">126</text>
-<text x="224" y="176" class="s" font-size="13" font-weight="400" fill="#1f2328" text-anchor="end">Command references</text>
-<path d="M236 166H310.9Q314.9 166 314.9 170V173Q314.9 177 310.9 177H236Z" fill="#2a78d6"/>
-<text x="322.9041095890411" y="176" class="s" font-size="13" font-weight="400" fill="#59636e">48</text>
-<text x="224" y="196" class="s" font-size="13" font-weight="400" fill="#1f2328" text-anchor="end">API guides</text>
-<path d="M236 186H259.95Q263.95 186 263.95 190V193Q263.95 197 259.95 197H236Z" fill="#2a78d6"/>
-<text x="271.94520547945206" y="196" class="s" font-size="13" font-weight="400" fill="#59636e">17</text>
-<text x="224" y="216" class="s" font-size="13" font-weight="400" fill="#1f2328" text-anchor="end">Validated designs</text>
-<path d="M236 206H256.66Q260.66 206 260.66 210V213Q260.66 217 256.66 217H236Z" fill="#2a78d6"/>
-<text x="268.6575342465753" y="216" class="s" font-size="13" font-weight="400" fill="#59636e">15</text>
-<text x="224" y="236" class="s" font-size="13" font-weight="400" fill="#1f2328" text-anchor="end">White papers</text>
-<path d="M236 226H255.01Q259.01 226 259.01 230V233Q259.01 237 255.01 237H236Z" fill="#2a78d6"/>
-<text x="267.013698630137" y="236" class="s" font-size="13" font-weight="400" fill="#59636e">14</text>
-<text x="224" y="256" class="s" font-size="13" font-weight="400" fill="#1f2328" text-anchor="end">MIBs</text>
-<path d="M236 246H238.47Q240.93 246 240.93 248.46575342465752V254.53424657534248Q240.93 257 238.47 257H236Z" fill="#2a78d6"/>
-<text x="248.93150684931507" y="256" class="s" font-size="13" font-weight="400" fill="#59636e">3</text>
-<text x="224" y="276" class="s" font-size="13" font-weight="400" fill="#1f2328" text-anchor="end">Release notes</text>
-<path d="M236 266H238.47Q240.93 266 240.93 268.4657534246575V274.5342465753425Q240.93 277 238.47 277H236Z" fill="#2a78d6"/>
-<text x="248.93150684931507" y="276" class="s" font-size="13" font-weight="400" fill="#59636e">3</text>
-<text x="24" y="300" class="m" font-size="11.5" font-weight="600" fill="#59636e" letter-spacing="1.2">POWERSHELL (OPT-IN) · 241</text>
-<text x="224" y="326" class="s" font-size="13" font-weight="400" fill="#1f2328" text-anchor="end">about_ topics</text>
-<path d="M236 316H488.44Q492.44 316 492.44 320V323Q492.44 327 488.44 327H236Z" fill="#2a78d6"/>
-<text x="500.43835616438355" y="326" class="s" font-size="13" font-weight="400" fill="#59636e">156</text>
-<text x="224" y="346" class="s" font-size="13" font-weight="400" fill="#1f2328" text-anchor="end">Conceptual articles</text>
-<path d="M236 336H297.75Q301.75 336 301.75 340V343Q301.75 347 297.75 347H236Z" fill="#2a78d6"/>
-<text x="309.75342465753425" y="346" class="s" font-size="13" font-weight="400" fill="#59636e">40</text>
-<text x="224" y="366" class="s" font-size="13" font-weight="400" fill="#1f2328" text-anchor="end">Cmdlet reference</text>
-<path d="M236 356H278.03Q282.03 356 282.03 360V363Q282.03 367 278.03 367H236Z" fill="#2a78d6"/>
-<text x="290.027397260274" y="366" class="s" font-size="13" font-weight="400" fill="#59636e">28</text>
-<text x="224" y="386" class="s" font-size="13" font-weight="400" fill="#1f2328" text-anchor="end">7.x differences</text>
-<path d="M236 376H255.01Q259.01 376 259.01 380V383Q259.01 387 255.01 387H236Z" fill="#2a78d6"/>
-<text x="267.013698630137" y="386" class="s" font-size="13" font-weight="400" fill="#59636e">14</text>
-<text x="224" y="406" class="s" font-size="13" font-weight="400" fill="#1f2328" text-anchor="end">Other</text>
-<path d="M236 396H238.47Q240.93 396 240.93 398.4657534246575V404.5342465753425Q240.93 407 238.47 407H236Z" fill="#2a78d6"/>
-<text x="248.93150684931507" y="406" class="s" font-size="13" font-weight="400" fill="#59636e">3</text>
+<text x="24" y="24" class="m" font-size="11.5" font-weight="400" fill="#59636e" letter-spacing="1.6">DOCUMENTS BY KIND</text>
+<text x="976" y="24" class="s" font-size="13" font-weight="400" fill="#59636e" text-anchor="end">1,095 documents · system collection not shown</text>
+<text x="24" y="62" class="m" font-size="12" font-weight="600" fill="#59636e" letter-spacing="1.2">IETF · 365</text>
+<text x="234" y="90" class="s" font-size="13.5" font-weight="400" fill="#1f2328" text-anchor="end">RFCs</text>
+<path d="M246 79H842Q846 79 846 83V87Q846 91 842 91H246Z" fill="#2a78d6"/>
+<text x="854" y="90" class="s" font-size="13.5" font-weight="400" fill="#59636e">365</text>
+<text x="24" y="116" class="m" font-size="12" font-weight="600" fill="#59636e" letter-spacing="1.2">CISCO · 489</text>
+<text x="234" y="144" class="s" font-size="13.5" font-weight="400" fill="#1f2328" text-anchor="end">TechNotes</text>
+<path d="M246 133H674.33Q678.33 133 678.33 137V141Q678.33 145 674.33 145H246Z" fill="#2a78d6"/>
+<text x="686.3287671232877" y="144" class="s" font-size="13.5" font-weight="400" fill="#59636e">263</text>
+<text x="234" y="166" class="s" font-size="13.5" font-weight="400" fill="#1f2328" text-anchor="end">Configuration guides</text>
+<path d="M246 155H449.12Q453.12 155 453.12 159V163Q453.12 167 449.12 167H246Z" fill="#2a78d6"/>
+<text x="461.1232876712329" y="166" class="s" font-size="13.5" font-weight="400" fill="#59636e">126</text>
+<text x="234" y="188" class="s" font-size="13.5" font-weight="400" fill="#1f2328" text-anchor="end">Command references</text>
+<path d="M246 177H320.9Q324.9 177 324.9 181V185Q324.9 189 320.9 189H246Z" fill="#2a78d6"/>
+<text x="332.9041095890411" y="188" class="s" font-size="13.5" font-weight="400" fill="#59636e">48</text>
+<text x="234" y="210" class="s" font-size="13.5" font-weight="400" fill="#1f2328" text-anchor="end">API guides</text>
+<path d="M246 199H269.95Q273.95 199 273.95 203V207Q273.95 211 269.95 211H246Z" fill="#2a78d6"/>
+<text x="281.94520547945206" y="210" class="s" font-size="13.5" font-weight="400" fill="#59636e">17</text>
+<text x="234" y="232" class="s" font-size="13.5" font-weight="400" fill="#1f2328" text-anchor="end">Validated designs</text>
+<path d="M246 221H266.66Q270.66 221 270.66 225V229Q270.66 233 266.66 233H246Z" fill="#2a78d6"/>
+<text x="278.6575342465753" y="232" class="s" font-size="13.5" font-weight="400" fill="#59636e">15</text>
+<text x="234" y="254" class="s" font-size="13.5" font-weight="400" fill="#1f2328" text-anchor="end">White papers</text>
+<path d="M246 243H265.01Q269.01 243 269.01 247V251Q269.01 255 265.01 255H246Z" fill="#2a78d6"/>
+<text x="277.013698630137" y="254" class="s" font-size="13.5" font-weight="400" fill="#59636e">14</text>
+<text x="234" y="276" class="s" font-size="13.5" font-weight="400" fill="#1f2328" text-anchor="end">MIBs</text>
+<path d="M246 265H248.47Q250.93 265 250.93 267.4657534246575V274.5342465753425Q250.93 277 248.47 277H246Z" fill="#2a78d6"/>
+<text x="258.93150684931504" y="276" class="s" font-size="13.5" font-weight="400" fill="#59636e">3</text>
+<text x="234" y="298" class="s" font-size="13.5" font-weight="400" fill="#1f2328" text-anchor="end">Release notes</text>
+<path d="M246 287H248.47Q250.93 287 250.93 289.4657534246575V296.5342465753425Q250.93 299 248.47 299H246Z" fill="#2a78d6"/>
+<text x="258.93150684931504" y="298" class="s" font-size="13.5" font-weight="400" fill="#59636e">3</text>
+<text x="24" y="324" class="m" font-size="12" font-weight="600" fill="#59636e" letter-spacing="1.2">POWERSHELL (OPT-IN) · 241</text>
+<text x="234" y="352" class="s" font-size="13.5" font-weight="400" fill="#1f2328" text-anchor="end">about_ topics</text>
+<path d="M246 341H498.44Q502.44 341 502.44 345V349Q502.44 353 498.44 353H246Z" fill="#2a78d6"/>
+<text x="510.43835616438355" y="352" class="s" font-size="13.5" font-weight="400" fill="#59636e">156</text>
+<text x="234" y="374" class="s" font-size="13.5" font-weight="400" fill="#1f2328" text-anchor="end">Conceptual articles</text>
+<path d="M246 363H307.75Q311.75 363 311.75 367V371Q311.75 375 307.75 375H246Z" fill="#2a78d6"/>
+<text x="319.75342465753425" y="374" class="s" font-size="13.5" font-weight="400" fill="#59636e">40</text>
+<text x="234" y="396" class="s" font-size="13.5" font-weight="400" fill="#1f2328" text-anchor="end">Cmdlet reference</text>
+<path d="M246 385H288.03Q292.03 385 292.03 389V393Q292.03 397 288.03 397H246Z" fill="#2a78d6"/>
+<text x="300.027397260274" y="396" class="s" font-size="13.5" font-weight="400" fill="#59636e">28</text>
+<text x="234" y="418" class="s" font-size="13.5" font-weight="400" fill="#1f2328" text-anchor="end">7.x differences</text>
+<path d="M246 407H265.01Q269.01 407 269.01 411V415Q269.01 419 265.01 419H246Z" fill="#2a78d6"/>
+<text x="277.013698630137" y="418" class="s" font-size="13.5" font-weight="400" fill="#59636e">14</text>
+<text x="234" y="440" class="s" font-size="13.5" font-weight="400" fill="#1f2328" text-anchor="end">Other</text>
+<path d="M246 429H248.47Q250.93 429 250.93 431.4657534246575V438.5342465753425Q250.93 441 248.47 441H246Z" fill="#2a78d6"/>
+<text x="258.93150684931504" y="440" class="s" font-size="13.5" font-weight="400" fill="#59636e">3</text>
 </svg>

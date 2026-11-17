@@ -6,134 +6,187 @@
   <img alt="Deep32" src="docs/figures/banner-light.svg" width="100%">
 </picture>
 
-Retrieval-augmented question answering for network and security engineering.<br>
-Answers are built from a local corpus of RFCs and Cisco documentation, and every quotation is string-matched against the source before use.
-
 <p>
-  <a href="#getting-deep32"><img alt="Release: 0.1.0-alpha.1" src="https://img.shields.io/badge/release-0.1.0--alpha.1-9a6700?style=flat-square"></a>
+  <a href="#11-release-and-verification"><img alt="Release: 0.1.0-alpha.1" src="https://img.shields.io/badge/release-0.1.0--alpha.1-9a6700?style=flat-square"></a>
+  <a href="#license"><img alt="License: AGPL-3.0" src="https://img.shields.io/badge/license-AGPL--3.0-0969da?style=flat-square"></a>
+  <a href="#11-release-and-verification"><img alt="Signed with OpenPGP" src="https://img.shields.io/badge/signed-OpenPGP-8250df?style=flat-square"></a>
+  <a href="#6-tools-and-answer-protocol"><img alt="Interface: Model Context Protocol" src="https://img.shields.io/badge/interface-MCP-0969da?style=flat-square"></a>
+  <a href="#5-retrieval-pipeline"><img alt="Retrieval: BM25, dense, rerank" src="https://img.shields.io/badge/retrieval-BM25_%2B_dense_%2B_rerank-1a7f37?style=flat-square"></a>
+  <br>
   <a href="https://doi.org/10.5281/zenodo.24272647"><img alt="DOI 10.5281/zenodo.24272647" src="https://img.shields.io/badge/DOI-10.5281%2Fzenodo.24272647-1682d4?style=flat-square"></a>
-  <a href="#mcp-tools"><img alt="Interface: Model Context Protocol" src="https://img.shields.io/badge/interface-Model_Context_Protocol-0969da?style=flat-square"></a>
-  <a href="#retrieval-pipeline"><img alt="Retrieval: BM25, dense, rerank" src="https://img.shields.io/badge/retrieval-BM25_%2B_dense_%2B_rerank-1a7f37?style=flat-square"></a>
-  <a href="#verifying"><img alt="Signed with OpenPGP" src="https://img.shields.io/badge/signed-OpenPGP-8250df?style=flat-square"></a>
   <a href="https://orcid.org/0009-0003-8091-4637"><img alt="ORCID 0009-0003-8091-4637" src="https://img.shields.io/badge/ORCID-0009--0003--8091--4637-a6ce39?style=flat-square&amp;logo=orcid&amp;logoColor=white"></a>
 </p>
 
-[Background](#background) · [Quick start](#quick-start) · [Architecture](#architecture) · [Retrieval](#retrieval-pipeline) · [Tools](#mcp-tools) · [Protocol](#answer-protocol) · [Corpus](#corpus) · [Evaluation](#evaluation) · [Hardware](#hardware) · [Getting it](#getting-deep32) · [Limitations](#limitations)
+[Introduction](#1-introduction) · [Deployment](#3-deployment) · [Architecture](#4-architecture) · [Retrieval](#5-retrieval-pipeline) · [Evaluation](#8-evaluation) · [Security](#10-security-considerations) · [References](#references)
 
 </div>
 
-> [!NOTE]
-> To install Deep32, see [Quick start](#quick-start). 0.1.0-alpha.1 is the first public release of the source. I have withdrawn its three images while I finish the install; 0.1.0-alpha.2 brings them back with a working setup. The measurements on this page are from my development setup.
+```text
+Deep32                                                                        J. A. Cummings
+Release: 0.1.0-alpha.1 (source)                                                November 2026
+Category: Experimental                                 Images: withdrawn until 0.1.0-alpha.2
+```
+
+## Abstract
+
+Deep32 answers network and security engineering questions from a local corpus of 365 RFCs and 489 Cisco documents.
+Claude Code or Codex does the research through eleven MCP tools. The tools search the corpus (BM25 and dense
+retrieval, fused and reranked), read whole sections, look up identifiers and RFC status, and string-match quotations
+against the stored text. On 696 labeled questions, a correct passage is ranked first for 665 of them (0.955) and is in
+the top 8 for 690 (0.991). The corpus, the index and the search engine run on your own machines. The language model is
+hosted, so the question, the queries the agent writes and the passages it gets back go to the model provider.
+
+## Status of this release
+
+0.1.0-alpha.1 is the source release. Its three images downloaded and verified, but the install didn't yet join the
+Workstation, the Forge and the agent end to end, so I withdrew them. 0.1.0-alpha.2 brings them back with a working
+install, and the install steps return to this page with it. The numbers on this page come from my development setup,
+which runs the same engine, models and corpus.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/figures/glance-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="docs/figures/glance-light.svg">
+  <img alt="At a glance: hit@1 0.955; hit@8 0.991; 854 documents (365 RFCs, 489 Cisco); 11 MCP tools for Claude Code and Codex; median search 542 ms with hybrid search and reranking." src="docs/figures/glance-light.svg" width="100%">
+</picture>
 
 <p align="center">
   <img alt="The Deep32 Workstation desktop. The Ask window shows a cited answer about BGP keepalive and hold timers; a network calculator, a text editor and the desktop style menu are open beside it." src="docs/screenshots/workstation-desktop.png" width="100%">
 </p>
-<p align="center"><sub>My laptop running the Workstation: Ask answering the BGP timer question, with the network calculator and the desktop menus open. My laptop uses the HP-UX CDE look; the alpha installs the Classic look, a reconstruction. Panels that exist only in my private build are blanked in these screenshots.</sub></p>
+<p align="center"><sub><b>Figure 1.</b> The Workstation on my laptop, in the HP-UX CDE look. Ask is answering the BGP timer question, with the network calculator, a text editor and the desktop style menu open. Panels that exist only in my private build are blanked.</sub></p>
 
-## Background
+## 1. Introduction
 
-If you've studied for any Cisco certification (or at the very least attempted to browse their technical paper repo...) you understand the pain involved in trying to find current information. Yes, as an engineer, you should be able to locate your own sources. I think over the past few years, though, it has become more "get thrown to the wolves" than most professions. Which is fine.....up to a point.
+If you've studied for any Cisco certification (or at the very least attempted to browse their technical paper repo...) you
+understand the pain involved in trying to find current information. Yes, as an engineer, you should be able to locate
+your own sources. I think over the past few years, though, it has become more "get thrown to the wolves" than most
+professions. Which is fine... up to a point.
 
-With the advent of modern generative AI (things like Claude, ChatGPT, etc...) modern engineers have become very comfortable using these services to find answers (R.I.P. Stack Overflow), learn new information, or plan/implement/troubleshoot an active production deployment. Unfortunately, even with the flagship models, the results are moderate at best and at worst downright dangerous (if you've never tried arguing with an engineer that uses generative AI instead of reading documentation, I envy you). That being said...Artificial Intelligence (more specifically, Large Language Models and associated algorithms) can be EXTREMELY useful in research+development, in fields much more complex than network engineering and security.
+With the advent of modern generative AI (things like Claude, ChatGPT, etc.) modern engineers have become very
+comfortable using these services to find answers (R.I.P. Stack Overflow), learn new information, or
+plan/implement/troubleshoot an active production deployment. Unfortunately, even with the flagship models, the results
+are moderate at best and at worst downright dangerous (if you've never tried arguing with an engineer that uses
+generative AI instead of reading documentation, I envy you). That being said... Artificial Intelligence (more
+specifically, Large Language Models and associated algorithms) can be EXTREMELY useful in research and development, in
+fields much more complex than network engineering and security.
 
-So, I got to thinking. What if you had an agentic flagship model (something like Opus or Mythos, or even GPT 6.1 Sol) via your terminal of choice (Claude Code or Codex, for example) and hooked it up to a local RAG system? If you don't know what RAG is...don't worry, I didn't either before last year. It stands for, "Retrieval-Augmented Generation" and is based in a local database of documentation, instead of relying on whatever the model remembers from its training. I began experimenting with this, and a few months (and many iterations later....), we have Deep32. But, what is it about LLMs that makes networking in particular so difficult to understand for them?
+So, I got to thinking. What if you had an agentic flagship model (something like Opus or Mythos, or even GPT 6.1 Sol)
+via your terminal of choice (Claude Code or Codex, for example) and hooked it up to a local RAG system? If you don't
+know what RAG is... don't worry, I didn't either before last year. It stands for "Retrieval-Augmented Generation" and
+is based on a local database of documentation, instead of relying on whatever the model remembers from its training. I
+began experimenting with this, and a few months (and many iterations) later, we have Deep32. But what is it about LLMs
+that makes networking in particular so difficult for them?
 
-If you've ever read an RFC, you know that they're constantly being updated and obsoleted by newer ones (as are most engineering white papers, configuration guides, technical notes...ad nauseam). Networking in particular is a consistently evolving field, and LLMs (simply speaking) have an extremely difficult time catching up. LLMs are (more or less) fluent in understanding the fundamentals of things like routing protocols, but are often wrong on the specifics (the devil is in the details). The answer may originally READ fine and may cite a relevant source, but...eventually you'll notice that a timer or a default is off. Maybe the command syntax in an output doesn't precisely match the version of Cisco IOS XE you're using. With a field as granular as this, it becomes inherently hard to tell what should or should not be done without actually opening the source documentation. Most of the errors I see fall into four groups:
+If you've ever read an RFC, you know that they're constantly being updated and obsoleted by newer ones (as are most
+engineering white papers, configuration guides, technical notes... ad nauseam). Networking in particular is a
+consistently evolving field, and LLMs (simply speaking) have an extremely difficult time catching up. LLMs are (more or
+less) fluent in the fundamentals of things like routing protocols, but are often wrong on the specifics (the devil is in
+the details). The answer may READ fine and may cite a relevant source, but... eventually you'll notice that a timer or a
+default is off. Maybe the command syntax in an output doesn't precisely match the version of Cisco IOS XE you're using.
+With a field as granular as this, it becomes inherently hard to tell what should or should not be done without actually
+opening the source documentation. Most of the errors I see fall into four groups:
 
 | Error | Example | What Deep32 does |
 |---|---|---|
-| Vendor default given as the standard | "BGP hold time is 180 seconds." That is the Cisco default; RFC 4271 suggests 90. | Retrieves RFC text and vendor text as separate sources and compares them |
-| Obsolete RFC cited as current | RFC 1771 quoted for BGP-4 after RFC 4271 replaced it | Looks up status, obsoleted-by and errata for every RFC cited |
-| Command from the wrong release | Syntax from one software train given for another | Each passage carries its platform and release, and a search can prefer or cap a release |
-| Invented quotation | "The RFC states ..." followed by text that is not in the RFC | String-matches every quotation against the source section |
+| Vendor default given as the standard | "BGP hold time is 180 seconds." That is the Cisco default; RFC 4271 suggests 90. | RFC and vendor text come back as separate sources, and the agent compares them |
+| Obsolete RFC cited as current | RFC 1771 quoted for BGP-4 after RFC 4271 replaced it | `lookup_rfc` returns status, obsoleted-by and errata for each RFC cited |
+| Command from the wrong release | Syntax from one software train given for another | Passages are tagged with platform and release, and a search can prefer or cap a release |
+| Invented quotation | "The RFC states ..." followed by text that is not in the RFC | `verify_quote` string-matches the quotation against the source section |
 
-All four can be checked mechanically. The agent starts with no documents and answers only from passages it retrieves, or states that the corpus does not cover the question. Quotations are string-matched against the stored text; no model is involved in that check. Every input to an answer is versioned, from document hashes up to whole index generations, so one build can be compared with the next and rolled back. Retrieval runs on your own hardware. The LLM is the only hosted component.
+Two of these can be checked mechanically. `lookup_rfc` returns an RFC's status, and `verify_quote` matches a quote
+against the stored text with no model involved. The other two depend on the agent. The sources and release tags are
+there, but the agent still has to notice the difference (step 6 in [section 6](#6-tools-and-answer-protocol)). It has
+nothing loaded at the start, answers only from passages it retrieves, and says so when the corpus doesn't cover the
+question. Every document is hashed and every index build is a separate generation, so I can compare one build with the
+next and roll back.
 
-## Quick start
+## 2. Terminology
 
-> [!NOTE]
-> The alpha.1 images are withdrawn until 0.1.0-alpha.2, so the download commands below have nothing to fetch yet. The steps stay here because alpha.2 keeps the same commands.
+- **Workstation**: the machine or VM that holds the index. OpenBSD with the desktop, the search engine and the MCP
+  gateway. Installed from disc 1, with its content from disc 2.
+- **Forge**: the machine with the NVIDIA card. It runs the embedding and reranking models in Docker, and optionally the
+  PDF converter and index builder.
+- **GPU pack**: disc 3, which installs a Forge.
+- **Headend**: the PC where Claude Code or Codex runs, with the Deep32 research skill installed.
+- **Tailnet**: your Tailscale network. All three parts sign in to it with your account.
+- **Pairing**: a one-time short-code exchange between two parts, using SPAKE2 [[RFC9382]](#references).
+- **Generation**: one complete, immutable build of the index. The engine serves one at a time.
 
-Everything runs from a clone of this repository. The download tool checks every disc against the release key in
-`install/`, so use the copy in the clone rather than one downloaded on its own.
+## 3. Deployment
 
-On Linux:
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/figures/topology-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="docs/figures/topology-light.svg">
+  <img alt="Deployment topology: the headend, the Workstation and the Forge on your tailnet. The headend's agent reaches the Workstation's MCP gateway over HTTPS with an agent token; the Workstation calls the Forge's models over HTTPS with a bearer token; the parts are paired once with a short code. Only the hosted language model is outside, and it receives the question and the retrieved passages." src="docs/figures/topology-light.svg" width="100%">
+</picture>
+<p align="center"><sub><b>Figure 2.</b> The three parts of an install. They can all run on one machine or on separate ones.</sub></p>
 
-```sh
-git clone https://github.com/hellobpdu/deep32.git && cd deep32
-./install/deep32-inventory.sh                            # what this machine can run; changes nothing
-./src/release-tools/deep32-get.sh disc1                  # Workstation image
-./src/release-tools/deep32-get.sh disc2                  # content image
-sudo ./src/release-tools/deep32-get.sh disc3 --install   # GPU pack: download, verify, start the containers
-```
+### 3.1 Requirements
 
-On Windows, in PowerShell:
+The install returns with 0.1.0-alpha.2. These are its requirements.
 
-```powershell
-git clone https://github.com/hellobpdu/deep32.git; cd deep32
-powershell -NoProfile -ExecutionPolicy Bypass -File install\deep32-inventory.ps1
-powershell -NoProfile -ExecutionPolicy Bypass -File src\release-tools\deep32-get.ps1 disc1
-powershell -NoProfile -ExecutionPolicy Bypass -File src\release-tools\deep32-get.ps1 disc2
-powershell -NoProfile -ExecutionPolicy Bypass -File src\release-tools\deep32-get.ps1 disc3 --install
-```
-
-`deep32-get` downloads into `deep32-downloads`, resumes an interrupted download, and checks the signature and
-every hash before it joins a disc. If a disc is not on the release yet, it says so and stops. On the GPU machine,
-install Tailscale and sign in to your tailnet before `disc3 --install`: the GPU pack waits for that sign-in and
-never signs in for you. Then write the
-disc 1 image to a USB stick or attach it to a VM and run the guided install, and import disc 2 from the
-Workstation. [INSTALL.md](INSTALL.md) has the details, the install profiles, the known alpha issues and how to
-connect Claude Code or Codex.
-
-What you need:
-
-| Part | Hardware | Software |
+| Part | Minimum | Software |
 |---|---|---|
-| Workstation | 64-bit Intel or AMD with virtualisation, 6 threads, 12 GB of memory, 160 GB free | A hypervisor, or a spare machine to install on |
-| GPU pack | NVIDIA card of compute capability 7.5 or newer (RTX 20 series and later) with 6 GB or more; 4 threads, 16 GB of memory, 100 GB free | NVIDIA driver 580.65.06 or newer; Docker and the NVIDIA Container Toolkit on Linux, or WSL2 on Windows |
-| Both on one machine | 8 threads, 32 GB of memory, the card above, 160 GB free | As above |
-| Agent | Any PC | Claude Code or Codex |
-| Network | Internet access at install | A Tailscale account (the free plan is enough) with MagicDNS and HTTPS certificates turned on. The Workstation brings its own Tailscale; on the GPU machine, install Tailscale and sign in first |
-| Download | About 20 GB for the content image and 62 GB for the GPU pack | Git and GnuPG; on Linux also curl and Python 3 |
+| Workstation | 64-bit Intel or AMD with virtualization, 6 threads, 12 GB of memory, 160 GB of disk | A hypervisor, or a spare machine |
+| Forge | An NVIDIA card of compute capability 7.5 or newer (RTX 20 series and later) with 6 GB, 4 threads, 16 GB of memory | NVIDIA driver 580.65.06 or newer, and Docker with the NVIDIA Container Toolkit (Docker Desktop on Windows) |
+| Both on one machine | 8 threads, 32 GB of memory, the card above | As above |
+| Headend | Any PC | Claude Code or Codex |
+| Network | Internet access during install | Tailscale (the free plan is enough), with MagicDNS and HTTPS certificates turned on |
 
-Without a GPU pack the Workstation still works, but searches on keywords only. Card and layout details are in
-[Hardware](#hardware) and [docs/HARDWARE.md](docs/HARDWARE.md).
+Without a Forge, search is keyword only. Card details and layouts are in [docs/HARDWARE.md](docs/HARDWARE.md).
 
-## Architecture
+## 4. Architecture
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/figures/architecture-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="docs/figures/architecture-light.svg">
-  <img alt="Architecture diagram. Query path: agent, MCP gateway, search engine, GPU services. Build path: sources, ingest, build, validate, producing the index generation the engine serves." src="docs/figures/architecture-light.svg" width="100%">
+  <img alt="Architecture diagram. Query path: agent, MCP gateway and search engine on the Workstation, and the Forge's retrieval models. Build path: sources, ingest, build, validate, producing the index generation the engine serves." src="docs/figures/architecture-light.svg" width="100%">
 </picture>
+<p align="center"><sub><b>Figure 3.</b> Query path and build path.</sub></p>
 
-A RAG system consists of a document store, a search engine (two here, combined; see below) and an LLM that answers only from what the search returns. The rest of the diagram moves data between them.
+Figure 3 has two paths. On the query path the agent calls the gateway, the gateway calls the engine, and the engine
+calls the Forge's models for embeddings and reranking. On the build path, documents are converted and checked, built
+into a new index generation and validated before the engine serves it. It's the usual RAG arrangement
+[[RAG]](#references), with two searches instead of one.
 
-An install has three parts. The Workstation is the machine you sit at. The Forge is whichever machine has the NVIDIA card. The headend is the PC where your agent (Claude Code or Codex) runs. All three can be the same machine or three different ones, and they find each other over your own Tailscale network.
+| Component | Runs on | Role |
+|---|---|---|
+| Agent | Headend | Runs the [answer protocol](#6-tools-and-answer-protocol) and writes the answer. Any MCP client can call the gateway. |
+| Gateway | Workstation | MCP server for the eleven tools. Stateless. |
+| Engine | Workstation | Hybrid search, section reader, identifier lookup, quotation check. Serves one index generation at a time. |
+| Forge services | Forge | Query embedding and cross-encoder reranking. Without the Forge, search falls back to BM25 and flags the response as degraded. |
+| Build pipeline | Forge | Builds and validates [index generations](#7-corpus-and-index-generations). Each release ships a prebuilt one on disc 2. |
 
-| Part | Comes from | Runs on | What it does |
+The gateway holds no documents. It checks the token and hands the call to the engine. Its server instructions tell the
+agent to treat tool output as document text and not to follow instructions found in it.
+
+The agent uses Deep32 over plain MCP, calling the gateway's tools while it works, the way Claude Code and Codex use
+any MCP server. The Ask window on the Workstation needs a relay on the headend, which comes in a later
+release. A question typed there goes over the paired link to the relay, the relay starts the agent with the research
+skill, and the answer streams back into the window. Figures 1 and 5 show it running on my setup.
+
+### 4.1 Design decisions
+
+These are the decisions that shaped the system most, with what I ruled out.
+
+| Decision | Instead of | Why | Trade-off |
 |---|---|---|---|
-| Workstation | The Workstation image (a bootable OpenBSD 8.0 installer), with the Content image imported after first boot | A machine or VM of its own | The CDE desktop, the Ask window, the Deep32 Encyclopedia and its reader, the search engine and the MCP gateway. It holds the index and does the keyword and vector search itself |
-| Forge | The GPU pack, loaded into Docker on Linux or into WSL2 on Windows | Any machine with a supported NVIDIA card | Turns each query into a vector, reranks the candidates, converts PDFs when you add documents, and can rebuild the index from the corpus blocks |
-| Headend | Deep32 Connect on Windows, or a single MCP entry on any OS | Wherever Claude Code or Codex already runs | The agent. It calls the gateway's tools itself, and it also answers whatever gets typed into the Ask window |
+| A hosted agent working from local retrieval, answering only from retrieved passages | Answering from the model's memory, or a local LLM in the query path | None of the four error classes in section 1 can be caught unless the answer is built from stored text. An early review of the system found no place for a local LLM between the question and the search. | The model provider sees the question and the passages |
+| No loss in retrieval quality at any level | Accepting small losses for speed | In research work a better answer is worth a few more seconds. Latency limits stay as tripwires and are relaxed only for a measured gain. | Several measured improvements were turned down because one small topic lost one question |
+| A paired, per-question validation gate with zero net regressions, also within each topic | Comparing averages | Averages hide losses. The new and the current generation answer the same questions, and I count wins and losses one by one, with a sign test and a bootstrap interval. | New passages nobody has judged yet look like losses until they're labeled |
+| Immutable index generations, one served at a time, with automatic rollback | Updating the index in place | I can compare a change with the previous build and undo it with one setting. | Disk space for old generations |
+| Keyword and dense search, merged by rank | One retriever, or normalized scores | BM25 and dense search miss different questions (Figure 4), and their scores aren't on comparable scales. | Two searches per query |
+| Cross-encoder reranking on by default | Fused order only | Most misses already had a correct passage in the top 8, so the order was the problem. Reranking took hit@1 from 0.822 to 0.955. | About 400 ms per search. I set the latency budget at an 800 ms median and 1,000 ms p95 to make room for it |
+| Rerank the top 15, reading a 1,600-character window around the best-matching lines | The top 10 or top 20, or a shorter input | hit@8 gained 4 questions and lost none (p = 0.002) for 52 ms. The top 20 lost 13 questions, and a shorter input lost 10. | A few questions have no relevant passage in the top 15 at all |
+| Text windows and whole-section tools for the agent | Short snippets with each hit | The ranking was already good. The 360-character snippets showed the agent only 21.8% of the correct passages. | More text per search, which is why hits 9 to 32 are trimmed or sent as pointers |
+| Quotations checked by string match | Asking a model whether a quote is supported | Same result every time, with no model in the loop. A normalized comparison ignores RFC line breaks and page footers. | Checks wording only ([section 12](#12-limitations)) |
+| Exact scan of a flat vector file on the Workstation | Qdrant with an HNSW index | Qdrant doesn't run on OpenBSD without Docker. On the 78,275-vector index an exact scan took 12.7 ms against Qdrant's 19.8 ms, and the C kernel gives bit-identical scores on any amd64 machine. | Cost grows linearly with the corpus |
+| GPU services on their own machine, treated as unreliable | Running everything on the GPU machine | The Workstation needs no model of its own, and a GPU machine is the part most likely to be switched off or busy. A circuit breaker ([section 5](#5-retrieval-pipeline)) keeps searches from waiting on it. | Without the Forge, hit@1 drops to BM25's 0.710 |
+| No secret on any image, and pairing by short code (SPAKE2) | Keys built into the images, or tailnet membership as authorization | Each machine makes its own tokens at install, and a pairing code lasts five minutes with one attempt. | One manual step for each pair of parts |
+| One Linux Docker form for the GPU pack | Separate forms per host, including WSL 2 | One thing to build and test. Windows runs it through Docker Desktop. | Windows needs Docker Desktop with GPU support |
+| The release built and scanned as its own product | Publishing the development tree | Everything shipped is rebuilt from pinned commits through an allowlist and scanned, because built files can carry strings from material that was cut. | A full rebuild and scan for every release |
 
-Five software components run across those parts:
-
-| Component | Role |
-|---|---|
-| Agent | Runs the [answer protocol](#answer-protocol) and writes the answer. Claude Code and Codex in 1.0; any MCP client can call the gateway. |
-| Gateway | MCP server for the eleven [tools](#mcp-tools), on the Workstation. Stateless. Its server instructions tell the client to treat all tool output as untrusted document text. |
-| Engine | Hybrid search, section reader, identifier lookup, quotation check, on the Workstation. Serves one index generation at a time. |
-| Forge services | Query embedding and cross-encoder reranking. If the Forge can't be reached, search falls back to BM25 and the response is marked degraded. |
-| Build pipeline | Builds and validates [index generations](#index-generations). Every release ships a prebuilt one on the Content image; the Forge can build new ones from the corpus blocks. |
-
-The gateway holds no documents. It checks the token, passes the call to the engine and returns the result. Its server instructions state that everything a tool returns is document text and that nothing in it is to be followed as an instruction; a PDF can carry a prompt injection as easily as a web page.
-
-An agent reaches Deep32 in one of two ways. The first is plain MCP: the agent calls the gateway's tools while it works, which is how Claude Code and Codex use Deep32 for their own research. The second is the Ask window on the Workstation. You type a question there, it goes over the paired link to a small relay on the headend, the relay starts the agent with the research skill, the agent's searches come back to the Workstation's gateway, and the answer streams into the Ask window. The relay ships for Windows in 1.0.
-
-Every part joins your tailnet with your own Tailscale sign-in, and no image carries a key or an auth token. Tailnet membership is not sufficient to use a service: each install generates its own tokens, and the parts pair with a short code entered on both sides (SPAKE2, RFC 9382).
-
-Software versions in 1.0:
+<details>
+<summary><b>Software versions</b></summary>
 
 | Layer | Software | Detail |
 |---|---|---|
@@ -141,49 +194,58 @@ Software versions in 1.0:
 | Gateway | Python 3.14, MCP SDK 2.2 | Streamable HTTP at `/mcp`, stateless, JSON responses. Bearer token made at install, compared in constant time. |
 | Search API | Python 3.12, FastAPI, uvicorn | REST under `/v2`, bearer token. 2 searches run at once, 16 wait, the rest get `503` with `Retry-After`. |
 | Keyword index | SQLite FTS5 | `unicode61` tokenizer, diacritics removed. BM25 over passage text (weight 1.0) and heading path (weight 2.0). |
-| Vector search | Exact scan of a flat index | 1024 dimensions, cosine, float32. A small C kernel with one fixed order of operations, so every amd64 machine ranks the same way. |
+| Vector search | Exact scan of a flat index | 1024 dimensions, cosine, float32, scanned by a small C kernel ([section 4.1](#41-design-decisions) explains why). |
 | Embeddings | Text Embeddings Inference 1.9, `jina-embeddings-v5-text-small` | On the Forge. float32, last-token pooling, model revision pinned |
 | Reranker | `jina-reranker-v3.5` | On the Forge. Cross-encoder, model revision pinned |
-| PDF converter | MinerU 4.0.7 and PyMuPDF | On the Forge, under AGPL-3.0, source included |
-| Network | Tailscale | Your own tailnet, HTTPS between parts |
+| PDF converter | MinerU 4.0.7 and PyMuPDF | On the Forge, under AGPL-3.0 with source included |
+| Network | Tailscale | Your tailnet, HTTPS between parts |
 
-## Retrieval pipeline
+</details>
+
+## 5. Retrieval pipeline
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/figures/pipeline-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="docs/figures/pipeline-light.svg">
   <img alt="Retrieval pipeline diagram. Queries go to BM25 and dense search in parallel; results are fused, the top 15 are reranked, identical passages are folded, and 32 hits are returned in three tiers." src="docs/figures/pipeline-light.svg" width="100%">
 </picture>
+<p align="center"><sub><b>Figure 4.</b> One search, from queries to the delivered 32-hit result, with hit@1 after each stage.</sub></p>
 
-Two searches run because their failure modes are complementary. BM25 is keyword matching: given `timers bgp` or "RFC 4271" it finds the exact string, and given a problem described in other words it misses passages that phrase it differently. Dense search embeds text as vectors and matches on meaning, so a loosely worded question still reaches the right section, but it can rank an exact identifier match low. I run both and merge the results. On my test set, BM25 alone ranks a correct passage first 71% of the time, dense alone 78%, and the merged list 82%.
+I run two searches on every query, BM25 and dense, because they miss different questions. BM25
+[[BM25]](#references) is keyword matching. Give it `timers bgp` or "RFC 4271" and it finds the exact string, but
+describe a problem in your own words and it won't find a passage that uses different ones. Dense search turns text into
+vectors and compares meaning, so a loosely worded question still gets to the right section. It's weaker on exact
+identifiers and sometimes ranks the exact match low. On my test set, hit@1 is 0.710 with BM25 alone, 0.783 with dense
+alone and 0.822 with the two merged.
 
-The merge is reciprocal rank fusion. A passage scores 1/(60 + rank) in each list it appears in, and the scores are summed. BM25 scores and cosine similarities are on different scales and are never compared directly. A passage ranked well by both searches ends up near the top.
+BM25 scores and cosine similarities are on different scales, so reciprocal rank fusion [[RRF]](#references) ignores the
+scores and uses only the ranks. A passage scores 1/(60 + rank) in each list it appears in, the scores are added, and one
+ranked well by both lists ends up near the top.
 
-The reranker is a second, slower model. It reads the question and one candidate passage together and scores how well the passage answers it. Running it over the whole corpus is too expensive, so it scores only the top 15 of the fused list. It is the largest single improvement in the pipeline (82% to 95.5% at rank 1) and the largest single cost, about 400 ms of a 542 ms search. A faster reranker tested worse (see [Things that did not work](#things-that-did-not-work)).
+The reranker is a second, slower model. It reads the question and a candidate passage together and scores how well
+the passage answers it. It's too slow to run over the whole corpus, so it only sees the top 15 of the fused list. It's
+the biggest gain in the pipeline, and also most of the search time (Figure 8).
 
 | Stage | What happens | Setting |
 |---|---|---|
-| Plan | A `search_many` call takes several queries at once. Identifiers such as RFC numbers and command names go in as BM25 queries, paraphrases as dense queries. | 1 to 8 queries |
-| Keyword | FTS5 BM25 over passage text and heading path, with headings weighted 2x | 50 candidates per query |
-| Semantic | The query is embedded as `Query: {text}`. Passages were embedded as `Document: {title}`, `Section: {heading path}`, then the text. | 50 candidates per query |
+| Plan | A `search_many` call takes several queries at once: identifiers as BM25 queries, paraphrases as dense queries | 1 to 8 queries |
+| Keyword | FTS5 BM25 over passage text and heading path, headings weighted 2x | 50 candidates per query |
+| Dense | The query embedded as `Query: {text}`; passages were embedded with their title and heading path | 50 candidates per query |
 | Fuse | Weighted reciprocal rank fusion, both legs at weight 1.0 | k = 60, top 30 kept |
-| Rerank | Cross-encoder, each candidate scored against the query that retrieved it. The reranker sees a 1,600-character window centered on the candidate's best-matching text. | top 15 (top 10 per query in `search_many`) |
-| De-duplicate | Passages with identical text fold into one hit, and the other locations are listed in `also_in`. A passage that overlaps a better-ranked hit in the same file by half or more is dropped. | text compared after case and punctuation are normalized |
-| Deliver | 32 hits in three tiers | below |
+| Rerank | Cross-encoder over a 1,600-character window centered on each candidate's best-matching text | top 15 (10 per query in `search_many`) |
+| Fold | Identical passages fold into one hit listing its other locations; a passage half-covered by a better hit in the same file is dropped | text compared after normalizing case and punctuation |
+| Deliver | 32 hits in three tiers: 8 in full (up to 2,400 characters), 8 trimmed (800), 16 as pointers (250) | hits centered on their best-matching line |
 
-Cisco documentation repeats heavily. The same paragraph appears in the guide for one release and again in the guide for the next; without de-duplication, part of the top 8 is the same text twice. Identical passages are folded into one hit that lists every other location of the text.
+Cisco documentation repeats a lot. The same paragraph shows up in the guide for one release and again in the guide for
+the next, and without folding, part of the top 8 would be the same text twice.
 
-The last step sets how much text is returned. An agent can use more than 8 passages, but 32 full passages cost too many tokens per search. The result is delivered in three tiers: the best 8 in full, the next 8 trimmed, and 16 more as short pointers the agent can open. The 32 in the name is this hit count; the strip under the logo is one result drawn to scale.
+The Forge is often a desktop PC with a graphics card, so it's the part most likely to be off or rebooting. The engine
+puts a circuit breaker in front of it. After three failed calls in a row it marks the dense leg down and stops waiting
+on it, then lets one trial call through every 30 seconds until the Forge answers. Meanwhile BM25 serves alone, and the
+response includes a `degraded` field naming the services it couldn't reach.
 
-| Tier | Ranks | Text window | Order |
-|:---:|:---:|---|---|
-| 1 | 1 to 8 | up to 2,400 characters | reranked |
-| 2 | 9 to 16 | up to 800 characters | reranked through rank 15 |
-| 3 | 17 to 32 | up to 250 characters | fusion order |
-
-Every hit is centered on its best-matching line. Tier 2 and 3 hits carry a reference for reading the full section.
-
-Request options:
+<details>
+<summary><b>Request options and degraded modes</b></summary>
 
 | Option | Values | Effect |
 |---|---|---|
@@ -191,138 +253,111 @@ Request options:
 | `rerank` | `auto`, `on`, `off` | Cross-encoder on or off |
 | `limit` | 1 to 30 | An exact number of hits in place of the 32-hit result |
 | `max_chars` | 200 to 4,000, default 2,400 | Text window per hit |
-| `doc_type`, `docs` | a collection, a list of document keys | Restricts the search. Also the only way to reach an opt-in collection. |
+| `doc_type`, `docs` | a collection, a list of document keys | Restricts the search; also the only way to reach an opt-in collection |
 | `release_max` | `17.9` | Skips documents from a newer release on the same major line |
 | `prefer_release` | `["17.9"]` | Among identical copies of a passage, shows the copy from this release |
 | `include_obsolete` | default true | False drops obsoleted RFCs |
 
-The Forge is often a desktop PC with a graphics card, so it is the part most likely to be off, rebooting or busy. The engine treats it the way a routing protocol treats a neighbor. After three consecutive failed calls the dense leg is marked down, searches stop waiting on it, and one trial call is allowed every 30 seconds until it answers. Until then BM25 serves alone, and every response carries a `degraded` field naming each service it needed and could not reach.
-
 | Failure | Search behavior | `degraded` |
 |---|---|---|
-| Forge's embedding server, or the vector index | BM25 answers alone. After 3 consecutive failures a circuit breaker opens for 30 seconds and the dense leg is skipped without waiting on a timeout, then one trial call. | `dense` |
-| Reranker | Fused order is returned without reranking. Same breaker settings. | `reranker` |
+| Embedding server or vector index | BM25 answers alone; breaker opens after 3 failures, one trial call every 30 s | `dense` |
+| Reranker | Fused order returned without reranking; same breaker | `reranker` |
 | Structured indexes | Hits come back without RFC status | `kb` |
-| Section index | Hits carry the passage's own text and no section reference | `structure` |
+| Section index | Hits have the passage's own text and no section reference | `structure` |
 
-## MCP tools
+</details>
 
-MCP (Model Context Protocol) is the standard interface for giving an agent a set of tools. Deep32 provides eleven. None of them writes an answer: they search, fetch sections, look up identifiers and check quotations. The agent writes the answer from what they return.
+## 6. Tools and answer protocol
 
-| Tool | Returns | Arguments worth knowing |
-|---|---|---|
-| `search_rag` | Ranked passages for one query. Each hit has a citation, section path, RFC status and a text window. | the request options above |
-| `search_many` | Up to 8 queries fused into one ranked list. Each query keeps its best passage. | per-query `mode` and `weight` |
-| `get_outline` | Section tree of a document | `depth` 1 to 6, `under` for one chapter |
-| `get_section` | Full text of a section with its neighbors | paged, up to 100,000 characters per call |
-| `grep_corpus` | Matching lines with document, line number and section | literal by default, bounded regex optional, up to 200 matches, 3-second budget |
-| `find_command` | CLI index rows: command, kind, mode, location, platform, release | IOS abbreviations accepted. `release` ranks entries at or below it first. |
-| `lookup_id` | What an identifier is and where it is defined | RFC and section numbers, BCP and STD numbers, IANA code points, CLI commands, glossary terms, PowerShell cmdlets, API operations |
-| `lookup_rfc` | Status, obsoletes, obsoleted-by, updates, errata | optional section text |
-| `verify_quote` | `exact`, `normalized` or `not_found`, with the location | quotation of 3 to 4,000 characters |
-| `list_documents` | Catalog: key, type, release, RFC status, size, title | optional collection |
-| `rag_status` | Index generation, corpus fingerprint, counts, backend and breaker state | |
+The agent gets eleven tools over MCP [[MCP]](#references):
 
-## Answer protocol
+| Tool | Returns |
+|---|---|
+| `search_rag` | Ranked passages for one query, each with a citation, section path, RFC status and a text window |
+| `search_many` | Up to 8 queries fused into one ranked list; each query keeps its best passage |
+| `get_outline` | Section tree of a document, to a chosen depth or under one chapter |
+| `get_section` | Full text of a section with its neighbors, paged up to 100,000 characters per call |
+| `grep_corpus` | Matching lines with document, line number and section; literal by default, bounded regex optional |
+| `find_command` | CLI index rows: command, mode, platform, release; IOS abbreviations accepted |
+| `lookup_id` | What an identifier is and where it's defined: RFC and section numbers, IANA code points, CLI commands, cmdlets |
+| `lookup_rfc` | Status, obsoletes, obsoleted-by, updates and errata |
+| `verify_quote` | `exact`, `normalized` or `not_found`, with the location |
+| `list_documents` | Catalog: key, type, release, RFC status, size, title |
+| `rag_status` | Index generation, corpus fingerprint, counts, backend and breaker state |
 
-A model with tools will still answer from memory unless it is made to use them, so the agent follows a fixed procedure:
+Given tools, a model will often still answer from memory, so the research skill has the agent follow this procedure:
 
-1. Look up every identifier (RFC number, LSA type, path attribute, CLI command) with `lookup_id` or `find_command` before using it.
+1. Look up every identifier (RFC number, LSA type, path attribute, CLI command) before using it.
 2. Run one `search_many` call with three to six queries, restricted to one collection where the question allows it.
-3. Read the full section with `get_outline` and `get_section`, plus any Restrictions or Defaults section next to it. Search hits are only for locating text.
+3. Read the full section, plus any Restrictions or Defaults section next to it. Search hits are only for locating text.
 4. Run `lookup_rfc` on every RFC cited, to catch obsoleted documents and read the errata.
-5. Run `verify_quote` on every quotation.
+5. Run `verify_quote` on every quotation. A `not_found` quotation is dropped and the agent goes back to the section.
 6. Compare the RFC text with the vendor's documented behavior and defaults, and report any difference.
-7. If the corpus does not cover the question, say so.
+7. If the corpus doesn't cover the question, say so.
 
-| `verify_quote` result | Meaning | Effect |
-|---|---|---|
-| `exact` | Character-for-character match | Quotation can be used |
-| `normalized` | Matches after collapsing whitespace, RFC page breaks and hyphenation | Quotation can be used |
-| `not_found` | No match in that section | Quotation is dropped and the agent goes back to the section |
+`normalized` means the text matched once line breaks and page footers were ignored, so a sentence split across a page
+break in an RFC still counts.
 
-`normalized` exists because RFCs are plain text with hard line breaks and, in older documents, page footers. A sentence split across two lines with a page break between them is not a misquote.
+### 6.1 Example: BGP keepalive and hold timers
 
-### Example: BGP keepalive and hold timers
-
-The usual answer for the BGP default timers is 60 and 180 seconds. The tools returned the following for that question (my deployment, 14 November 2026).
+The usual answer for the BGP default timers is 60 and 180 seconds. The tools returned the following for that question
+on my deployment, 14 November 2026.
 
 | # | Call | Result |
 |:---:|---|---|
-| 1 | `lookup_rfc 4271` | Draft Standard. Obsoletes RFC 1771. Updated by twelve later RFCs. 16 errata on record, none against section 10. |
+| 1 | `lookup_rfc 4271` | Draft Standard. Obsoletes RFC 1771. Updated by 12 later RFCs. 16 errata on record, none against section 10. |
 | 2 | `verify_quote` in RFC 4271, section 10:<br>"The suggested default value for the HoldTime is 90 seconds." | `normalized`<br>The sentence breaks across lines 5008 and 5009 of the RFC text. |
 | 3 | `verify_quote` in RFC 4271, section 10:<br>"The suggested default value for the KeepaliveTime is 1/3 of the HoldTime." | `normalized` |
 | 4 | `verify_quote` in Cisco IOS IP Routing: BGP Command Reference, `timers bgp`:<br>"Frequency (in seconds) with which the Cisco IOS software sends keepalive messages to its peer. The default is 60 seconds." | `exact` |
 | 5 | `verify_quote`, same section:<br>"Interval (in seconds) after not receiving a keepalive message that the software declares a peer dead. The default is 180 seconds." | `exact` |
 | 6 | `verify_quote` in RFC 4271, section 10:<br>"The suggested default value for the HoldTime is 180 seconds." | `not_found` |
 
-"60 and 180" is correct for Cisco IOS and IOS XE and incorrect as a statement about the RFC, which suggests a 90-second hold time with keepalives at one third of it. Call 6 is the check rejecting a sentence that does not exist: section 10 has no 180-second figure.
-
-The same question in the Ask window. The answer gives the Cisco and RFC values separately, marks the reasoning behind the 3:1 ratio as inference, and says that the cited sections do not explain why Cisco chose 180 seconds.
+60 and 180 seconds are the Cisco IOS and IOS XE defaults. RFC 4271 [[RFC4271]](#references) suggests a 90-second hold
+time, with keepalives at a third of that. Call 6 checks the common wrong version of the claim against the RFC, and it
+comes back `not_found` because section 10 has no 180-second figure.
 
 <p align="center">
   <img alt="End of an Ask answer about BGP timers: the reason BGP uses its own keepalives, the 3:1 ratio marked as inference, Cisco 60/180 against the RFC's suggested 90-second hold time, the research line with 15 RAG calls, and four RFC 4271 source links." src="docs/screenshots/ask-bgp-timers.png" width="85%">
 </p>
+<p align="center"><sub><b>Figure 5.</b> The same question in the Ask window. Cisco and RFC values are given separately and the 3:1 ratio is marked as inference. The cited sections don't say why Cisco chose 180, and the answer says so.</sub></p>
 
-## Corpus
+## 7. Corpus and index generations
 
-The configuration guide for one IOS XE release and the guide for the next can disagree, so every document carries its platform and release, and a search can prefer a release or exclude newer ones.
-
-| Collection | Documents | Contents |
-|---|:---:|---|
-| IETF RFCs | 365 | RFC text plus RFC Editor status, relations and errata |
-| Cisco documentation | 489 | IOS XE, SD-WAN, Catalyst Center, ISE and Secure Client |
-| PowerShell (opt-in) | 241 | Windows PowerShell 5.1 reference, 7.x differences, Windows networking modules |
-| System (opt-in) | rebuilt per release | Deep32's own source, configuration and design notes, so that it can answer questions about itself |
+Configuration guides for one IOS XE release and the next can disagree, so each document is tagged with its platform and
+release, and a search can prefer a release or exclude newer ones.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/figures/corpus-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="docs/figures/corpus-light.svg">
   <img alt="Bar chart of documents by kind. IETF: 365 RFCs. Cisco: 263 TechNotes, 126 configuration guides, 48 command references, 17 API guides, 15 validated designs, 14 white papers, 3 MIBs, 3 release notes. PowerShell: 156 about topics, 40 conceptual articles, 28 cmdlet reference documents, 14 on 7.x differences, 3 other." src="docs/figures/corpus-light.svg" width="100%">
 </picture>
+<p align="center"><sub><b>Figure 6.</b> Documents by kind. PowerShell and the system collection (Deep32's own source and design notes) are opt-in, searched only when a query names them.</sub></p>
 
-Opt-in collections are searched only when a query names them, which keeps PowerShell help text out of routing results. They also get their own FTS5 table, because BM25 statistics computed over one shared table still counted the rows a filter had excluded.
+Some questions are really lookups, like whether RFC 1771 is still current or the exact syntax of a command. A ranked
+search can return a close but wrong passage for those, so each build also produces lookup tables. There are 9,842 RFCs
+with status and relations and 1,217 errata records from the RFC Editor, 2,366 IANA registry entries, about 150,000 CLI
+command entries with mode, platform and release, and 2,578 feature-history entries.
 
-Some questions are lookups: whether RFC 1771 is still current, or the exact syntax of a command. A ranked search answers those with plausible errors, so each build also produces lookup tables:
+I never edit the live index. A corpus change gets a complete new generation built next to the old one, and the engine
+only switches to it once it passes the test set. The switch works like `reload in 5` before an ACL change on a remote
+router: if the check after the switch fails, the engine goes back to the previous generation by itself.
 
-| Index | Size | Source |
+| Step | What happens | Gate |
 |---|---|---|
-| RFC index | 9,842 RFCs with status and relations | RFC Editor |
-| Errata | 1,217 records | RFC Editor |
-| IANA registries | 2,366 entries | IANA |
-| CLI index | about 150,000 command entries with mode, platform and release | Command references and configuration guides |
-| Feature history | 2,578 entries | Vendor feature tables |
+| Convert | HTML and PDF to plain text, in a sandbox with no network access | |
+| Check | Quality checks, plus a scan for instruction-like lines (what a planted prompt injection would look like) | Zero failures; flagged lines reviewed by hand |
+| Manifest | Hash, source URL, platform, release, license and redistribution flag for each document | |
+| Build | Chunking, FTS5 tables, section index, embeddings, structured indexes | Build report |
+| Validate | The labeled question set runs against the new generation and the current one, query by query | Zero net regressions |
+| Switch | One setting and a service restart, with a smoke test before and after | Automatic rollback on failure |
 
-Every document has a manifest entry. This is the one for RFC 4271:
+A passage whose ID and embedding text haven't changed reuses its vector from the previous generation. One corpus update
+embedded 904 new passages and reused 62,617 existing vectors.
 
-```json
-{
-  "doc_key": "rfc4271",
-  "title": "A Border Gateway Protocol 4 (BGP-4)",
-  "doc_type": "rfc",
-  "doc_kind": "rfc",
-  "path": "rfc/rfc4271.txt",
-  "source_url": "https://www.rfc-editor.org/rfc/rfc4271.txt",
-  "page_url": "https://www.rfc-editor.org/rfc/rfc4271.html",
-  "platform": null,
-  "release": null,
-  "release_note": null,
-  "sha256": "98b851146abcd56ecbb398dd1a818bcde2dcac6fde3d901c423d988f86eaab76",
-  "bytes": 222702,
-  "license": "IETF RFC; IETF Trust Legal Provisions (BCP 78): may be copied and distributed in full without modification",
-  "terms_url": "https://trustee.ietf.org/license-info",
-  "redistribute": true,
-  "near_duplicate_of": []
-}
-```
+<details>
+<summary><b>Generation layout, identifiers and a manifest entry</b></summary>
 
-This repository contains no vendor text. The Cisco documents belong to Cisco.
-
-## Index generations
-
-The index is handled like a production configuration: the running one is never edited in place. Every corpus change builds a complete new index (a "generation") beside the old one, and the engine serves one generation at a time. A new generation must pass the test set before the engine is switched to it, and if the check after the switch fails, the engine reverts to the previous generation on its own. Same principle as `reload in 5` before an ACL change on a remote router.
-
-```
+```text
 <generation>/
   sources/            corpus snapshot as built: manifest.json, <collection>/*.txt, kb/*.json
   config/             dense.json, retrieval.json, serving.json for this generation
@@ -334,34 +369,63 @@ The index is handled like a production configuration: the running one is never e
   logs/               retrieval traces
 ```
 
-On the Workstation the vectors sit beside the generation as one flat file of float32 rows, searched by an exact scan. When the Forge builds or rebuilds an index, it loads them into a Qdrant collection named after the generation.
-
 | Identifier | Derivation |
 |---|---|
 | Document ID | `doc_` + SHA-256 of the source file |
 | Passage ID | `chk_` + SHA-256 of the document hash, the passage's position and its text |
 | Vector point ID | UUIDv5 of the passage ID |
 
-A passage whose ID and embedding text are unchanged reuses its vector from the previous generation. One corpus update embedded 904 new passages and reused 62,617 existing vectors.
+```json
+{
+  "doc_key": "rfc4271",
+  "title": "A Border Gateway Protocol 4 (BGP-4)",
+  "doc_type": "rfc",
+  "path": "rfc/rfc4271.txt",
+  "source_url": "https://www.rfc-editor.org/rfc/rfc4271.txt",
+  "sha256": "98b851146abcd56ecbb398dd1a818bcde2dcac6fde3d901c423d988f86eaab76",
+  "bytes": 222702,
+  "license": "IETF RFC; IETF Trust Legal Provisions (BCP 78): may be copied and distributed in full without modification",
+  "redistribute": true
+}
+```
 
-Ingest steps and their gates:
+</details>
 
-| Step | What happens | Gate |
-|---|---|---|
-| Convert | HTML and PDF to plain text, in a sandbox with no network access | |
-| Check | Quality checks, plus a scan for instruction-like lines (what a prompt injection planted in a document would look like) | Zero failures. Flagged lines are reviewed by hand. |
-| Manifest | Hash, source URL, platform, release, license and redistribution flag for every document | |
-| Build | Chunking, FTS5 tables, section index, embeddings, structured indexes | Build report |
-| Validate | The labeled question set is run against the new generation and the current one, and compared query by query | Zero net regressions: losing one question without gaining one elsewhere fails |
-| Switch | One setting and a service restart, with a smoke test before and after | The evaluation that follows must pass, or the switch rolls back automatically |
+This repository contains no vendor text. The documents ship on the content image, and each keeps its publisher's terms.
+RFCs fall under the IETF Trust's provisions, and the Cisco documentation is Cisco's copyright.
 
-Old generations stay on disk, so a rollback is the same switch pointed at the previous one.
+## 8. Evaluation
 
-## Evaluation
+So far I've only measured retrieval: whether a correct passage comes back, and at what rank. I haven't measured answer
+accuracy yet, and that's next. hit@1 is the share of questions whose top result is a correct passage, and hit@8 the
+share with one anywhere in the top 8. The agent reads the top 8 in full, so hit@8 is close to a ceiling on what it can
+answer from the first search. It isn't a hard limit, because the agent can open hits 9 to 32 or read whole sections.
 
-Only retrieval has been measured so far: whether the correct passage is returned, and at what rank. Answer accuracy has not been measured; that evaluation is next. All figures below are from my development setup, which runs the same engine, models and corpus as 1.0.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/figures/stages-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="docs/figures/stages-light.svg">
+  <img alt="Chart of the share of 696 questions whose first relevant passage is at rank 1 and within the top 8, by pipeline stage, with median search time. BM25 only: 0.710, 0.928, 125 ms. Dense only: 0.783, 0.970, 122 ms. Fused: 0.822, 0.983, 140 ms. Fused and reranked: 0.955, 0.991, 542 ms." src="docs/figures/stages-light.svg" width="100%">
+</picture>
+<p align="center"><sub><b>Figure 7.</b> First relevant passage by pipeline stage, all 696 answerable questions, through the gateway, 2 November 2026.</sub></p>
 
-hit@1 is the share of questions whose top result is a correct passage; hit@8 is the share with a correct passage anywhere in the top 8. The agent reads the full top 8, so hit@8 bounds whether the answer can be correct and hit@1 indicates how much reading it takes.
+| Metric | Fused + reranked | Fused only |
+|---|:---:|:---:|
+| hit@1 | **0.955** (665) | 0.822 (572) |
+| hit@3 | **0.983** | 0.934 |
+| hit@8 | **0.991** (690) | 0.983 (684) |
+| MRR@10 | **0.970** | 0.882 |
+| delivery@8 | **0.909** | 0.904 |
+
+Paired over the 696 questions, reranking wins 102 and loses 9 at hit@1, and at hit@8 it wins 6 and loses none.
+delivery@8 is the share of labeled answer spans that arrive intact in the delivered text window.
+
+Afterwards I had each of the 31 misses at rank 1 judged. In 7 the rank-1 passage did answer the question but had no
+label, so those are gaps in my labels. In 21 the reranker put another passage above a relevant one, and in 3 fusion
+left the relevant passage outside the reranker's top 15. That leaves 24 real misses, 672 of 696 (0.966) with the labels
+corrected. I report 0.955 until the label set is frozen again.
+
+<details>
+<summary><b>Test set and rank distribution</b></summary>
 
 | Test set | |
 |---|---|
@@ -372,26 +436,6 @@ hit@1 is the share of questions whose top result is a correct passage; hit@8 is 
 | Relevance rule | A hit counts when it comes from the labeled document and its passage contains the labeled span |
 | Repeatability | Three runs over one week returned identical metrics |
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/figures/stages-dark.svg">
-  <source media="(prefers-color-scheme: light)" srcset="docs/figures/stages-light.svg">
-  <img alt="Chart of the share of 696 questions whose first relevant passage is at rank 1 and within the top 8, by pipeline stage, with median search time. BM25 only: 0.710, 0.928, 125 ms. Dense only: 0.783, 0.970, 122 ms. Fused: 0.822, 0.983, 140 ms. Fused and reranked: 0.955, 0.991, 542 ms." src="docs/figures/stages-light.svg" width="100%">
-</picture>
-
-All 696 answerable questions, through the gateway, 2 November 2026. Counts in parentheses.
-
-| Metric | Fused + reranked | Fused only |
-|---|:---:|:---:|
-| hit@1 | 0.955 (665) | 0.822 (572) |
-| hit@3 | 0.983 | 0.934 |
-| hit@8 | 0.991 (690) | 0.983 (684) |
-| MRR@10 | 0.970 | 0.882 |
-| delivery@8 | 0.909 | 0.904 |
-
-delivery@8 is the share of labeled answer spans that arrive intact in the delivered text window, out of those present in the retrieved passages. Paired over the 696 questions, reranking wins 102 and loses 9 at hit@1. At hit@8 it wins 6 and loses none.
-
-Rank of the first relevant passage in each list's top 30:
-
 | List | Rank 1 | Top 8 | Top 15 | Top 30 | Not in top 30 |
 |---|:---:|:---:|:---:|:---:|:---:|
 | BM25 | 494 | 646 | 666 | 687 | 9 |
@@ -399,66 +443,68 @@ Rank of the first relevant passage in each list's top 30:
 | Fused | 572 | 684 | 690 | 693 | 3 |
 | Fused + reranked | 665 | 690 | 690 | 693 | 3 |
 
-BM25 or dense has a relevant passage in its top 30 for 694 of the 696 questions. For 6 questions the fused top 15, which is all the reranker sees, has nothing relevant.
+</details>
 
-The 31 misses at rank 1 were judged afterward:
+## 9. Hardware and performance
 
-| Cause | Questions |
-|---|:---:|
-| Label gap: the rank-1 passage answers the question but had no label | 7 |
-| The reranker put another passage above a relevant one in its pool | 21 |
-| A relevant passage was retrieved, but fusion left it outside the reranker's top 15 | 3 |
+I built and tested Deep32 on a 2013 Xeon without AVX2 and one consumer graphics card, which is close to the minimum.
+For a Workstation and Forge on one machine I'd recommend 12 or more threads, 32 GB or more, an AVX2 processor and an RTX
+20 series or newer card. Supported cards and layouts are in [docs/HARDWARE.md](docs/HARDWARE.md).
 
-That leaves 24 real misses: 672 of 696 (0.966) with the labels corrected. I report 0.955 until the label set is frozen again. The generation in service on my setup has the same 31 and the same 6.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/figures/latency-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="docs/figures/latency-light.svg">
+  <img alt="Approximate timeline of a median reranked search: keyword leg about 125 ms and vector leg about 122 ms in parallel, fusion and folding to about 140 ms, cross-encoder reranking of the top 15 to about 542 ms." src="docs/figures/latency-light.svg" width="100%">
+</picture>
+<p align="center"><sub><b>Figure 8.</b> Where a median reranked search spends its time. Approximate, derived from the medians of separate runs.</sub></p>
 
-Seven of the recorded misses were errors in my answer key; retrieval had returned a correct passage. Every figure on this page carries the same label error, the favorable ones included.
+Latency on my development setup, measured through the gateway with one client on 2 November 2026. A search leg takes
+about 125 ms including the gateway round trip, and the reranker adds about 400 ms.
 
-## Things that did not work
+| Search | p50 | p95 |
+|---|:---:|:---:|
+| Hybrid + rerank, 8 hits | 521 ms | 656 ms |
+| Hybrid + rerank, 30 hits | 542 ms | 682 ms |
+| Hybrid, rerank off, 30 hits | 140 ms | 201 ms |
+| BM25 only, 30 hits | 125 ms | 185 ms |
+| Dense only, 30 hits | 122 ms | 145 ms |
+| `search_many`, 3 queries, 8 hits | 778 ms | 1,120 ms |
 
-Approaches that failed or cost time during development:
+Check that Tailscale has a direct path between the machines. On my setup, latency between them was 70 to 157 ms
+through a DERP relay and 1 to 2 ms direct.
 
-- Adding a second IOS XE release line dropped hit@1 from 0.824 to 0.754. The cause was the test set: 234 of the 694 questions (at the time) had their answer passage repeated word for word in one of the new books, where it had no label, so correct hits were being scored as misses. Duplicates now fold into one hit. Before that, about 4% of top-8 slots (231 of 5,808 in one run) were a copy of a passage already in the list.
-- Bigger chunks scored worse. Hit@1 went from 0.955 to 0.935 and fewer answer passages were delivered intact, so the small chunks stayed.
-- A faster reranker cost 10 questions at hit@1 once its new top hits had been judged. I kept the slow one.
-- Two HNSW builds from the same vectors can disagree on a question or two. That is enough to trip a zero-regression gate, so new generations clone the previous index snapshot and add to it.
-- There is a late-interaction (ColBERT) retriever in the code that isn't part of the served pipeline. Its first run was OOM-killed because the search library packed about 30,700 candidates into one 31 GiB tensor. Capping the batch size fixed that.
-- Check that Tailscale has a direct path between your nodes. Relayed through DERP, node-to-node latency was 70 to 157 ms. Direct, it is 1 to 2 ms.
+## 10. Security considerations
 
-## Hardware
+**Secrets.** Each machine generates its own tokens at first boot, so nothing secret ships on an image, and a headend
+gets its own credential when it pairs. The gateway compares bearer tokens in constant time.
 
-I built and tested Deep32 on a 2013 Xeon without AVX2 and one consumer graphics card, which is close to the minimum. Supported graphics cards and single- and multi-machine layouts are in [docs/HARDWARE.md](docs/HARDWARE.md).
+**Network.** The parts sign in to your tailnet with your Tailscale account and publish their services over HTTPS
+inside the tailnet only. Being on the tailnet isn't enough to use a service, though. Two parts have to pair first, by
+typing a short code on both sides (SPAKE2 [[RFC9382]](#references)). A code lasts five minutes and allows one attempt,
+and after repeated failures pairing locks for fifteen minutes.
 
-| Layout | Minimum | Recommended |
-|---|---|---|
-| Workstation alone (keyword search only) | 64-bit Intel or AMD with virtualisation; 6 threads and 12 GB on the host; 160 GB free (the guided install in this alpha) | As below |
-| Workstation and Forge on one machine | 8 threads and 32 GB; an NVIDIA card of compute capability 7.5 or newer with 6 GB; 160 GB free | 12 or more threads, 32 GB or more, an AVX2 processor and an RTX 20 series or newer card |
-| Forge alone | 4 threads and 16 GB on the host; a card as above; 100 GB free | As above |
-| Headend | Any PC that runs Claude Code or Codex | Windows, for the Ask window's relay in 1.0 |
+**Prompt injection.** I treat documents as untrusted input. Ingest flags instruction-like lines for review, and the
+gateway's server instructions ([section 4](#4-architecture)) tell the agent not to follow instructions found in tool
+output. Both are mitigations, and a model can still follow injected text.
 
-The Forge also needs an NVIDIA driver of 580.65.06 or newer, Docker and the NVIDIA Container Toolkit (on Windows, WSL2 handles that side). The Workstation has no model of its own, so without a Forge it searches on keywords only.
+**Supply chain.** Each release has a checksum list with a detached OpenPGP signature. `deep32-get` checks the signer's
+fingerprint before it uses any hash in the list, so a download source can't swap an image without the check failing.
 
-Latency on my development setup (same engine and models as 1.0, on the Xeon and an 11 GB card), measured through the gateway with one client on 2 November 2026. Each search leg takes about 125 ms including the gateway round trip. The reranker accounts for about 400 ms of every reranked search.
+**Hosted model.** The provider sees everything the agent sees: the question, the queries it writes and the passages the
+tools return. The corpus files and the index stay on your machines, and a passage leaves only when a search returns it.
 
-| Search | p50 | p95 | Searches |
-|---|:---:|:---:|:---:|
-| Hybrid + rerank, 8 hits | 521 ms | 656 ms | 696 |
-| Hybrid + rerank, 30 hits | 542 ms | 682 ms | 696 |
-| Hybrid, rerank off, 30 hits | 140 ms | 201 ms | 696 |
-| BM25 only, 30 hits | 125 ms | 185 ms | 696 |
-| Dense only, 30 hits | 122 ms | 145 ms | 696 |
-| `search_many`, 3 queries, 8 hits | 778 ms | 1,120 ms | 70 |
+Send security reports by email, encrypted to the key in [section 11](#11-release-and-verification).
 
-## Getting Deep32
+## 11. Release and verification
 
-0.1.0-alpha.1 is an alpha. I have withdrawn its images until 0.1.0-alpha.2, which brings them back with a working install, hosted permanently.
-
-The release installs without any of my keys, logins or network settings. It is three images, covered by one signed checksum list.
+0.1.0-alpha.1 is the source release, archived on Zenodo. An install uses three images, covered by one signed checksum
+list and installed without any of my keys, logins or network settings. They return with 0.1.0-alpha.2.
 
 | Image | Kind | Contents |
 |---|---|---|
-| Workstation | Bootable installer | OpenBSD with the engine, the gateway, the Ask window, the Deep32 Encyclopedia and the desktop |
-| Content | Data | A prebuilt index generation, the corpus blocks that can be redistributed, and the encyclopedia content |
-| GPU pack | Data, mounted on the host | The GPU services as containers, plus the two ways to start them: Docker on Linux, or WSL2 on Windows |
+| Workstation (disc 1) | Bootable installer | OpenBSD with the engine, the gateway, the Deep32 Encyclopedia and the desktop. The Ask window needs the relay from a later release |
+| Content (disc 2) | Data | The corpus described in section 7 (RFCs, Cisco documentation and the opt-in collections), a prebuilt index generation built from it, and the encyclopedia content |
+| GPU pack (disc 3) | Data, mounted on the host | The Forge's services as Docker containers |
 
 <table>
   <tr>
@@ -466,73 +512,82 @@ The release installs without any of my keys, logins or network settings. It is t
     <td width="50%"><img alt="The Pinpointer search panel with the query ospf: a list of matching RFCs, Internet-Drafts and local glossary entries with scope, type and sort controls." src="docs/screenshots/library-search.png"></td>
   </tr>
   <tr>
-    <td><sub>The Deep32 Encyclopedia from the content image, open at Border Gateway Protocol (article text from Wikipedia, CC BY-SA 4.0).</sub></td>
-    <td><sub>Pinpointer search for "ospf" across the RFCs, Internet-Drafts and the local glossary.</sub></td>
+    <td><sub><b>Figure 9.</b> The Deep32 Encyclopedia from the content image, open at Border Gateway Protocol (article text from Wikipedia, CC BY-SA 4.0).</sub></td>
+    <td><sub><b>Figure 10.</b> Pinpointer search for "ospf" across the RFCs, Internet-Drafts and the local glossary.</sub></td>
   </tr>
 </table>
 
-The larger images exceed GitHub's size limit for a release file and are split into parts. `deep32-get` (in `src/release-tools/`, `.sh` for Linux and `.ps1` for Windows) downloads the parts for the requested image, resumes an interrupted download, checks every hash and the signature, and joins the parts:
+Commits, tags and release checksum lists are signed with this OpenPGP key:
 
-```sh
-./src/release-tools/deep32-get.sh disc1                  # Workstation image, verified, ready to write to a USB stick
-sudo ./src/release-tools/deep32-get.sh disc3 --install   # GPU pack: verify, mount and start the containers (Linux)
-```
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File src\release-tools\deep32-get.ps1 disc3 --install  # GPU pack through WSL2
-```
-
-Run it from a clone of this repository, as in [Quick start](#quick-start): it reads the release key from `install/`.
-
-- No keys, tokens or logins are shipped on any image. Each install generates its own.
-- The guided Workstation install needs a disk of 160 GB or more in this alpha. A smaller layout is planned for the beta.
-- The research skills for Claude Code and Codex are in `adapters/`, and [INSTALL.md](INSTALL.md) shows how to connect an agent to the gateway by hand. The Ask window needs the relay, which comes with the one-step headend installer (Deep32 Connect) in a later release.
-- The GPU pack needs an NVIDIA driver of at least 580.65.06, Docker and the NVIDIA Container Toolkit. If one is missing, the installer names it and stops before changing anything. A bootable GPU installer that sets these up is planned for a later release.
-- Every node joins your own tailnet with your own Tailscale sign-in. The Workstation brings Tailscale with it; on the GPU machine, install Tailscale and sign in before `disc3 --install`, which waits for that sign-in and never signs in for you. Turn on MagicDNS and HTTPS certificates in your tailnet. The layout is the same whether the nodes share one machine or sit on several.
-- Claude Code and Codex are supported first. An OpenAI-compatible adapter for locally served models is designed for a later release.
-
-## Roadmap
-
-- [x] Hybrid retrieval engine, gateway and MCP tools, in private use
-- [x] Quotation checks and RFC status checks
-- [x] Gated index generations with rollback
-- [x] Retrieval evaluation on a labeled question set
-- [ ] Design document covering the architecture and the verification method
-- [ ] Answer-level evaluation with verification on and off
-- [ ] Code release
-- [x] Signed release images (0.1.0-alpha.1: Workstation, content and GPU pack)
-- [ ] Bootable GPU installer
-- [x] Archived releases with a DOI (Zenodo)
-
-## Limitations
-
-- A verified quotation shows that the text is in the source. It says nothing about whether the reasoning built on it is sound.
-- Answers are limited to what the corpus covers, and the corpus is Cisco documentation plus RFCs. Other vendors aren't in it.
-- Answer accuracy has not been measured (see [Evaluation](#evaluation)).
-- The test set was generated with an LLM pipeline, and its labels have gaps: 7 of the 31 recorded misses at rank 1 turned out to be missing labels.
-- The LLM is hosted, so the question and the retrieved passages go to the model provider. Everything else stays local.
-- A cited answer still needs to be tested in a lab before a change goes into production.
-
-## Verifying
-
-Commits are signed with this OpenPGP key. Tags and release manifests will be signed with it too.
-
-```
+```text
 B205 B406 5486 27AA BF52  50D8 A078 C5F2 5D02 5DD6
 ```
 
 ```sh
 gpg --keyserver hkps://keys.openpgp.org --recv-keys B205B406548627AABF5250D8A078C5F25D025DD6
-gpg --fingerprint B205B406548627AABF5250D8A078C5F25D025DD6
 git verify-commit HEAD
-```
-
-The key is on [keys.openpgp.org](https://keys.openpgp.org/search?q=B205B406548627AABF5250D8A078C5F25D025DD6). Every release has a detached signature over its checksum list. `deep32-get` checks the signer's fingerprint as well as the signature before it trusts any hash. The manual equivalent:
-
-```sh
 gpg --verify SHA256SUMS.sig SHA256SUMS
 sha256sum -c SHA256SUMS
 ```
+
+The key is on [keys.openpgp.org](https://keys.openpgp.org/search?q=B205B406548627AABF5250D8A078C5F25D025DD6).
+
+### 11.1 Roadmap
+
+- [x] Hybrid retrieval engine, gateway and MCP tools
+- [x] Quotation checks and RFC status checks
+- [x] Gated index generations with rollback
+- [x] Retrieval evaluation on a labeled question set
+- [x] Source release under AGPL-3.0, archived with a DOI
+- [ ] Signed images that install end to end, with `deep32 doctor` and `deep32 selftest` (0.1.0-alpha.2)
+- [ ] Design document D32-TR-1: architecture and verification method
+- [ ] Answer-level evaluation with verification on and off
+- [ ] The Ask window's relay on the headend
+- [ ] Bootable GPU installer
+
+## 12. Limitations
+
+- `verify_quote` only proves the quoted words are in the source. The agent can still misread them, and nothing in
+  Deep32 checks the reasoning.
+- Answers are limited to what the corpus covers: RFCs, Cisco documentation and, when asked for, Microsoft's
+  PowerShell documentation. Other network vendors aren't in it.
+- Answer accuracy hasn't been measured yet ([section 8](#8-evaluation)).
+- The test set was generated with an LLM pipeline, and its labels have gaps: 7 of the 31 recorded misses at rank 1 were
+  missing labels.
+
+<details>
+<summary><b>Things that did not work</b></summary>
+
+- Adding a second IOS XE release line dropped hit@1 from 0.824 to 0.754. The test set was the cause. 234 of the 694
+  questions at the time had their answer passage repeated word for word in one of the new books, where it had no label,
+  so correct hits were scored as misses. Duplicates now fold into one hit.
+- A chunker revision that took each passage's heading path from the section most of it came from, and dropped trailing
+  text from the previous section, cut hit@1 from 0.955 to 0.935 and delivered fewer answer passages intact. It failed
+  the validation gate and the previous chunker stayed.
+- A shorter input to the reranker was faster (one variant cut the median from 487 to 303 ms) but lost 10 questions at
+  hit@1 once its new top hits had been judged. I kept the longer input.
+- On the Forge and in my development setup, both of which use Qdrant, a fresh HNSW build from the same vectors doesn't
+  return exactly the same lists. In a test on 30,699 vectors a fresh build changed the top 50 for 21 to 24 of 500
+  queries, and in the full evaluation that cost 1 or 2 questions at hit@1, enough to fail a zero-regression gate. New
+  generations there clone the previous index snapshot and add to it. The Workstation doesn't use HNSW at all.
+- I tried a late-interaction retriever [[ColBERT]](#references) as a third search. It cost about 0.8 seconds of CPU per
+  query, and most of its match score came from its instruction template, so it carried almost no relevance signal. Its
+  first run was also OOM-killed, because the search library packed about 30,700 candidates into one 31 GiB tensor. It
+  never showed a measurable gain, and it's off the query path.
+
+</details>
+
+## References
+
+| Key | Reference |
+|---|---|
+| [BM25] | Robertson, S. and H. Zaragoza, "The Probabilistic Relevance Framework: BM25 and Beyond", *Foundations and Trends in Information Retrieval* 3(4), 2009. |
+| [ColBERT] | Khattab, O. and M. Zaharia, "ColBERT: Efficient and Effective Passage Search via Contextualized Late Interaction over BERT", SIGIR 2020. |
+| [MCP] | Model Context Protocol, specification, <https://modelcontextprotocol.io/specification>. |
+| [RAG] | Lewis, P. et al., "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks", NeurIPS 2020. |
+| [RFC4271] | Rekhter, Y., Ed., Li, T., Ed., and S. Hares, Ed., "A Border Gateway Protocol 4 (BGP-4)", RFC 4271, DOI 10.17487/RFC4271, January 2006. |
+| [RFC9382] | Ladd, W., "SPAKE2, a Password-Authenticated Key Exchange", RFC 9382, DOI 10.17487/RFC9382, September 2023. |
+| [RRF] | Cormack, G. V., Clarke, C. L. A., and S. Büttcher, "Reciprocal Rank Fusion Outperforms Condorcet and Individual Rank Learning Methods", SIGIR 2009. |
 
 ## Citing
 
@@ -547,18 +602,20 @@ sha256sum -c SHA256SUMS
 }
 ```
 
-Deep32 is archived on Zenodo. [10.5281/zenodo.24272647](https://doi.org/10.5281/zenodo.24272647) always resolves to the latest version; this release, 0.1.0-alpha.1, is [10.5281/zenodo.24272648](https://doi.org/10.5281/zenodo.24272648).
+[10.5281/zenodo.24272647](https://doi.org/10.5281/zenodo.24272647) always resolves to the latest version.
 
 ## License
 
-Code is licensed under AGPL-3.0-or-later and documentation under CC-BY-4.0. See [LICENSING.md](licenses/LICENSING.md), [LICENSE](LICENSE) and [LICENSE-DOCS](LICENSE-DOCS) for the grants and full licence texts. Third-party software, models and documents keep their own terms. Both Jina models are licensed CC BY-NC 4.0. Artwork and sounds keep the terms recorded in the asset ledger.
-
-The names are the trademarks of their owners, used only to describe compatibility, and Deep32 is not affiliated with or endorsed by them.
+Code is licensed under AGPL-3.0-or-later and documentation under CC-BY-4.0. See [LICENSING.md](licenses/LICENSING.md),
+[LICENSE](LICENSE) and [LICENSE-DOCS](LICENSE-DOCS). Third-party software, models and documents keep their own terms.
+Both Jina models are licensed CC BY-NC 4.0, and artwork and sounds keep the terms recorded in the asset ledger.
 
 ## Author
 
 Jeffrey A. Cummings · [ORCID 0009-0003-8091-4637](https://orcid.org/0009-0003-8091-4637) · [jacummings@acm.org](mailto:jacummings@acm.org) · [@hellobpdu](https://github.com/hellobpdu)
 
-Send security reports by email, encrypted to the key above.
+<sub>Personal work. Not affiliated with or endorsed by my employer. Cisco, IOS and Catalyst are trademarks of Cisco Systems, Inc. Other names belong to their owners and are used only to describe compatibility.</sub>
 
-<sub>Personal work. Not affiliated with or endorsed by my employer. Cisco, IOS and Catalyst are trademarks of Cisco Systems, Inc. Other names belong to their owners.</sub>
+---
+
+<p align="center"><sub><b>Overview</b> · <a href="INSTALL.md">Installation</a> · <a href="docs/HARDWARE.md">Hardware</a> · <a href="docs/OPTIONAL-FEATURES.md">Optional features</a> · <a href="docs/contracts/README.md">Contracts</a> · <a href="adapters/README.md">Agent adapters</a> · <a href="SECURITY.md">Security</a> · <a href="CHANGELOG.md">Release notes</a></sub></p>
