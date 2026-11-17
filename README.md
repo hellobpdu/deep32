@@ -23,7 +23,7 @@ Answers are built from a local corpus of RFCs and Cisco documentation, and every
 </div>
 
 > [!NOTE]
-> To install Deep32, see [Quick start](#quick-start). 0.1.0-alpha.1 is the first public release: the source, the signed Workstation image and the GPU pack, with the content image being added to the same release now. The measurements on this page are from my development setup.
+> To install Deep32, see [Quick start](#quick-start). 0.1.0-alpha.1 is the first public release: the source and all three signed images, the Workstation, the content image and the GPU pack. The measurements on this page are from my development setup.
 
 <p align="center">
   <img alt="The Deep32 Workstation desktop. The Ask window shows a cited answer about BGP keepalive and hold timers; a network calculator, a text editor and the desktop style menu are open beside it." src="docs/screenshots/workstation-desktop.png" width="100%">
@@ -75,7 +75,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File src\release-tools\deep32-get
 ```
 
 `deep32-get` downloads into `deep32-downloads`, resumes an interrupted download, and checks the signature and
-every hash before it joins a disc. If a disc is not on the release yet, it says so and stops. Then write the
+every hash before it joins a disc. If a disc is not on the release yet, it says so and stops. On the GPU machine,
+install Tailscale and sign in to your tailnet before `disc3 --install`: the GPU pack waits for that sign-in and
+never signs in for you. Then write the
 disc 1 image to a USB stick or attach it to a VM and run the guided install, and import disc 2 from the
 Workstation. [INSTALL.md](INSTALL.md) has the details, the install profiles, the known alpha issues and how to
 connect Claude Code or Codex.
@@ -88,7 +90,8 @@ What you need:
 | GPU pack | NVIDIA card of compute capability 7.5 or newer (RTX 20 series and later) with 6 GB or more; 4 threads, 16 GB of memory, 100 GB free | NVIDIA driver 580.65.06 or newer; Docker and the NVIDIA Container Toolkit on Linux, or WSL2 on Windows |
 | Both on one machine | 8 threads, 32 GB of memory, the card above, 160 GB free | As above |
 | Agent | Any PC | Claude Code or Codex |
-| Download | About 62 GB for the GPU pack | Git and GnuPG; on Linux also curl and Python 3 |
+| Network | Internet access at install | A Tailscale account (the free plan is enough) with MagicDNS and HTTPS certificates turned on. The Workstation brings its own Tailscale; on the GPU machine, install Tailscale and sign in first |
+| Download | About 20 GB for the content image and 62 GB for the GPU pack | Git and GnuPG; on Linux also curl and Python 3 |
 
 Without a GPU pack the Workstation still works, but searches on keywords only. Card and layout details are in
 [Hardware](#hardware) and [docs/HARDWARE.md](docs/HARDWARE.md).
@@ -444,7 +447,7 @@ Latency on my development setup (same engine and models as 1.0, on the Xeon and 
 
 ## Getting Deep32
 
-0.1.0-alpha.1 is an alpha. The Workstation image and the GPU pack are on the release page now. The content image is still being assembled and will be added to the same release shortly; until then the Workstation installs but cannot search.
+0.1.0-alpha.1 is an alpha. All three images are on the release page.
 
 The release installs without any of my keys, logins or network settings. It is three images, covered by one signed checksum list.
 
@@ -482,7 +485,7 @@ Run it from a clone of this repository, as in [Quick start](#quick-start): it re
 - The guided Workstation install needs a disk of 160 GB or more in this alpha. A smaller layout is planned for the beta.
 - The research skills for Claude Code and Codex are in `adapters/`, and [INSTALL.md](INSTALL.md) shows how to connect an agent to the gateway by hand. The Ask window needs the relay, which comes with the one-step headend installer (Deep32 Connect) in a later release.
 - The GPU pack needs an NVIDIA driver of at least 580.65.06, Docker and the NVIDIA Container Toolkit. If one is missing, the installer names it and stops before changing anything. A bootable GPU installer that sets these up is planned for a later release.
-- Every node joins the installer's own Tailscale network. The layout is the same whether the nodes share one machine or sit on several.
+- Every node joins your own tailnet with your own Tailscale sign-in. The Workstation brings Tailscale with it; on the GPU machine, install Tailscale and sign in before `disc3 --install`, which waits for that sign-in and never signs in for you. Turn on MagicDNS and HTTPS certificates in your tailnet. The layout is the same whether the nodes share one machine or sit on several.
 - Claude Code and Codex are supported first. An OpenAI-compatible adapter for locally served models is designed for a later release.
 
 ## Roadmap
@@ -494,7 +497,7 @@ Run it from a clone of this repository, as in [Quick start](#quick-start): it re
 - [ ] Design document covering the architecture and the verification method
 - [ ] Answer-level evaluation with verification on and off
 - [ ] Code release
-- [x] Signed release images (0.1.0-alpha.1: Workstation and GPU pack; content image to follow)
+- [x] Signed release images (0.1.0-alpha.1: Workstation, content and GPU pack)
 - [ ] Bootable GPU installer
 - [x] Archived releases with a DOI (Zenodo)
 

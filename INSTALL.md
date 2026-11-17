@@ -31,21 +31,21 @@ Deep32 has four roles. Three come from the discs; the fourth is the computer you
 | Forge | The GPU node: embeddings server, reranker, knowledge-base builder and PDF converter | Disc 3, as a VM, a second machine, WSL2 or Docker |
 | Headend | Claude Code or Codex with the research skills and a by-hand MCP connection; the Ask relay is planned | `adapters/` in this source release, copied to your own PC |
 
-The three discs (planned; each disc has its own version number):
+The three discs of 0.1.0-alpha.1, all on one signed release:
 
-| Disc | Release tag | Bootable | What it holds | Size |
+| Disc | Release files | Bootable | What it holds | Size |
 |---|---|---|---|---|
-| 1, SYSTEM | `system-<version>` | Yes | OpenBSD 8.0 and the Workstation: desktop, Ask window, Deep32 Library program (no content), search engine, gateway, Tailscale, signed updates | About 2.3 GB (estimate) |
-| 2, CONTENT | `content-<version>` | No | The knowledge base, the corpus blocks `rfc`, `cisco`, `powershell` and `system`, and the Library content | About 9 to 10 GB (estimate) |
-| 3, GPU | `gpu-<version>` | Yes, and it can be mounted as a payload | Ubuntu 24.04, the NVIDIA driver, the container runtime, the Forge containers, the two models, the PDF converter, Tailscale | Not measured yet |
+| 1, SYSTEM | `deep32-<version>-disc1-workstation-amd64.img` | Yes | OpenBSD 8.0 and the Workstation: desktop, Ask window, Deep32 Library program (no content), search engine, gateway, Tailscale, signed updates | 1.9 GB |
+| 2, CONTENT | `deep32-<version>-disc2-content.iso`, in parts | No | The knowledge base, the corpus blocks `rfc`, `cisco`, `powershell` and `system`, and the Library content | 19.6 GB |
+| 3, GPU | `deep32-<version>-disc3-gpu-pack.iso`, in parts | No: a data disc, mounted on the host | The Forge containers (embeddings server, reranker, knowledge-base builder, PDF converter), the two models, and the two ways to start them: Docker on Linux or WSL2 on Windows | 62 GB |
 
 Workstation requirements for disc 1:
 
 Disk: 160 GB minimum for the guided install (the guided layout reserves room for two system update slots, the Library content and swap).
 
-Disc 3 has three ways in. Booted, it installs the Forge on a VM with the graphics card passed through
-(Proxmox VE or KVM) or on a second machine. Mounted, it feeds the Forge into WSL2 on a Windows PC or into
-Docker on an existing Linux host. A normal Hyper-V VM on Windows cannot be given the graphics card, so on
+In this alpha, disc 3 is a data disc: mounted, it feeds the Forge into WSL2 on a Windows PC or into Docker on
+an existing Linux host. A bootable disc 3 that installs the Forge on a VM with the graphics card passed through
+(Proxmox VE or KVM) or on a second machine is planned for a later release. A normal Hyper-V VM on Windows cannot be given the graphics card, so on
 Windows the Forge always runs in WSL2.
 
 The Workstation has no model of its own. Meaning search and reranking happen on the Forge. A Workstation with
@@ -107,8 +107,8 @@ machine, so they are offered as alternatives and come first only when nothing ca
 | Profile | Found on the machine | Workstation | Forge | Relay | Target |
 |---|---|---|---|---|---|
 | `win-nvidia` | Windows 11 Pro, Enterprise or Education, an NVIDIA card, Hyper-V, WSL2 | Hyper-V VM from disc 1 | Disc 3 imported into WSL2 | On the same PC | Reference |
-| `proxmox-passthrough` | Proxmox VE, a card that can be passed through | VM from disc 1 | VM booted from disc 3 with the card passed through | On your own PC | Reference |
-| `two-machines` | A PC for the Workstation, a second PC with an NVIDIA card on the same network | VM or real install from disc 1 | The second PC booted from disc 3, or disc 3 in its WSL2 or Docker | On either | Supported |
+| `proxmox-passthrough` | Proxmox VE, a card that can be passed through | VM from disc 1 | VM booted from disc 3 with the card passed through (needs the bootable disc 3, planned) | On your own PC | Reference |
+| `two-machines` | A PC for the Workstation, a second PC with an NVIDIA card on the same network | VM or real install from disc 1 | Disc 3 in the second PC's WSL2 or Docker (booting it from disc 3 is planned) | On either | Supported |
 | `linux-nvidia` | Linux, an NVIDIA card, KVM, Docker | KVM VM from disc 1 | Disc 3 payload in Docker on the host | MCP only in version 1.0 | Supported |
 | `headless` | Any Linux with an NVIDIA card | None | Disc 3 with the engine and gateway added | None: agents use MCP | Supported |
 | `no-gpu` | Windows or Linux with a hypervisor, no usable NVIDIA card | VM from disc 1 | None (keyword search only), a Forge on another machine, or disc 3 in processor mode (untested) | On this PC if it runs Windows | Supported |
@@ -286,7 +286,7 @@ Everything else runs unattended.
   is imported into WSL2 and uses the Windows NVIDIA driver; nothing is installed as a Linux driver inside WSL.
 - `proxmox-passthrough`: Proxmox's default vCPU type hides AVX, so the installer gives the Forge VM CPU type
   `host` (or `x86-64-v3`). The Workstation VM never uses a virtio-gpu display.
-- `two-machines`: install the Workstation first, then boot the second machine from disc 3, then pair.
+- `two-machines`: install the Workstation first, then set disc 3 up on the second machine (WSL2 or Docker), then pair.
 - `no-gpu`: search works on keywords only until a Forge on another machine is paired.
 - `baremetal`: disk encryption is on by default for a real install. In a VM it is off by default.
 
