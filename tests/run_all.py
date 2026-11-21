@@ -30,6 +30,20 @@ if sys.version_info < (3, 12):
 ROOT = Path(__file__).resolve().parents[1]
 WINDOWS = os.name == 'nt'
 
+
+def elevated():
+    """True on Windows when this process runs elevated (an administrator token), as on GitHub's runner."""
+    if not WINDOWS:
+        return False
+    try:
+        import ctypes
+        return bool(ctypes.windll.shell32.IsUserAnAdmin())
+    except (AttributeError, OSError):
+        return False
+
+
+ELEVATED = elevated()
+
 # Folders whose test files belong to some suite. The pairing reference package is a byte-exact copy with its own
 # runner; the image build driver's tests under src/build/s5-build-driver need a build host and are not listed here.
 TEST_ROOTS = ('tests', 'adapters/tests', 'src/gpu-pack/tests', 'src/kb-tools/linux-line/tests', 'src/build/alpha2-tree')
@@ -74,6 +88,8 @@ NEED_TEXT = {
     'powershell': 'needs Windows PowerShell 5.1',
     'gpg': 'needs GnuPG' + (' (Gpg4win at C:\\Program Files\\GnuPG\\bin)' if WINDOWS else ''),
     'openssl': 'needs the openssl command on PATH',
+    'unelevated': ('needs an unelevated Windows user: Deep32 refuses private files owned by the Administrators '
+                   'group and refuses to download elevated, and this host runs the tests elevated'),
 }
 
 
@@ -91,7 +107,8 @@ class Suite:
 
     def missing(self, found):
         lacking = [need for need in sorted(self.needs) if (need == 'windows' and not WINDOWS) or
-                   (need != 'windows' and need not in found)]
+                   (need == 'unelevated' and ELEVATED) or
+                   (need not in ('windows', 'unelevated') and need not in found)]
         return '; '.join(NEED_TEXT[need] for need in lacking)
 
     def skipped_here(self):
@@ -152,8 +169,9 @@ SUITES = [
     plain('release-tools', files(RT, 'alpha2_assembly bundle_assembly c2_prepare_signing_inputs forge_preflight_windows '
                                      'forge_requirements owner_inputs owner_media sbom_archives sbom_distributions '
                                      'sbom_frozen sbom_inputs sbom_public_path sbom_spdx sbom_versions sbom_workflow '
-                                     'storage_declared whole_assembly')),
-    *[script(f'release-tools/{name}', f'{RT}/test_{name}.py', '--scratch-root')
+                                     'storage_declared whole_assembly'), needs=['unelevated']),
+    *[script(f'release-tools/{name}', f'{RT}/test_{name}.py', '--scratch-root',
+             needs=['unelevated'] if name in ('forge_pair_windows', 'getter_kit', 'settings', 'whole_get') else [])
       for name in 'capabilities forge_pair_windows forge_ports forge_preflight getter_kit gpg_discovery '
                   'settings whole_get'.split()],
     script('release-tools/phase_a_helpers', f'{RT}/test_phase_a_helpers.py', '--scratch-root', known=[
@@ -164,7 +182,7 @@ SUITES = [
     script('release-tools/docker_install', f'{RT}/test_docker_install.py', '--scratch-root',
            needs=['windows', 'bash', 'powershell', 'gpg']),
     script('release-tools/get_powershell', f'{RT}/test_get_powershell.py', '--scratch-root',
-           extra=['--powershell', '{powershell}'], needs=['windows', 'powershell']),
+           extra=['--powershell', '{powershell}'], needs=['windows', 'powershell', 'unelevated']),
     script('release-tools/get_whole_bash', f'{RT}/test_get_whole_bash.py', '--scratch-root',
            extra=['--bash', '{bash}'], needs=['bash']),
     script('release-tools/settings_bash', f'{RT}/test_settings_bash.py', '--scratch-root',
@@ -182,7 +200,7 @@ SUITES = [
     Suite('release-tools/settings_handoff', ['{powershell}', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File',
                                              f'{RT}/test_settings_handoff.ps1', '-Tools', 'src/release-tools'],
           [f'{RT}/test_settings_handoff.ps1'], scratch='-Scratch', needs=['windows', 'powershell']),
-    script('whole-download', 'tests/test-whole-download.py', '--tmp', mkdir=False),
+    script('whole-download', 'tests/test-whole-download.py', '--tmp', mkdir=False, needs=['unelevated']),
 
     # Machine inventory: run_tests.py drives both the shell and the PowerShell form and skips a form it can't run
     Suite('inventory', ['{py}', '-B', 'tests/inventory/run_tests.py'], ['tests/inventory/run_tests.py'],
@@ -215,9 +233,9 @@ SUITES = [
           needs=['openssl']),
     script('publication', 'tests/publication/test_publication.py', '--tmp'),
     plain('docker_role/full_runtime', ['tests/docker_role/test_full_runtime.py'],
-          env={'D32_DOCKER_TEST_ROOT': '{scratch}'}),
+          env={'D32_DOCKER_TEST_ROOT': '{scratch}'}, needs=['unelevated']),
     plain('docker_role/host_paths', ['tests/docker_role/test_host_paths.py']),
-    script('docker_role/lifecycle', 'tests/docker_role/test_lifecycle.py', '--scratch'),
+    script('docker_role/lifecycle', 'tests/docker_role/test_lifecycle.py', '--scratch', needs=['unelevated']),
     script('docker_role/model_bridge', 'tests/docker_role/test_model_bridge.py', '--scratch'),
 
     # Contracts, Workstation programs, diagnostics and documentation checks

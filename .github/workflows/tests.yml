@@ -1,6 +1,7 @@
 # Lint and static analysis on Linux, and every test suite on Windows, for each push and pull request to main.
-# The suites run on Windows because that is where they are verified for each release; on Linux several of them
-# drive the Windows forms of the scripts. tests/run_all.py skips a suite whose tool the runner lacks and says why.
+# tests/run_all.py skips a suite whose tool the runner lacks and says why. GitHub's Windows runner runs elevated,
+# and Deep32 refuses administrator-owned private files and elevated downloads on purpose, so those suites skip
+# there, with that reason; they run on an unelevated Windows user's machine before each release.
 name: Tests
 
 on:
@@ -37,6 +38,8 @@ jobs:
     name: Test suites
     runs-on: windows-latest
     timeout-minutes: 150
+    env:
+      PYTHONUTF8: '1'
     steps:
       - name: Check out
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -46,5 +49,11 @@ jobs:
         uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.12'
+      - name: Use a long temporary path
+        shell: pwsh
+        run: |
+          $t = (Get-Item -LiteralPath $env:RUNNER_TEMP).FullName
+          "TEMP=$t" >> $env:GITHUB_ENV
+          "TMP=$t" >> $env:GITHUB_ENV
       - name: Run every suite
         run: python -I -B tests/run_all.py

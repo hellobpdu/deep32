@@ -1263,7 +1263,7 @@ CHECKS = {'image', 'copy', 'vmdk', 'vdi', 'vm:create', 'vm:after', 'vm:create+lo
 PLACEHOLDERS = {'image', 'imagename', 'sha256', 'bytes', 'sectors', 'mib', 'kit', 'copy', 'copyname', 'gethv', 'disc2',
                 'disc2name', 'dl', 'sep', 'vdi', 'hvname', 'net', 'netlabel', 'nodeimage', 'ts-stall', 'vm', 'vmid',
                 'storage', 'bridge', 'node', 'host', 'token', 'datastore', 'vmx', 'hostif', 'switch', 'wsname', 'cyl',
-                'tool', 'hostif', 'vmxdefault'}
+                'tool', 'vmxdefault'}
 
 
 def hv_rows():
