@@ -258,7 +258,9 @@ SUITES = [
                                 'runtime_stage')),
     plain('gpu-pack/host_preflight_hardening', [f'{GP}/test_host_preflight_hardening.py'],
           env={'D32_RUNTIME_TEST_SCRATCH': '{scratch}'}),
-    *[script(f'gpu-pack/{name}', f'{GP}/test_{name}.py', '--scratch')
+    *[script(f'gpu-pack/{name}', f'{GP}/test_{name}.py', '--scratch',
+             needs=['unelevated'] if name in ('forge_capabilities', 'forge_docker_role', 'forge_jobs',
+                                              'runtime_preflight') else [])
       for name in 'forge_capabilities forge_docker_role forge_jobs forge_publication forge_retained_runtime '
                   'installed_runtime runtime_preflight storage_requirements'.split()],
     plain('kb-tools', files('src/kb-tools/linux-line/tests', 'disc2_assemble w2_identity')),

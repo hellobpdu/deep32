@@ -65,6 +65,10 @@ signed storage budget before it writes anything, and again after it has written 
 
 Solid-state storage is strongly recommended for both.
 
+Before a real run, measure the free space on each filesystem the Forge writes to, as the
+[per-filesystem storage receipt](PRE-RUN.md#measure-each-backing-filesystem-pr-05) describes. The
+[pre-run stop gates](PRE-RUN.md) list the checks a real host still needs before first use.
+
 ## 5. Graphics card
 
 The Forge's embedding server is Text Embeddings Inference (TEI) 1.9, built once per card generation. The inventory
@@ -96,6 +100,11 @@ shows how to switch and what switching hides. Supporting the containerd store is
 plugin (`docker compose`), the NVIDIA Container Toolkit, and `gpgv` from GnuPG for the signature checks. Install them
 from your distribution's packages or the vendors' instructions; `deep32-inventory` lists any that are missing. On
 Windows, Docker Desktop provides Compose and the GPU runtime, and Git for Windows provides `gpgv`.
+
+For the Forge's Docker form, Windows uses Docker Desktop's Linux engine with the WSL 2 backend. If the PC already
+runs Docker in another WSL distribution, keep integration for an existing production distribution disabled in Docker
+Desktop's settings, so the two never share an engine, and leave the PC's own Tailscale setup as it is. The
+portable Windows Forge lifecycle is supplied in source; its full run on a Windows host comes after this release.
 
 On an appliance OS that doesn't let you add system packages, put a standalone Python and the Compose plugin in a
 folder of your own, and point `PATH` at the Python and `DOCKER_CONFIG` at a folder whose `cli-plugins` holds Compose.

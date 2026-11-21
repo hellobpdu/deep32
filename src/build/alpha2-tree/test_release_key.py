@@ -133,8 +133,8 @@ class ReleaseKeyTests(unittest.TestCase):
     def test_runbook_fingerprint_matches_public_readme(self):
         fingerprint = (ROOT/'install/release-key.fingerprint').read_text().splitlines()[0]
         readme = (ROOT/'README.md').read_text()
-        verification = readme.split('## Verifying', 1)[1]
-        displayed = re.search(r'```\n([A-F0-9 ]+)\n```', verification)[1]
+        verification = readme.split('Release and verification', 1)[1]
+        displayed = re.search(r'```(?:text)?\n([A-F0-9 ]+)\n```', verification)[1]
         self.assertEqual(''.join(displayed.split()), fingerprint)
         runbook = (HERE/'RUNBOOK-910.md').read_text()
         self.assertIn('= ' + fingerprint, runbook)
