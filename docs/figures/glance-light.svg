@@ -2,27 +2,27 @@
 <title id="t">Deep32 at a glance</title>
 <desc id="d">Five figures. Hit at 1: 0.955, the correct passage ranked first. Hit at 8: 0.991, the correct passage in the top eight. 854 documents: 365 RFCs and 489 Cisco documents. 11 MCP tools, used by Claude Code and Codex. Median search time 542 milliseconds with hybrid search and reranking. Measured on 696 labeled questions through the gateway on 2 November 2026.</desc>
 <metadata><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description rdf:about=""><dc:title>Deep32 at a glance</dc:title><dc:creator>Jeffrey A. Cummings</dc:creator><dc:rights>Copyright (C) 2026 Jeffrey A. Cummings</dc:rights><dc:source>https://github.com/hellobpdu/deep32</dc:source></rdf:Description></rdf:RDF></metadata>
-<style>.s{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans',Helvetica,Arial,sans-serif}.m{font-family:ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,'Liberation Mono',monospace}</style>
-<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 1L9.5 5L0 9z" fill="#59636e"/></marker><clipPath id="gc"><rect x="15" y="10" width="970" height="118" rx="10"/></clipPath></defs>
-<rect x="15" y="10" width="970" height="118" rx="10" fill="#f6f8fa" stroke="#d1d9e0"/>
-<rect x="15" y="10" width="970" height="3" fill="#0969da" clip-path="url(#gc)"/>
-<text x="112" y="66" class="s" font-size="36" font-weight="700" fill="#1f2328" text-anchor="middle">0.955</text>
-<text x="112" y="92" class="m" font-size="12" font-weight="600" fill="#0969da" text-anchor="middle" letter-spacing="1.6">HIT@1</text>
-<text x="112" y="112" class="s" font-size="13" font-weight="400" fill="#59636e" text-anchor="middle">correct passage first</text>
-<line x1="209" y1="36" x2="209" y2="110" stroke="#d1d9e0"/>
-<text x="306" y="66" class="s" font-size="36" font-weight="700" fill="#1f2328" text-anchor="middle">0.991</text>
-<text x="306" y="92" class="m" font-size="12" font-weight="600" fill="#0969da" text-anchor="middle" letter-spacing="1.6">HIT@8</text>
-<text x="306" y="112" class="s" font-size="13" font-weight="400" fill="#59636e" text-anchor="middle">correct passage in top 8</text>
-<line x1="403" y1="36" x2="403" y2="110" stroke="#d1d9e0"/>
-<text x="500" y="66" class="s" font-size="36" font-weight="700" fill="#1f2328" text-anchor="middle">854</text>
-<text x="500" y="92" class="m" font-size="12" font-weight="600" fill="#0969da" text-anchor="middle" letter-spacing="1.6">DOCUMENTS</text>
-<text x="500" y="112" class="s" font-size="13" font-weight="400" fill="#59636e" text-anchor="middle">365 RFCs · 489 Cisco</text>
-<line x1="597" y1="36" x2="597" y2="110" stroke="#d1d9e0"/>
-<text x="694" y="66" class="s" font-size="36" font-weight="700" fill="#1f2328" text-anchor="middle">11</text>
-<text x="694" y="92" class="m" font-size="12" font-weight="600" fill="#0969da" text-anchor="middle" letter-spacing="1.6">MCP TOOLS</text>
-<text x="694" y="112" class="s" font-size="13" font-weight="400" fill="#59636e" text-anchor="middle">for Claude Code and Codex</text>
-<line x1="791" y1="36" x2="791" y2="110" stroke="#d1d9e0"/>
-<text x="888" y="66" class="s" font-size="36" font-weight="700" fill="#1f2328" text-anchor="middle">542<tspan font-size="20" font-weight="600" fill="#59636e"> ms</tspan></text>
-<text x="888" y="92" class="m" font-size="12" font-weight="600" fill="#0969da" text-anchor="middle" letter-spacing="1.6">MEDIAN SEARCH</text>
-<text x="888" y="112" class="s" font-size="13" font-weight="400" fill="#59636e" text-anchor="middle">hybrid + rerank</text>
+<style>.s{font-family:Helvetica,Arial,'Liberation Sans','Nimbus Sans',sans-serif}.m{font-family:'Lucida Console','Lucida Sans Typewriter',Monaco,'Courier New',monospace}</style>
+<defs><marker id="ah" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="4" markerHeight="4" orient="auto"><path d="M0 0L8 4L0 8z" fill="#e8ebee"/></marker><marker id="ak" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="4" markerHeight="4" orient="auto"><path d="M0 0L8 4L0 8z" fill="#1b1817"/></marker></defs>
+<rect x="0" y="0" width="1000" height="138" fill="#c6b2a8"/><path d="M0 0H1000L998 2H2V136L0 138Z" fill="#ebe2dd"/><path d="M1000 0V138H0L2 136H998V2Z" fill="#7c6a62"/>
+<rect x="12" y="16" width="186" height="1" fill="#7c6a62"/><rect x="12" y="16" width="1" height="111" fill="#7c6a62"/><rect x="197" y="16" width="1" height="111" fill="#7c6a62"/><rect x="12" y="126" width="186" height="1" fill="#7c6a62"/><rect x="13" y="17" width="185" height="1" fill="#ebe2dd"/><rect x="13" y="17" width="1" height="110" fill="#ebe2dd"/><rect x="198" y="16" width="1" height="112" fill="#ebe2dd"/><rect x="12" y="127" width="187" height="1" fill="#ebe2dd"/><rect x="21" y="14" width="50.7" height="5" fill="#c6b2a8"/><text x="25" y="20.5" class="s" font-size="12" font-weight="700" fill="#1b1817" letter-spacing="1">HIT@1</text>
+<rect x="26" y="30" width="159" height="48" fill="#efe9e5"/><path d="M26 30H185L183 32H28V76L26 78Z" fill="#9c8f88"/><path d="M185 30V78H26L28 76H183V32Z" fill="#ffffff"/>
+<text x="105.5" y="67" class="s" font-size="34" font-weight="700" fill="#1b1817" text-anchor="middle">0.955</text>
+<text x="105.5" y="104" class="s" font-size="13" fill="#3f3632" text-anchor="middle">correct passage first</text>
+<rect x="209" y="16" width="186" height="1" fill="#7c6a62"/><rect x="209" y="16" width="1" height="111" fill="#7c6a62"/><rect x="394" y="16" width="1" height="111" fill="#7c6a62"/><rect x="209" y="126" width="186" height="1" fill="#7c6a62"/><rect x="210" y="17" width="185" height="1" fill="#ebe2dd"/><rect x="210" y="17" width="1" height="110" fill="#ebe2dd"/><rect x="395" y="16" width="1" height="112" fill="#ebe2dd"/><rect x="209" y="127" width="187" height="1" fill="#ebe2dd"/><rect x="218" y="14" width="50.7" height="5" fill="#c6b2a8"/><text x="222" y="20.5" class="s" font-size="12" font-weight="700" fill="#1b1817" letter-spacing="1">HIT@8</text>
+<rect x="223" y="30" width="159" height="48" fill="#efe9e5"/><path d="M223 30H382L380 32H225V76L223 78Z" fill="#9c8f88"/><path d="M382 30V78H223L225 76H380V32Z" fill="#ffffff"/>
+<text x="302.5" y="67" class="s" font-size="34" font-weight="700" fill="#1b1817" text-anchor="middle">0.991</text>
+<text x="302.5" y="104" class="s" font-size="13" fill="#3f3632" text-anchor="middle">correct passage in top 8</text>
+<rect x="406" y="16" width="186" height="1" fill="#7c6a62"/><rect x="406" y="16" width="1" height="111" fill="#7c6a62"/><rect x="591" y="16" width="1" height="111" fill="#7c6a62"/><rect x="406" y="126" width="186" height="1" fill="#7c6a62"/><rect x="407" y="17" width="185" height="1" fill="#ebe2dd"/><rect x="407" y="17" width="1" height="110" fill="#ebe2dd"/><rect x="592" y="16" width="1" height="112" fill="#ebe2dd"/><rect x="406" y="127" width="187" height="1" fill="#ebe2dd"/><rect x="415" y="14" width="94.33" height="5" fill="#c6b2a8"/><text x="419" y="20.5" class="s" font-size="12" font-weight="700" fill="#1b1817" letter-spacing="1">DOCUMENTS</text>
+<rect x="420" y="30" width="159" height="48" fill="#efe9e5"/><path d="M420 30H579L577 32H422V76L420 78Z" fill="#9c8f88"/><path d="M579 30V78H420L422 76H577V32Z" fill="#ffffff"/>
+<text x="499.5" y="67" class="s" font-size="34" font-weight="700" fill="#1b1817" text-anchor="middle">854</text>
+<text x="499.5" y="104" class="s" font-size="13" fill="#3f3632" text-anchor="middle">365 RFCs · 489 Cisco</text>
+<rect x="603" y="16" width="186" height="1" fill="#7c6a62"/><rect x="603" y="16" width="1" height="111" fill="#7c6a62"/><rect x="788" y="16" width="1" height="111" fill="#7c6a62"/><rect x="603" y="126" width="186" height="1" fill="#7c6a62"/><rect x="604" y="17" width="185" height="1" fill="#ebe2dd"/><rect x="604" y="17" width="1" height="110" fill="#ebe2dd"/><rect x="789" y="16" width="1" height="112" fill="#ebe2dd"/><rect x="603" y="127" width="187" height="1" fill="#ebe2dd"/><rect x="612" y="14" width="88.34" height="5" fill="#c6b2a8"/><text x="616" y="20.5" class="s" font-size="12" font-weight="700" fill="#1b1817" letter-spacing="1">MCP TOOLS</text>
+<rect x="617" y="30" width="159" height="48" fill="#efe9e5"/><path d="M617 30H776L774 32H619V76L617 78Z" fill="#9c8f88"/><path d="M776 30V78H617L619 76H774V32Z" fill="#ffffff"/>
+<text x="696.5" y="67" class="s" font-size="34" font-weight="700" fill="#1b1817" text-anchor="middle">11</text>
+<text x="696.5" y="104" class="s" font-size="13" fill="#3f3632" text-anchor="middle">for Claude Code and Codex</text>
+<rect x="800" y="16" width="186" height="1" fill="#7c6a62"/><rect x="800" y="16" width="1" height="111" fill="#7c6a62"/><rect x="985" y="16" width="1" height="111" fill="#7c6a62"/><rect x="800" y="126" width="186" height="1" fill="#7c6a62"/><rect x="801" y="17" width="185" height="1" fill="#ebe2dd"/><rect x="801" y="17" width="1" height="110" fill="#ebe2dd"/><rect x="986" y="16" width="1" height="112" fill="#ebe2dd"/><rect x="800" y="127" width="187" height="1" fill="#ebe2dd"/><rect x="809" y="14" width="122.33" height="5" fill="#c6b2a8"/><text x="813" y="20.5" class="s" font-size="12" font-weight="700" fill="#1b1817" letter-spacing="1">MEDIAN SEARCH</text>
+<rect x="814" y="30" width="159" height="48" fill="#efe9e5"/><path d="M814 30H973L971 32H816V76L814 78Z" fill="#9c8f88"/><path d="M973 30V78H814L816 76H971V32Z" fill="#ffffff"/>
+<text x="893.5" y="67" class="s" font-size="34" font-weight="700" fill="#1b1817" text-anchor="middle">542<tspan font-size="19" font-weight="700" fill="#3f3632"> ms</tspan></text>
+<text x="893.5" y="104" class="s" font-size="13" fill="#3f3632" text-anchor="middle">hybrid + rerank</text>
 </svg>

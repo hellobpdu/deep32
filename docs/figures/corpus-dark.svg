@@ -2,53 +2,53 @@
 <title id="t">Corpus documents by kind</title>
 <desc id="d">Documents by kind. IETF: 365 RFCs. Cisco, 489: 263 TechNotes, 126 configuration guides, 48 command references, 17 API guides, 15 validated designs, 14 white papers, 3 MIBs, 3 release notes. PowerShell, 241, opt-in: 156 about topics, 40 conceptual articles, 28 cmdlet reference documents, 14 on 7.x differences, 3 other.</desc>
 <metadata><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description rdf:about=""><dc:title>Corpus documents by kind</dc:title><dc:creator>Jeffrey A. Cummings</dc:creator><dc:rights>Copyright (C) 2026 Jeffrey A. Cummings</dc:rights><dc:source>https://github.com/hellobpdu/deep32</dc:source></rdf:Description></rdf:RDF></metadata>
-<style>.s{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans',Helvetica,Arial,sans-serif}.m{font-family:ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,'Liberation Mono',monospace}</style>
-<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 1L9.5 5L0 9z" fill="#9198a1"/></marker></defs>
-<text x="24" y="24" class="m" font-size="11.5" font-weight="400" fill="#9198a1" letter-spacing="1.6">DOCUMENTS BY KIND</text>
-<text x="976" y="24" class="s" font-size="13" font-weight="400" fill="#9198a1" text-anchor="end">854 documents + 241 opt-in · system collection not shown</text>
-<text x="24" y="62" class="m" font-size="12" font-weight="600" fill="#9198a1" letter-spacing="1.2">IETF · 365</text>
-<text x="234" y="90" class="s" font-size="13.5" font-weight="400" fill="#f0f6fc" text-anchor="end">RFCs</text>
-<path d="M246 79H842Q846 79 846 83V87Q846 91 842 91H246Z" fill="#3987e5"/>
-<text x="854" y="90" class="s" font-size="13.5" font-weight="400" fill="#9198a1">365</text>
-<text x="24" y="116" class="m" font-size="12" font-weight="600" fill="#9198a1" letter-spacing="1.2">CISCO · 489</text>
-<text x="234" y="144" class="s" font-size="13.5" font-weight="400" fill="#f0f6fc" text-anchor="end">TechNotes</text>
-<path d="M246 133H674.33Q678.33 133 678.33 137V141Q678.33 145 674.33 145H246Z" fill="#3987e5"/>
-<text x="686.3287671232877" y="144" class="s" font-size="13.5" font-weight="400" fill="#9198a1">263</text>
-<text x="234" y="166" class="s" font-size="13.5" font-weight="400" fill="#f0f6fc" text-anchor="end">Configuration guides</text>
-<path d="M246 155H449.12Q453.12 155 453.12 159V163Q453.12 167 449.12 167H246Z" fill="#3987e5"/>
-<text x="461.1232876712329" y="166" class="s" font-size="13.5" font-weight="400" fill="#9198a1">126</text>
-<text x="234" y="188" class="s" font-size="13.5" font-weight="400" fill="#f0f6fc" text-anchor="end">Command references</text>
-<path d="M246 177H320.9Q324.9 177 324.9 181V185Q324.9 189 320.9 189H246Z" fill="#3987e5"/>
-<text x="332.9041095890411" y="188" class="s" font-size="13.5" font-weight="400" fill="#9198a1">48</text>
-<text x="234" y="210" class="s" font-size="13.5" font-weight="400" fill="#f0f6fc" text-anchor="end">API guides</text>
-<path d="M246 199H269.95Q273.95 199 273.95 203V207Q273.95 211 269.95 211H246Z" fill="#3987e5"/>
-<text x="281.94520547945206" y="210" class="s" font-size="13.5" font-weight="400" fill="#9198a1">17</text>
-<text x="234" y="232" class="s" font-size="13.5" font-weight="400" fill="#f0f6fc" text-anchor="end">Validated designs</text>
-<path d="M246 221H266.66Q270.66 221 270.66 225V229Q270.66 233 266.66 233H246Z" fill="#3987e5"/>
-<text x="278.6575342465753" y="232" class="s" font-size="13.5" font-weight="400" fill="#9198a1">15</text>
-<text x="234" y="254" class="s" font-size="13.5" font-weight="400" fill="#f0f6fc" text-anchor="end">White papers</text>
-<path d="M246 243H265.01Q269.01 243 269.01 247V251Q269.01 255 265.01 255H246Z" fill="#3987e5"/>
-<text x="277.013698630137" y="254" class="s" font-size="13.5" font-weight="400" fill="#9198a1">14</text>
-<text x="234" y="276" class="s" font-size="13.5" font-weight="400" fill="#f0f6fc" text-anchor="end">MIBs</text>
-<path d="M246 265H248.47Q250.93 265 250.93 267.4657534246575V274.5342465753425Q250.93 277 248.47 277H246Z" fill="#3987e5"/>
-<text x="258.93150684931504" y="276" class="s" font-size="13.5" font-weight="400" fill="#9198a1">3</text>
-<text x="234" y="298" class="s" font-size="13.5" font-weight="400" fill="#f0f6fc" text-anchor="end">Release notes</text>
-<path d="M246 287H248.47Q250.93 287 250.93 289.4657534246575V296.5342465753425Q250.93 299 248.47 299H246Z" fill="#3987e5"/>
-<text x="258.93150684931504" y="298" class="s" font-size="13.5" font-weight="400" fill="#9198a1">3</text>
-<text x="24" y="324" class="m" font-size="12" font-weight="600" fill="#9198a1" letter-spacing="1.2">POWERSHELL (OPT-IN) · 241</text>
-<text x="234" y="352" class="s" font-size="13.5" font-weight="400" fill="#f0f6fc" text-anchor="end">about_ topics</text>
-<path d="M246 341H498.44Q502.44 341 502.44 345V349Q502.44 353 498.44 353H246Z" fill="#3987e5"/>
-<text x="510.43835616438355" y="352" class="s" font-size="13.5" font-weight="400" fill="#9198a1">156</text>
-<text x="234" y="374" class="s" font-size="13.5" font-weight="400" fill="#f0f6fc" text-anchor="end">Conceptual articles</text>
-<path d="M246 363H307.75Q311.75 363 311.75 367V371Q311.75 375 307.75 375H246Z" fill="#3987e5"/>
-<text x="319.75342465753425" y="374" class="s" font-size="13.5" font-weight="400" fill="#9198a1">40</text>
-<text x="234" y="396" class="s" font-size="13.5" font-weight="400" fill="#f0f6fc" text-anchor="end">Cmdlet reference</text>
-<path d="M246 385H288.03Q292.03 385 292.03 389V393Q292.03 397 288.03 397H246Z" fill="#3987e5"/>
-<text x="300.027397260274" y="396" class="s" font-size="13.5" font-weight="400" fill="#9198a1">28</text>
-<text x="234" y="418" class="s" font-size="13.5" font-weight="400" fill="#f0f6fc" text-anchor="end">7.x differences</text>
-<path d="M246 407H265.01Q269.01 407 269.01 411V415Q269.01 419 265.01 419H246Z" fill="#3987e5"/>
-<text x="277.013698630137" y="418" class="s" font-size="13.5" font-weight="400" fill="#9198a1">14</text>
-<text x="234" y="440" class="s" font-size="13.5" font-weight="400" fill="#f0f6fc" text-anchor="end">Other</text>
-<path d="M246 429H248.47Q250.93 429 250.93 431.4657534246575V438.5342465753425Q250.93 441 248.47 441H246Z" fill="#3987e5"/>
-<text x="258.93150684931504" y="440" class="s" font-size="13.5" font-weight="400" fill="#9198a1">3</text>
+<style>.s{font-family:Helvetica,Arial,'Liberation Sans','Nimbus Sans',sans-serif}.m{font-family:'Lucida Console','Lucida Sans Typewriter',Monaco,'Courier New',monospace}</style>
+<defs><marker id="ah" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="4" markerHeight="4" orient="auto"><path d="M0 0L8 4L0 8z" fill="#aeb5bd"/></marker><marker id="ak" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="4" markerHeight="4" orient="auto"><path d="M0 0L8 4L0 8z" fill="#ebe7e2"/></marker></defs>
+<rect x="0" y="0" width="1000" height="458" fill="#2e6e82"/><path d="M0 0H1000L999 1H1V457L0 458Z" fill="#6ba6b7"/><path d="M1000 0V458H0L1 457H999V1Z" fill="#173a45"/><path d="M3 3H997L996 4H4V454L3 455Z" fill="#173a45"/><path d="M997 3V455H3L4 454H996V4Z" fill="#6ba6b7"/><rect x="24" y="0" width="1" height="3" fill="#173a45"/><rect x="25" y="0" width="1" height="3" fill="#6ba6b7"/><rect x="24" y="455" width="1" height="3" fill="#173a45"/><rect x="25" y="455" width="1" height="3" fill="#6ba6b7"/><rect x="974" y="0" width="1" height="3" fill="#173a45"/><rect x="975" y="0" width="1" height="3" fill="#6ba6b7"/><rect x="974" y="455" width="1" height="3" fill="#173a45"/><rect x="975" y="455" width="1" height="3" fill="#6ba6b7"/><rect x="0" y="24" width="3" height="1" fill="#173a45"/><rect x="0" y="25" width="3" height="1" fill="#6ba6b7"/><rect x="997" y="24" width="3" height="1" fill="#173a45"/><rect x="997" y="25" width="3" height="1" fill="#6ba6b7"/><rect x="0" y="432" width="3" height="1" fill="#173a45"/><rect x="0" y="433" width="3" height="1" fill="#6ba6b7"/><rect x="997" y="432" width="3" height="1" fill="#173a45"/><rect x="997" y="433" width="3" height="1" fill="#6ba6b7"/><rect x="4" y="4" width="20" height="20" fill="#2e6e82"/><path d="M4 4H24L23 5H5V23L4 24Z" fill="#6ba6b7"/><path d="M24 4V24H4L5 23H23V5Z" fill="#173a45"/><rect x="9" y="12" width="11" height="4" fill="#2e6e82"/><path d="M9 12H20L19 13H10V15L9 16Z" fill="#6ba6b7"/><path d="M20 12V16H9L10 15H19V13Z" fill="#173a45"/><rect x="976" y="4" width="20" height="20" fill="#2e6e82"/><path d="M976 4H996L995 5H977V23L976 24Z" fill="#6ba6b7"/><path d="M996 4V24H976L977 23H995V5Z" fill="#173a45"/><rect x="981" y="9" width="10" height="10" fill="#2e6e82"/><path d="M981 9H991L990 10H982V18L981 19Z" fill="#6ba6b7"/><path d="M991 9V19H981L982 18H990V10Z" fill="#173a45"/><rect x="956" y="4" width="20" height="20" fill="#2e6e82"/><path d="M956 4H976L975 5H957V23L956 24Z" fill="#6ba6b7"/><path d="M976 4V24H956L957 23H975V5Z" fill="#173a45"/><rect x="964" y="12" width="4" height="4" fill="#2e6e82"/><path d="M964 12H968L967 13H965V15L964 16Z" fill="#6ba6b7"/><path d="M968 12V16H964L965 15H967V13Z" fill="#173a45"/><rect x="24" y="4" width="932" height="20" fill="#2e6e82"/><path d="M24 4H956L955 5H25V23L24 24Z" fill="#6ba6b7"/><path d="M956 4V24H24L25 23H955V5Z" fill="#173a45"/><text x="490" y="18.32" class="s" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle" letter-spacing="1">DOCUMENTS BY KIND</text><rect x="4" y="24" width="992" height="430" fill="#464a51"/><path d="M4 24H996L995 25H5V453L4 454Z" fill="#6c717a"/><path d="M996 24V454H4L5 453H995V25Z" fill="#212428"/>
+<text x="976" y="48" class="s" font-size="13" fill="#d3ccc5" text-anchor="end">854 documents + 241 opt-in · system collection not shown</text>
+<rect x="14" y="62" width="971" height="1" fill="#212428"/><rect x="14" y="62" width="1" height="39" fill="#212428"/><rect x="984" y="62" width="1" height="39" fill="#212428"/><rect x="14" y="100" width="971" height="1" fill="#212428"/><rect x="15" y="63" width="970" height="1" fill="#6c717a"/><rect x="15" y="63" width="1" height="38" fill="#6c717a"/><rect x="985" y="62" width="1" height="40" fill="#6c717a"/><rect x="14" y="101" width="972" height="1" fill="#6c717a"/><rect x="23" y="60" width="77.89" height="5" fill="#464a51"/><text x="27" y="66.5" class="s" font-size="12" font-weight="700" fill="#ebe7e2" letter-spacing="1">IETF · 365</text>
+<text x="234" y="88" class="s" font-size="13.5" fill="#ebe7e2" text-anchor="end">RFCs</text>
+<rect x="246" y="77" width="600" height="12" fill="#56637a"/><path d="M246 77H846L845 78H247V88L246 89Z" fill="#abb1bd"/><path d="M846 77V89H246L247 88H845V78Z" fill="#2b323d"/>
+<text x="854" y="88" class="s" font-size="13.5" fill="#d3ccc5">365</text>
+<rect x="14" y="116" width="971" height="1" fill="#212428"/><rect x="14" y="116" width="1" height="193" fill="#212428"/><rect x="984" y="116" width="1" height="193" fill="#212428"/><rect x="14" y="308" width="971" height="1" fill="#212428"/><rect x="15" y="117" width="970" height="1" fill="#6c717a"/><rect x="15" y="117" width="1" height="192" fill="#6c717a"/><rect x="985" y="116" width="1" height="194" fill="#6c717a"/><rect x="14" y="309" width="972" height="1" fill="#6c717a"/><rect x="23" y="114" width="90.89" height="5" fill="#464a51"/><text x="27" y="120.5" class="s" font-size="12" font-weight="700" fill="#ebe7e2" letter-spacing="1">CISCO · 489</text>
+<text x="234" y="142" class="s" font-size="13.5" fill="#ebe7e2" text-anchor="end">TechNotes</text>
+<rect x="246" y="131" width="432.33" height="12" fill="#3a7d91"/><path d="M246 131H678.33L677.33 132H247V142L246 143Z" fill="#9dbec8"/><path d="M678.33 131V143H246L247 142H677.33V132Z" fill="#1d3f49"/>
+<text x="686.33" y="142" class="s" font-size="13.5" fill="#d3ccc5">263</text>
+<text x="234" y="164" class="s" font-size="13.5" fill="#ebe7e2" text-anchor="end">Configuration guides</text>
+<rect x="246" y="153" width="207.12" height="12" fill="#3a7d91"/><path d="M246 153H453.12L452.12 154H247V164L246 165Z" fill="#9dbec8"/><path d="M453.12 153V165H246L247 164H452.12V154Z" fill="#1d3f49"/>
+<text x="461.12" y="164" class="s" font-size="13.5" fill="#d3ccc5">126</text>
+<text x="234" y="186" class="s" font-size="13.5" fill="#ebe7e2" text-anchor="end">Command references</text>
+<rect x="246" y="175" width="78.9" height="12" fill="#3a7d91"/><path d="M246 175H324.9L323.9 176H247V186L246 187Z" fill="#9dbec8"/><path d="M324.9 175V187H246L247 186H323.9V176Z" fill="#1d3f49"/>
+<text x="332.9" y="186" class="s" font-size="13.5" fill="#d3ccc5">48</text>
+<text x="234" y="208" class="s" font-size="13.5" fill="#ebe7e2" text-anchor="end">API guides</text>
+<rect x="246" y="197" width="27.95" height="12" fill="#3a7d91"/><path d="M246 197H273.95L272.95 198H247V208L246 209Z" fill="#9dbec8"/><path d="M273.95 197V209H246L247 208H272.95V198Z" fill="#1d3f49"/>
+<text x="281.95" y="208" class="s" font-size="13.5" fill="#d3ccc5">17</text>
+<text x="234" y="230" class="s" font-size="13.5" fill="#ebe7e2" text-anchor="end">Validated designs</text>
+<rect x="246" y="219" width="24.66" height="12" fill="#3a7d91"/><path d="M246 219H270.66L269.66 220H247V230L246 231Z" fill="#9dbec8"/><path d="M270.66 219V231H246L247 230H269.66V220Z" fill="#1d3f49"/>
+<text x="278.66" y="230" class="s" font-size="13.5" fill="#d3ccc5">15</text>
+<text x="234" y="252" class="s" font-size="13.5" fill="#ebe7e2" text-anchor="end">White papers</text>
+<rect x="246" y="241" width="23.01" height="12" fill="#3a7d91"/><path d="M246 241H269.01L268.01 242H247V252L246 253Z" fill="#9dbec8"/><path d="M269.01 241V253H246L247 252H268.01V242Z" fill="#1d3f49"/>
+<text x="277.01" y="252" class="s" font-size="13.5" fill="#d3ccc5">14</text>
+<text x="234" y="274" class="s" font-size="13.5" fill="#ebe7e2" text-anchor="end">MIBs</text>
+<rect x="246" y="263" width="4.93" height="12" fill="#3a7d91"/><path d="M246 263H250.93L249.93 264H247V274L246 275Z" fill="#9dbec8"/><path d="M250.93 263V275H246L247 274H249.93V264Z" fill="#1d3f49"/>
+<text x="258.93" y="274" class="s" font-size="13.5" fill="#d3ccc5">3</text>
+<text x="234" y="296" class="s" font-size="13.5" fill="#ebe7e2" text-anchor="end">Release notes</text>
+<rect x="246" y="285" width="4.93" height="12" fill="#3a7d91"/><path d="M246 285H250.93L249.93 286H247V296L246 297Z" fill="#9dbec8"/><path d="M250.93 285V297H246L247 296H249.93V286Z" fill="#1d3f49"/>
+<text x="258.93" y="296" class="s" font-size="13.5" fill="#d3ccc5">3</text>
+<rect x="14" y="324" width="971" height="1" fill="#212428"/><rect x="14" y="324" width="1" height="127" fill="#212428"/><rect x="984" y="324" width="1" height="127" fill="#212428"/><rect x="14" y="450" width="971" height="1" fill="#212428"/><rect x="15" y="325" width="970" height="1" fill="#6c717a"/><rect x="15" y="325" width="1" height="126" fill="#6c717a"/><rect x="985" y="324" width="1" height="128" fill="#6c717a"/><rect x="14" y="451" width="972" height="1" fill="#6c717a"/><rect x="23" y="322" width="203.56" height="5" fill="#464a51"/><text x="27" y="328.5" class="s" font-size="12" font-weight="700" fill="#ebe7e2" letter-spacing="1">POWERSHELL (OPT-IN) · 241</text>
+<text x="234" y="350" class="s" font-size="13.5" fill="#ebe7e2" text-anchor="end">about_ topics</text>
+<rect x="246" y="339" width="256.44" height="12" fill="#7a4e55"/><path d="M246 339H502.44L501.44 340H247V350L246 351Z" fill="#bda7aa"/><path d="M502.44 339V351H246L247 350H501.44V340Z" fill="#3d272b"/>
+<text x="510.44" y="350" class="s" font-size="13.5" fill="#d3ccc5">156</text>
+<text x="234" y="372" class="s" font-size="13.5" fill="#ebe7e2" text-anchor="end">Conceptual articles</text>
+<rect x="246" y="361" width="65.75" height="12" fill="#7a4e55"/><path d="M246 361H311.75L310.75 362H247V372L246 373Z" fill="#bda7aa"/><path d="M311.75 361V373H246L247 372H310.75V362Z" fill="#3d272b"/>
+<text x="319.75" y="372" class="s" font-size="13.5" fill="#d3ccc5">40</text>
+<text x="234" y="394" class="s" font-size="13.5" fill="#ebe7e2" text-anchor="end">Cmdlet reference</text>
+<rect x="246" y="383" width="46.03" height="12" fill="#7a4e55"/><path d="M246 383H292.03L291.03 384H247V394L246 395Z" fill="#bda7aa"/><path d="M292.03 383V395H246L247 394H291.03V384Z" fill="#3d272b"/>
+<text x="300.03" y="394" class="s" font-size="13.5" fill="#d3ccc5">28</text>
+<text x="234" y="416" class="s" font-size="13.5" fill="#ebe7e2" text-anchor="end">7.x differences</text>
+<rect x="246" y="405" width="23.01" height="12" fill="#7a4e55"/><path d="M246 405H269.01L268.01 406H247V416L246 417Z" fill="#bda7aa"/><path d="M269.01 405V417H246L247 416H268.01V406Z" fill="#3d272b"/>
+<text x="277.01" y="416" class="s" font-size="13.5" fill="#d3ccc5">14</text>
+<text x="234" y="438" class="s" font-size="13.5" fill="#ebe7e2" text-anchor="end">Other</text>
+<rect x="246" y="427" width="4.93" height="12" fill="#7a4e55"/><path d="M246 427H250.93L249.93 428H247V438L246 439Z" fill="#bda7aa"/><path d="M250.93 427V439H246L247 438H249.93V428Z" fill="#3d272b"/>
+<text x="258.93" y="438" class="s" font-size="13.5" fill="#d3ccc5">3</text>
 </svg>

@@ -2,45 +2,46 @@
 <title id="t">First relevant passage by pipeline stage</title>
 <desc id="d">Share of 696 questions whose first relevant passage is at rank 1 and within the top 8, with median search time. BM25 only: 0.710 at rank 1, 0.928 in the top 8, 125 ms. Dense only: 0.783, 0.970, 122 ms. Fused with reciprocal rank fusion: 0.822, 0.983, 140 ms. Fused and reranked: 0.955, 0.991, 542 ms.</desc>
 <metadata><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description rdf:about=""><dc:title>First relevant passage by pipeline stage</dc:title><dc:creator>Jeffrey A. Cummings</dc:creator><dc:rights>Copyright (C) 2026 Jeffrey A. Cummings</dc:rights><dc:source>https://github.com/hellobpdu/deep32</dc:source></rdf:Description></rdf:RDF></metadata>
-<style>.s{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans',Helvetica,Arial,sans-serif}.m{font-family:ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,'Liberation Mono',monospace}</style>
-<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 1L9.5 5L0 9z" fill="#9198a1"/></marker></defs>
-<text x="24" y="24" class="m" font-size="11.5" font-weight="400" fill="#9198a1" letter-spacing="1.6">FIRST RELEVANT PASSAGE BY PIPELINE STAGE</text>
-<text x="976" y="24" class="s" font-size="13" font-weight="400" fill="#9198a1" text-anchor="end">696 questions · 2 Nov 2026</text>
-<rect x="214" y="45" width="12" height="12" rx="2" fill="#5598e7"/>
-<text x="232" y="56" class="s" font-size="13" font-weight="400" fill="#9198a1">at rank 1</text>
-<rect x="326" y="45" width="12" height="12" rx="2" fill="#184f95"/>
-<text x="344" y="56" class="s" font-size="13" font-weight="400" fill="#9198a1">ranks 2 to 8</text>
-<rect x="464" y="45" width="12" height="12" rx="2" fill="#21262d"/>
-<text x="482" y="56" class="s" font-size="13" font-weight="400" fill="#9198a1">not in top 8</text>
-<text x="772" y="56" class="s" font-size="13" font-weight="400" fill="#9198a1" text-anchor="end">rank 1</text>
-<text x="862" y="56" class="s" font-size="13" font-weight="400" fill="#9198a1" text-anchor="end">top 8</text>
-<text x="976" y="56" class="s" font-size="13" font-weight="400" fill="#9198a1" text-anchor="end">p50</text>
-<text x="24" y="92" class="s" font-size="14.5" font-weight="400" fill="#f0f6fc">BM25 only</text>
-<rect x="214" y="78" width="332.59" height="18" fill="#5598e7"/>
-<rect x="548.59" y="78" width="100.64" height="18" fill="#184f95"/>
-<path d="M651.24 78H680Q684 78 684 82V92Q684 96 680 96H651.24Z" fill="#21262d"/>
-<text x="772" y="92" class="s" font-size="14.5" font-weight="400" fill="#f0f6fc" text-anchor="end">0.710</text>
-<text x="862" y="92" class="s" font-size="14.5" font-weight="400" fill="#f0f6fc" text-anchor="end">0.928</text>
-<text x="976" y="92" class="s" font-size="14.5" font-weight="400" fill="#f0f6fc" text-anchor="end">125 ms</text>
-<text x="24" y="132" class="s" font-size="14.5" font-weight="400" fill="#f0f6fc">Dense only</text>
-<rect x="214" y="118" width="367.03" height="18" fill="#5598e7"/>
-<rect x="583.03" y="118" width="85.79" height="18" fill="#184f95"/>
-<path d="M670.82 118H680Q684 118 684 122V132Q684 136 680 136H670.82Z" fill="#21262d"/>
-<text x="772" y="132" class="s" font-size="14.5" font-weight="400" fill="#f0f6fc" text-anchor="end">0.783</text>
-<text x="862" y="132" class="s" font-size="14.5" font-weight="400" fill="#f0f6fc" text-anchor="end">0.970</text>
-<text x="976" y="132" class="s" font-size="14.5" font-weight="400" fill="#f0f6fc" text-anchor="end">122 ms</text>
-<text x="24" y="172" class="s" font-size="14.5" font-weight="400" fill="#f0f6fc">Fused (RRF)</text>
-<rect x="214" y="158" width="385.26" height="18" fill="#5598e7"/>
-<rect x="601.26" y="158" width="73.63" height="18" fill="#184f95"/>
-<path d="M676.9 158H680.45Q684 158 684 161.55172413793105V172.44827586206895Q684 176 680.45 176H676.9Z" fill="#21262d"/>
-<text x="772" y="172" class="s" font-size="14.5" font-weight="400" fill="#f0f6fc" text-anchor="end">0.822</text>
-<text x="862" y="172" class="s" font-size="14.5" font-weight="400" fill="#f0f6fc" text-anchor="end">0.983</text>
-<text x="976" y="172" class="s" font-size="14.5" font-weight="400" fill="#f0f6fc" text-anchor="end">140 ms</text>
-<text x="24" y="212" class="s" font-size="14.5" font-weight="600" fill="#f0f6fc">Fused + reranked</text>
-<rect x="214" y="198" width="448.07" height="18" fill="#5598e7"/>
-<rect x="664.07" y="198" width="14.88" height="18" fill="#184f95"/>
-<path d="M680.95 198H682.47Q684 198 684 199.52586206896552V214.47413793103448Q684 216 682.47 216H680.95Z" fill="#21262d"/>
-<text x="772" y="212" class="s" font-size="14.5" font-weight="600" fill="#f0f6fc" text-anchor="end">0.955</text>
-<text x="862" y="212" class="s" font-size="14.5" font-weight="600" fill="#f0f6fc" text-anchor="end">0.991</text>
-<text x="976" y="212" class="s" font-size="14.5" font-weight="600" fill="#f0f6fc" text-anchor="end">542 ms</text>
+<style>.s{font-family:Helvetica,Arial,'Liberation Sans','Nimbus Sans',sans-serif}.m{font-family:'Lucida Console','Lucida Sans Typewriter',Monaco,'Courier New',monospace}</style>
+<defs><marker id="ah" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="4" markerHeight="4" orient="auto"><path d="M0 0L8 4L0 8z" fill="#aeb5bd"/></marker><marker id="ak" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="4" markerHeight="4" orient="auto"><path d="M0 0L8 4L0 8z" fill="#ebe7e2"/></marker></defs>
+<rect x="0" y="0" width="1000" height="232" fill="#2e6e82"/><path d="M0 0H1000L999 1H1V231L0 232Z" fill="#6ba6b7"/><path d="M1000 0V232H0L1 231H999V1Z" fill="#173a45"/><path d="M3 3H997L996 4H4V228L3 229Z" fill="#173a45"/><path d="M997 3V229H3L4 228H996V4Z" fill="#6ba6b7"/><rect x="24" y="0" width="1" height="3" fill="#173a45"/><rect x="25" y="0" width="1" height="3" fill="#6ba6b7"/><rect x="24" y="229" width="1" height="3" fill="#173a45"/><rect x="25" y="229" width="1" height="3" fill="#6ba6b7"/><rect x="974" y="0" width="1" height="3" fill="#173a45"/><rect x="975" y="0" width="1" height="3" fill="#6ba6b7"/><rect x="974" y="229" width="1" height="3" fill="#173a45"/><rect x="975" y="229" width="1" height="3" fill="#6ba6b7"/><rect x="0" y="24" width="3" height="1" fill="#173a45"/><rect x="0" y="25" width="3" height="1" fill="#6ba6b7"/><rect x="997" y="24" width="3" height="1" fill="#173a45"/><rect x="997" y="25" width="3" height="1" fill="#6ba6b7"/><rect x="0" y="206" width="3" height="1" fill="#173a45"/><rect x="0" y="207" width="3" height="1" fill="#6ba6b7"/><rect x="997" y="206" width="3" height="1" fill="#173a45"/><rect x="997" y="207" width="3" height="1" fill="#6ba6b7"/><rect x="4" y="4" width="20" height="20" fill="#2e6e82"/><path d="M4 4H24L23 5H5V23L4 24Z" fill="#6ba6b7"/><path d="M24 4V24H4L5 23H23V5Z" fill="#173a45"/><rect x="9" y="12" width="11" height="4" fill="#2e6e82"/><path d="M9 12H20L19 13H10V15L9 16Z" fill="#6ba6b7"/><path d="M20 12V16H9L10 15H19V13Z" fill="#173a45"/><rect x="976" y="4" width="20" height="20" fill="#2e6e82"/><path d="M976 4H996L995 5H977V23L976 24Z" fill="#6ba6b7"/><path d="M996 4V24H976L977 23H995V5Z" fill="#173a45"/><rect x="981" y="9" width="10" height="10" fill="#2e6e82"/><path d="M981 9H991L990 10H982V18L981 19Z" fill="#6ba6b7"/><path d="M991 9V19H981L982 18H990V10Z" fill="#173a45"/><rect x="956" y="4" width="20" height="20" fill="#2e6e82"/><path d="M956 4H976L975 5H957V23L956 24Z" fill="#6ba6b7"/><path d="M976 4V24H956L957 23H975V5Z" fill="#173a45"/><rect x="964" y="12" width="4" height="4" fill="#2e6e82"/><path d="M964 12H968L967 13H965V15L964 16Z" fill="#6ba6b7"/><path d="M968 12V16H964L965 15H967V13Z" fill="#173a45"/><rect x="24" y="4" width="932" height="20" fill="#2e6e82"/><path d="M24 4H956L955 5H25V23L24 24Z" fill="#6ba6b7"/><path d="M956 4V24H24L25 23H955V5Z" fill="#173a45"/><text x="490" y="18.32" class="s" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle" letter-spacing="1">FIRST RELEVANT PASSAGE BY PIPELINE STAGE</text><rect x="4" y="24" width="992" height="204" fill="#464a51"/><path d="M4 24H996L995 25H5V227L4 228Z" fill="#6c717a"/><path d="M996 24V228H4L5 227H995V25Z" fill="#212428"/>
+<text x="976" y="48" class="s" font-size="13" fill="#d3ccc5" text-anchor="end">696 questions · 2 Nov 2026</text>
+<rect x="214" y="37" width="13" height="13" fill="#5aa9c0"/><path d="M214 37H227L226 38H215V49L214 50Z" fill="#add4e0"/><path d="M227 37V50H214L215 49H226V38Z" fill="#2d5560"/>
+<text x="233" y="48" class="s" font-size="13" fill="#d3ccc5">at rank 1</text>
+<rect x="326" y="37" width="13" height="13" fill="#56637a"/><path d="M326 37H339L338 38H327V49L326 50Z" fill="#abb1bd"/><path d="M339 37V50H326L327 49H338V38Z" fill="#2b323d"/>
+<text x="345" y="48" class="s" font-size="13" fill="#d3ccc5">ranks 2 to 8</text>
+<rect x="464" y="37" width="13" height="13" fill="#2b2e33"/><path d="M464 37H477L475 39H466V48L464 50Z" fill="#131518"/><path d="M477 37V50H464L466 48H475V39Z" fill="#4a4f57"/>
+<text x="483" y="48" class="s" font-size="13" fill="#d3ccc5">not in top 8</text>
+<rect x="14" y="60" width="972" height="1" fill="#212428"/><rect x="14" y="61" width="972" height="1" fill="#6c717a"/>
+<text x="772" y="80" class="s" font-size="13" font-weight="700" fill="#d3ccc5" text-anchor="end">rank 1</text>
+<text x="862" y="80" class="s" font-size="13" font-weight="700" fill="#d3ccc5" text-anchor="end">top 8</text>
+<text x="976" y="80" class="s" font-size="13" font-weight="700" fill="#d3ccc5" text-anchor="end">p50</text>
+<text x="24" y="106" class="s" font-size="14.5" fill="#ebe7e2">BM25 only</text>
+<rect x="212" y="90" width="474" height="22" fill="#2b2e33"/><path d="M212 90H686L684 92H214V110L212 112Z" fill="#131518"/><path d="M686 90V112H212L214 110H684V92Z" fill="#4a4f57"/>
+<rect x="214" y="92" width="333.59" height="18" fill="#5aa9c0"/><path d="M214 92H547.59L546.59 93H215V109L214 110Z" fill="#add4e0"/><path d="M547.59 92V110H214L215 109H546.59V93Z" fill="#2d5560"/>
+<rect x="547.59" y="92" width="102.64" height="18" fill="#56637a"/><path d="M547.59 92H650.24L649.24 93H548.59V109L547.59 110Z" fill="#abb1bd"/><path d="M650.24 92V110H547.59L548.59 109H649.24V93Z" fill="#2b323d"/>
+<text x="772" y="106" class="s" font-size="14.5" fill="#ebe7e2" text-anchor="end">0.710</text>
+<text x="862" y="106" class="s" font-size="14.5" fill="#ebe7e2" text-anchor="end">0.928</text>
+<text x="976" y="106" class="s" font-size="14.5" fill="#ebe7e2" text-anchor="end">125 ms</text>
+<text x="24" y="139" class="s" font-size="14.5" fill="#ebe7e2">Dense only</text>
+<rect x="212" y="123" width="474" height="22" fill="#2b2e33"/><path d="M212 123H686L684 125H214V143L212 145Z" fill="#131518"/><path d="M686 123V145H212L214 143H684V125Z" fill="#4a4f57"/>
+<rect x="214" y="125" width="368.03" height="18" fill="#5aa9c0"/><path d="M214 125H582.03L581.03 126H215V142L214 143Z" fill="#add4e0"/><path d="M582.03 125V143H214L215 142H581.03V126Z" fill="#2d5560"/>
+<rect x="582.03" y="125" width="87.79" height="18" fill="#56637a"/><path d="M582.03 125H669.82L668.82 126H583.03V142L582.03 143Z" fill="#abb1bd"/><path d="M669.82 125V143H582.03L583.03 142H668.82V126Z" fill="#2b323d"/>
+<text x="772" y="139" class="s" font-size="14.5" fill="#ebe7e2" text-anchor="end">0.783</text>
+<text x="862" y="139" class="s" font-size="14.5" fill="#ebe7e2" text-anchor="end">0.970</text>
+<text x="976" y="139" class="s" font-size="14.5" fill="#ebe7e2" text-anchor="end">122 ms</text>
+<text x="24" y="172" class="s" font-size="14.5" fill="#ebe7e2">Fused (RRF)</text>
+<rect x="212" y="156" width="474" height="22" fill="#2b2e33"/><path d="M212 156H686L684 158H214V176L212 178Z" fill="#131518"/><path d="M686 156V178H212L214 176H684V158Z" fill="#4a4f57"/>
+<rect x="214" y="158" width="386.26" height="18" fill="#5aa9c0"/><path d="M214 158H600.26L599.26 159H215V175L214 176Z" fill="#add4e0"/><path d="M600.26 158V176H214L215 175H599.26V159Z" fill="#2d5560"/>
+<rect x="600.26" y="158" width="75.63" height="18" fill="#56637a"/><path d="M600.26 158H675.9L674.9 159H601.26V175L600.26 176Z" fill="#abb1bd"/><path d="M675.9 158V176H600.26L601.26 175H674.9V159Z" fill="#2b323d"/>
+<text x="772" y="172" class="s" font-size="14.5" fill="#ebe7e2" text-anchor="end">0.822</text>
+<text x="862" y="172" class="s" font-size="14.5" fill="#ebe7e2" text-anchor="end">0.983</text>
+<text x="976" y="172" class="s" font-size="14.5" fill="#ebe7e2" text-anchor="end">140 ms</text>
+<text x="24" y="205" class="s" font-size="14.5" font-weight="700" fill="#ebe7e2">Fused + reranked</text>
+<rect x="212" y="189" width="474" height="22" fill="#2b2e33"/><path d="M212 189H686L684 191H214V209L212 211Z" fill="#131518"/><path d="M686 189V211H212L214 209H684V191Z" fill="#4a4f57"/>
+<rect x="214" y="191" width="449.07" height="18" fill="#5aa9c0"/><path d="M214 191H663.07L662.07 192H215V208L214 209Z" fill="#add4e0"/><path d="M663.07 191V209H214L215 208H662.07V192Z" fill="#2d5560"/>
+<rect x="663.07" y="191" width="16.88" height="18" fill="#56637a"/><path d="M663.07 191H679.95L678.95 192H664.07V208L663.07 209Z" fill="#abb1bd"/><path d="M679.95 191V209H663.07L664.07 208H678.95V192Z" fill="#2b323d"/>
+<text x="772" y="205" class="s" font-size="14.5" font-weight="700" fill="#ebe7e2" text-anchor="end">0.955</text>
+<text x="862" y="205" class="s" font-size="14.5" font-weight="700" fill="#ebe7e2" text-anchor="end">0.991</text>
+<text x="976" y="205" class="s" font-size="14.5" font-weight="700" fill="#ebe7e2" text-anchor="end">542 ms</text>
 </svg>

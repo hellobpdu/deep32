@@ -118,8 +118,13 @@
 
   var narrow = window.matchMedia ? window.matchMedia('(max-width: 960px)') : null;
   function headerOffset() {
+    // the front panel covers the top only when it is pinned there; along the bottom, or scrolled away, it doesn't
     var h = doc.querySelector('.site-header');
-    var off = h ? h.offsetHeight : 56;
+    var off = 0;
+    if (h && window.getComputedStyle(h).position !== 'static') {
+      var r = h.getBoundingClientRect();
+      if (r.top < 2 && r.bottom > 0) { off = r.height; }
+    }
     if (narrow && narrow.matches) { off += nav.querySelector('.stepnav-bar').offsetHeight + 20; }   // the bar under the header
     return off + 24;
   }
@@ -129,6 +134,7 @@
     items.forEach(function (it, j) {
       if (j === i) { it.a.setAttribute('aria-current', 'step'); } else { it.a.removeAttribute('aria-current'); }
       it.a.classList.toggle('done', j < i);
+      it.el.classList.toggle('active', j === i);   // the window being read takes the active frame colour
     });
     var it = items[i];
     if (now && it) {

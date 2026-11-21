@@ -6,8 +6,8 @@
 <title>Advanced install: Deep32 0.1.0-alpha.2</title>
 <meta name="description" content="Install Deep32 0.1.0-alpha.2 by hand: each layout with deep32-get, disk budgets, ports, tailnet rules, the Forge on Docker Desktop or Docker Engine, bare metal, several sites, and what to do afterwards.">
 <meta name="color-scheme" content="light dark">
-<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0d1117" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#464d56" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1d2126" media="(prefers-color-scheme: dark)">
 <link rel="canonical" href="https://hellobpdu.github.io/deep32/install/advanced.html">
 <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../assets/site.css">
@@ -19,13 +19,28 @@
 
 <header class="site-header">
   <div class="inner">
-    <a class="wordmark" href="../index.html" aria-label="Deep32 home"><span>DEEP<span class="n">32</span></span><span class="strip" aria-hidden="true"><i></i><i></i><i></i></span></a>
-    <nav class="site-nav" aria-label="Site">
-      <a href="index.html">Setup</a>
-      <a href="advanced.html" aria-current="page">Advanced</a>
-      <a href="../tr/d32-tr-1.html">Report</a>
-      <a href="https://github.com/hellobpdu/deep32">GitHub</a>
-    </nav>
+    <div class="frontpanel">
+      <span class="fp-handle" aria-hidden="true"></span>
+      <span class="fp-cell fp-clock" aria-hidden="true"></span>
+      <a class="wordmark" href="../index.html" aria-label="Deep32 home"><span>DEEP<span class="n">32</span></span></a>
+      <span class="fp-cell fp-drawer" aria-hidden="true"></span>
+      <span class="fp-cell fp-editor" aria-hidden="true"></span>
+      <div class="fp-ws">
+        <span class="fp-lock" aria-hidden="true"></span>
+        <nav class="site-nav" aria-label="Site">
+          <a href="index.html">Setup</a>
+          <a href="advanced.html" aria-current="page">Advanced</a>
+          <a href="../tr/d32-tr-1.html">Report</a>
+          <a href="https://github.com/hellobpdu/deep32">GitHub</a>
+        </nav>
+        <span class="fp-busy" aria-hidden="true"></span>
+      </div>
+      <span class="fp-cell fp-server" aria-hidden="true"></span>
+      <span class="fp-cell fp-printer" aria-hidden="true"></span>
+      <span class="fp-cell fp-help" aria-hidden="true"></span>
+      <span class="fp-cell fp-trash" aria-hidden="true"></span>
+      <span class="fp-handle end" aria-hidden="true"></span>
+    </div>
   </div>
 </header>
 
@@ -64,16 +79,20 @@
 
 <header class="page-head">
   <p class="kicker">Installation &middot; advanced</p>
+  <div class="mb" aria-hidden="true"><span><u>F</u>ile</span><span><u>E</u>dit</span><span><u>V</u>iew</span><span class="mb-r"><u>H</u>elp</span></div>
+  <div class="pane">
   <h1>Advanced install</h1>
   <p class="lead">Each part by hand, layouts with more than one machine or site, and what to do once it runs.
   <a href="https://github.com/hellobpdu/deep32/blob/main/INSTALL.md">INSTALL.md</a> has every procedure in full;
   this page is the map, with the commands you'll need most and links to the detail.</p>
   <p class="applies"><span>Applies to 0.1.0-alpha.2</span><span>For one PC with the wizard, see the <a href="index.html">general setup</a></span></p>
+  </div>
 </header>
 
 <!-- ================================================================================================ 1 -->
 <section class="sec" id="before" aria-labelledby="before-title">
-  <h2 id="before-title">1. Before you start</h2>
+  <h2 id="before-title" class="tb">1. Before you start</h2>
+  <div class="pane">
   <p>The order is the same on every layout: check the machines, get and verify the source, download the images, install
   the Forge, install the Workstation, sign every part in to Tailscale, pair the parts, and verify. INSTALL.md sections
   2 to 9 follow that order.</p>
@@ -94,17 +113,19 @@
   <a href="index.html#step-2">step 2 of the general setup</a>: a clone at the release tag, its signature checked
   (<a href="https://github.com/hellobpdu/deep32/blob/main/INSTALL.md#3-get-and-verify-the-source">INSTALL section 3</a>).</p>
   <div class="callout tip" role="note">
-    <p class="callout-title"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1" y="2.25" width="14" height="11.5" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M4.25 6l2.5 2-2.5 2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="8" y="9.25" width="4" height="1.5" rx="0.75"/></svg>With an agent</p>
+    <p class="callout-title">With an agent</p>
     <p>On any layout, Claude Code's <code>/deep32-install</code> or Codex's <code>$deep32-install</code>, run in the
     clone, works through the same steps on that machine following
     <a href="https://github.com/hellobpdu/deep32/blob/main/AGENTS.md">AGENTS.md</a>. It asks before it changes
     anything; passwords, sign-in clicks and pairing codes stay yours.</p>
   </div>
+  </div>
 </section>
 
 <!-- ================================================================================================ 2 -->
 <section class="sec" id="journeys" aria-labelledby="journeys-title">
-  <h2 id="journeys-title">2. Layouts</h2>
+  <h2 id="journeys-title" class="tb">2. Layouts</h2>
+  <div class="pane">
   <p>A deployment has three parts: the Workstation, the Forge and the headend (the PC where Claude Code or Codex
   runs). They can share machines. The installers call each layout a journey:</p>
   <div class="table-wrap">
@@ -121,11 +142,13 @@
   <p>What I have run is a Workstation in a KVM virtual machine on Proxmox, with a Forge on a separate Linux host. The
   other rows put the same parts in different places. The headend can be any of these machines or another PC. The
   general setup's one PC is J4 on Linux; on Windows it puts J1's two halves on one PC.</p>
+  </div>
 </section>
 
 <!-- ================================================================================================ 3 -->
 <section class="sec" id="downloads" aria-labelledby="downloads-title">
-  <h2 id="downloads-title">3. Downloads</h2>
+  <h2 id="downloads-title" class="tb">3. Downloads</h2>
+  <div class="pane">
   <p><code>deep32-get</code> downloads an image, checks it against the release's signed metadata, and keeps it only if
   every check passes. It tries the Internet Archive first and then each mirror in the signed list, and it resumes an
   interrupted download from the last verified 64 MiB chunk.</p>
@@ -159,11 +182,13 @@
   an image by hand with <code>gpgv</code> and SHA-256.</p>
   <p>Disc 2 can also reach the Workstation without a download on your side: the Workstation fetches it from a PC on
   your tailnet or from the Internet Archive mirror (<a href="index.html#step-6">general setup, step 6</a>).</p>
+  </div>
 </section>
 
 <!-- ================================================================================================ 4 -->
 <section class="sec" id="by-hand" aria-labelledby="by-hand-title">
-  <h2 id="by-hand-title">4. By hand, layout by layout</h2>
+  <h2 id="by-hand-title" class="tb">4. By hand, layout by layout</h2>
+  <div class="pane">
   <p>Run these from the verified clone. <code>CLASS</code> is your card's class from section 3. The VM commands that
   <code>--prepare-vm</code> writes still make a 160 GB disk: change <code>160GB</code> (Hyper-V) or <code>160G</code>
   (KVM) to <code>200GB</code> or <code>200G</code> before you run them.</p>
@@ -218,11 +243,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File src\release-tools\deep32-get
   <a href="https://github.com/hellobpdu/deep32/blob/main/INSTALL.md#7-tailscale">Tailscale</a>,
   <a href="https://github.com/hellobpdu/deep32/blob/main/INSTALL.md#8-pair-the-parts">pairing and Connect</a> and
   <a href="https://github.com/hellobpdu/deep32/blob/main/INSTALL.md#9-verify">verification</a>.</p>
+  </div>
 </section>
 
 <!-- ================================================================================================ 5 -->
 <section class="sec" id="disk" aria-labelledby="disk-title">
-  <h2 id="disk-title">5. Disk space</h2>
+  <h2 id="disk-title" class="tb">5. Disk space</h2>
+  <div class="pane">
   <p><b>The Workstation</b> needs a disk of 200 GB or more. The guided layout sizes the Library partition from the
   disk, and the disc 2 import needs about 20 GB free there. Its downloads are 21.5 GB.</p>
   <p><b>The Forge</b> installer compares free space with the storage budget signed into the release. For 0.1.0-alpha.2
@@ -253,11 +280,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File src\release-tools\deep32-get
   </ul>
   <p><a href="https://github.com/hellobpdu/deep32/blob/main/INSTALL.md#5-install-the-forge">INSTALL section 5</a> has
   the measured run behind these numbers.</p>
+  </div>
 </section>
 
 <!-- ================================================================================================ 6 -->
 <section class="sec" id="ports" aria-labelledby="ports-title">
-  <h2 id="ports-title">6. Ports</h2>
+  <h2 id="ports-title" class="tb">6. Ports</h2>
+  <div class="pane">
   <p>Every part publishes its services inside your tailnet only, with Tailscale Serve. No port is opened to the
   internet.</p>
   <div class="table-wrap">
@@ -275,11 +304,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File src\release-tools\deep32-get
   <p>The Forge installer checks that its ports are free, or already this Forge's, and refuses a port or route another
   service already uses. The plan it shows lists the ports it will take. The inventory checks 8765, 8766, 8443, 8081,
   8082 and 7452 on the machine it runs on and reports any that are busy.</p>
+  </div>
 </section>
 
 <!-- ================================================================================================ 7 -->
 <section class="sec" id="tailnet" aria-labelledby="tailnet-title">
-  <h2 id="tailnet-title">7. Tailnet names and rules</h2>
+  <h2 id="tailnet-title" class="tb">7. Tailnet names and rules</h2>
+  <div class="pane">
   <ul>
     <li><b>Your own tailnet.</b> Every part joins your tailnet with your own Tailscale account. No auth key is on any
     image or in the repository, and the free plan is enough.</li>
@@ -307,11 +338,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File src\release-tools\deep32-get
   </ul>
   <p><a href="https://github.com/hellobpdu/deep32/blob/main/INSTALL.md#7-tailscale">INSTALL section 7</a> has the
   details.</p>
+  </div>
 </section>
 
 <!-- ================================================================================================ 8 -->
 <section class="sec" id="docker" aria-labelledby="docker-title">
-  <h2 id="docker-title">8. The Forge on Docker Desktop or Docker Engine</h2>
+  <h2 id="docker-title" class="tb">8. The Forge on Docker Desktop or Docker Engine</h2>
+  <div class="pane">
   <p>The GPU pack is one Linux Docker form on every host. On Windows it runs through Docker Desktop or in an Ubuntu
   24.04 WSL 2 distro.</p>
   <div class="table-wrap">
@@ -336,11 +369,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File src\release-tools\deep32-get
   Appliance systems with a read-only root, such as Unraid, can't host an alpha.2 Forge, because the pairing helper
   needs the host's own Python. <a href="https://github.com/hellobpdu/deep32/blob/main/docs/HARDWARE.md#5-graphics-card">HARDWARE
   section 5</a> lists the cards.</p>
+  </div>
 </section>
 
 <!-- ================================================================================================ 9 -->
 <section class="sec" id="bare-metal" aria-labelledby="bare-metal-title">
-  <h2 id="bare-metal-title">9. A bare-metal Workstation</h2>
+  <h2 id="bare-metal-title" class="tb">9. A bare-metal Workstation</h2>
+  <div class="pane">
   <p>For a physical install, the tested laptop is the Dell Latitude 5430; other machines run the Workstation as a VM.
   In the wizard's VM guide, <span class="screen">Other hypervisor or bare metal</span> lists the settings
   and has you confirm each step.</p>
@@ -358,11 +393,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File src\release-tools\deep32-get
     Ed25519 public key; with one, a separate SSH server accepts that key for root, only from the tailnet address of
     the machine the Workstation is paired with.</li>
   </ul>
+  </div>
 </section>
 
 <!-- ================================================================================================ 10 -->
 <section class="sec" id="sites" aria-labelledby="sites-title">
-  <h2 id="sites-title">10. More than one site</h2>
+  <h2 id="sites-title" class="tb">10. More than one site</h2>
+  <div class="pane">
   <p>The parts talk over your tailnet, so the Workstation, the Forge and the agent PC can be in different places. At
   home on one LAN the connections are direct. Across sites they still work, and the speed depends on whether
   Tailscale gets a direct path or relays.</p>
@@ -381,11 +418,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File src\release-tools\deep32-get
     <li>Disc 2 can reach a remote Workstation from any PC on your tailnet, or from the Internet Archive mirror.</li>
     <li>If you use access rules of your own, allow the paths in <a href="#tailnet">section 7</a>.</li>
   </ul>
+  </div>
 </section>
 
 <!-- ================================================================================================ 11 -->
 <section class="sec" id="afterwards" aria-labelledby="afterwards-title">
-  <h2 id="afterwards-title">11. Afterwards: start, stop, upgrade, uninstall</h2>
+  <h2 id="afterwards-title" class="tb">11. Afterwards: start, stop, upgrade, uninstall</h2>
+  <div class="pane">
   <p><b>Status.</b> <code>bash install/deep32-setup.sh check</code> can be run at any time; it never changes
   anything.</p>
   <p><b>The Forge on Linux</b> keeps the kit it was installed from under
@@ -417,11 +456,13 @@ sudo python3 -I -B $K/forms/forge_docker_role.py uninstall --data-root /opt/deep
   <a href="https://github.com/hellobpdu/deep32/blob/main/docs/OPTIONAL-FEATURES.md">Optional Features</a> lists each
   one and what it would contact. <a href="https://github.com/hellobpdu/deep32/blob/main/INSTALL.md#10-afterwards">INSTALL
   section 10</a> has the rest.</p>
+  </div>
 </section>
 
 <!-- ================================================================================================ 12 -->
 <section class="sec" id="errors" aria-labelledby="errors-title">
-  <h2 id="errors-title">12. Troubleshooting by error code</h2>
+  <h2 id="errors-title" class="tb">12. Troubleshooting by error code</h2>
+  <div class="pane">
   <p>When a step fails, the wizard shows a code, what happened and up to five fix steps, each saying where to do it.
   Both wizards read the same table,
   <a href="https://github.com/hellobpdu/deep32/blob/main/install/deep32-wizard-errors.tsv"><code>install/deep32-wizard-errors.tsv</code></a>.
@@ -456,11 +497,13 @@ sudo python3 -I -B $K/forms/forge_docker_role.py uninstall --data-root /opt/deep
   troubleshooting table</a> covers Connect and the gateway, and the
   <a href="https://github.com/hellobpdu/deep32/blob/main/CHANGELOG.md">release notes</a> list this release's known
   issues.</p>
+  </div>
 </section>
 
 <!-- ================================================================================================ 13 -->
 <section class="sec" id="never-stored" aria-labelledby="never-stored-title">
-  <h2 id="never-stored-title">13. What is never stored</h2>
+  <h2 id="never-stored-title" class="tb">13. What is never stored</h2>
+  <div class="pane">
   <p>No image, release file or file in the repository holds a secret key, token, password or sign-in. The only keys
   that ship are public halves, such as the release key in <code>install/</code>. Each install makes its own:</p>
   <ul>
@@ -474,6 +517,7 @@ sudo python3 -I -B $K/forms/forge_docker_role.py uninstall --data-root /opt/deep
   <p>Your Claude Code, Codex and GitHub sign-ins stay in those tools' own stores.
   <a href="https://github.com/hellobpdu/deep32/blob/main/INSTALL.md#11-what-is-never-stored">INSTALL section 11</a>
   has the table.</p>
+  </div>
 </section>
 
 </main>
@@ -481,6 +525,7 @@ sudo python3 -I -B $K/forms/forge_docker_role.py uninstall --data-root /opt/deep
 
 <footer class="site-footer">
   <div class="inner">
+    <div class="tb" aria-hidden="true">Document set</div>
     <nav aria-label="Document set">
       <ul class="docset">
         <li><a href="https://github.com/hellobpdu/deep32#readme">Overview</a></li>

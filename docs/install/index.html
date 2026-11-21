@@ -6,8 +6,8 @@
 <title>General setup: Deep32 0.1.0-alpha.2</title>
 <meta name="description" content="Install Deep32 0.1.0-alpha.2 step by step: one PC with an NVIDIA card for the Forge and your agent, the Workstation as a VM, driven by the setup wizard.">
 <meta name="color-scheme" content="light dark">
-<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0d1117" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#464d56" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1d2126" media="(prefers-color-scheme: dark)">
 <link rel="canonical" href="https://hellobpdu.github.io/deep32/install/">
 <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../assets/site.css">
@@ -19,13 +19,28 @@
 
 <header class="site-header">
   <div class="inner">
-    <a class="wordmark" href="../index.html" aria-label="Deep32 home"><span>DEEP<span class="n">32</span></span><span class="strip" aria-hidden="true"><i></i><i></i><i></i></span></a>
-    <nav class="site-nav" aria-label="Site">
-      <a href="index.html" aria-current="page">Setup</a>
-      <a href="advanced.html">Advanced</a>
-      <a href="../tr/d32-tr-1.html">Report</a>
-      <a href="https://github.com/hellobpdu/deep32">GitHub</a>
-    </nav>
+    <div class="frontpanel">
+      <span class="fp-handle" aria-hidden="true"></span>
+      <span class="fp-cell fp-clock" aria-hidden="true"></span>
+      <a class="wordmark" href="../index.html" aria-label="Deep32 home"><span>DEEP<span class="n">32</span></span></a>
+      <span class="fp-cell fp-drawer" aria-hidden="true"></span>
+      <span class="fp-cell fp-editor" aria-hidden="true"></span>
+      <div class="fp-ws">
+        <span class="fp-lock" aria-hidden="true"></span>
+        <nav class="site-nav" aria-label="Site">
+          <a href="index.html" aria-current="page">Setup</a>
+          <a href="advanced.html">Advanced</a>
+          <a href="../tr/d32-tr-1.html">Report</a>
+          <a href="https://github.com/hellobpdu/deep32">GitHub</a>
+        </nav>
+        <span class="fp-busy" aria-hidden="true"></span>
+      </div>
+      <span class="fp-cell fp-server" aria-hidden="true"></span>
+      <span class="fp-cell fp-printer" aria-hidden="true"></span>
+      <span class="fp-cell fp-help" aria-hidden="true"></span>
+      <span class="fp-cell fp-trash" aria-hidden="true"></span>
+      <span class="fp-handle end" aria-hidden="true"></span>
+    </div>
   </div>
 </header>
 
@@ -62,6 +77,8 @@
 
 <header class="page-head">
   <p class="kicker">Installation &middot; general setup</p>
+  <div class="mb" aria-hidden="true"><span><u>F</u>ile</span><span><u>E</u>dit</span><span><u>V</u>iew</span><span class="mb-r"><u>H</u>elp</span></div>
+  <div class="pane">
   <h1>General setup</h1>
   <p class="lead">This page sets up Deep32 the common way. One PC with an NVIDIA card runs the Forge and your agent, the
   Workstation runs as a VM on the same PC, and all of it joins one tailnet. The setup wizard drives each part and
@@ -76,13 +93,14 @@
     Workstation's VM share one PC.</figcaption>
   </figure>
   <div class="callout note" role="note">
-    <p class="callout-title"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="7.25" y="7" width="1.5" height="4.5" rx="0.75"/><circle cx="8" cy="4.9" r="1"/></svg>What I have tested</p>
+    <p class="callout-title">What I have tested</p>
     <p>The Workstation installs from its image on a clean VM: the guided install, first boot, Tailscale and publishing
     the gateway. My lab VM runs on Proxmox. The Forge installs from the signed images on Linux, in WSL 2 and on
     Docker Desktop; I checked each of its parts on an RTX 2080 Ti, and the full run on each kind of host follows the
     release. The wizard's VM guide is boot-tested on Proxmox VE only. I haven't yet run the setup from start to
     finish on a clean machine, so if a step fails here, the same step by hand in
     <a href="https://github.com/hellobpdu/deep32/blob/main/INSTALL.md">INSTALL.md</a> is the tested path.</p>
+  </div>
   </div>
 </header>
 
@@ -121,7 +139,7 @@
     </ul>
 
     <aside class="variants" aria-label="If your setup is different">
-      <p class="variants-title"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="4" cy="3.5" r="1.75" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="4" cy="12.5" r="1.75" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="4.5" r="1.75" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M4 5.25v5.5M12 6.25c0 2.75-8 1.75-8 4.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>If your setup is different</p>
+      <p class="variants-title">If your setup is different</p>
       <details>
         <summary>No NVIDIA card, or a card under 11 GB</summary>
         <div>
@@ -235,7 +253,7 @@ git verify-tag v0.1.0-alpha.2</code></pre></div>
     </ol>
 
     <div class="callout tip" role="note">
-      <p class="callout-title"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1" y="2.25" width="14" height="11.5" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M4.25 6l2.5 2-2.5 2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="8" y="9.25" width="4" height="1.5" rx="0.75"/></svg>Let your agent do the next steps</p>
+      <p class="callout-title">Let your agent do the next steps</p>
       <p>If Claude Code or Codex runs on this PC, open it in the clone and run <code>/deep32-install</code> in Claude
       Code or <code>$deep32-install</code> in Codex. It follows
       <a href="https://github.com/hellobpdu/deep32/blob/main/AGENTS.md">AGENTS.md</a> and asks before it changes
@@ -270,7 +288,7 @@ git verify-tag v0.1.0-alpha.2</code></pre></div>
     </ul>
 
     <aside class="variants" aria-label="If your setup is different">
-      <p class="variants-title"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="4" cy="3.5" r="1.75" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="4" cy="12.5" r="1.75" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="4.5" r="1.75" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M4 5.25v5.5M12 6.25c0 2.75-8 1.75-8 4.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>If your setup is different</p>
+      <p class="variants-title">If your setup is different</p>
       <details>
         <summary>Only some of the parts on this PC</summary>
         <div>
@@ -385,7 +403,7 @@ git verify-tag v0.1.0-alpha.2</code></pre></div>
     </div>
 
     <aside class="variants" aria-label="If your setup is different">
-      <p class="variants-title"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="4" cy="3.5" r="1.75" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="4" cy="12.5" r="1.75" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="4.5" r="1.75" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M4 5.25v5.5M12 6.25c0 2.75-8 1.75-8 4.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>If your setup is different</p>
+      <p class="variants-title">If your setup is different</p>
       <details>
         <summary>Proxmox VE <span class="pill tested">boot-tested</span></summary>
         <div>
@@ -599,7 +617,7 @@ virsh attach-disk Deep32Workstation "DISC2" hdc --type cdrom --mode readonly --c
     </ul>
 
     <aside class="variants" aria-label="If your setup is different">
-      <p class="variants-title"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="4" cy="3.5" r="1.75" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="4" cy="12.5" r="1.75" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="4.5" r="1.75" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M4 5.25v5.5M12 6.25c0 2.75-8 1.75-8 4.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>If your setup is different</p>
+      <p class="variants-title">If your setup is different</p>
       <details>
         <summary>No optical drive</summary>
         <div>
@@ -728,7 +746,7 @@ virsh attach-disk Deep32Workstation "DISC2" hdc --type cdrom --mode readonly --c
     </ul>
 
     <aside class="variants" aria-label="If your setup is different">
-      <p class="variants-title"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="4" cy="3.5" r="1.75" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="4" cy="12.5" r="1.75" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="4.5" r="1.75" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M4 5.25v5.5M12 6.25c0 2.75-8 1.75-8 4.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>If your setup is different</p>
+      <p class="variants-title">If your setup is different</p>
       <details>
         <summary>No NVIDIA card</summary>
         <div>
@@ -833,7 +851,7 @@ virsh attach-disk Deep32Workstation "DISC2" hdc --type cdrom --mode readonly --c
     </ul>
 
     <aside class="variants" aria-label="If your setup is different">
-      <p class="variants-title"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="4" cy="3.5" r="1.75" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="4" cy="12.5" r="1.75" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="4.5" r="1.75" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M4 5.25v5.5M12 6.25c0 2.75-8 1.75-8 4.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>If your setup is different</p>
+      <p class="variants-title">If your setup is different</p>
       <details>
         <summary>The Forge and the Workstation on different networks or sites</summary>
         <div>
@@ -927,7 +945,7 @@ doas /usr/local/d32/sbin/d32-gpu-ext status</code></pre></div>
     </ul>
 
     <aside class="variants" aria-label="If your setup is different">
-      <p class="variants-title"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="4" cy="3.5" r="1.75" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="4" cy="12.5" r="1.75" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="4.5" r="1.75" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M4 5.25v5.5M12 6.25c0 2.75-8 1.75-8 4.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>If your setup is different</p>
+      <p class="variants-title">If your setup is different</p>
       <details>
         <summary>Claude Code or Codex already set up for other work on this PC</summary>
         <div>
@@ -1029,7 +1047,7 @@ doas /usr/local/d32/sbin/d32-gpu-ext status</code></pre></div>
     this release Ask answers through the relay with Claude Code, with the model and strength you choose.</p>
 
     <div class="callout important" role="note">
-      <p class="callout-title"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.25" y="1.25" width="13.5" height="13.5" rx="3" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="7.25" y="4" width="1.5" height="5" rx="0.75"/><circle cx="8" cy="11.4" r="1"/></svg>Who can use Ask</p>
+      <p class="callout-title">Who can use Ask</p>
       <p>Ask has no password of its own in this release. Anyone with an account in the Workstation's
       <code>_d32users</code> group, which includes the desktop user the installer creates, can open Ask and ask on the
       plan of the agent signed in on the PC.</p>
@@ -1175,6 +1193,7 @@ bash adapters/connect.sh --relay pair --relay-id '&lt;id&gt;' --agent claude</co
 
 <footer class="site-footer">
   <div class="inner">
+    <div class="tb" aria-hidden="true">Document set</div>
     <nav aria-label="Document set">
       <ul class="docset">
         <li><a href="https://github.com/hellobpdu/deep32#readme">Overview</a></li>

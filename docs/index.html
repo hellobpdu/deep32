@@ -6,8 +6,8 @@
 <title>Deep32: local retrieval for network and security engineering questions</title>
 <meta name="description" content="Deep32 answers network and security engineering questions from a local corpus of RFCs and Cisco documents, through Claude Code or Codex. Install guides for 0.1.0-alpha.2.">
 <meta name="color-scheme" content="light dark">
-<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0d1117" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#464d56" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1d2126" media="(prefers-color-scheme: dark)">
 <link rel="canonical" href="https://hellobpdu.github.io/deep32/">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/site.css">
@@ -19,20 +19,38 @@
 
 <header class="site-header">
   <div class="inner">
-    <a class="wordmark" href="index.html" aria-label="Deep32 home"><span>DEEP<span class="n">32</span></span><span class="strip" aria-hidden="true"><i></i><i></i><i></i></span></a>
-    <nav class="site-nav" aria-label="Site">
-      <a href="install/index.html">Setup</a>
-      <a href="install/advanced.html">Advanced</a>
-      <a href="tr/d32-tr-1.html">Report</a>
-      <a href="https://github.com/hellobpdu/deep32">GitHub</a>
-    </nav>
+    <div class="frontpanel">
+      <span class="fp-handle" aria-hidden="true"></span>
+      <span class="fp-cell fp-clock" aria-hidden="true"></span>
+      <a class="wordmark" href="index.html" aria-label="Deep32 home"><span>DEEP<span class="n">32</span></span></a>
+      <span class="fp-cell fp-drawer" aria-hidden="true"></span>
+      <span class="fp-cell fp-editor" aria-hidden="true"></span>
+      <div class="fp-ws">
+        <span class="fp-lock" aria-hidden="true"></span>
+        <nav class="site-nav" aria-label="Site">
+          <a href="install/index.html">Setup</a>
+          <a href="install/advanced.html">Advanced</a>
+          <a href="tr/d32-tr-1.html">Report</a>
+          <a href="https://github.com/hellobpdu/deep32">GitHub</a>
+        </nav>
+        <span class="fp-busy" aria-hidden="true"></span>
+      </div>
+      <span class="fp-cell fp-server" aria-hidden="true"></span>
+      <span class="fp-cell fp-printer" aria-hidden="true"></span>
+      <span class="fp-cell fp-help" aria-hidden="true"></span>
+      <span class="fp-cell fp-trash" aria-hidden="true"></span>
+      <span class="fp-handle end" aria-hidden="true"></span>
+    </div>
   </div>
 </header>
 
 <main id="main">
   <div class="wrap">
 
-    <section class="hero" aria-labelledby="hero-title">
+    <section class="hero win active" aria-labelledby="hero-title">
+      <div class="tb" aria-hidden="true">Deep32</div>
+      <div class="mb" aria-hidden="true"><span><u>F</u>ile</span><span><u>E</u>dit</span><span><u>V</u>iew</span><span class="mb-r"><u>H</u>elp</span></div>
+      <div class="pane">
       <h1 id="hero-title">
         <picture>
           <source media="(prefers-color-scheme: dark)" srcset="figures/banner-dark.svg">
@@ -55,6 +73,7 @@
         <a class="pill" href="https://doi.org/10.5281/zenodo.24272647">DOI 10.5281/zenodo.24272647</a>
         <a class="pill tested" href="https://www.bestpractices.dev/projects/16932">OpenSSF Best Practices</a>
         <a class="pill tested" href="https://scorecard.dev/viewer/?uri=github.com/hellobpdu/deep32">OpenSSF Scorecard</a>
+      </div>
       </div>
     </section>
 
@@ -87,8 +106,10 @@
       </div>
     </section>
 
-    <section class="section" aria-labelledby="glance-title">
+    <section class="section win" aria-labelledby="glance-title">
       <h2 id="glance-title" class="visually-hidden">At a glance</h2>
+      <div class="tb" aria-hidden="true">At a glance</div>
+      <div class="pane">
       <figure>
         <picture>
           <source media="(prefers-color-scheme: dark)" srcset="figures/glance-dark.svg">
@@ -97,10 +118,12 @@
         <figcaption>Retrieval on 696 labeled questions, measured on my development setup through the gateway, 2 November 2026.
         The <a href="https://github.com/hellobpdu/deep32#8-evaluation">evaluation</a> has the details.</figcaption>
       </figure>
+      </div>
     </section>
 
-    <section class="section" aria-labelledby="parts-title">
-      <h2 id="parts-title">The three parts</h2>
+    <section class="section win" aria-labelledby="parts-title">
+      <h2 id="parts-title" class="tb">The three parts</h2>
+      <div class="pane">
       <p class="sub">A deployment has three parts. They can share one machine or sit on separate ones, at home or
       across sites. They talk over your own Tailscale network, your tailnet, and each pair of parts is introduced once
       with a short code.</p>
@@ -140,10 +163,12 @@
         </picture>
         <figcaption><b>Figure 1.</b> The three parts of an install. They can all run on one machine or on separate ones.</figcaption>
       </figure>
+      </div>
     </section>
 
-    <section class="section" aria-labelledby="look-title">
-      <h2 id="look-title">The Workstation</h2>
+    <section class="section win" aria-labelledby="look-title">
+      <h2 id="look-title" class="tb">The Workstation</h2>
+      <div class="pane">
       <p class="sub">Your agent can use Deep32 over MCP while it works, or you can type a question in the Workstation's
       Ask window and have the agent on your PC answer it there.</p>
       <figure>
@@ -152,10 +177,12 @@
         answering the BGP timer question, with the network calculator, a text editor and the desktop style menu open.
         Panels that exist only in my private build are blanked.</figcaption>
       </figure>
+      </div>
     </section>
 
-    <section class="section" aria-labelledby="more-title">
-      <h2 id="more-title">Read more</h2>
+    <section class="section win" aria-labelledby="more-title">
+      <h2 id="more-title" class="tb">Read more</h2>
+      <div class="pane">
       <div class="links-grid">
         <a class="link-card" href="tr/d32-tr-1.html"><strong>Technical report D32-TR-1</strong><span>The design in RFC form: corpus, retrieval, tools, deployment, release format and evaluation.</span></a>
         <a class="link-card" href="tr/d32-tr-1.pdf"><strong>D32-TR-1 as PDF</strong><span>The same report, printed from its HTML form.</span></a>
@@ -164,10 +191,13 @@
         <a class="link-card" href="https://github.com/hellobpdu/deep32/blob/main/CHANGELOG.md"><strong>Release notes</strong><span>What changed in each release, and the known issues.</span></a>
         <a class="link-card" href="https://github.com/hellobpdu/deep32/releases"><strong>All releases</strong><span>Every release, each signed and archived on Zenodo.</span></a>
       </div>
+      </div>
     </section>
 
-    <section class="section" aria-labelledby="support-title">
+    <section class="section win" aria-labelledby="support-title">
       <h2 id="support-title" class="visually-hidden">Support</h2>
+      <div class="tb" aria-hidden="true">Support</div>
+      <div class="pane">
       <div class="support">
         <p>Questions go to <a href="https://github.com/hellobpdu/deep32/discussions">Discussions</a> and bugs to
         <a href="https://github.com/hellobpdu/deep32/issues">Issues</a>. If you like Deep32 and want to support it,
@@ -177,6 +207,7 @@
           <a class="btn" href="https://ko-fi.com/hellobpdu">Ko-fi</a>
         </div>
       </div>
+      </div>
     </section>
 
   </div>
@@ -184,6 +215,7 @@
 
 <footer class="site-footer">
   <div class="inner">
+    <div class="tb" aria-hidden="true">Document set</div>
     <nav aria-label="Document set">
       <ul class="docset">
         <li><a href="https://github.com/hellobpdu/deep32#readme">Overview</a></li>

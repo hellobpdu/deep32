@@ -7,17 +7,17 @@
 </picture>
 
 <p>
-  <a href="#11-release-and-verification"><img alt="Release: 0.1.0-alpha.2" src="https://img.shields.io/badge/release-0.1.0--alpha.2-9a6700?style=flat-square"></a>
-  <a href="#license"><img alt="License: Apache-2.0" src="https://img.shields.io/badge/license-Apache--2.0-0969da?style=flat-square"></a>
-  <a href="#11-release-and-verification"><img alt="Signed with OpenPGP" src="https://img.shields.io/badge/signed-OpenPGP-8250df?style=flat-square"></a>
-  <a href="#6-tools-and-answer-protocol"><img alt="Interface: Model Context Protocol" src="https://img.shields.io/badge/interface-MCP-0969da?style=flat-square"></a>
-  <a href="#5-retrieval-pipeline"><img alt="Retrieval: BM25, dense, rerank" src="https://img.shields.io/badge/retrieval-BM25_%2B_dense_%2B_rerank-1a7f37?style=flat-square"></a>
+  <a href="#11-release-and-verification"><img alt="Release: 0.1.0-alpha.2" src="docs/badges/release.svg" width="148" height="20"></a>
+  <a href="#license"><img alt="License: Apache-2.0" src="docs/badges/license.svg" width="140" height="20"></a>
+  <a href="#11-release-and-verification"><img alt="Signed with OpenPGP" src="docs/badges/signed.svg" width="131" height="20"></a>
+  <a href="#6-tools-and-answer-protocol"><img alt="Interface: Model Context Protocol" src="docs/badges/mcp.svg" width="114" height="20"></a>
+  <a href="#5-retrieval-pipeline"><img alt="Retrieval: BM25, dense, rerank" src="docs/badges/retrieval.svg" width="206" height="20"></a>
   <br>
-  <a href="https://doi.org/10.5281/zenodo.24272647"><img alt="DOI 10.5281/zenodo.24272647" src="https://img.shields.io/badge/DOI-10.5281%2Fzenodo.24272647-1682d4?style=flat-square"></a>
-  <a href="https://orcid.org/0009-0003-8091-4637"><img alt="ORCID 0009-0003-8091-4637" src="https://img.shields.io/badge/ORCID-0009--0003--8091--4637-a6ce39?style=flat-square&amp;logo=orcid&amp;logoColor=white"></a>
-  <a href="https://www.bestpractices.dev/projects/16932"><img alt="OpenSSF Best Practices" src="https://img.shields.io/cii/level/16932?style=flat-square&amp;label=OpenSSF%20best%20practices"></a>
-  <a href="https://scorecard.dev/viewer/?uri=github.com/hellobpdu/deep32"><img alt="OpenSSF Scorecard" src="https://img.shields.io/ossf-scorecard/github.com/hellobpdu/deep32?style=flat-square&amp;label=OpenSSF%20scorecard"></a>
-  <a href="https://github.com/hellobpdu/deep32/actions/workflows/tests.yml"><img alt="Tests" src="https://img.shields.io/github/actions/workflow/status/hellobpdu/deep32/tests.yml?branch=main&amp;style=flat-square&amp;label=tests"></a>
+  <a href="https://doi.org/10.5281/zenodo.24272647"><img alt="DOI 10.5281/zenodo.24272647" src="docs/badges/doi.svg" width="197" height="20"></a>
+  <a href="https://orcid.org/0009-0003-8091-4637"><img alt="ORCID 0009-0003-8091-4637" src="docs/badges/orcid.svg" width="188" height="20"></a>
+  <a href="https://www.bestpractices.dev/projects/16932"><img alt="OpenSSF Best Practices" src="https://img.shields.io/cii/level/16932?style=flat-square&amp;label=OpenSSF%20best%20practices&amp;labelColor=464d56"></a>
+  <a href="https://scorecard.dev/viewer/?uri=github.com/hellobpdu/deep32"><img alt="OpenSSF Scorecard" src="https://img.shields.io/ossf-scorecard/github.com/hellobpdu/deep32?style=flat-square&amp;label=OpenSSF%20scorecard&amp;labelColor=464d56"></a>
+  <a href="https://github.com/hellobpdu/deep32/actions/workflows/tests.yml"><img alt="Tests" src="https://img.shields.io/github/actions/workflow/status/hellobpdu/deep32/tests.yml?branch=main&amp;style=flat-square&amp;label=tests&amp;labelColor=464d56"></a>
 </p>
 
 [Install](#quick-start) · [Status](#status-of-this-release) · [Introduction](#1-introduction) · [Deployment](#3-deployment) · [Architecture](#4-architecture) · [Retrieval](#5-retrieval-pipeline) · [Evaluation](#8-evaluation) · [Security](#10-security-considerations) · [References](#references)

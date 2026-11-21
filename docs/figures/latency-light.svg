@@ -2,33 +2,40 @@
 <title id="t">Anatomy of one reranked search</title>
 <desc id="d">Approximate timeline of a median reranked search, derived from the medians of separate runs on 2 November 2026: the keyword leg (BM25) takes about 125 ms and the vector leg (query embedding and exact scan) about 122 ms, in parallel; fusion and folding end at about 140 ms; the cross-encoder reranks the top 15 until about 542 ms.</desc>
 <metadata><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description rdf:about=""><dc:title>Anatomy of one reranked search</dc:title><dc:creator>Jeffrey A. Cummings</dc:creator><dc:rights>Copyright (C) 2026 Jeffrey A. Cummings</dc:rights><dc:source>https://github.com/hellobpdu/deep32</dc:source></rdf:Description></rdf:RDF></metadata>
-<style>.s{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans',Helvetica,Arial,sans-serif}.m{font-family:ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,'Liberation Mono',monospace}</style>
-<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 1L9.5 5L0 9z" fill="#59636e"/></marker></defs>
-<text x="24" y="24" class="m" font-size="11.5" font-weight="400" fill="#59636e" letter-spacing="1.6">ANATOMY OF ONE RERANKED SEARCH · MEDIAN</text>
-<line x1="200" y1="44" x2="200" y2="196" stroke="#d1d9e0" stroke-dasharray="2 4"/>
-<text x="200" y="214" class="m" font-size="11.5" font-weight="400" fill="#59636e" text-anchor="middle">0 ms</text>
-<line x1="332.1428571428571" y1="44" x2="332.1428571428571" y2="196" stroke="#d1d9e0" stroke-dasharray="2 4"/>
-<text x="332.1428571428571" y="214" class="m" font-size="11.5" font-weight="400" fill="#59636e" text-anchor="middle">100 ms</text>
-<line x1="464.2857142857143" y1="44" x2="464.2857142857143" y2="196" stroke="#d1d9e0" stroke-dasharray="2 4"/>
-<text x="464.2857142857143" y="214" class="m" font-size="11.5" font-weight="400" fill="#59636e" text-anchor="middle">200 ms</text>
-<line x1="596.4285714285714" y1="44" x2="596.4285714285714" y2="196" stroke="#d1d9e0" stroke-dasharray="2 4"/>
-<text x="596.4285714285714" y="214" class="m" font-size="11.5" font-weight="400" fill="#59636e" text-anchor="middle">300 ms</text>
-<line x1="728.5714285714286" y1="44" x2="728.5714285714286" y2="196" stroke="#d1d9e0" stroke-dasharray="2 4"/>
-<text x="728.5714285714286" y="214" class="m" font-size="11.5" font-weight="400" fill="#59636e" text-anchor="middle">400 ms</text>
-<line x1="860.7142857142857" y1="44" x2="860.7142857142857" y2="196" stroke="#d1d9e0" stroke-dasharray="2 4"/>
-<text x="860.7142857142857" y="214" class="m" font-size="11.5" font-weight="400" fill="#59636e" text-anchor="middle">500 ms</text>
-<text x="24" y="69" class="s" font-size="14.5" font-weight="400" fill="#1f2328">Keyword leg</text>
-<rect x="200.0" y="54" width="165.2" height="20" rx="3" fill="#256abf"/>
-<text x="373.17857142857144" y="69" class="s" font-size="12.5" font-weight="400" fill="#59636e">BM25 · FTS5</text>
-<text x="24" y="105" class="s" font-size="14.5" font-weight="400" fill="#1f2328">Vector leg</text>
-<rect x="200.0" y="90" width="161.2" height="20" rx="3" fill="#256abf"/>
-<text x="369.2142857142857" y="105" class="s" font-size="12.5" font-weight="400" fill="#59636e">embed + exact scan</text>
-<text x="24" y="141" class="s" font-size="14.5" font-weight="400" fill="#1f2328">Fuse and fold</text>
-<rect x="365.2" y="126" width="19.8" height="20" rx="3" fill="#86b6ef"/>
-<text x="393" y="141" class="s" font-size="12.5" font-weight="400" fill="#59636e">RRF k=60</text>
-<text x="24" y="177" class="s" font-size="14.5" font-weight="600" fill="#1f2328">Rerank</text>
-<rect x="385.0" y="162" width="531.2" height="20" rx="3" fill="#2a78d6"/>
-<text x="906.2142857142857" y="176.5" class="s" font-size="12.5" font-weight="600" fill="#ffffff" text-anchor="end">cross-encoder · top 15</text>
-<line x1="916.2142857142857" y1="44" x2="916.2142857142857" y2="196" stroke="#1f2328" stroke-width="1.5"/>
-<text x="916.2142857142857" y="40" class="s" font-size="13" font-weight="700" fill="#1f2328" text-anchor="middle">542 ms</text>
+<style>.s{font-family:Helvetica,Arial,'Liberation Sans','Nimbus Sans',sans-serif}.m{font-family:'Lucida Console','Lucida Sans Typewriter',Monaco,'Courier New',monospace}</style>
+<defs><marker id="ah" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="4" markerHeight="4" orient="auto"><path d="M0 0L8 4L0 8z" fill="#e8ebee"/></marker><marker id="ak" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="4" markerHeight="4" orient="auto"><path d="M0 0L8 4L0 8z" fill="#1b1817"/></marker></defs>
+<rect x="0" y="0" width="1000" height="226" fill="#2e6e82"/><path d="M0 0H1000L999 1H1V225L0 226Z" fill="#6ba6b7"/><path d="M1000 0V226H0L1 225H999V1Z" fill="#173a45"/><path d="M3 3H997L996 4H4V222L3 223Z" fill="#173a45"/><path d="M997 3V223H3L4 222H996V4Z" fill="#6ba6b7"/><rect x="24" y="0" width="1" height="3" fill="#173a45"/><rect x="25" y="0" width="1" height="3" fill="#6ba6b7"/><rect x="24" y="223" width="1" height="3" fill="#173a45"/><rect x="25" y="223" width="1" height="3" fill="#6ba6b7"/><rect x="974" y="0" width="1" height="3" fill="#173a45"/><rect x="975" y="0" width="1" height="3" fill="#6ba6b7"/><rect x="974" y="223" width="1" height="3" fill="#173a45"/><rect x="975" y="223" width="1" height="3" fill="#6ba6b7"/><rect x="0" y="24" width="3" height="1" fill="#173a45"/><rect x="0" y="25" width="3" height="1" fill="#6ba6b7"/><rect x="997" y="24" width="3" height="1" fill="#173a45"/><rect x="997" y="25" width="3" height="1" fill="#6ba6b7"/><rect x="0" y="200" width="3" height="1" fill="#173a45"/><rect x="0" y="201" width="3" height="1" fill="#6ba6b7"/><rect x="997" y="200" width="3" height="1" fill="#173a45"/><rect x="997" y="201" width="3" height="1" fill="#6ba6b7"/><rect x="4" y="4" width="20" height="20" fill="#2e6e82"/><path d="M4 4H24L23 5H5V23L4 24Z" fill="#6ba6b7"/><path d="M24 4V24H4L5 23H23V5Z" fill="#173a45"/><rect x="9" y="12" width="11" height="4" fill="#2e6e82"/><path d="M9 12H20L19 13H10V15L9 16Z" fill="#6ba6b7"/><path d="M20 12V16H9L10 15H19V13Z" fill="#173a45"/><rect x="976" y="4" width="20" height="20" fill="#2e6e82"/><path d="M976 4H996L995 5H977V23L976 24Z" fill="#6ba6b7"/><path d="M996 4V24H976L977 23H995V5Z" fill="#173a45"/><rect x="981" y="9" width="10" height="10" fill="#2e6e82"/><path d="M981 9H991L990 10H982V18L981 19Z" fill="#6ba6b7"/><path d="M991 9V19H981L982 18H990V10Z" fill="#173a45"/><rect x="956" y="4" width="20" height="20" fill="#2e6e82"/><path d="M956 4H976L975 5H957V23L956 24Z" fill="#6ba6b7"/><path d="M976 4V24H956L957 23H975V5Z" fill="#173a45"/><rect x="964" y="12" width="4" height="4" fill="#2e6e82"/><path d="M964 12H968L967 13H965V15L964 16Z" fill="#6ba6b7"/><path d="M968 12V16H964L965 15H967V13Z" fill="#173a45"/><rect x="24" y="4" width="932" height="20" fill="#2e6e82"/><path d="M24 4H956L955 5H25V23L24 24Z" fill="#6ba6b7"/><path d="M956 4V24H24L25 23H955V5Z" fill="#173a45"/><text x="490" y="18.32" class="s" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle" letter-spacing="1">ANATOMY OF ONE RERANKED SEARCH · MEDIAN</text><rect x="4" y="24" width="992" height="198" fill="#c6b2a8"/><path d="M4 24H996L995 25H5V221L4 222Z" fill="#ebe2dd"/><path d="M996 24V222H4L5 221H995V25Z" fill="#7c6a62"/>
+<rect x="190" y="46" width="760" height="152" fill="#efe9e5"/><path d="M190 46H950L948 48H192V196L190 198Z" fill="#9c8f88"/><path d="M950 46V198H190L192 196H948V48Z" fill="#ffffff"/>
+<line x1="200" y1="49" x2="200" y2="195" stroke="#9c8f88" stroke-width="1" stroke-dasharray="1 3"/>
+<rect x="199" y="199" width="2" height="5" fill="#1b1817"/>
+<text x="200" y="216" class="m" font-size="11.5" fill="#3f3632" text-anchor="middle">0 ms</text>
+<line x1="332.14" y1="49" x2="332.14" y2="195" stroke="#9c8f88" stroke-width="1" stroke-dasharray="1 3"/>
+<rect x="331" y="199" width="2" height="5" fill="#1b1817"/>
+<text x="332.14" y="216" class="m" font-size="11.5" fill="#3f3632" text-anchor="middle">100 ms</text>
+<line x1="464.29" y1="49" x2="464.29" y2="195" stroke="#9c8f88" stroke-width="1" stroke-dasharray="1 3"/>
+<rect x="463" y="199" width="2" height="5" fill="#1b1817"/>
+<text x="464.29" y="216" class="m" font-size="11.5" fill="#3f3632" text-anchor="middle">200 ms</text>
+<line x1="596.43" y1="49" x2="596.43" y2="195" stroke="#9c8f88" stroke-width="1" stroke-dasharray="1 3"/>
+<rect x="595" y="199" width="2" height="5" fill="#1b1817"/>
+<text x="596.43" y="216" class="m" font-size="11.5" fill="#3f3632" text-anchor="middle">300 ms</text>
+<line x1="728.57" y1="49" x2="728.57" y2="195" stroke="#9c8f88" stroke-width="1" stroke-dasharray="1 3"/>
+<rect x="728" y="199" width="2" height="5" fill="#1b1817"/>
+<text x="728.57" y="216" class="m" font-size="11.5" fill="#3f3632" text-anchor="middle">400 ms</text>
+<line x1="860.71" y1="49" x2="860.71" y2="195" stroke="#9c8f88" stroke-width="1" stroke-dasharray="1 3"/>
+<rect x="860" y="199" width="2" height="5" fill="#1b1817"/>
+<text x="860.71" y="216" class="m" font-size="11.5" fill="#3f3632" text-anchor="middle">500 ms</text>
+<text x="24" y="71" class="s" font-size="14.5" fill="#1b1817">Keyword leg</text>
+<rect x="200" y="56" width="165" height="20" fill="#4992a7"/><path d="M200 56H365L364 57H201V75L200 76Z" fill="#a4c9d3"/><path d="M365 56V76H200L201 75H364V57Z" fill="#254954"/>
+<text x="373.18" y="71" class="s" font-size="12.5" fill="#3f3632">BM25 · FTS5</text>
+<text x="24" y="106" class="s" font-size="14.5" fill="#1b1817">Vector leg</text>
+<rect x="200" y="91" width="161" height="20" fill="#4992a7"/><path d="M200 91H361L360 92H201V110L200 111Z" fill="#a4c9d3"/><path d="M361 91V111H200L201 110H360V92Z" fill="#254954"/>
+<text x="369.21" y="106" class="s" font-size="12.5" fill="#3f3632">embed + exact scan</text>
+<text x="24" y="141" class="s" font-size="14.5" fill="#1b1817">Fuse and fold</text>
+<rect x="365" y="126" width="20" height="20" fill="#93abbf"/><path d="M365 126H385L384 127H366V145L365 146Z" fill="#c6d4e0"/><path d="M385 126V146H365L366 145H384V127Z" fill="#4c5c6b"/>
+<text x="393" y="141" class="s" font-size="12.5" fill="#3f3632">RRF k=60</text>
+<text x="24" y="176" class="s" font-size="14.5" font-weight="700" fill="#1b1817">Rerank</text>
+<rect x="385" y="161" width="531" height="20" fill="#2e6e82"/><path d="M385 161H916L915 162H386V180L385 181Z" fill="#6ba6b7"/><path d="M916 161V181H385L386 180H915V162Z" fill="#173a45"/>
+<text x="906.21" y="175.5" class="s" font-size="12.5" font-weight="700" fill="#ffffff" text-anchor="end">cross-encoder · top 15</text>
+<rect x="915" y="44" width="2" height="154" fill="#1b1817"/>
+<text x="916.21" y="40" class="s" font-size="13" font-weight="700" fill="#1b1817" text-anchor="middle">542 ms</text>
 </svg>
