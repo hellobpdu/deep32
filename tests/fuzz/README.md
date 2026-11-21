@@ -119,7 +119,7 @@ for the full report. The workflow's token can only read the repository.
 
 On 19 November 2026 I ran every target for 15 minutes with both sanitizers (section 6). The fuzzers found five defects.
 All five are in source the signed images are built from, so each fix ships with the next release that rebuilds them,
-planned for 0.1.0-alpha.3. I rated them on the scale [SECURITY.md](../../SECURITY.md) uses.
+planned for 0.1.0-alpha.3. I rated them on the scale [SECURITY.md](../../.github/SECURITY.md) uses.
 
 | ID | Defect | Where | Severity |
 |---|---|---|---|
@@ -202,4 +202,4 @@ depending on the load. That is within the decoder's limit, and I don't count it 
 
 ---
 
-<p align="center"><sub><a href="../../README.md">Overview</a> · <a href="../../INSTALL.md">Installation</a> · <a href="../../docs/HARDWARE.md">Hardware</a> · <a href="../../docs/OPTIONAL-FEATURES.md">Optional features</a> · <a href="../../docs/tr/README.md">Design</a> · <a href="../../docs/DECISIONS.md">Decision record</a> · <a href="../../docs/contracts/README.md">Contracts</a> · <a href="../../adapters/README.md">Agent adapters</a> · <a href="../../SECURITY.md">Security</a> · <a href="../../CHANGELOG.md">Release notes</a></sub></p>
+<p align="center"><sub><a href="../../README.md">Overview</a> · <a href="../../INSTALL.md">Installation</a> · <a href="../../docs/HARDWARE.md">Hardware</a> · <a href="../../docs/OPTIONAL-FEATURES.md">Optional features</a> · <a href="../../docs/tr/README.md">Design</a> · <a href="../../docs/DECISIONS.md">Decision record</a> · <a href="../../docs/contracts/README.md">Contracts</a> · <a href="../../adapters/README.md">Agent adapters</a> · <a href="../../.github/SECURITY.md">Security</a> · <a href="../../CHANGELOG.md">Release notes</a></sub></p>

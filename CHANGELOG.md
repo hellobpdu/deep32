@@ -67,8 +67,8 @@ finish; INSTALL gives every step by hand as well.
 - The design document [D32-TR-1](docs/tr/README.md) and the [Decision Record](docs/DECISIONS.md).
 - The script that builds the Workstation's install medium, `src/workstation/ship/tools/mkimage-ship.sh`, is now part of
   the published source.
-- [CONTRIBUTING.md](CONTRIBUTING.md), with a Developer Certificate of Origin sign-off on every commit; a code of conduct
-  based on the Contributor Covenant 2.1; and [GOVERNANCE.md](GOVERNANCE.md), with the project's roles, how decisions
+- [CONTRIBUTING.md](.github/CONTRIBUTING.md), with a Developer Certificate of Origin sign-off on every commit; a code of conduct
+  based on the Contributor Covenant 2.1; and [GOVERNANCE.md](.github/GOVERNANCE.md), with the project's roles, how decisions
   are made and how changes are reviewed.
 - Continuous integration on GitHub. The Tests workflow fails on any new Ruff or Bandit finding and runs every test
   suite on Windows with Python 3.12. The Coverage workflow, and `make coverage` on a clone, measure statement and
@@ -252,7 +252,7 @@ finish; INSTALL gives every step by hand as well.
   the joined copy, about 37 GB, has to be free on top of the budget when the install starts. INSTALL section 5 has the
   figures. I'll correct the second check in 0.1.0-alpha.3.
 - The Ask window has no password of its own in this release. In it the relay on the paired PC picks the engine, so the
-  window can't switch the engine for each conversation or sign in to Codex. [SECURITY.md section 5](SECURITY.md#5-known-limitations)
+  window can't switch the engine for each conversation or sign in to Codex. [SECURITY.md section 5](.github/SECURITY.md#5-known-limitations)
   says who can use Ask. The per-window password returns with a later Workstation release.
 - Stop the Ask relay service before pairing (`systemctl --user stop 'deep32-relay-<id>'` on Linux), then start it
   again afterwards. Publish the gateway before pairing the relay. Unpublishing it stops Ask until you publish again.
@@ -283,7 +283,7 @@ finish; INSTALL gives every step by hand as well.
   planned for alpha.3.
 - Deep32 has one maintainer, and I review every change myself. From alpha.3 on, changes reach the main branch through
   pull requests, and once a co-maintainer joins, at least half of the changes in each release are reviewed by someone
-  other than their author ([GOVERNANCE.md](GOVERNANCE.md#reviews)).
+  other than their author ([GOVERNANCE.md](.github/GOVERNANCE.md#reviews)).
 - The archive item's collection is Community Texts; it should be Community Data. Downloads aren't affected.
 
 **Removed**
@@ -299,4 +299,4 @@ the install did not yet join the Workstation, the GPU pack and the agent end to 
 
 ---
 
-<p align="center"><sub><a href="README.md">Overview</a> · <a href="INSTALL.md">Installation</a> · <a href="docs/HARDWARE.md">Hardware</a> · <a href="docs/OPTIONAL-FEATURES.md">Optional features</a> · <a href="docs/tr/README.md">Design</a> · <a href="docs/DECISIONS.md">Decision record</a> · <a href="docs/contracts/README.md">Contracts</a> · <a href="adapters/README.md">Agent adapters</a> · <a href="SECURITY.md">Security</a> · <b>Release notes</b></sub></p>
+<p align="center"><sub><a href="README.md">Overview</a> · <a href="INSTALL.md">Installation</a> · <a href="docs/HARDWARE.md">Hardware</a> · <a href="docs/OPTIONAL-FEATURES.md">Optional features</a> · <a href="docs/tr/README.md">Design</a> · <a href="docs/DECISIONS.md">Decision record</a> · <a href="docs/contracts/README.md">Contracts</a> · <a href="adapters/README.md">Agent adapters</a> · <a href=".github/SECURITY.md">Security</a> · <b>Release notes</b></sub></p>

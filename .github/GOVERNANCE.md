@@ -16,7 +16,7 @@ The project lead adds and removes co-maintainers at any time, by a pull request 
 ## How decisions are made
 
 Anyone can propose a change in an issue or a pull request. The project lead decides. The
-[roadmap](docs/ROADMAP.md) records the direction and what Deep32 will not do.
+[roadmap](../docs/ROADMAP.md) records the direction and what Deep32 will not do.
 
 ## Reviews
 

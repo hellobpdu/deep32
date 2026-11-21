@@ -53,9 +53,9 @@ lint:
 ifeq ($(OS),Windows_NT)
 	baseline=$$(mktemp) && \
 	$(PYTHON) -I -c "import json, sys; d = json.load(open(sys.argv[1], encoding='utf-8')); [r.update(filename=r['filename'].replace(chr(47), chr(92))) for r in d['results']]; json.dump(d, open(sys.argv[2], 'w', encoding='utf-8'))" bandit-baseline.json "$$baseline" && \
-	$(BANDIT) -c bandit.yaml -r . -b "$$baseline"; status=$$?; rm -f "$$baseline"; exit $$status
+	$(BANDIT) -c .github/bandit.yaml -r . -b "$$baseline"; status=$$?; rm -f "$$baseline"; exit $$status
 else
-	$(BANDIT) -c bandit.yaml -r . -b bandit-baseline.json
+	$(BANDIT) -c .github/bandit.yaml -r . -b .github/bandit-baseline.json
 endif
 
 check: test

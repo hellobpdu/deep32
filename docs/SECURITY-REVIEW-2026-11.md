@@ -17,7 +17,7 @@ The 0.1.0-alpha.2 source as prepared for publication on 19 November 2026, and th
 - the design document [D32-TR-1](tr/README.md), in particular section 3.4 (trust boundaries) and section 14
   (security considerations), and the [decision record](DECISIONS.md);
 - the [network contract C8](contracts/C8-network.md), which specifies the ports, tokens, keys and pairing;
-- [SECURITY.md](../SECURITY.md), [section 10 of the overview](../README.md#10-security-considerations) and
+- [SECURITY.md](../.github/SECURITY.md), [section 10 of the overview](../README.md#10-security-considerations) and
   [INSTALL.md section 11](../INSTALL.md#11-what-is-never-stored);
 - the code that implements each security control, named file by file in sections 2 and 3;
 - all of the Python, and all of the C and C++ under `src/workstation`, with the tools in section 5.
@@ -54,7 +54,7 @@ The review had three parts:
 - **A running system.** I read the firewall rules, the service configuration and the code. I didn't attack a running
   install.
 - **Other people's software.** Tailscale, Docker, NVIDIA's drivers and container toolkit, and the language model
-  providers are out of scope, as [SECURITY.md section 3](../SECURITY.md#3-scope) says.
+  providers are out of scope, as [SECURITY.md section 3](../.github/SECURITY.md#3-scope) says.
 
 ## 2. Security requirements
 
@@ -145,7 +145,7 @@ On 19 November 2026 I ran Ruff 0.17.5 and Bandit 1.9.4 over the release source, 
 | Tool | Scope | Findings | Review |
 |---|---|---|---|
 | Ruff, rule set in [`ruff.toml`](../ruff.toml): syntax errors, Pyflakes, Pylint's error checks, flake8-bugbear | 670 files, 184,075 lines | 653 with no rule ignored; 41 outside the tests and the image source, with four bugbear rules ignored | All 41 read: 29 unused imports, 6 unused variables and 6 style findings. None is a defect. The 16 loop-closure warnings outside the tests and the image source were read one by one: each closure runs before its loop moves on |
-| Bandit, configuration in [`bandit.yaml`](../bandit.yaml) | 485 `.py` files and the 9 Python programs without a suffix, tests excluded | 187: 4 high, 100 medium, 83 low | Every high and medium finding read; none is an exploitable vulnerability |
+| Bandit, configuration in [`bandit.yaml`](../.github/bandit.yaml) | 485 `.py` files and the 9 Python programs without a suffix, tests excluded | 187: 4 high, 100 medium, 83 low | Every high and medium finding read; none is an exploitable vulnerability |
 
 What the Bandit review found, by kind:
 
@@ -255,8 +255,8 @@ publication. Sections 2, 3 and 5 describe the source with these changes in it:
 | Public tests for the engine and the gateway | Section 4 | Planned, no release set |
 | A review by someone independent of the project | Section 1.2 | Not arranged |
 
-To report a security problem, follow [SECURITY.md](../SECURITY.md).
+To report a security problem, follow [SECURITY.md](../.github/SECURITY.md).
 
 ---
 
-<p align="center"><sub><a href="../README.md">Overview</a> · <a href="../INSTALL.md">Installation</a> · <a href="HARDWARE.md">Hardware</a> · <a href="OPTIONAL-FEATURES.md">Optional features</a> · <a href="tr/README.md">Design</a> · <a href="DECISIONS.md">Decision record</a> · <a href="contracts/README.md">Contracts</a> · <a href="../adapters/README.md">Agent adapters</a> · <a href="../SECURITY.md">Security</a> · <a href="../CHANGELOG.md">Release notes</a></sub></p>
+<p align="center"><sub><a href="../README.md">Overview</a> · <a href="../INSTALL.md">Installation</a> · <a href="HARDWARE.md">Hardware</a> · <a href="OPTIONAL-FEATURES.md">Optional features</a> · <a href="tr/README.md">Design</a> · <a href="DECISIONS.md">Decision record</a> · <a href="contracts/README.md">Contracts</a> · <a href="../adapters/README.md">Agent adapters</a> · <a href="../.github/SECURITY.md">Security</a> · <a href="../CHANGELOG.md">Release notes</a></sub></p>

@@ -608,7 +608,7 @@ design meets its security requirements, and the [security review of November 202
 records what I checked and found. Fuzz targets built with AddressSanitizer and UndefinedBehaviorSanitizer exercise the
 Workstation's C parsers ([tests/fuzz](tests/fuzz/README.md)).
 
-To report a security problem, follow [SECURITY.md](SECURITY.md): a private report on GitHub, or an email encrypted to
+To report a security problem, follow [SECURITY.md](.github/SECURITY.md): a private report on GitHub, or an email encrypted to
 the key in [section 11](#11-release-and-verification).
 
 ## 11. Release and verification
@@ -792,9 +792,9 @@ resolves to the latest version.
 ## Contributing and support
 
 Questions go to [Discussions](https://github.com/hellobpdu/deep32/discussions) and bugs to
-[Issues](https://github.com/hellobpdu/deep32/issues). For a security problem, follow [SECURITY.md](SECURITY.md).
-[CONTRIBUTING.md](CONTRIBUTING.md) says how to send a change and how to run the tests, and
-[GOVERNANCE.md](GOVERNANCE.md) who decides.
+[Issues](https://github.com/hellobpdu/deep32/issues). For a security problem, follow [SECURITY.md](.github/SECURITY.md).
+[CONTRIBUTING.md](.github/CONTRIBUTING.md) says how to send a change and how to run the tests, and
+[GOVERNANCE.md](.github/GOVERNANCE.md) who decides.
 
 If you like Deep32 and want to support it, the Sponsor button at the top of this page links to
 [GitHub Sponsors](https://github.com/sponsors/hellobpdu) and my [Ko-fi](https://ko-fi.com/hellobpdu). Everything
@@ -830,4 +830,4 @@ Jeffrey A. Cummings · [ORCID 0009-0003-8091-4637](https://orcid.org/0009-0003-8
 
 ---
 
-<p align="center"><sub><b>Overview</b> · <a href="INSTALL.md">Installation</a> · <a href="docs/HARDWARE.md">Hardware</a> · <a href="docs/OPTIONAL-FEATURES.md">Optional features</a> · <a href="docs/tr/README.md">Design</a> · <a href="docs/DECISIONS.md">Decision record</a> · <a href="docs/contracts/README.md">Contracts</a> · <a href="adapters/README.md">Agent adapters</a> · <a href="SECURITY.md">Security</a> · <a href="CHANGELOG.md">Release notes</a></sub></p>
+<p align="center"><sub><b>Overview</b> · <a href="INSTALL.md">Installation</a> · <a href="docs/HARDWARE.md">Hardware</a> · <a href="docs/OPTIONAL-FEATURES.md">Optional features</a> · <a href="docs/tr/README.md">Design</a> · <a href="docs/DECISIONS.md">Decision record</a> · <a href="docs/contracts/README.md">Contracts</a> · <a href="adapters/README.md">Agent adapters</a> · <a href=".github/SECURITY.md">Security</a> · <a href="CHANGELOG.md">Release notes</a></sub></p>

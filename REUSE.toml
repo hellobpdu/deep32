@@ -63,7 +63,7 @@ SPDX-License-Identifier = "CC-BY-NC-4.0"
 
 # The Code of Conduct, adapted from the Contributor Covenant 2.1 (CC BY 4.0).
 [[annotations]]
-path = "CODE_OF_CONDUCT.md"
+path = ".github/CODE_OF_CONDUCT.md"
 precedence = "closest"
 SPDX-FileCopyrightText = [
     "Contributor Covenant contributors <https://www.contributor-covenant.org>",

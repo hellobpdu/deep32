@@ -43,7 +43,7 @@ How to read the evidence:
 | SR-7 | Each component runs with only the privileges it needs, so a defect in one is contained | TR 8.1, TR 14.7, DR-54 |
 | SR-8 | A burst of requests can't exhaust a service | TR 6.9, TR 11.4 |
 
-Outside these requirements, and accepted as described in [SECURITY.md](../SECURITY.md#5-known-limitations): the
+Outside these requirements, and accepted as described in [SECURITY.md](../.github/SECURITY.md#5-known-limitations): the
 language model provider sees each question, the passages the agent reads and its reasoning; whoever holds the release
 signing key can sign a release; and an administrator of a machine that runs a part controls that part.
 
@@ -70,7 +70,7 @@ signing key can sign a release; and an administrator of a machine that runs a pa
 | A5. An agent that follows planted text | Call the eleven tools with any arguments | Change the index, the configuration or another session through those tools |
 | A6. An unprivileged program on a part, such as a desktop program on the Workstation | Run as its own user | Read another service's credential, reach the network outside its firewall rule, or change system files at securelevel 1 |
 
-Out of scope, as listed in [SECURITY.md 3](../SECURITY.md#3-scope): Tailscale, Docker, NVIDIA's drivers and
+Out of scope, as listed in [SECURITY.md 3](../.github/SECURITY.md#3-scope): Tailscale, Docker, NVIDIA's drivers and
 container toolkit, the language model providers and the documents themselves. Tailscale's coordination service is
 trusted to admit only your machines to your tailnet; the services don't rely on tailnet membership for authorization.
 
@@ -288,7 +288,7 @@ HTTP security headers such as a Content Security Policy don't apply: no Deep32 s
 
 ## 10. Known limitations and residual risk
 
-The first five are also in [SECURITY.md 5](../SECURITY.md#5-known-limitations).
+The first five are also in [SECURITY.md 5](../.github/SECURITY.md#5-known-limitations).
 
 | Limitation | What limits it |
 |---|---|
@@ -332,4 +332,4 @@ protocol.
 
 ---
 
-<p align="center"><sub><a href="../README.md">Overview</a> · <a href="../INSTALL.md">Installation</a> · <a href="HARDWARE.md">Hardware</a> · <a href="OPTIONAL-FEATURES.md">Optional features</a> · <a href="tr/README.md">Design</a> · <a href="DECISIONS.md">Decision record</a> · <a href="contracts/README.md">Contracts</a> · <a href="../adapters/README.md">Agent adapters</a> · <a href="../SECURITY.md">Security</a> · <a href="../CHANGELOG.md">Release notes</a></sub></p>
+<p align="center"><sub><a href="../README.md">Overview</a> · <a href="../INSTALL.md">Installation</a> · <a href="HARDWARE.md">Hardware</a> · <a href="OPTIONAL-FEATURES.md">Optional features</a> · <a href="tr/README.md">Design</a> · <a href="DECISIONS.md">Decision record</a> · <a href="contracts/README.md">Contracts</a> · <a href="../adapters/README.md">Agent adapters</a> · <a href="../.github/SECURITY.md">Security</a> · <a href="../CHANGELOG.md">Release notes</a></sub></p>

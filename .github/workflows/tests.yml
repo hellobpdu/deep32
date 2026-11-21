@@ -32,7 +32,7 @@ jobs:
       - name: Ruff
         run: ruff check --no-cache .
       - name: Bandit, new findings only
-        run: bandit -c bandit.yaml -r . -b bandit-baseline.json
+        run: bandit -c .github/bandit.yaml -r . -b .github/bandit-baseline.json
 
   tests:
     name: Test suites

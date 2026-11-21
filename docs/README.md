@@ -11,7 +11,7 @@ navigation bar.
 | [Decision Record](DECISIONS.md) | D32-DR | Every architectural decision, with its alternatives and evidence |
 | [Interface Contracts](contracts/README.md) | D32-C1 to C10 | The formats and protocols the parts agree on |
 | [Agent Adapters](../adapters/README.md) | D32-AG | Connecting Claude Code and Codex |
-| [Security Policy](../SECURITY.md) | D32-SEC | Reporting a vulnerability, supported releases |
+| [Security Policy](../.github/SECURITY.md) | D32-SEC | Reporting a vulnerability, supported releases |
 | [Release Notes](../CHANGELOG.md) | D32-RN | What changed in each release |
 
 Other pages in this folder:
@@ -29,4 +29,4 @@ Other pages in this folder:
 
 ---
 
-<p align="center"><sub><a href="../README.md">Overview</a> · <a href="../INSTALL.md">Installation</a> · <a href="HARDWARE.md">Hardware</a> · <a href="OPTIONAL-FEATURES.md">Optional features</a> · <a href="tr/README.md">Design</a> · <a href="DECISIONS.md">Decision record</a> · <a href="contracts/README.md">Contracts</a> · <a href="../adapters/README.md">Agent adapters</a> · <a href="../SECURITY.md">Security</a> · <a href="../CHANGELOG.md">Release notes</a></sub></p>
+<p align="center"><sub><a href="../README.md">Overview</a> · <a href="../INSTALL.md">Installation</a> · <a href="HARDWARE.md">Hardware</a> · <a href="OPTIONAL-FEATURES.md">Optional features</a> · <a href="tr/README.md">Design</a> · <a href="DECISIONS.md">Decision record</a> · <a href="contracts/README.md">Contracts</a> · <a href="../adapters/README.md">Agent adapters</a> · <a href="../.github/SECURITY.md">Security</a> · <a href="../CHANGELOG.md">Release notes</a></sub></p>

@@ -715,7 +715,7 @@ review**, **incident** (something broke) or **release work**.
 - **Decision:** with this broker the window opens straight to the question box. It offers one engine, labeled Relay
   because the relay on the paired PC picks it, with the models and strengths the relay advertises, and sends the broker
   the same requests as Ask in a terminal. A broker that has the password step keeps it. The advisory in
-  [SECURITY.md section 5](../SECURITY.md#5-known-limitations) states that every user on the Workstation can use Ask
+  [SECURITY.md section 5](../.github/SECURITY.md#5-known-limitations) states that every user on the Workstation can use Ask
   without further authentication.
 - **Instead of:** keeping the window locked until that broker ships; a password checked only by the window program.
 - **Why:** the Workstation and the relay still pair with a secure protocol over Tailscale, and at that point a second
@@ -957,4 +957,4 @@ review**, **incident** (something broke) or **release work**.
 
 ---
 
-<p align="center"><sub><a href="../README.md">Overview</a> · <a href="../INSTALL.md">Installation</a> · <a href="HARDWARE.md">Hardware</a> · <a href="OPTIONAL-FEATURES.md">Optional features</a> · <a href="tr/README.md">Design</a> · <b>Decision record</b> · <a href="contracts/README.md">Contracts</a> · <a href="../adapters/README.md">Agent adapters</a> · <a href="../SECURITY.md">Security</a> · <a href="../CHANGELOG.md">Release notes</a></sub></p>
+<p align="center"><sub><a href="../README.md">Overview</a> · <a href="../INSTALL.md">Installation</a> · <a href="HARDWARE.md">Hardware</a> · <a href="OPTIONAL-FEATURES.md">Optional features</a> · <a href="tr/README.md">Design</a> · <b>Decision record</b> · <a href="contracts/README.md">Contracts</a> · <a href="../adapters/README.md">Agent adapters</a> · <a href="../.github/SECURITY.md">Security</a> · <a href="../CHANGELOG.md">Release notes</a></sub></p>

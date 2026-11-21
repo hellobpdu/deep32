@@ -24,7 +24,7 @@ Releases go from the 0.1.0 alphas to a beta, then release candidates and 1.0.0
 comes before November 2027.
 
 The code the images are built from changes only with a release that rebuilds them
-([CONTRIBUTING.md 4.3](../CONTRIBUTING.md#43-what-changes-only-with-a-release)). That decides most of the grouping
+([CONTRIBUTING.md 4.3](../.github/CONTRIBUTING.md#43-what-changes-only-with-a-release)). That decides most of the grouping
 below: fixes to that code wait for new images, while the tests, CI, the setup scripts, the agent adapters, the Ask
 relay and the documentation can change at any time. Each row links to where the item, or the decision behind it, is
 described.
@@ -80,7 +80,7 @@ The next release with new Workstation and Forge images.
 | Each image built twice | Every 0.1.0-alpha.3 image built twice from the same commit, with the byte-for-byte comparison in the release notes | [Section 5.4](#54-builds) |
 | License headers | SPDX copyright and license lines in the image source, the license texts moved to `LICENSES/`, and `reuse lint` in CI | [Section 5.5](#55-license-metadata) |
 | Artwork and sounds | Deep32's own artwork and sounds are under CC BY-NC 4.0. I'll decide whether they move to CC BY 4.0, the documentation's license | [LICENSING.md](../licenses/LICENSING.md) |
-| Pull requests | From 0.1.0-alpha.3 on, changes reach the main branch through pull requests | [GOVERNANCE.md](../GOVERNANCE.md#reviews) |
+| Pull requests | From 0.1.0-alpha.3 on, changes reach the main branch through pull requests | [GOVERNANCE.md](../.github/GOVERNANCE.md#reviews) |
 
 ## 4. The next 12 months
 
@@ -198,7 +198,7 @@ and Dependabot keeps the GitHub Actions current ([.github/dependabot.yml](../.gi
 What I intend:
 
 - A named coding standard for each language (Python, C, shell, PowerShell and the JavaScript build tools) in
-  [CONTRIBUTING.md](../CONTRIBUTING.md), each checked by a linter in CI: in full outside the image source as soon as
+  [CONTRIBUTING.md](../.github/CONTRIBUTING.md), each checked by a linter in CI: in full outside the image source as soon as
   it runs, and in the image source once 0.1.0-alpha.3 fixes the existing findings.
 - The C build changes listed in [section 3.3](#33-security-supply-chain-and-the-project).
 - The pins the images are built from moved to fixed versions when the images are rebuilt, and a new OpenVEX document
@@ -239,7 +239,7 @@ intend:
 ### 5.6 Security
 
 The security design is in [Overview 10](../README.md#10-security-considerations), D32-TR-1 section 14 and the
-[network contract](contracts/C8-network.md); [SECURITY.md](../SECURITY.md) covers reporting. The
+[network contract](contracts/C8-network.md); [SECURITY.md](../.github/SECURITY.md) covers reporting. The
 [assurance case](ASSURANCE-CASE.md) argues why the design holds up, and the
 [security review of November 2026](SECURITY-REVIEW-2026-11.md) records what I checked against it. What I intend:
 
@@ -248,7 +248,7 @@ The security design is in [Overview 10](../README.md#10-security-considerations)
 
 ### 5.7 People
 
-Deep32 has one maintainer today, and the co-maintainer role in [GOVERNANCE.md](../GOVERNANCE.md#roles) is empty. I'll
+Deep32 has one maintainer today, and the co-maintainer role in [GOVERNANCE.md](../.github/GOVERNANCE.md#roles) is empty. I'll
 invite contributors and a co-maintainer later, starting with small issues labeled `good first issue`. Three Gold
 criteria need other people: a second person who could keep the project going, two significant contributors who aren't
 paid by the same organization, and review of at least half of the changes by someone other than their author. Until
@@ -308,4 +308,4 @@ Not planned for the next year: translations of the interface and the documentati
 
 ---
 
-<p align="center"><sub><a href="../README.md">Overview</a> · <a href="../INSTALL.md">Installation</a> · <a href="HARDWARE.md">Hardware</a> · <a href="OPTIONAL-FEATURES.md">Optional features</a> · <a href="tr/README.md">Design</a> · <a href="DECISIONS.md">Decision record</a> · <a href="contracts/README.md">Contracts</a> · <a href="../adapters/README.md">Agent adapters</a> · <a href="../SECURITY.md">Security</a> · <a href="../CHANGELOG.md">Release notes</a></sub></p>
+<p align="center"><sub><a href="../README.md">Overview</a> · <a href="../INSTALL.md">Installation</a> · <a href="HARDWARE.md">Hardware</a> · <a href="OPTIONAL-FEATURES.md">Optional features</a> · <a href="tr/README.md">Design</a> · <a href="DECISIONS.md">Decision record</a> · <a href="contracts/README.md">Contracts</a> · <a href="../adapters/README.md">Agent adapters</a> · <a href="../.github/SECURITY.md">Security</a> · <a href="../CHANGELOG.md">Release notes</a></sub></p>

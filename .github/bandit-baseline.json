@@ -1,5 +1,5 @@
 {
- "note": "Bandit findings reviewed on 19 November 2026 (none is an exploitable vulnerability; docs/BUILDING.md section 3). Used as: bandit -c bandit.yaml -r . -b bandit-baseline.json. Paths are as Bandit prints them on Linux and macOS. Regenerate after reviewing any new finding.",
+ "note": "Bandit findings reviewed on 19 November 2026 (none is an exploitable vulnerability; docs/BUILDING.md section 3). Used as: bandit -c .github/bandit.yaml -r . -b .github/bandit-baseline.json. Paths are as Bandit prints them on Linux and macOS. Regenerate after reviewing any new finding.",
  "results": [
   {
    "code": "",

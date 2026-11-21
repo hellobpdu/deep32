@@ -105,4 +105,4 @@ its own configuration file, which is why both exist.
 
 ---
 
-<p align="center"><sub><a href="../../README.md">Overview</a> · <a href="../../INSTALL.md">Installation</a> · <a href="../HARDWARE.md">Hardware</a> · <a href="../OPTIONAL-FEATURES.md">Optional features</a> · <a href="../tr/README.md">Design</a> · <a href="../DECISIONS.md">Decision record</a> · <a href="../contracts/README.md">Contracts</a> · <a href="../../adapters/README.md">Agent adapters</a> · <a href="../../SECURITY.md">Security</a> · <a href="../../CHANGELOG.md">Release notes</a></sub></p>
+<p align="center"><sub><a href="../../README.md">Overview</a> · <a href="../../INSTALL.md">Installation</a> · <a href="../HARDWARE.md">Hardware</a> · <a href="../OPTIONAL-FEATURES.md">Optional features</a> · <a href="../tr/README.md">Design</a> · <a href="../DECISIONS.md">Decision record</a> · <a href="../contracts/README.md">Contracts</a> · <a href="../../adapters/README.md">Agent adapters</a> · <a href="../../.github/SECURITY.md">Security</a> · <a href="../../CHANGELOG.md">Release notes</a></sub></p>

@@ -7,7 +7,7 @@ body:
       value: |
         Thanks for reporting. Please check the known issues in [CHANGELOG.md](https://github.com/hellobpdu/deep32/blob/main/CHANGELOG.md) first.
 
-        For a security problem, follow [SECURITY.md](https://github.com/hellobpdu/deep32/blob/main/SECURITY.md) and do not open an issue. For a question, use [Discussions](https://github.com/hellobpdu/deep32/discussions).
+        For a security problem, follow [SECURITY.md](https://github.com/hellobpdu/deep32/blob/main/.github/SECURITY.md) and do not open an issue. For a question, use [Discussions](https://github.com/hellobpdu/deep32/discussions).
   - type: input
     id: release
     attributes:

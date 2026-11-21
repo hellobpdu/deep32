@@ -1,7 +1,7 @@
 # Bandit configuration for Deep32.
 #
-#   bandit -c bandit.yaml -r . -b bandit-baseline.json    only findings that aren't in the reviewed baseline
-#   bandit -c bandit.yaml -r .                            every finding
+#   bandit -c .github/bandit.yaml -r . -b .github/bandit-baseline.json    only findings that aren't in the reviewed baseline
+#   bandit -c .github/bandit.yaml -r .                    every finding
 #
 # Bandit only reads; it never changes a file. It scans *.py files; the Python programs without a suffix (listed in
 # ruff.toml) can be named on the command line as well. docs/BUILDING.md section 3 has the commands and the findings
