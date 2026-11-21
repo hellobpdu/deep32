@@ -1,0 +1,142 @@
+{
+  "format": "deep32-sbom-index",
+  "format_version": 1,
+  "release": "v0.1.0-alpha.2",
+  "subjects": [
+    {
+      "contents": [
+        {
+          "path": "disc1.contents.spdx.json",
+          "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      ],
+      "coverage": {
+        "components": "complete",
+        "licences": "complete"
+      },
+      "gap": null,
+      "sbom": {
+        "asset": "disc1.spdx.json",
+        "media_paths": [],
+        "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "subject": {
+        "aliases": [],
+        "kind": "disc",
+        "path": "deep32-0.1.0-alpha.2-disc1-workstation-amd64.img",
+        "sha256": "cd389f69edebba3b206857c8baf77bc2b248d5c102123aa39ab64ec2e66583dc",
+        "size": 26
+      }
+    },
+    {
+      "contents": [
+        {
+          "path": "disc2.contents.spdx.json",
+          "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      ],
+      "coverage": {
+        "components": "complete",
+        "licences": "complete"
+      },
+      "gap": null,
+      "sbom": {
+        "asset": "disc2.spdx.json",
+        "media_paths": [],
+        "sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+      },
+      "subject": {
+        "aliases": [],
+        "kind": "disc",
+        "path": "deep32-0.1.0-alpha.2-disc2-content.iso",
+        "sha256": "1fe5fabf26b93afbd0a9d2a4cba3651380b397046b075296c1f1096c74f795a3",
+        "size": 26
+      }
+    },
+    {
+      "contents": [
+        {
+          "path": "disc3.contents.spdx.json",
+          "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      ],
+      "coverage": {
+        "components": "complete",
+        "licences": "complete"
+      },
+      "gap": null,
+      "sbom": {
+        "asset": "disc3.spdx.json",
+        "media_paths": [],
+        "sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+      },
+      "subject": {
+        "aliases": [],
+        "kind": "disc",
+        "path": "deep32-0.1.0-alpha.2-disc3-gpu-pack.iso",
+        "sha256": "ef20d2113f484125ec6f95fc2c2c2cb95e6036341c44bc27c30674b0624a93f1",
+        "size": 26
+      }
+    },
+    {
+      "contents": [
+        {
+          "path": "forge-docker.contents.spdx.json",
+          "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      ],
+      "coverage": {
+        "components": "complete",
+        "licences": "complete"
+      },
+      "gap": null,
+      "sbom": {
+        "asset": "forge-docker.tar.spdx.json",
+        "media_paths": [],
+        "sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+      },
+      "subject": {
+        "aliases": [],
+        "kind": "runtime",
+        "path": "forge-docker.tar",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "size": 16
+      }
+    },
+    {
+      "contents": [],
+      "coverage": {
+        "components": "complete",
+        "licences": "complete"
+      },
+      "gap": null,
+      "sbom": {
+        "asset": "image-full.spdx.json",
+        "media_paths": [
+          {
+            "disc": "disc3",
+            "path": "sbom/images/full.spdx.json"
+          }
+        ],
+        "sha256": "5555555555555555555555555555555555555555555555555555555555555555"
+      },
+      "subject": {
+        "aliases": [
+          {
+            "path": "payload/images/full.tar",
+            "role": "full"
+          },
+          {
+            "path": "payload/images/full.tar",
+            "role": "model-bridge"
+          }
+        ],
+        "kind": "container",
+        "path": "payload/images/full.tar",
+        "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "size": 8
+      }
+    }
+  ],
+  "unknown_field": true
+}

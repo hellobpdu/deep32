@@ -4,6 +4,11 @@
 # OUT /build/lanes/ship/stage/d32-node, /build/lanes/ship/stage/d32-apps
 run() {
 	mkdir -p /build/lanes/ship/libsrc
-	ksh "$S/ship/tools/stage.sh" node || die "stage.sh node failed"
+	need_file "$T/model-bridge/d32_model_bridge.py"
+	D32_MODEL_BRIDGE_SOURCE="$T/model-bridge/d32_model_bridge.py" \
+		ksh "$S/ship/tools/stage.sh" node || die "stage.sh node failed"
 	ksh "$S/ship/tools/stage.sh" apps || die "stage.sh apps failed"
+	# build-time diagnostic staging failure below.
+	python3.14 -I "$D32_ROOT/stages/alpha2_stage.py" install --tree "$T" \
+		--stage /build/lanes/ship/stage || die "alpha.2 diagnostics staging failed"
 }

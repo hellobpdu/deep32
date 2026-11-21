@@ -32,6 +32,14 @@ CR=${CR%.}
 
 mode=${1:-}
 case $mode in ''|-forge|-relay|-headend) ;; *) exit 2 ;; esac
+[ $# -eq 0 ] || shift
+FORGE_PORT=
+if [ $# -ne 0 ]; then
+	[ "$mode" = -forge ] && [ $# -eq 2 ] && [ "$1" = --port ] || exit 2
+	case $2 in ''|0*|*[!0-9]*) exit 2 ;; esac
+	[ ${#2} -le 5 ] && [ "$2" -le 65535 ] || exit 2
+	FORGE_PORT=$2
+fi
 
 # ---- small helpers ------------------------------------------------------------------------------------------------
 setting() {   # KEY DEFAULT: a value of node.conf (world-readable, no secret in it)
@@ -112,6 +120,42 @@ have_pair() {
 }
 
 # ---- joining: Forge or relay (this Workstation types the code) --------------------------------------------------
+relay_link() {	# ADDRESS: point the Ask link at this relay, start it, then compare ten words here (d32-chatctl pair)
+	typeset c=$R/etc/d32/chatd.conf st=$R/etc/d32/state/chat sb=$R/usr/local/d32/sbin
+	# A paired relay keeps its pin: change nothing until it is removed (d32-chatctl unpair work).
+	if [ -e "$st/work.pin" ]; then
+		echo "This Workstation already has a paired Ask relay. Remove it first: /usr/local/d32/sbin/d32-chatctl unpair work"
+		wait_return; return 0
+	fi
+	# Ask uses the gateway's loopback front, which publication owns: publish first so the two never disagree.
+	if [ "$(cat $R/etc/d32/state/edge_front 2>/dev/null)" != on ]; then
+		echo "Publish the gateway first (as root: /usr/local/d32/sbin/d32-publish publish --accept-ct), then pair the Ask relay."
+		wait_return; return 0
+	fi
+	if ! peer_table relay "$1" ||
+		! sed "s|^link work relay .*|link work relay $1 7452 user _d32upw class research-relay|" 			$R/etc/d32/chatd.conf.example >"$c.new" || ! grep -q "^link work relay $1 " "$c.new" ||
+		! chmod 0600 "$c.new" || ! mv -f "$c.new" "$c" ||
+		! install -d -o root -g wheel -m 0700 "$st" ||
+		{ [ ! -f "$st/node.key" ] && ! $sb/d32-chatctl keygen </dev/null >/dev/null 2>&1; } ||
+		{ [ ! -f "$st/edge.token" ] && ! { cp $R/etc/d32/state/mcp.token "$st/edge.token.new" &&
+			chmod 0600 "$st/edge.token.new" && mv -f "$st/edge.token.new" "$st/edge.token"; }; } ||
+		! rcctl enable d32chat >/dev/null 2>&1 || ! rcctl restart d32chat >/dev/null 2>&1; then
+		why storage; J_w=$D32UI_T
+		d32ui_say pair.fail why "$J_w"
+		wait_return
+		return 0
+	fi
+	$sb/d32-chatctl pair work
+	wait_return
+}
+peer_table() {	# KIND ADDRESS: let pf reach the paired Forge (gpu_hub) or relay (relay_hub), now and at every boot
+	typeset t f
+	case $1 in forge) t=gpu_hub ;; relay) t=relay_work ;; *) return 1 ;; esac
+	case $2 in 100.*.*.*) ;; *) return 1 ;; esac
+	f=$R/etc/d32/state/$t
+	print -r -- "$2" >"$f.new" && chmod 0600 "$f.new" && mv -f "$f.new" "$f" || return 1
+	pfctl -q -t $t -T replace "$2" 2>/dev/null
+}
 join() {   # KIND (forge or relay)
 	J_kind=$1
 	d32ui_text "peer.$J_kind"
@@ -129,10 +173,14 @@ join() {   # KIND (forge or relay)
 	J_tr=$(setting transport tailnet)
 	if [ "$J_tr" = loopback ]; then
 		d32ui_say pair.look.loopback peer "$J_peer"
-		J_name=localhost J_addr= J_port= J_dns=
+		J_name=localhost J_addr= J_port=$FORGE_PORT J_dns=
 	else
 		d32ui_say pair.look peer "$J_peer"
-		J_out=$("$PAIR" discover --want "$J_kind" --transport tailnet </dev/null 2>/dev/null | "$UIJSON" candidates)
+		if [ -n "$FORGE_PORT" ]; then
+			J_out=$("$PAIR" discover --want "$J_kind" --transport tailnet --port "$FORGE_PORT" </dev/null 2>/dev/null | "$UIJSON" candidates)
+		else
+			J_out=$("$PAIR" discover --want "$J_kind" --transport tailnet </dev/null 2>/dev/null | "$UIJSON" candidates)
+		fi
 		fields_from "$J_out"
 		if [ "$F_status" = not-signed-in ]; then d32ui_say pair.look.signin; wait_return; return 0; fi
 		if [ "$F_status" != ok ]; then d32ui_say pair.look.status; wait_return; return 0; fi
@@ -162,6 +210,8 @@ join() {   # KIND (forge or relay)
 		fi
 		eval "J_name=\$C_a_$J_i J_addr=\$C_d_$J_i J_port=\$C_e_$J_i J_dns=\$C_f_$J_i"
 	fi
+	# The Ask relay pairs over the Ask link (D32U/1) by comparing ten words on both consoles, not by code.
+	if [ "$J_kind" = relay ]; then relay_link "$J_addr"; return 0; fi
 	echo ""
 	d32ui_say pair.code.ask peer "$J_peer"
 	while :; do
@@ -194,9 +244,16 @@ join() {   # KIND (forge or relay)
 	JSON=
 	fields_from "$J_out"
 	if [ "$F_ok" = yes ]; then
-		d32ui_say "pair.ok.$J_kind" name "$J_name"
-		if [ "$J_kind" = forge ] && [ -x $R/usr/local/d32/libexec/d32-forge-enrol ]; then
-			$R/usr/local/d32/libexec/d32-forge-enrol "$F_peer_id" </dev/null >/dev/null 2>&1
+		if [ "$J_kind" = forge ] && { [ ! -x "$R/usr/local/d32/libexec/d32-forge-enrol" ] ||
+			! "$R/usr/local/d32/libexec/d32-forge-enrol" "$F_peer_id" </dev/null >/dev/null 2>&1; }; then
+			why storage; J_w=$D32UI_T
+			d32ui_say pair.fail why "$J_w"
+		elif [ "$J_tr" != loopback ] && ! peer_table "$J_kind" "$J_addr"; then
+			why storage; J_w=$D32UI_T
+			d32ui_say pair.fail why "$J_w"
+		else
+			[ "$J_kind" = forge ] && "$R/usr/local/d32/sbin/d32-gpu-ext" on </dev/null >/dev/null 2>&1
+			d32ui_say "pair.ok.$J_kind" name "$J_name"
 		fi
 	else
 		why "$F_reason"; J_w=$D32UI_T
@@ -283,9 +340,12 @@ show() {
 		[ -s "$G_tmp/result" ] && G_res=$("$UIJSON" result < "$G_tmp/result")
 		fields_from "$G_res"
 		if [ "$F_ok" = yes ]; then
-			d32ui_say pair.ok.headend name "${F_peer_id:-?}"
-			if [ -x $R/usr/local/d32/libexec/d32-gateway-enrol ]; then
-				$R/usr/local/d32/libexec/d32-gateway-enrol "$F_peer_id" </dev/null >/dev/null 2>&1
+			if [ -x "$R/usr/local/d32/libexec/d32-gateway-enrol" ] &&
+				"$R/usr/local/d32/libexec/d32-gateway-enrol" "$F_peer_id" </dev/null >/dev/null 2>&1; then
+				d32ui_say pair.ok.headend name "${F_peer_id:-?}"
+			else
+				why storage; G_w=$D32UI_T
+				d32ui_say pair.fail why "$G_w"
 			fi
 		elif [ "$F_reason" = expired ] || [ $G_left -le 0 ]; then
 			d32ui_say pair.show.expired

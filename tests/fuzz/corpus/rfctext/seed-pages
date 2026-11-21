@@ -1,0 +1,22 @@
+RFC 9999                    Example Seed Protocol               November 2026
+
+1.  Introduction
+
+   This made-up document gives the classifier a heading, a paragraph
+   that continues on the next page, a definition and a figure. It
+
+Seed                         Informational                     [Page 1]
+
+RFC 9999                    Example Seed Protocol               November 2026
+
+   ends here after the page break.
+
+2.1.  Terms Used Here
+
+   Seed term
+      The text that explains the term, indented below it.
+
+      +--------+     +--------+
+      | node A |---->| node B |
+      +--------+     +--------+
+

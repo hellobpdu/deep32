@@ -38,13 +38,25 @@ if find $st -type f \( -name '*.sec' -o -name '*~' -o -name '*.orig' -o -name '*
 fi
 if grep -rlI "$(printf '\r')" $st | grep -q .; then echo "mksite-ship: refusing: CRLF" >&2; exit 1; fi
 for f in $st/etc/d32/site.d/*.sh $st/etc/d32/ship-lib.sh $st/install.site; do ksh -n $f; done
+ksh -n "$st/usr/local/bin/deep32"
 chown -R root:wheel $st
 find $st -type d -exec chmod 0755 {} +
 find $st -type f -exec chmod 0644 {} +
 chmod 0555 $st/install.site $st/etc/rc.d/d32* $st/usr/local/d32/sbin/*
+chmod 0555 "$st/usr/local/bin/deep32"
+# Only launchers run directly; sourced libraries, importer modules and data stay 0644.
+for f in d32-c6-words d32-content-get d32-content-import d32-forge-enrol d32-gateway-enrol \
+	d32-import-again d32-import-report d32-pair d32-setup d32-uijson deep32-pair pairing-helper; do
+	chmod 0555 "$st/usr/local/d32/libexec/$f"
+done
 chmod 0600 $st/etc/pf.conf
 chmod 0640 $st/etc/d32/pf/*
+# Application Manager entries act as their action only when executable (CDE), as release/mksite.sh has it
+chmod 0555 $st/etc/dt/appconfig/appmanager/C/Deep32/D32FirstStart $st/etc/dt/appconfig/appmanager/C/Deep32/D32ImportReport $st/etc/dt/appconfig/appmanager/C/Deep32/D32Pairing
 chmod 0444 $st/etc/d32/site.d/*.sh $st/etc/d32/site-lib.sh $st/etc/d32/ship-lib.sh
+chmod 0444 "$st/usr/local/share/d32/release/release-key.gpg" \
+	"$st/usr/local/share/d32/release/release-key.fingerprint" \
+	"$st/etc/d32/content-compatible-versions"
 find $st -exec touch -t 202611060000 {} +
 (cd $st && find . -type f -o -type l | sed 's|^\./||' | sort) >$st.list
 (cd $st && pax -w -d -x ustar <$st.list) | gzip -9n >$out

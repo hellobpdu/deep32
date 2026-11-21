@@ -9,21 +9,21 @@
 <text x="15" y="276" class="m" font-size="11.5" font-weight="400" fill="#9198a1" letter-spacing="1.6">BUILD PATH</text>
 <path d="M253 30H985" fill="none" stroke="#3d444d" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
 <rect x="15" y="38" width="200" height="182" rx="10" fill="#151b23" stroke="#3d444d"/>
-<rect x="31" y="54.5" width="8" height="8" rx="2" fill="#ab7df8"/><text x="45" y="63" class="m" font-size="11.5" font-weight="600" fill="#ab7df8" letter-spacing="1.3">HEADEND</text>
+<rect x="31" y="54.5" width="8" height="8" rx="2" fill="#d8b4fe"/><text x="45" y="63" class="m" font-size="11.5" font-weight="600" fill="#d8b4fe" letter-spacing="1.3">HEADEND</text><g transform="translate(108.56 50.5) scale(0.5)"><rect x="6" y="6" width="20" height="13.5" rx="2" fill="none" stroke="#d8b4fe" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 24h26l-2.2 3H5.2z" fill="none" stroke="#d8b4fe" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 8.6l1.25 3.35 3.35 1.25-3.35 1.25L16 17.8l-1.25-3.35-3.35-1.25 3.35-1.25z" fill="#d8b4fe" stroke="none"/></g>
 <text x="31" y="90" class="s" font-size="17" font-weight="700" fill="#f0f6fc">Agent</text>
 <text x="31" y="114" class="s" font-size="13.5" font-weight="400" fill="#f0f6fc">Claude Code or Codex</text>
 <text x="31" y="134" class="s" font-size="13" font-weight="400" fill="#9198a1">runs the protocol</text>
 <text x="31" y="153" class="s" font-size="13" font-weight="400" fill="#9198a1">any MCP client</text>
 <rect x="29" y="180" width="172" height="26" rx="13" fill="#0d1117" stroke="#3d444d"/><text x="115" y="197.2" class="m" font-size="11.5" font-weight="400" fill="#9198a1" text-anchor="middle">hosted language model</text>
 <rect x="253" y="38" width="200" height="182" rx="10" fill="#151b23" stroke="#3d444d"/>
-<rect x="269" y="54.5" width="8" height="8" rx="2" fill="#4493f8"/><text x="283" y="63" class="m" font-size="11.5" font-weight="600" fill="#4493f8" letter-spacing="1.3">GATEWAY</text>
+<rect x="269" y="54.5" width="8" height="8" rx="2" fill="#93c5fd"/><text x="283" y="63" class="m" font-size="11.5" font-weight="600" fill="#93c5fd" letter-spacing="1.3">GATEWAY</text><g transform="translate(346.56 50.5) scale(0.5)"><rect x="4" y="4.5" width="24" height="17.5" rx="2.5" fill="none" stroke="#93c5fd" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 27.5h8M16 22v5.5" fill="none" stroke="#93c5fd" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 9.5l2.6 2.4L8 14.3M8.5 17.5h5" fill="none" stroke="#93c5fd" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="19.6" cy="12.2" r="3.2" fill="none" stroke="#93c5fd" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M21.9 14.5l2.5 2.5" fill="none" stroke="#93c5fd" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></g>
 <text x="269" y="90" class="s" font-size="17" font-weight="700" fill="#f0f6fc">MCP server</text>
 <text x="269" y="114" class="s" font-size="13.5" font-weight="400" fill="#f0f6fc">11 tools</text>
 <text x="269" y="134" class="s" font-size="13" font-weight="400" fill="#9198a1">one token per client</text>
 <text x="269" y="153" class="s" font-size="13" font-weight="400" fill="#9198a1">stateless</text>
 <rect x="267" y="180" width="172" height="26" rx="13" fill="#0d1117" stroke="#3d444d"/><text x="353" y="197.2" class="m" font-size="11.5" font-weight="400" fill="#9198a1" text-anchor="middle">output is untrusted</text>
 <rect x="491" y="38" width="494" height="182" rx="10" fill="#151b23" stroke="#3d444d"/>
-<rect x="507" y="54.5" width="8" height="8" rx="2" fill="#3fb950"/><text x="521" y="63" class="m" font-size="11.5" font-weight="600" fill="#3fb950" letter-spacing="1.3">ENGINE</text>
+<rect x="507" y="54.5" width="8" height="8" rx="2" fill="#93c5fd"/><text x="521" y="63" class="m" font-size="11.5" font-weight="600" fill="#93c5fd" letter-spacing="1.3">ENGINE</text><g transform="translate(576.34 50.5) scale(0.5)"><rect x="4" y="4.5" width="24" height="17.5" rx="2.5" fill="none" stroke="#93c5fd" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 27.5h8M16 22v5.5" fill="none" stroke="#93c5fd" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 9.5l2.6 2.4L8 14.3M8.5 17.5h5" fill="none" stroke="#93c5fd" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="19.6" cy="12.2" r="3.2" fill="none" stroke="#93c5fd" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M21.9 14.5l2.5 2.5" fill="none" stroke="#93c5fd" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></g>
 <text x="507" y="90" class="s" font-size="17" font-weight="700" fill="#f0f6fc">Search and lookup API</text>
 <text x="969" y="63" class="m" font-size="11.5" font-weight="400" fill="#9198a1" text-anchor="end">one generation at a time</text>
 <rect x="507" y="104" width="148" height="48" rx="7" fill="#0d1117" stroke="#3d444d"/>
@@ -47,28 +47,28 @@
 <path d="M217 129H251" fill="none" stroke="#9198a1" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#ah)"/>
 <path d="M455 129H489" fill="none" stroke="#9198a1" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#ah)"/>
 <rect x="15" y="288" width="153" height="136" rx="10" fill="#151b23" stroke="#3d444d"/>
-<rect x="29" y="304.5" width="8" height="8" rx="2" fill="#d29922"/><text x="43" y="313" class="m" font-size="11.5" font-weight="600" fill="#d29922" letter-spacing="1.3">01</text>
+<rect x="29" y="304.5" width="8" height="8" rx="2" fill="#fcd34d"/><text x="43" y="313" class="m" font-size="11.5" font-weight="600" fill="#fcd34d" letter-spacing="1.3">01</text>
 <text x="29" y="339" class="s" font-size="15.5" font-weight="700" fill="#f0f6fc">Sources</text>
 <text x="29" y="362" class="s" font-size="13" font-weight="400" fill="#9198a1">RFC Editor</text>
 <text x="29" y="382" class="s" font-size="13" font-weight="400" fill="#9198a1">vendor documents</text>
 <text x="29" y="402" class="s" font-size="13" font-weight="400" fill="#9198a1">IANA registries</text>
 <path d="M170 356H190" fill="none" stroke="#9198a1" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#ah)"/>
 <rect x="192" y="288" width="153" height="136" rx="10" fill="#151b23" stroke="#3d444d"/>
-<rect x="206" y="304.5" width="8" height="8" rx="2" fill="#d29922"/><text x="220" y="313" class="m" font-size="11.5" font-weight="600" fill="#d29922" letter-spacing="1.3">02</text>
+<rect x="206" y="304.5" width="8" height="8" rx="2" fill="#fcd34d"/><text x="220" y="313" class="m" font-size="11.5" font-weight="600" fill="#fcd34d" letter-spacing="1.3">02</text>
 <text x="206" y="339" class="s" font-size="15.5" font-weight="700" fill="#f0f6fc">Ingest</text>
 <text x="206" y="362" class="s" font-size="13" font-weight="400" fill="#9198a1">fetch · convert</text>
 <text x="206" y="382" class="s" font-size="13" font-weight="400" fill="#9198a1">quality gate</text>
 <text x="206" y="402" class="s" font-size="13" font-weight="400" fill="#9198a1">injection scan</text>
 <path d="M347 356H367" fill="none" stroke="#9198a1" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#ah)"/>
 <rect x="369" y="288" width="153" height="136" rx="10" fill="#151b23" stroke="#3d444d"/>
-<rect x="383" y="304.5" width="8" height="8" rx="2" fill="#d29922"/><text x="397" y="313" class="m" font-size="11.5" font-weight="600" fill="#d29922" letter-spacing="1.3">03</text>
+<rect x="383" y="304.5" width="8" height="8" rx="2" fill="#fcd34d"/><text x="397" y="313" class="m" font-size="11.5" font-weight="600" fill="#fcd34d" letter-spacing="1.3">03</text>
 <text x="383" y="339" class="s" font-size="15.5" font-weight="700" fill="#f0f6fc">Build</text>
 <text x="383" y="362" class="s" font-size="13" font-weight="400" fill="#9198a1">hashed manifest</text>
 <text x="383" y="382" class="s" font-size="13" font-weight="400" fill="#9198a1">chunk · embed</text>
 <text x="383" y="402" class="s" font-size="13" font-weight="400" fill="#9198a1">content-addressed</text>
 <path d="M524 356H544" fill="none" stroke="#9198a1" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#ah)"/>
 <rect x="546" y="288" width="153" height="136" rx="10" fill="#151b23" stroke="#3d444d"/>
-<rect x="560" y="304.5" width="8" height="8" rx="2" fill="#d29922"/><text x="574" y="313" class="m" font-size="11.5" font-weight="600" fill="#d29922" letter-spacing="1.3">04</text>
+<rect x="560" y="304.5" width="8" height="8" rx="2" fill="#fcd34d"/><text x="574" y="313" class="m" font-size="11.5" font-weight="600" fill="#fcd34d" letter-spacing="1.3">04</text>
 <text x="560" y="339" class="s" font-size="15.5" font-weight="700" fill="#f0f6fc">Validate</text>
 <text x="560" y="362" class="s" font-size="13" font-weight="400" fill="#9198a1">696 questions</text>
 <text x="560" y="382" class="s" font-size="13" font-weight="400" fill="#9198a1">regression gate</text>
@@ -77,7 +77,7 @@
 <text x="634" y="250" class="m" font-size="11.5" font-weight="400" fill="#f0f6fc">new generation</text>
 <text x="634" y="266" class="m" font-size="11.5" font-weight="400" fill="#9198a1">switch · rollback</text>
 <rect x="737" y="288" width="248" height="136" rx="10" fill="#151b23" stroke="#3d444d"/>
-<rect x="753" y="304.5" width="8" height="8" rx="2" fill="#39c5cf"/><text x="767" y="313" class="m" font-size="11.5" font-weight="600" fill="#39c5cf" letter-spacing="1.3">FORGE</text>
+<rect x="753" y="304.5" width="8" height="8" rx="2" fill="#fdba74"/><text x="767" y="313" class="m" font-size="11.5" font-weight="600" fill="#fdba74" letter-spacing="1.3">FORGE</text><g transform="translate(814.12 300.5) scale(0.5)"><path d="M20.5 12.5V5h5v7.5" fill="none" stroke="#fdba74" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><rect x="4.5" y="12.5" width="23" height="15.5" rx="2" fill="none" stroke="#fdba74" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 28v-5.5a6 6 0 0 1 12 0V28" fill="none" stroke="#fdba74" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 27.2c-2.3 0-3.7-1.5-3.7-3.4 0-2.1 1.7-2.9 2.1-4.9 1.5 1 3.2 2.7 3.2 4.9 0 1.9-1.3 3.4-1.6 3.4z" fill="#fdba74" stroke="none"/><circle cx="22.2" cy="2.6" r="1.1" fill="#fdba74" stroke="none" opacity=".75"/><circle cx="25.4" cy="1.4" r=".8" fill="#fdba74" stroke="none" opacity=".5"/></g>
 <text x="753" y="339" class="s" font-size="15.5" font-weight="700" fill="#f0f6fc">Retrieval models</text>
 <rect x="753" y="350" width="216" height="29" rx="7" fill="#0d1117" stroke="#3d444d"/>
 <text x="764" y="369.5" class="s" font-size="13" font-weight="600" fill="#f0f6fc">Embeddings</text>

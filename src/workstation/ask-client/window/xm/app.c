@@ -185,7 +185,9 @@ show_capabilities(App *app)
 			if (!engine || strcmp(engine->choice.id, row->engine)) {
 				if (caps->choices.count >= 2) break;
 				engine = &caps->engines[caps->choices.count++];
-				engine->choice = (AskChoice){ row->engine, !strcmp(row->engine, "codex") ? "Codex" : "Claude (Plan)" };
+				/* "relay": a broker without the window password; the relay on the paired PC picks the engine. */
+				engine->choice = (AskChoice){ row->engine, !strcmp(row->engine, "codex") ? "Codex" :
+				    !strcmp(row->engine, "claude") ? "Claude (Plan)" : "Relay" };
 				engine->models = &caps->models[model_count];
 				engine->preferred = SIZE_MAX;
 				model = NULL;

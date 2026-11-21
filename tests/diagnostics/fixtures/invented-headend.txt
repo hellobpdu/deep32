@@ -1,0 +1,26 @@
+Deep32 doctor  headend  headend-demo  2026-11-17T12:00:00Z
+CHECK                     STATE  DETAIL
+installation              OK     selected connector receipt agrees with release
+tailscale-installed       OK     approved executable present; 1.92.1
+tailscale-running         OK     status answered
+tailscale-signin          OK     Running; online; key valid
+magicdns                  OK     enrolled peer name resolves
+https-available           OK     paired peer TLS certificate valid
+serve-routes              SKIP   this headend owns no Deep32 Serve route
+pairing                   OK     committed enrolment and protected identity agree
+peer-reachability         OK     enrolled peer HTTPS answered
+tailnet-path.workstation  OK     workstation path direct
+peer-clock                OK     peer offset interval -0.1 to 0.1 s
+first-start               SKIP   no node first-start state on a headend
+agent-profile             OK     selected agent profile matches connector state
+agent-connector           OK     owned entry and scoped launcher agree
+agent-installed           OK     selected agent executable present; 1.0.0
+agent-signin              OK     selected profile's native status passed
+gateway-auth              FAIL   enrolled credential refused or anonymous access accepted
+mcp-rag-status            SKIP   blocked by gateway-auth
+
+FIX 1 [serve-routes]: Run deep32 doctor on the Workstation to inspect its Serve routes.
+FIX 2 [first-start]: No repair is needed; run deep32 doctor on the Workstation to inspect its first-start state.
+FIX 3 [gateway-auth]: Open d32-pairdesk -headend on the Workstation and rerun Connect for this selected agent and --profile-dir.
+FIX 4 [mcp-rag-status]: Resolve gateway-auth first, then run deep32 doctor again.
+14 OK, 0 WARN, 1 FAIL

@@ -1,0 +1,26 @@
+{
+  "BackendState": "Running",
+  "Self": {
+    "HostName": "deep32-test-self",
+    "DNSName": "deep32-test-self.tail0000.ts.net.",
+    "TailscaleIPs": [
+      "100.64.0.10",
+      "fd7a:115c:a1e0::10"
+    ]
+  },
+  "Peer": {
+    "nodekey:0000000000000000000000000000000000000000000000000000000000000010": {
+      "ID": "n0000000010CNTRL",
+      "HostName": "deep32-forge",
+      "DNSName": "deep32-forge.tail0000.ts.net.",
+      "OS": "linux",
+      "TailscaleIPs": [
+        "fd7a:115c:a1e0::21"
+      ],
+      "Online": true,
+      "Active": true,
+      "CurAddr": "",
+      "Relay": "tst"
+    }
+  }
+}

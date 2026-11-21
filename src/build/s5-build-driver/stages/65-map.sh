@@ -11,6 +11,6 @@ run() {
 	[ ! -f "$S/assets/SHA256SUMS" ] || set -- "$@" --assets "$S/assets/SHA256SUMS"
 	# rows delivered outside a pack that the site set carries: their final version goes into the lane's site sources
 	# (mksite-ship.sh builds site80 from $S in stage 80), not into d32-apps (lab 2026-11-15: doas.conf, pf.conf)
-	set -- "$@" --site-src "$S"
+	set -- "$@" --site-src "$S" --alpha2
 	python3.14 -I "$D32_ROOT/stages/stage_map.py" "$@" || die "stage_map.py: rows missing (see $OUT/STAGE-MAP.tsv)"
 }

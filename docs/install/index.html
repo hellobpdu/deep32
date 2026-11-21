@@ -1,0 +1,1197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>General setup: Deep32 0.1.0-alpha.2</title>
+<meta name="description" content="Install Deep32 0.1.0-alpha.2 step by step: one PC with an NVIDIA card for the Forge and your agent, the Workstation as a VM, driven by the setup wizard.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d1117" media="(prefers-color-scheme: dark)">
+<link rel="canonical" href="https://hellobpdu.github.io/deep32/install/">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/site.css">
+<script>document.documentElement.className += ' js';</script>
+<script src="../assets/site.js" defer></script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="inner">
+    <a class="wordmark" href="../index.html" aria-label="Deep32 home"><span>DEEP<span class="n">32</span></span><span class="strip" aria-hidden="true"><i></i><i></i><i></i></span></a>
+    <nav class="site-nav" aria-label="Site">
+      <a href="index.html" aria-current="page">Setup</a>
+      <a href="advanced.html">Advanced</a>
+      <a href="../tr/d32-tr-1.html">Report</a>
+      <a href="https://github.com/hellobpdu/deep32">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<div class="guide">
+
+<nav class="stepnav" aria-label="Setup steps" data-unit="Step">
+  <p class="stepnav-head">General setup</p>
+  <div class="stepnav-bar">
+    <p class="stepnav-now" aria-live="polite"><b>Step 1 of 11</b> &middot; Before you start</p>
+    <button class="stepnav-toggle" type="button" aria-expanded="false" aria-controls="stepnav-list" hidden>All steps</button>
+    <div class="progress" aria-hidden="true"><i></i></div>
+  </div>
+  <ol id="stepnav-list">
+    <li><a href="#step-1"><span class="n">1</span><span class="t">Before you start</span></a></li>
+    <li><a href="#step-2"><span class="n">2</span><span class="t">Get Deep32</span></a></li>
+    <li><a href="#step-3"><span class="n">3</span><span class="t">Run the wizard</span></a></li>
+    <li><a href="#step-4"><span class="n">4</span><span class="t">The Workstation VM</span></a></li>
+    <li><a href="#step-5"><span class="n">5</span><span class="t">First boot and Tailscale</span></a></li>
+    <li><a href="#step-6"><span class="n">6</span><span class="t">Disc 2</span></a></li>
+    <li><a href="#step-7"><span class="n">7</span><span class="t">The Forge</span></a></li>
+    <li><a href="#step-8"><span class="n">8</span><span class="t">Pair the Forge</span></a></li>
+    <li><a href="#step-9"><span class="n">9</span><span class="t">Connect your agent</span></a></li>
+    <li><a href="#step-10"><span class="n">10</span><span class="t">The Ask relay <span class="opt">(optional)</span></span></a></li>
+    <li><a href="#step-11"><span class="n">11</span><span class="t">Verify</span></a></li>
+  </ol>
+  <div class="stepnav-side">
+    <p>Every step by hand: <a href="https://github.com/hellobpdu/deep32/blob/main/INSTALL.md">INSTALL.md</a></p>
+    <p>Other layouts: <a href="advanced.html">Advanced install</a></p>
+    <p>Something failed: <a href="https://github.com/hellobpdu/deep32/issues">Issues</a></p>
+  </div>
+</nav>
+
+<main id="main">
+
+<header class="page-head">
+  <p class="kicker">Installation &middot; general setup</p>
+  <h1>General setup</h1>
+  <p class="lead">This page sets up Deep32 the common way. One PC with an NVIDIA card runs the Forge and your agent, the
+  Workstation runs as a VM on the same PC, and all of it joins one tailnet. The setup wizard drives each part and
+  checks each step. Where your setup is different, the step says what changes.</p>
+  <p class="applies"><span>Applies to 0.1.0-alpha.2</span><span>Plan on an afternoon, most of it downloading</span><span>Every step by hand: <a href="https://github.com/hellobpdu/deep32/blob/main/INSTALL.md">INSTALL.md</a></span></p>
+  <figure>
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="../figures/parts-dark.svg">
+      <img src="../figures/parts-light.svg" width="1000" height="184" alt="The parts of Deep32: the headend, your agent on your PC; the Workstation for search and archive, disc 1; the Forge, the GPU powerhouse, disc 3; the Ask relay, the link between the Ask window and your agent; and the content, the library on disc 2.">
+    </picture>
+    <figcaption><b>Figure 1.</b> The parts and the discs they come from. On this page the agent, the Forge and the
+    Workstation's VM share one PC.</figcaption>
+  </figure>
+  <div class="callout note" role="note">
+    <p class="callout-title"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="7.25" y="7" width="1.5" height="4.5" rx="0.75"/><circle cx="8" cy="4.9" r="1"/></svg>What I have tested</p>
+    <p>The Workstation installs from its image on a clean VM: the guided install, first boot, Tailscale and publishing
+    the gateway. My lab VM runs on Proxmox. The Forge installs from the signed images on Linux, in WSL 2 and on
+    Docker Desktop; I checked each of its parts on an RTX 2080 Ti, and the full run on each kind of host follows the
+    release. The wizard's VM guide is boot-tested on Proxmox VE only. I haven't yet run the setup from start to
+    finish on a clean machine, so if a step fails here, the same step by hand in
+    <a href="https://github.com/hellobpdu/deep32/blob/main/INSTALL.md">INSTALL.md</a> is the tested path.</p>
+  </div>
+</header>
+
+<!-- ================================================================================================ STEP 1 -->
+<section class="step" id="step-1" aria-labelledby="step-1-title">
+  <div class="step-head"><span class="step-num" aria-hidden="true">1</span><h2 id="step-1-title"><span class="visually-hidden">Step 1: </span>Before you start</h2></div>
+  <p class="step-where"><span>Where: your PC and a browser</span><span>A checklist</span></p>
+  <div class="step-body">
+
+    <h3 class="part-label need">What you need</h3>
+    <ul class="checklist">
+      <li><input type="checkbox" id="c-card"><label for="c-card">An NVIDIA card with compute capability 7.5 or newer
+      and at least 10.5 GB of graphics memory. In practice that is an 11 GB card or larger: an RTX 2080 Ti, RTX 3060
+      12 GB, RTX 3080 12 GB or Ti, RTX 3090, or an RTX 4070 or larger. NVIDIA driver 580.65.06 or newer.</label></li>
+      <li><input type="checkbox" id="c-cpu"><label for="c-cpu">At least 8 threads and 32 GB of memory for the
+      Workstation and the Forge together. I'd recommend 12 or more threads, 32 GB or more, an AVX2 processor and an
+      SSD. Virtualization (Intel VT-x or AMD-V) with second-level address translation (EPT or RVI) switched on in the
+      firmware.</label></li>
+      <li><input type="checkbox" id="c-os"><label for="c-os">Windows 11 Pro, Enterprise or Education, build 26100 or
+      later, with Hyper-V and Docker Desktop 4.99.0 or later (Docker Engine 29.0.0 or later, on the WSL 2 backend). Or
+      Ubuntu 24.04 on amd64 with KVM and libvirt, and Docker Engine with the Compose v2 plugin and the NVIDIA
+      Container Toolkit.</label></li>
+      <li><input type="checkbox" id="c-disk"><label for="c-disk">Disk space: an empty 200 GB virtual disk for the
+      Workstation; 21.5 GB for its two images (disc 1 is 1.9 GB, disc 2 is 19.6 GB); and for the Forge, about 281 to
+      284 GB free when its install starts, if its data folder and Docker's storage share one disk.
+      <a href="advanced.html#disk">Other layouts</a> split that across disks.</label></li>
+      <li><input type="checkbox" id="c-py"><label for="c-py">Python 3.12 or newer for the Forge installer (Ubuntu 24.04
+      ships it). On Linux the Forge's pairing helper also runs on the system's <code>/usr/bin/python3</code>, which must
+      be 3.10 or newer and able to import <code>ssl</code>. Git, and GnuPG for the signature checks; Git for Windows
+      provides <code>gpgv</code>.</label></li>
+      <li><input type="checkbox" id="c-agent"><label for="c-agent">Claude Code or Codex installed and signed in on the
+      PC, Python 3.11 or newer for Connect, and OpenSSL on <code>PATH</code>.</label></li>
+      <li><input type="checkbox" id="c-ts"><label for="c-ts">A Tailscale account (the free plan is enough), and
+      Tailscale installed on the PC.</label></li>
+      <li><input type="checkbox" id="c-net"><label for="c-net">Internet access during the install.</label></li>
+    </ul>
+
+    <aside class="variants" aria-label="If your setup is different">
+      <p class="variants-title"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="4" cy="3.5" r="1.75" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="4" cy="12.5" r="1.75" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="4.5" r="1.75" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M4 5.25v5.5M12 6.25c0 2.75-8 1.75-8 4.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>If your setup is different</p>
+      <details>
+        <summary>No NVIDIA card, or a card under 11 GB</summary>
+        <div>
+          <p>You can still install the Workstation and connect your agent. Search then works on keywords only: on my
+          test set a correct passage comes first for 0.710 of the questions that way, against 0.955 with a Forge. Skip
+          steps 7 and 8; a Forge can be added later. Cards with 8 to 10 GB aren't installable in alpha.2. Volta, the
+          GTX 10 series and older, and AMD or Intel graphics have no Forge form.</p>
+        </div>
+      </details>
+      <details>
+        <summary>Windows 11 Home, without Hyper-V</summary>
+        <div>
+          <p>Windows 11 Home has no Hyper-V, so the wizard won't make the PC the Workstation's host. The Forge still
+          installs there, on Docker Desktop. For the Workstation, the wizard's VM guide has steps for VirtualBox and
+          VMware Workstation, which aren't boot-tested yet (<a href="#step-4">step 4</a>), or you can put the
+          Workstation on another machine.</p>
+        </div>
+      </details>
+      <details>
+        <summary>Windows 10, Windows Server or another Linux distribution</summary>
+        <div>
+          <p>The alpha.2 Forge installer accepts Windows 11 and Ubuntu 24.04 on amd64, and stops on any other system,
+          Windows 10 and Windows Server included. Put the Forge on one of those two. Appliance systems with a read-only
+          root, such as Unraid, can't host an alpha.2 Forge.</p>
+        </div>
+      </details>
+      <details>
+        <summary>The parts on separate machines</summary>
+        <div>
+          <p>Run the wizard on each machine. Its <span class="screen">Your machines</span> screen asks where each part
+          goes, and its list of next steps says what to do on the others. Steps 3 to 6 then happen on the Workstation's
+          host, steps 7 and 8 on the GPU machine, and step 9 on the PC with your agent. Every machine needs Tailscale in
+          the same tailnet.</p>
+        </div>
+      </details>
+      <details>
+        <summary>A Mac</summary>
+        <div>
+          <p>A Mac can be the agent PC and run the Ask relay. In this release it can't host the Workstation or the
+          Forge.</p>
+        </div>
+      </details>
+    </aside>
+
+    <h3 class="part-label do">Do this</h3>
+    <ol class="steps">
+      <li>In the Tailscale admin console, open the DNS page (<code>login.tailscale.com/admin/dns</code>) and turn on
+      <b>MagicDNS</b> and <b>HTTPS Certificates</b>. Deep32 publishes its services with Tailscale Serve over HTTPS,
+      which needs both. The installers check them and name the one that's off; they never change tailnet settings
+      themselves.</li>
+      <li>With HTTPS certificates on, machine names appear in the public Certificate Transparency logs. Give your
+      machines names that say nothing about you.</li>
+      <li>Sign the PC in to Tailscale and give it a machine name that starts with <code>deep32-</code>, for example
+      <code>deep32-forge</code>. The Workstation only offers machines named that way for pairing. Rename it on the
+      admin console's Machines page, or on Linux:
+        <div class="code"><pre><code>sudo tailscale set --hostname deep32-forge</code></pre></div>
+      </li>
+      <li>Optional: Tailscale expires a device's sign-in after 180 days by default. To avoid signing in again, choose
+      <b>Disable key expiry</b> for your Deep32 machines on the Machines page.</li>
+    </ol>
+
+    <h3 class="part-label see">What you should see</h3>
+    <p>The DNS page shows MagicDNS and HTTPS Certificates on, and <code>tailscale status</code> on the PC lists it
+    under its <code>deep32-</code> name.</p>
+
+    <h3 class="part-label fix">If it doesn't</h3>
+    <ul class="fixes">
+      <li>Not sure about the card? These print its compute capability and its memory in MiB. The Forge needs 10752.
+        <div class="code"><pre><code>nvidia-smi --query-gpu=compute_cap --format=csv,noheader
+nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits</code></pre></div>
+      </li>
+      <li>The wizard checks this list again in step 3 and says what's missing, so an open box isn't a reason to stop
+      here.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ================================================================================================ STEP 2 -->
+<section class="step" id="step-2" aria-labelledby="step-2-title">
+  <div class="step-head"><span class="step-num" aria-hidden="true">2</span><h2 id="step-2-title"><span class="visually-hidden">Step 2: </span>Get Deep32</h2></div>
+  <p class="step-where"><span>Where: the PC, in a terminal</span></p>
+  <div class="step-body">
+
+    <h3 class="part-label need">What you need</h3>
+    <p>Git, and GnuPG to check the release tag's signature.</p>
+
+    <h3 class="part-label do">Do this</h3>
+    <ol class="steps">
+      <li>Clone the repository at the release tag and check the tag's signature.
+        <div class="tabs">
+          <div class="tab-panel" data-os="linux">
+            <p class="tab-label">Linux</p>
+            <div class="code"><pre><code>git clone --branch v0.1.0-alpha.2 https://github.com/hellobpdu/deep32.git
+cd deep32
+gpg --import install/release-key.asc
+git verify-tag v0.1.0-alpha.2</code></pre></div>
+          </div>
+          <div class="tab-panel" data-os="windows">
+            <p class="tab-label">Windows</p>
+            <p>Clone in PowerShell:</p>
+            <div class="code"><pre><code>git clone --branch v0.1.0-alpha.2 https://github.com/hellobpdu/deep32.git; cd deep32</code></pre></div>
+            <p>Then check the signature from the same folder in Git Bash, which comes with Git for Windows and includes GnuPG:</p>
+            <div class="code"><pre><code>gpg --import install/release-key.asc
+git verify-tag v0.1.0-alpha.2</code></pre></div>
+          </div>
+        </div>
+      </li>
+      <li>The signing key's fingerprint must be <code>B205 B406 5486 27AA BF52&nbsp; 50D8 A078 C5F2 5D02 5DD6</code>,
+      as printed in the README.</li>
+      <li>Use the scripts from this verified clone for every step that follows.</li>
+    </ol>
+
+    <div class="callout tip" role="note">
+      <p class="callout-title"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1" y="2.25" width="14" height="11.5" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M4.25 6l2.5 2-2.5 2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="8" y="9.25" width="4" height="1.5" rx="0.75"/></svg>Let your agent do the next steps</p>
+      <p>If Claude Code or Codex runs on this PC, open it in the clone and run <code>/deep32-install</code> in Claude
+      Code or <code>$deep32-install</code> in Codex. It follows
+      <a href="https://github.com/hellobpdu/deep32/blob/main/AGENTS.md">AGENTS.md</a> and asks before it changes
+      anything. Passwords, sign-in clicks and pairing codes stay yours.</p>
+    </div>
+
+    <h3 class="part-label see">What you should see</h3>
+    <p><code>git verify-tag</code> reports a good signature made by the key with the fingerprint above.</p>
+
+    <h3 class="part-label fix">If it doesn't</h3>
+    <ul class="fixes">
+      <li>No public key: run the <code>gpg --import</code> line first, from inside the clone.</li>
+      <li>A bad signature: don't use that clone. Delete it and clone again. If the check still fails, report it as
+      <a href="https://github.com/hellobpdu/deep32/blob/main/SECURITY.md">SECURITY.md</a> describes.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ================================================================================================ STEP 3 -->
+<section class="step" id="step-3" aria-labelledby="step-3-title">
+  <div class="step-head"><span class="step-num" aria-hidden="true">3</span><h2 id="step-3-title"><span class="visually-hidden">Step 3: </span>Run the wizard</h2></div>
+  <p class="step-where"><span>Where: the PC, in the clone</span><span>Downloads 21.5 GB</span></p>
+  <div class="step-body">
+
+    <h3 class="part-label need">What you need</h3>
+    <ul>
+      <li>The verified clone from step 2.</li>
+      <li>bash 4.2 or newer on Linux; Windows PowerShell 5.1 or PowerShell 7 on Windows.</li>
+      <li>A terminal window of at least 80 columns by 24 rows.</li>
+      <li>On Windows, PowerShell started as administrator, with Docker Desktop running: the Forge install in step 7
+      loads Docker images and adds a startup task.</li>
+    </ul>
+
+    <aside class="variants" aria-label="If your setup is different">
+      <p class="variants-title"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="4" cy="3.5" r="1.75" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="4" cy="12.5" r="1.75" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="4.5" r="1.75" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M4 5.25v5.5M12 6.25c0 2.75-8 1.75-8 4.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>If your setup is different</p>
+      <details>
+        <summary>Only some of the parts on this PC</summary>
+        <div>
+          <p>On <span class="screen">Your machines</span>, choose <span class="screen">Set it up on another
+          machine</span>, <span class="screen">Already set up</span> or <span class="screen">Not using it</span> for
+          the others. The wizard sets up this PC's parts and lists what to do on the other machines.</p>
+        </div>
+      </details>
+      <details>
+        <summary>You'd rather have plain output than a full-screen wizard</summary>
+        <div>
+          <p>The wizard drives <code>install/deep32-setup.sh</code> (<code>install\deep32-setup.ps1</code> on
+          Windows). Run that script yourself for the same checks and installs, one machine at a time, with every line
+          tagged <code>ok</code>, <code>fix</code>, <code>you</code> or <code>info</code>. With <code>check</code> as
+          its first argument it only checks and changes nothing.</p>
+        </div>
+      </details>
+    </aside>
+
+    <h3 class="part-label do">Do this</h3>
+    <ol class="steps">
+      <li>Optional: watch the whole wizard first against a recorded setup. It uses no network and changes nothing.
+        <div class="tabs">
+          <div class="tab-panel" data-os="linux">
+            <p class="tab-label">Linux</p>
+            <div class="code"><pre><code>bash install/deep32-wizard.sh --demo</code></pre></div>
+          </div>
+          <div class="tab-panel" data-os="windows">
+            <p class="tab-label">Windows</p>
+            <div class="code"><pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File install\deep32-wizard.ps1 -Demo</code></pre></div>
+          </div>
+        </div>
+      </li>
+      <li>Start the wizard:
+        <div class="tabs">
+          <div class="tab-panel" data-os="linux">
+            <p class="tab-label">Linux</p>
+            <div class="code"><pre><code>bash install/deep32-wizard.sh</code></pre></div>
+          </div>
+          <div class="tab-panel" data-os="windows">
+            <p class="tab-label">Windows</p>
+            <div class="code"><pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File install\deep32-wizard.ps1</code></pre></div>
+          </div>
+        </div>
+      </li>
+      <li><span class="screen">Check this machine.</span> The wizard checks the PC and lists anything that's missing.
+      It offers to fix what it safely can, such as starting the Tailscale sign-in, and asks before it does.</li>
+      <li><span class="screen">Your machines.</span> Set the Workstation, the Forge and the Agent PC to
+      <span class="screen">Set it up on this machine</span>, then choose <span class="screen">Continue</span>.</li>
+      <li><span class="screen">Choose role.</span> The wizard starts with the Workstation host. It downloads and
+      verifies disc 1 and disc 2, writes the VM files, and then opens the VM guide (step 4).</li>
+    </ol>
+    <p>Keys: arrows choose, <kbd>Enter</kbd> continues, <kbd>Esc</kbd> goes back, <kbd>L</kbd> shows the log,
+    <kbd>?</kbd> shows help, <kbd>Q</kbd> quits.</p>
+
+    <h3 class="part-label see">What you should see</h3>
+    <ul>
+      <li>A rail on the left with the stages <span class="screen">Check this machine</span>, <span class="screen">Choose
+      role</span>, <span class="screen">Download and verify</span>, <span class="screen">Install</span>,
+      <span class="screen">Pair</span> and <span class="screen">Done</span>.</li>
+      <li>The download progress of each image. <code>deep32-get</code> keeps an image only if every check against the
+      release's signed metadata passes.</li>
+      <li>For the Workstation host, the <span class="screen">Install</span> stage ends with <span class="screen">Disc 1
+      checked again</span> and <span class="screen">VM files and commands written</span>.</li>
+    </ul>
+    <p>The wizard keeps a log of every run in <code>~/.local/state/deep32-setup</code> on Linux and
+    <code>%LOCALAPPDATA%\Deep32-setup</code> on Windows.</p>
+
+    <h3 class="part-label fix">If it doesn't</h3>
+    <ul class="fixes">
+      <li><span class="screen">Make the window bigger</span>: the window is smaller than 80 by 24. Resize it, or press
+      <kbd>P</kbd> to go on in plain text.</li>
+      <li>A step fails: the wizard shows an error code, what happened and the fix, with <span class="screen">Try
+      again</span>, <span class="screen">Back</span> and <span class="screen">Show the log</span>.
+      <a href="advanced.html#errors">Troubleshooting by error code</a> explains where the codes come from.</li>
+      <li>A download stopped: run the wizard again. <code>deep32-get</code> resumes from the last verified 64 MiB
+      chunk. If every mirror fails, it prints the image's torrent address; the
+      <a href="advanced.html#downloads">advanced guide</a> shows how to check a file you fetched that way.</li>
+      <li>When the input or output isn't a terminal, <code>TERM</code> is <code>dumb</code> or <code>NO_COLOR</code>
+      is set, the wizard prints the setup script's tagged lines in place of its screens. <code>--plain</code>
+      (<code>-Plain</code>) does the same on purpose.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ================================================================================================ STEP 4 -->
+<section class="step" id="step-4" aria-labelledby="step-4-title">
+  <div class="step-head"><span class="step-num" aria-hidden="true">4</span><h2 id="step-4-title"><span class="visually-hidden">Step 4: </span>The Workstation VM</h2></div>
+  <p class="step-where"><span>Where: the PC and its hypervisor</span><span>The guided install takes about 15 minutes</span></p>
+  <div class="step-body">
+
+    <h3 class="part-label need">What you need</h3>
+    <ul>
+      <li>The VM files from step 3: deep32-get's recipe for Hyper-V or KVM, next to the verified disc 1 in the
+      download folder.</li>
+      <li>Hyper-V on Windows, or KVM with libvirt on Linux.</li>
+      <li>These settings for the VM. The guide gives every value for your hypervisor.</li>
+    </ul>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th scope="col">Setting</th><th scope="col">Value</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">Firmware</th><td>BIOS (legacy). On Hyper-V, a Generation 1 VM: OpenBSD doesn't support Generation 2</td></tr>
+          <tr><th scope="row">Processors, memory</th><td>6 vCPUs and 12 GB; at least 4 vCPUs and 8 GB</td></tr>
+          <tr><th scope="row">First disk</th><td>Disc 1, the installer. It is a disk image: attach it as the VM's first disk and boot from it</td></tr>
+          <tr><th scope="row">Second disk</th><td>Empty, 200 GB or more. The guided layout sizes the Library partition from it</td></tr>
+          <tr><th scope="row">Network</th><td>One adapter, bridged or NAT, with DHCP and internet access. On KVM, e1000</td></tr>
+          <tr><th scope="row">Display</th><td>Standard VGA. The desktop hasn't been tested on virtio-gpu</td></tr>
+          <tr><th scope="row">Disc 2</th><td>Later (step 6): a virtual CD, a USB stick or the network</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <aside class="variants" aria-label="If your setup is different">
+      <p class="variants-title"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="4" cy="3.5" r="1.75" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="4" cy="12.5" r="1.75" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="4.5" r="1.75" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M4 5.25v5.5M12 6.25c0 2.75-8 1.75-8 4.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>If your setup is different</p>
+      <details>
+        <summary>Proxmox VE <span class="pill tested">boot-tested</span></summary>
+        <div>
+          <p>This is the recipe my lab boots. Choose Proxmox VE, then whether the VM runs on this PC (a Proxmox node)
+          or on another machine. The guide gives the <code>qm</code> commands, and the same values for the web UI's
+          Create VM wizard. With an optional read-only API token (role PVEAuditor) the wizard reads the VM's settings
+          itself; it first shows the node certificate's SHA-256 fingerprint for you to compare. Without a token you
+          confirm each step.</p>
+        </div>
+      </details>
+      <details>
+        <summary>VMware ESXi <span class="pill">not boot-tested yet</span></summary>
+        <div>
+          <p>The wizard asks for no ESXi login, so you confirm each step. It writes a small disk descriptor for the
+          installer. You upload it with deep32-get's copy of disc 1 in the Host Client, clone it with
+          <code>vmkfstools</code> in an SSH session, and create a VM with BIOS firmware, an E1000E adapter and an LSI
+          Logic Parallel controller.</p>
+        </div>
+      </details>
+      <details>
+        <summary>VMware Workstation <span class="pill">not boot-tested yet</span></summary>
+        <div>
+          <p>The wizard writes a disk descriptor that points at deep32-get's copy of disc 1, so the hypervisor never
+          opens the signed image. Create a Custom VM with BIOS firmware, attach the descriptor as an existing disk
+          (Independent, Nonpersistent), add a new 200 GB disk, and set <code>ethernet0.virtualDev = "e1000e"</code> in
+          the <code>.vmx</code> file.</p>
+        </div>
+      </details>
+      <details>
+        <summary>VirtualBox <span class="pill">not boot-tested yet</span></summary>
+        <div>
+          <p>The wizard converts a copy of disc 1 to a VDI with <code>VBoxManage convertfromraw</code>, then gives the
+          <code>VBoxManage</code> commands for a VM with BIOS firmware, the PIIX3 chipset, an Intel PRO/1000 MT Desktop
+          adapter (82540EM) and the VBoxVGA display.</p>
+        </div>
+      </details>
+      <details>
+        <summary>Windows Home, or a PC without Hyper-V or KVM</summary>
+        <div>
+          <p>The Workstation host role needs Hyper-V or KVM, so start the VM guide by itself. First let
+          <code>deep32-get</code> download disc 1 with its VM folder, and disc 2:</p>
+          <div class="code"><pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File src\release-tools\deep32-get.ps1 disc1 --to .\deep32-downloads --prepare-vm --hypervisor hyper-v
+powershell -NoProfile -ExecutionPolicy Bypass -File src\release-tools\deep32-get.ps1 disc2 --to .\deep32-downloads
+powershell -NoProfile -ExecutionPolicy Bypass -File install\deep32-wizard.ps1 -VmGuide -Kit .\deep32-downloads</code></pre></div>
+          <p>Then choose VirtualBox or VMware Workstation. On Linux the same guide starts with
+          <code>bash install/deep32-wizard.sh --vm-guide --kit ./deep32-downloads</code>.</p>
+        </div>
+      </details>
+      <details>
+        <summary>A bare-metal Workstation</summary>
+        <div>
+          <p>In the VM guide, choose <span class="screen">Other hypervisor or bare metal</span>. Write disc 1 byte for
+          byte to a USB stick of at least 2 GB, for example with <code>dd</code>, or Rufus in DD image mode, and boot
+          the machine from it. Install to an empty disk of at least 200 GB, with one wired network card on a network
+          with DHCP and internet. OpenBSD drives Intel PRO/1000 (em), VirtIO (vio), VMXNET3 (vmx) and Hyper-V (hvn)
+          network cards. For a physical install, the tested laptop is the Dell Latitude 5430; other machines run the
+          Workstation as a VM. The <a href="advanced.html#bare-metal">advanced guide</a> has more.</p>
+        </div>
+      </details>
+    </aside>
+
+    <h3 class="part-label do">Do this</h3>
+    <ol class="steps">
+      <li>When the Workstation host role is done, the wizard opens the VM guide. Pick your hypervisor; the one found
+      on this PC is preselected. Proxmox VE is marked boot-tested; the others say not boot-tested yet.</li>
+      <li><span class="screen">Where does the VM run?</span> Choose <span class="screen">On this PC</span>.</li>
+      <li><span class="screen">How the Workstation VM connects.</span> Bridged is recommended: the Workstation gets an
+      address on your LAN, and Tailscale usually connects directly between machines on the same LAN. NAT also works.
+      Host-only, internal and private networks don't, because the Workstation's Tailscale sign-in needs the
+      internet.</li>
+      <li>Work through the guide's steps. Each one says what to do and where, with every value filled in. Press
+      <kbd>Enter</kbd> and the wizard checks it: <b>OK</b>, an <b>ERROR</b> with its code and fix, or <b>YOU
+      CONFIRMED</b> for a step it can't see. Its <span class="screen">Create the VM</span> step uses deep32-get's
+      commands with the target disk at 200 GB; the <code>commands.txt</code> file in the VM folder still says 160 GB.</li>
+      <li><span class="screen">Install the Workstation.</span> Start the VM and open its console. The guided installer
+      asks for the keyboard layout, the machine name, whether to allow root maintenance over SSH with your own key (off
+      unless you choose it), your user name, the disk to install on, whether to encrypt it, and your time zone.
+      <kbd>Enter</kbd> accepts a default. For the machine name, type the Workstation name you gave the wizard. Install
+      to the empty 200 GB disk, never to the installer disk; you confirm it by typing its name, because the whole disk
+      is erased.</li>
+      <li>The install takes about 15 minutes and halts with <code>The operating system has halted. Please press any
+      key to reboot.</code> Don't press a key: with disc 1 still first in the boot order, that starts the installer
+      again. Turn the VM off instead.</li>
+      <li><span class="screen">Boot the installed disk; attach disc 2.</span> Detach the installer disk. If disc 2 goes in as
+      a virtual CD, attach it now; a USB stick or the network comes in step 6. Then go on to step 5.</li>
+    </ol>
+
+    <details class="more">
+      <summary>The commands the guide gives for Hyper-V and KVM</summary>
+      <div>
+        <p>The guide fills in your names. <code>Deep32Workstation</code> is the VM name in deep32-get's recipe;
+        <code>SWITCH</code> is your External switch (bridged) or an Internal switch with NAT, which
+        <code>Get-VMSwitch</code> lists; <code>DISC2</code> is the path of disc 2 in your download folder.</p>
+        <div class="tabs">
+          <div class="tab-panel" data-os="windows">
+            <p class="tab-label">Windows (Hyper-V)</p>
+            <p>Create the VM, in PowerShell as administrator, in the VM folder:</p>
+            <div class="code"><pre><code>$root = (Get-Location).Path
+New-VHD -Path (Join-Path $root 'target.vhdx') -Dynamic -SizeBytes 200GB
+New-VM -Name Deep32Workstation -Generation 1 -MemoryStartupBytes 12GB -NoVHD -SwitchName 'SWITCH'
+Set-VMProcessor -VMName Deep32Workstation -Count 6
+Add-VMHardDiskDrive -VMName Deep32Workstation -ControllerType IDE -ControllerNumber 0 -ControllerLocation 0 -Path (Join-Path $root 'installer.vhd')
+Add-VMHardDiskDrive -VMName Deep32Workstation -ControllerType IDE -ControllerNumber 0 -ControllerLocation 1 -Path (Join-Path $root 'target.vhdx')</code></pre></div>
+            <p>After the install, detach the installer and attach disc 2:</p>
+            <div class="code"><pre><code>Remove-VMHardDiskDrive -VMName Deep32Workstation -ControllerType IDE -ControllerNumber 0 -ControllerLocation 0
+Add-VMDvdDrive -VMName Deep32Workstation -Path 'DISC2'</code></pre></div>
+          </div>
+          <div class="tab-panel" data-os="linux">
+            <p class="tab-label">Linux (KVM)</p>
+            <p>Create the VM, in a shell as root, in the VM folder. Read <code>workstation.xml</code> before you define it:</p>
+            <div class="code"><pre><code>qemu-img create -f qcow2 target.qcow2 200G
+virt-install --name Deep32Workstation --memory 12288 --vcpus 6 --os-variant generic --import --boot hd --disk path=installer.img,format=raw,bus=ide --disk path=target.qcow2,format=qcow2,bus=ide --network network=default,model=e1000 --graphics vnc,listen=127.0.0.1 --video vga --noautoconsole --print-xml &gt; workstation.xml
+virsh define workstation.xml
+virsh start Deep32Workstation</code></pre></div>
+            <p>After the install, detach the installer and attach disc 2:</p>
+            <div class="code"><pre><code>virsh detach-disk Deep32Workstation hda --config
+virsh attach-disk Deep32Workstation "DISC2" hdc --type cdrom --mode readonly --config</code></pre></div>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <h3 class="part-label see">What you should see</h3>
+    <ul>
+      <li>The check after <span class="screen">Create the VM</span> reads the VM's settings with <code>Get-VM</code> or
+      <code>virsh</code> and shows OK for each one.</li>
+      <li>At the end of the install, the installer prints <code>Remove the install medium before starting the installed
+      system.</code> and halts.</li>
+    </ul>
+
+    <h3 class="part-label fix">If it doesn't</h3>
+    <ul class="fixes">
+      <li><code>VM_FIRMWARE_UEFI</code> or <code>VM_GENERATION</code>: the VM boots with UEFI. A Hyper-V Generation 2
+      VM boots with UEFI only, so remove it and create it again with <code>-Generation 1</code>.</li>
+      <li><code>VM_DISK_SMALL</code>: the VM's largest disk is under 200 GB. Give it an empty disk of at least
+      200 GB.</li>
+      <li><code>VM_DISPLAY_VIRTIO</code>: set the VM's display to standard VGA.</li>
+      <li><code>NET_HOSTONLY</code>: the VM is on a host-only, internal or private network. Connect it to a bridged or
+      a NAT network.</li>
+      <li><code>KIT_MISSING</code>: the guide found no verified disc 1 with deep32-get's VM folder. The error shows the
+      <code>deep32-get</code> line that makes it; then start the guide again with <code>--vm-guide</code>
+      (<code>-VmGuide</code>), adding <code>--kit DIR</code> (<code>-Kit FOLDER</code>) for another download
+      folder.</li>
+      <li>The VM started the installer again after the halt: turn it off, then detach disc 1 or move the target disk
+      ahead of it in the boot order.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ================================================================================================ STEP 5 -->
+<section class="step" id="step-5" aria-labelledby="step-5-title">
+  <div class="step-head"><span class="step-num" aria-hidden="true">5</span><h2 id="step-5-title"><span class="visually-hidden">Step 5: </span>First boot and Tailscale sign-in</h2></div>
+  <p class="step-where"><span>Where: the VM's console, then any device with a browser</span></p>
+  <div class="step-body">
+
+    <h3 class="part-label need">What you need</h3>
+    <p>The VM set to boot from its installed disk, your Tailscale account, and any device with a browser.</p>
+
+    <h3 class="part-label do">Do this</h3>
+    <ol class="steps">
+      <li>Start the VM. On its console, set the passwords for your user and for root.</li>
+      <li>The Workstation makes its own tokens and keys, then starts Tailscale once its network is up. It shows the
+      sign-in address in three places:
+        <ul>
+          <li>on the text console (<kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>F1</kbd>), in a status line with
+          <code>signin=https://login.tailscale.com/a/…</code>;</li>
+          <li>on the VM's serial port, if it has one, every 10 seconds;</li>
+          <li>in the <span class="screen">First Start</span> window under <span class="screen">Sign-in address</span>.
+          First Start opens by itself when you log in to the desktop.</li>
+        </ul>
+      </li>
+      <li>Open the address on any device and sign in with your account.</li>
+      <li>In the wizard, the <span class="screen">First boot and Tailscale</span> step waits for the Workstation to
+      join your tailnet.</li>
+      <li>Optional: on the admin console's Machines page, choose <b>Disable key expiry</b> for the Workstation.</li>
+    </ol>
+
+    <h3 class="part-label see">What you should see</h3>
+    <ul>
+      <li>The wizard shows OK when a new machine with the Workstation's name comes online in your tailnet, and the
+      admin console lists it as connected.</li>
+      <li>Until disc 2 is imported, the boot messages list <code>kiwix_serve(failed)</code>. That is expected: the
+      encyclopedia server has no library to serve before the import, and the import starts it.</li>
+    </ul>
+
+    <h3 class="part-label fix">If it doesn't</h3>
+    <ul class="fixes">
+      <li>The address expired before you used it: Tailscale makes a new one, and First Start shows it. As root,
+      <code>tailscale status</code> prints it too.</li>
+      <li><code>TS_NOT_HERE</code>: this PC isn't signed in to your tailnet, so the wizard can't see the Workstation
+      join. Confirm it in the admin console, or sign this PC in and check the step again.</li>
+      <li><code>TS_PEER_MISSING</code>: no machine with the Workstation's name is online yet. Finish the sign-in with
+      the address on the Workstation's console.</li>
+      <li>The sign-in stalls: the Workstation checks DNSSEC through the DNS server that DHCP gives it, and a few
+      routers' DNS breaks that. Give the VM's network another DNS server.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ================================================================================================ STEP 6 -->
+<section class="step" id="step-6" aria-labelledby="step-6-title">
+  <div class="step-head"><span class="step-num" aria-hidden="true">6</span><h2 id="step-6-title"><span class="visually-hidden">Step 6: </span>Disc 2, the content</h2></div>
+  <p class="step-where"><span>Where: the Workstation</span><span>Search ready in about 8 minutes, the Library in about 2 hours on my lab VM</span></p>
+  <div class="step-body">
+
+    <h3 class="part-label need">What you need</h3>
+    <ul>
+      <li>The Workstation signed in to your tailnet (step 5).</li>
+      <li>Disc 2 (19.6 GB), which the wizard downloaded and verified in step 3.</li>
+      <li>The 200 GB Workstation disk: the import needs about 20 GB free on the Library partition.</li>
+    </ul>
+
+    <aside class="variants" aria-label="If your setup is different">
+      <p class="variants-title"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="4" cy="3.5" r="1.75" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="4" cy="12.5" r="1.75" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="4.5" r="1.75" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M4 5.25v5.5M12 6.25c0 2.75-8 1.75-8 4.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>If your setup is different</p>
+      <details>
+        <summary>No optical drive</summary>
+        <div>
+          <p>Use a USB stick (way B) or the network (way C). A VM needs no drive of its own: way A attaches a virtual
+          CD.</p>
+        </div>
+      </details>
+      <details>
+        <summary>A bare-metal Workstation</summary>
+        <div>
+          <p>Any of the three ways works: a 25 GB BD-R in a Blu-ray drive, a USB stick, or the network.</p>
+        </div>
+      </details>
+      <details>
+        <summary>No PC with disc 2 near the Workstation</summary>
+        <div>
+          <p>Way C works from any PC on your tailnet, wherever it is, and the Internet Archive mirror needs no PC at
+          all.</p>
+        </div>
+      </details>
+    </aside>
+
+    <h3 class="part-label do">Do this</h3>
+    <p>Give the Workstation disc 2 in one of three ways and leave it there. Once the Workstation is signed in, it finds
+    disc 2 and imports it by itself. If you attached disc 2 in the VM guide, the import is already running.</p>
+    <div class="ways">
+      <div class="way">
+        <h4><span class="letter" aria-hidden="true">A</span>A CD drive or a virtual CD</h4>
+        <p>In a VM, attach disc 2 as a read-only CD/DVD drive. The VM guide's <span class="screen">Boot the installed
+        disk; attach disc 2</span> step has the command for your hypervisor. On a real machine, burn disc 2 to a 25 GB
+        Blu-ray disc (BD-R) for an optical drive.</p>
+      </div>
+      <div class="way">
+        <h4><span class="letter" aria-hidden="true">B</span>A USB stick</h4>
+        <p>Write the disc 2 image to a stick of 32 GB or more with balenaEtcher or <code>dd</code>. This erases the
+        stick. Plug it in.</p>
+      </div>
+      <div class="way">
+        <h4><span class="letter" aria-hidden="true">C</span>Over the network</h4>
+        <p>On the Workstation, choose <span class="screen">Get Disc 2 over the Network</span> in First Start, or run
+        this on the console:</p>
+        <div class="code"><pre><code>doas /usr/local/d32/sbin/d32-content-fetch</code></pre></div>
+        <p>Then pick a source:</p>
+        <ul>
+          <li><b>A PC on your tailnet</b> that has disc 2, normally the one that ran the wizard. On that PC, choose
+          <span class="screen">Send disc 2</span> in the wizard. It shows the PC's tailnet name and a ten-character
+          code. On the Workstation, pick that PC and type the code. Keep the wizard open until the download is done:
+          <kbd>Enter</kbd> stops sending, and so does closing the wizard. On Linux, sending needs root, or your user
+          set as the Tailscale operator with <code>sudo tailscale set --operator=$USER</code>.</li>
+          <li><b>The Internet Archive mirror</b>, chosen on the Workstation. No PC is needed.</li>
+        </ul>
+        <p>The Workstation downloads the image into its empty update slot, carries on after an interruption, shows the
+        progress, and deletes the image when the import is done.</p>
+      </div>
+    </div>
+
+    <h3 class="part-label see">What you should see</h3>
+    <ol class="steps">
+      <li>The import checks disc 2's signature and the free space, then reads the disc once, in two parts, checking
+      each file's size and SHA-256 against the signed manifest. First Start and the console follow it, and the
+      desktop's <span class="screen">Import Report</span> shows each step.</li>
+      <li>What search needs comes first. When it's in, the console says <code>the knowledge base is ready; the Library
+      is still importing</code>. From then on search, Ask, publication and pairing work, so go on with step 7. On my
+      lab VM (KVM on Proxmox, disc 2 on a virtual CD drive) that was about 8 minutes after sign-in. Over the network,
+      the download comes first.</li>
+      <li>The Library follows in the background and switches on once it has checked out. The whole import took about
+      2 hours there. When it's done, <code>tail /var/log/d32-import.log</code> ends with a
+      <code>finish outcome=imported</code> line.</li>
+    </ol>
+
+    <h3 class="part-label fix">If it doesn't</h3>
+    <ul class="fixes">
+      <li>Don't start the import by hand. Only if Import Report shows that the import stopped, press <span
+      class="screen">Try Again</span> there, or run it as root on the console, naming the CD drive
+      (<code>dmesg | grep ^cd</code> shows it):
+        <div class="code"><pre><code>/usr/local/d32/libexec/d32-content-import --device cd0</code></pre></div>
+        <code>/usr/local/d32/libexec/d32-content-import --report</code> shows the import's progress on the console.</li>
+      <li><code>IMPORT_SPACE</code>: the Library partition is too small, as on a disk under 200 GB. The knowledge base
+      still goes into use; the Library stops before any of it is copied.</li>
+      <li><code>IMPORT_KB_ONLY</code>: the Library part failed. The knowledge base stays in use, and Import Report says
+      so.</li>
+      <li>A network download stopped: choose Get Disc 2 over the Network again. It carries on where it stopped.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ================================================================================================ STEP 7 -->
+<section class="step" id="step-7" aria-labelledby="step-7-title">
+  <div class="step-head"><span class="step-num" aria-hidden="true">7</span><h2 id="step-7-title"><span class="visually-hidden">Step 7: </span>The Forge</h2></div>
+  <p class="step-where"><span>Where: the PC</span><span>Downloads about 37.1 GB</span><span>On Windows, PowerShell as administrator</span></p>
+  <div class="step-body">
+
+    <h3 class="part-label need">What you need</h3>
+    <ul>
+      <li><b>The host.</b> Ubuntu 24.04 on amd64 with Docker Engine, on the host itself or as a WSL 2 distro; or
+      Windows 11 build 26100 or later (Home, Pro, Enterprise or Education) with Docker Desktop 4.99.0 or later and
+      Docker Engine 29.0.0 or later on the WSL 2 backend. The installer stops on any other system.</li>
+      <li><b>The card.</b> Compute capability 7.5 or newer with at least 10.5 GB of graphics memory, and driver
+      580.65.06 or newer. On Windows the host driver serves Docker Desktop; don't install a Linux graphics driver
+      inside its WSL 2 backend. On Linux, the NVIDIA Container Toolkit.</li>
+      <li><b>Docker's classic image store</b> (<code>overlay2</code>). The alpha.2 Forge images load only into it, and
+      Docker Engine 29 and Docker Desktop keep images in containerd by default. Images and containers you keep in the
+      other store stay hidden until you switch back, so the installer never changes this for you. To switch:
+        <div class="tabs">
+          <div class="tab-panel" data-os="linux">
+            <p class="tab-label">Linux</p>
+            <p>Add this key to <code>/etc/docker/daemon.json</code>, then restart Docker:</p>
+            <div class="code"><pre><code>"features": {"containerd-snapshotter": false}</code></pre></div>
+            <div class="code"><pre><code>sudo systemctl restart docker</code></pre></div>
+          </div>
+          <div class="tab-panel" data-os="windows">
+            <p class="tab-label">Windows</p>
+            <p>In Docker Desktop, open <b>Settings</b>, <b>General</b>, turn off <b>Use containerd for pulling and
+            storing images</b>, and choose <b>Apply &amp; restart</b>.</p>
+          </div>
+        </div>
+      </li>
+      <li><b>Python.</b> 3.12 or newer for the installer. On Linux the pairing helper runs on
+      <code>/usr/bin/python3</code>, which must be 3.10 or newer and able to import <code>ssl</code>.
+      <code>sh install/forge-host-python.sh</code> checks it, and <code>sudo sh install/forge-host-python.sh
+      --install</code> installs it with apt, dnf, zypper or pacman.</li>
+      <li><b>Free space.</b> About 281 to 284 GB when you start, if the data folder and Docker's storage share one
+      filesystem or volume (<a href="advanced.html#disk">other layouts</a>).</li>
+      <li><b>Tailscale.</b> A machine name that starts with <code>deep32-</code>, in the same tailnet as the Workstation
+      (step 1).</li>
+    </ul>
+
+    <aside class="variants" aria-label="If your setup is different">
+      <p class="variants-title"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="4" cy="3.5" r="1.75" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="4" cy="12.5" r="1.75" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="4.5" r="1.75" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M4 5.25v5.5M12 6.25c0 2.75-8 1.75-8 4.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>If your setup is different</p>
+      <details>
+        <summary>No NVIDIA card</summary>
+        <div>
+          <p>Skip this step and the next. Search works on keywords until a Forge is paired, and one can be added
+          later.</p>
+        </div>
+      </details>
+      <details>
+        <summary>The Forge on another machine</summary>
+        <div>
+          <p>Run the wizard on that machine and choose Forge. It needs a <code>deep32-</code> name in the same tailnet
+          as the Workstation. The Forge doesn't have to be on the same network: see step 8.</p>
+        </div>
+      </details>
+      <details>
+        <summary>Ubuntu in WSL 2 on Windows</summary>
+        <div>
+          <p>The installer also accepts an Ubuntu 24.04 WSL 2 distro with Docker Engine inside it and systemd on. In
+          that case Tailscale runs inside the distro and is a node of its own, so the distro's node needs the
+          <code>deep32-</code> name. A Forge in Docker Desktop uses the Windows host's node.
+          <a href="advanced.html#docker">Docker Desktop or Docker Engine</a> compares the two.</p>
+        </div>
+      </details>
+    </aside>
+
+    <h3 class="part-label do">Do this</h3>
+    <ol class="steps">
+      <li>On the wizard's <span class="screen">Done</span> screen, choose <span class="screen">Set up the Forge
+      here</span>. Or start the wizard again and choose Forge.</li>
+      <li>The checks run for the Forge: Python, the card and its class, the driver and its memory, Docker, Compose, the
+      classic image store, the Container Toolkit, the pairing helper's Python, and Tailscale.</li>
+      <li>The wizard downloads and verifies your card's three images from disc 3: the 18.6 GB shared core, your card's
+      3.1 to 3.3 GB embedder and the 15.3 GB ingestion image.</li>
+      <li>The installer checks the host before it changes anything. It asks you to confirm the tailnet the Forge will
+      publish on, and to agree that the Forge's name goes into the public Certificate Transparency logs. Then it shows
+      its plan: the folders, the ports, and the size and SHA-256 of each image.</li>
+      <li>To agree to the plan, type the 64-character digest shown under it (spaces are fine, and pasting works), then
+      choose <span class="screen">Install</span>.</li>
+    </ol>
+
+    <h3 class="part-label see">What you should see</h3>
+    <p>The install goes through <span class="screen">Plan accepted</span>, <span class="screen">This host checked
+    again</span>, <span class="screen">Images mounted read-only</span>, <span class="screen">Forge loader
+    running</span>, <span class="screen">Settings handed over</span> and <span class="screen">Forge started; its doors
+    answer with a token request</span>. Just before the host check's result, the installer prints a line like this one
+    for Ubuntu 24.04. It doesn't stop the install:</p>
+    <div class="code" data-nocopy><pre><code>Note: this host type is accepted for 0.1.0-alpha.2 under an owner waiver dated 2026-11-18 (recipe ubuntu-24.04-docker-engine-j2). I have not yet run a full install on it; FORGE-PREREQUISITES.json lists what was not run.</code></pre></div>
+    <p>On Windows the recipe is <code>windows-11-docker-desktop-wsl2-j1</code>. The run ends with:</p>
+    <div class="code" data-nocopy><pre><code>[ok] Forge installed and running
+[ok] door answers on https://deep32-forge.YOUR-TAILNET.ts.net:443 and asks for a token
+[ok] door answers on https://deep32-forge.YOUR-TAILNET.ts.net:8443 and asks for a token</code></pre></div>
+    <figure>
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="../figures/setup-dark.svg">
+        <img src="../figures/setup-light.svg" width="1000" height="351" loading="lazy" alt="A terminal running the setup script on a Forge host. Each line starts with a tag: ok for a check that passed, fix for something to correct, you for a step only a person can do, and info for progress. It checks Python, the graphics card, Docker and Tailscale, installs the Forge, checks its door and ends with the pairing code to type on the Workstation.">
+      </picture>
+      <figcaption><b>Figure 2.</b> The same Forge setup in plain mode. Every line starts with a tag, so a person or an
+      agent can follow it.</figcaption>
+    </figure>
+    <p>To check the door yourself: it answers <code>401</code>, which means it is up and wants a token.</p>
+    <div class="tabs">
+      <div class="tab-panel" data-os="linux">
+        <p class="tab-label">Linux</p>
+        <div class="code"><pre><code>curl -s -o /dev/null -w '%{http_code}\n' https://deep32-forge.YOUR-TAILNET.ts.net/health</code></pre></div>
+      </div>
+      <div class="tab-panel" data-os="windows">
+        <p class="tab-label">Windows</p>
+        <div class="code"><pre><code>curl.exe -s -o NUL -w "%{http_code}`n" https://deep32-forge.YOUR-TAILNET.ts.net/health</code></pre></div>
+      </div>
+    </div>
+
+    <h3 class="part-label fix">If it doesn't</h3>
+    <ul class="fixes">
+      <li><code>docker-store-containerd</code>: Docker still uses its containerd store. Switch it as shown above, then
+      run the wizard again.</li>
+      <li><code>gpu.memory</code>: the card has less memory than the signed plan needs.</li>
+      <li><code>host.magicdns</code> or <code>host.https-certificates</code>: turn MagicDNS or HTTPS Certificates on
+      in the admin console's DNS page, then run the wizard again.</li>
+      <li><code>tailscale-approval</code>: the PC waits for approval in your tailnet. Approve it on the admin
+      console's Machines page.</li>
+      <li>Not enough free space: the installer compares free space with the storage budget signed into the release,
+      before it joins the images and again after. The <a href="advanced.html#disk">disk table</a> has the figures for
+      each layout.</li>
+      <li>The door answered something other than <code>401</code>: it may still be starting. Wait a minute and run the
+      wizard again. On the host, <code>tailscale serve status</code> should list the HTTPS routes for ports 443 and
+      8443.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ================================================================================================ STEP 8 -->
+<section class="step" id="step-8" aria-labelledby="step-8-title">
+  <div class="step-head"><span class="step-num" aria-hidden="true">8</span><h2 id="step-8-title"><span class="visually-hidden">Step 8: </span>Pair the Forge</h2></div>
+  <p class="step-where"><span>Where: the Workstation and the PC</span><span>A code lasts five minutes</span></p>
+  <div class="step-body">
+
+    <h3 class="part-label need">What you need</h3>
+    <ul>
+      <li>The Workstation's knowledge base in use: Import Report shows it. The Library can still be importing.</li>
+      <li>The Forge's pairing window open. Until it is paired, each start of the Forge opens a five-minute window with
+      a ten-character code, and the wizard's <span class="screen">Pair</span> screen shows it.</li>
+    </ul>
+
+    <aside class="variants" aria-label="If your setup is different">
+      <p class="variants-title"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="4" cy="3.5" r="1.75" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="4" cy="12.5" r="1.75" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="4.5" r="1.75" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M4 5.25v5.5M12 6.25c0 2.75-8 1.75-8 4.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>If your setup is different</p>
+      <details>
+        <summary>The Forge and the Workstation on different networks or sites</summary>
+        <div>
+          <p>Pairing and search work over your tailnet wherever the parts are. <code>tailscale status</code> shows
+          <code>direct</code> or <code>relay</code> for each peer. A relayed path adds tens of milliseconds to every
+          search: on my setup, latency between the parts was 70 to 157 ms through a relay and 1 to 2 ms direct.
+          Tailscale needs outbound UDP for direct paths; with UDP blocked it falls back to relays over HTTPS.</p>
+        </div>
+      </details>
+      <details>
+        <summary>Custom tailnet access rules</summary>
+        <div>
+          <p>The default Tailscale policy allows everything. If you've written your own access rules, allow the paths
+          Deep32 uses: the agent PC to the Workstation's gateway, the Workstation to the Forge, and for Ask, the
+          Workstation to the relay on TCP port 7452.</p>
+        </div>
+      </details>
+      <details>
+        <summary>A machine shared in from someone else's tailnet</summary>
+        <div>
+          <p>It is never offered for pairing. The Forge has to be a machine in the Workstation's own tailnet.</p>
+        </div>
+      </details>
+    </aside>
+
+    <h3 class="part-label do">Do this</h3>
+    <ol class="steps">
+      <li>On the Workstation, open <span class="screen">Pairing</span> and choose <span class="screen">Forge</span>.
+      From a terminal on the Workstation:
+        <div class="code"><pre><code>doas /usr/local/d32/sbin/d32-pairdesk -forge</code></pre></div>
+      </li>
+      <li>Pick your Forge, for example <code>deep32-forge</code>.</li>
+      <li>Type the code from the wizard's Pair screen. Spaces and the dot between the two groups are fine.</li>
+      <li>Wait until the Workstation says the pairing is saved, then choose <span class="screen">Paired</span> in the
+      wizard.</li>
+    </ol>
+    <details class="more">
+      <summary>Reading the code without the wizard</summary>
+      <div>
+        <div class="tabs">
+          <div class="tab-panel" data-os="linux">
+            <p class="tab-label">Linux</p>
+            <p>The code is in a file only root can read:</p>
+            <div class="code"><pre><code>sudo grep -o 'pair=[A-Z2-7]*' /opt/deep32/status/status</code></pre></div>
+          </div>
+          <div class="tab-panel" data-os="windows">
+            <p class="tab-label">Windows</p>
+            <p>A small helper opens the pairing window, from an elevated PowerShell in the clone. It keeps the current
+            code in <code>C:\Deep32\status\windows-pair</code>, readable only by you and SYSTEM:</p>
+            <div class="code"><pre><code>python -I -B src\release-tools\forge_pair_windows.py --data-root C:\Deep32</code></pre></div>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <h3 class="part-label see">What you should see</h3>
+    <p>Pairing turns meaning search on by itself, and <span class="screen">Pairing</span> lists the Forge as paired.
+    Within a minute the Workstation has checked both of the Forge's models. As root,
+    <code>/usr/local/d32/sbin/d32-gpu-ext status</code> then shows <code>"verified": true</code> for
+    <code>embed</code> and <code>rerank</code>.</p>
+
+    <h3 class="part-label fix">If it doesn't</h3>
+    <ul class="fixes">
+      <li>The code expired: choose <span class="screen">New code (runs the setup again)</span> in the wizard. If the
+      window closes before you pair, the Forge's services keep running but it records itself as stopped until you start
+      it again.</li>
+      <li>After three failed attempts within 30 minutes, pairing locks for 15 minutes.</li>
+      <li>Your Forge isn't in the list: the Workstation only offers machines whose Tailscale name starts with
+      <code>deep32-</code> and that are in its own tailnet. Check <code>tailscale status</code> on both.</li>
+      <li>The models don't show as verified: the wizard's list of next steps turns them on and checks them, from a
+      terminal on the Workstation:
+        <div class="code"><pre><code>doas /usr/local/d32/sbin/d32-gpu-ext on
+doas /usr/local/d32/sbin/d32-gpu-ext status</code></pre></div>
+      </li>
+    </ul>
+  </div>
+</section>
+
+<!-- ================================================================================================ STEP 9 -->
+<section class="step" id="step-9" aria-labelledby="step-9-title">
+  <div class="step-head"><span class="step-num" aria-hidden="true">9</span><h2 id="step-9-title"><span class="visually-hidden">Step 9: </span>Publish the gateway and connect your agent</h2></div>
+  <p class="step-where"><span>Where: the Workstation's text console, then the PC</span><span>A code lasts five minutes</span></p>
+  <div class="step-body">
+
+    <h3 class="part-label need">What you need</h3>
+    <ul>
+      <li>The Workstation's knowledge base in use.</li>
+      <li>Claude Code or Codex installed and signed in on the PC, Python 3.11 or newer for Connect, and OpenSSL on
+      <code>PATH</code>.</li>
+      <li>Tailscale on the PC, signed in to the same tailnet as the Workstation.</li>
+    </ul>
+
+    <aside class="variants" aria-label="If your setup is different">
+      <p class="variants-title"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="4" cy="3.5" r="1.75" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="4" cy="12.5" r="1.75" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="4.5" r="1.75" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M4 5.25v5.5M12 6.25c0 2.75-8 1.75-8 4.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>If your setup is different</p>
+      <details>
+        <summary>Claude Code or Codex already set up for other work on this PC</summary>
+        <div>
+          <p>Connect Deep32 to a separate, empty profile. Connect then reads and writes only that folder and leaves your
+          existing configuration alone. Add <code>--profile-dir DIR</code> (<code>-ProfileDir</code>) to the Connect
+          command; <a href="https://github.com/hellobpdu/deep32/blob/main/adapters/README.md#3-use-a-separate-profile">Agent
+          Adapters section 3</a> has the steps.</p>
+        </div>
+      </details>
+      <details>
+        <summary>Both Claude Code and Codex</summary>
+        <div>
+          <p>Use <code>--agent both</code>. Connect pairs twice, once for each agent: open a new Headend pairing on the
+          Workstation for each and type each code in turn. Each agent gets its own credential.</p>
+        </div>
+      </details>
+      <details>
+        <summary>The agent on another PC or a Mac</summary>
+        <div>
+          <p>Run the wizard there and choose Agent PC, or run Connect by hand. The PC needs Tailscale in the same
+          tailnet.</p>
+        </div>
+      </details>
+    </aside>
+
+    <h3 class="part-label do">Do this</h3>
+    <ol class="steps">
+      <li>Publish the Workstation's gateway, once, as root on its text console
+      (<kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>F1</kbd>):
+        <div class="code"><pre><code>/usr/local/d32/sbin/d32-publish publish --accept-ct</code></pre></div>
+        With <code>--accept-ct</code> you agree that the Workstation's HTTPS name,
+        <code>&lt;workstation&gt;.&lt;tailnet&gt;.ts.net</code>, is recorded in the public Certificate Transparency
+        logs, as every Tailscale HTTPS name is. Without it, publication stays off. The command checks the gateway and
+        ends with the Connect command for this Workstation, for Linux and for Windows.</li>
+      <li>On the PC, choose <span class="screen">Set up the Agent PC here</span> on the wizard's
+      <span class="screen">Done</span> screen, or start the wizard again and choose Agent PC. Give it the Workstation's
+      address and your agent, then choose <span class="screen">Start Connect</span>. By hand, from the clone, with
+      <code>claude</code> for Claude Code or <code>codex</code> for Codex:
+        <div class="tabs">
+          <div class="tab-panel" data-os="linux">
+            <p class="tab-label">Linux</p>
+            <div class="code"><pre><code>bash adapters/connect.sh --agent claude --workstation 'https://&lt;workstation&gt;.&lt;tailnet&gt;.ts.net/mcp'</code></pre></div>
+          </div>
+          <div class="tab-panel" data-os="windows">
+            <p class="tab-label">Windows</p>
+            <div class="code"><pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File adapters\connect.ps1 -Agent claude -Workstation 'https://&lt;workstation&gt;.&lt;tailnet&gt;.ts.net/mcp'</code></pre></div>
+          </div>
+        </div>
+        Connect checks the published gateway, then waits at
+        <code>Workstation one-time code for claude (hidden, 10 characters):</code>.</li>
+      <li>On the Workstation, open <span class="screen">Pairing</span> and choose <span class="screen">Headend</span>,
+      or run <code>/usr/local/d32/sbin/d32-pairdesk -headend</code> as root on the console. It shows a ten-character
+      code that lasts five minutes. Type it at Connect's prompt, which shows a dot for each character. On the console,
+      press <kbd>Enter</kbd> afterwards to close the pairing screen.</li>
+      <li>If the agent already has a configuration on the PC, Connect lists the files it will back up and merge, and
+      asks <code>Type merge to approve this file plan:</code>. Type <code>merge</code> to go on. If you decline, Connect
+      stops without changing those files.</li>
+      <li>Start the agent with the <code>Launch:</code> command Connect prints. When it asks, approve only the eleven
+      Deep32 tools, then run the skill's check: <code>/deep32 first-session check</code> in Claude Code or
+      <code>$deep32 first-session check</code> in Codex.</li>
+    </ol>
+
+    <h3 class="part-label see">What you should see</h3>
+    <p>Run the Connect command again with <code>--check</code> (<code>-Check</code> in PowerShell). It changes nothing
+    and ends with:</p>
+    <div class="code" data-nocopy><pre><code>claude: read-only authentication and eleven-tool checks passed; client version …</code></pre></div>
+    <p>Connect also installs the research skills: <code>deep32</code> for Claude Code, and for Codex
+    <code>deep32</code>, <code>deep32-configure</code>, <code>deep32-describe</code>, <code>deep32-design</code>,
+    <code>deep32-troubleshoot</code> and <code>deep32-verify</code>. From now on the same agent answers from your
+    Workstation through them. Connect installs them under a scoped name, such as <code>deep32_1a2b3c4d</code>;
+    <a href="https://github.com/hellobpdu/deep32/blob/main/adapters/README.md#6-first-session">Agent Adapters section
+    6</a> has the details. In the first session, <code>rag_status</code> reports keyword search, embeddings and
+    reranking as healthy.</p>
+
+    <h3 class="part-label fix">If it doesn't</h3>
+    <ul class="fixes">
+      <li><code>401</code> from the gateway: start the agent with the printed launcher. If it still fails, revoke the
+      headend on the Workstation and pair again.</li>
+      <li>Name not found: check <code>tailscale status</code> on the PC and the address the Workstation shows.</li>
+      <li>Timeout: check publication on the Workstation, then run Connect with <code>--check</code>.</li>
+      <li><code>expired</code>: the code or its window expired. Choose Headend again on the Workstation for a new
+      code, and type it within five minutes.</li>
+      <li><code>unreachable</code>: the PC couldn't reach the Workstation's pairing service. Check that Tailscale on the
+      PC is in the Workstation's tailnet and that the Headend pairing window is open.</li>
+      <li><code>dense</code> or <code>reranker</code> in <code>degraded</code>: the Forge is off or unreachable; keyword
+      search still works.</li>
+      <li><code>agent-credential-mode-unsupported</code>: update Claude Code. Connect never falls back to writing the
+      token into a file.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ================================================================================================ STEP 10 -->
+<section class="step" id="step-10" aria-labelledby="step-10-title">
+  <div class="step-head"><span class="step-num" aria-hidden="true">10</span><h2 id="step-10-title"><span class="visually-hidden">Step 10: </span>The Ask relay (optional)</h2></div>
+  <p class="step-where"><span>Where: the PC and the Workstation's text console</span></p>
+  <div class="step-body">
+    <p>The relay lets you type a question in the Workstation's Ask window and have the agent on the PC answer it. In
+    this release Ask answers through the relay with Claude Code, with the model and strength you choose.</p>
+
+    <div class="callout important" role="note">
+      <p class="callout-title"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.25" y="1.25" width="13.5" height="13.5" rx="3" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="7.25" y="4" width="1.5" height="5" rx="0.75"/><circle cx="8" cy="11.4" r="1"/></svg>Who can use Ask</p>
+      <p>Ask has no password of its own in this release. Anyone with an account in the Workstation's
+      <code>_d32users</code> group, which includes the desktop user the installer creates, can open Ask and ask on the
+      plan of the agent signed in on the PC.</p>
+    </div>
+
+    <h3 class="part-label need">What you need</h3>
+    <ul>
+      <li>The gateway published (step 9).</li>
+      <li>The PC's Tailscale name starting with <code>deep32-</code>, in the Workstation's tailnet (step 1).</li>
+      <li>On Linux, your user allowed to manage Tailscale Serve, once: <code>sudo tailscale set --operator=$USER</code>.</li>
+    </ul>
+
+    <h3 class="part-label do">Do this</h3>
+    <ol class="steps">
+      <li>Install the relay for your agent. It prints the relay's install ID; put it in place of <code>&lt;id&gt;</code>
+      below.
+        <div class="tabs">
+          <div class="tab-panel" data-os="linux">
+            <p class="tab-label">Linux</p>
+            <div class="code"><pre><code>bash adapters/connect.sh --relay install --agent claude --relay-transport tailnet --tailscale-binary "$(command -v tailscale)"</code></pre></div>
+          </div>
+          <div class="tab-panel" data-os="windows">
+            <p class="tab-label">Windows</p>
+            <div class="code"><pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File adapters\connect.ps1 -Relay install -Agent claude -RelayTransport tailnet -TailscaleBinary "C:\Program Files\Tailscale\tailscale.exe"</code></pre></div>
+          </div>
+        </div>
+      </li>
+      <li>Sign the relay's own agent profile in. The relay runs the agent in a separate profile with none of your
+      settings, so it needs its own sign-in:
+        <div class="tabs">
+          <div class="tab-panel" data-os="linux">
+            <p class="tab-label">Linux</p>
+            <div class="code"><pre><code>bash adapters/connect.sh --relay login --relay-id '&lt;id&gt;' --agent claude</code></pre></div>
+          </div>
+          <div class="tab-panel" data-os="windows">
+            <p class="tab-label">Windows</p>
+            <div class="code"><pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File adapters\connect.ps1 -Relay login -RelayId '&lt;id&gt;' -Agent claude</code></pre></div>
+          </div>
+        </div>
+      </li>
+      <li>On Linux, once, let the relay run while you're logged out: <code>sudo loginctl enable-linger $USER</code>.</li>
+      <li>Open pairing on the PC. On Linux, stop the relay's service first:
+        <div class="tabs">
+          <div class="tab-panel" data-os="linux">
+            <p class="tab-label">Linux</p>
+            <div class="code"><pre><code>systemctl --user stop 'deep32-relay-&lt;id&gt;'
+bash adapters/connect.sh --relay pair --relay-id '&lt;id&gt;' --agent claude</code></pre></div>
+          </div>
+          <div class="tab-panel" data-os="windows">
+            <p class="tab-label">Windows</p>
+            <div class="code"><pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File adapters\connect.ps1 -Relay pair -RelayId '&lt;id&gt;' -Agent claude</code></pre></div>
+          </div>
+        </div>
+      </li>
+      <li>While pairing is open, run <code>/usr/local/d32/sbin/d32-pairdesk -relay</code> as root on the Workstation's
+      text console (<kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>F1</kbd>) and pick the PC. Each screen shows ten words. Type
+      the Workstation's words on the PC and the PC's words on the Workstation. The comparison runs only on the text
+      console. It doesn't run in a terminal window on the desktop.</li>
+      <li>On Linux, start the service again: <code>systemctl --user start 'deep32-relay-&lt;id&gt;'</code>. Keep
+      publication on while you use Ask.</li>
+    </ol>
+
+    <h3 class="part-label see">What you should see</h3>
+    <p><code>--relay status</code> (<code>-Relay status</code>) reports the relay ready. A question you already know the
+    answer to streams into the Ask window, and its research line lists the searches the agent made.</p>
+
+    <h3 class="part-label fix">If it doesn't</h3>
+    <ul class="fixes">
+      <li>A typing slip at <code>word 3 of 10:</code> is asked for again. A different pairing word means the two
+      screens disagree, so pairing stops and nothing is stored.</li>
+      <li>To pair a different relay, remove the old one on the Workstation first:
+      <code>/usr/local/d32/sbin/d32-chatctl unpair work</code>.</li>
+      <li><code>agent-sign-in-required</code>: the relay's agent profile is signed out. Sign it in again (item 2).</li>
+      <li>A turn ends with <code>agent-start-failed</code>: use your agent directly through Connect, and see the known
+      issues in the <a href="https://github.com/hellobpdu/deep32/blob/main/CHANGELOG.md">release notes</a>.</li>
+      <li>Ask stopped working after you unpublished the gateway: publish it again.</li>
+    </ul>
+    <p><a href="https://github.com/hellobpdu/deep32/blob/main/adapters/README.md#5-the-ask-relay">Agent Adapters
+    section 5</a> has the relay in full, with the model and strength menus and how to remove it.</p>
+  </div>
+</section>
+
+<!-- ================================================================================================ STEP 11 -->
+<section class="step" id="step-11" aria-labelledby="step-11-title">
+  <div class="step-head"><span class="step-num" aria-hidden="true">11</span><h2 id="step-11-title"><span class="visually-hidden">Step 11: </span>Verify</h2></div>
+  <p class="step-where"><span>Where: the Workstation and the PC</span></p>
+  <div class="step-body">
+
+    <h3 class="part-label need">What you need</h3>
+    <p>Steps 1 to 9 done. Step 10 is optional.</p>
+
+    <h3 class="part-label do">Do this</h3>
+    <ol class="steps">
+      <li>On the Workstation, <span class="screen">Pairing</span> lists the Forge as paired, and a search there ranks
+      by meaning: a question in plain words finds the right RFC section even when it shares no keywords with it.</li>
+      <li>Ask your agent something you already know, such as the BGP hold time in RFC 4271. Check that it cites the
+      RFC and quotes it.</li>
+      <li>Later, at any time, the setup's check reports the state of a machine and changes nothing:
+        <div class="tabs">
+          <div class="tab-panel" data-os="linux">
+            <p class="tab-label">Linux</p>
+            <div class="code"><pre><code>bash install/deep32-setup.sh check</code></pre></div>
+          </div>
+          <div class="tab-panel" data-os="windows">
+            <p class="tab-label">Windows</p>
+            <div class="code"><pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File install\deep32-setup.ps1 check</code></pre></div>
+          </div>
+        </div>
+      </li>
+    </ol>
+
+    <h3 class="part-label see">What you should see</h3>
+    <p>RFC 4271 suggests a 90-second hold time, with keepalives at a third of that. 60 and 180 seconds are the Cisco
+    IOS and IOS XE defaults. A good answer gives the two separately and quotes both sources.</p>
+    <figure>
+      <img class="shot" src="../screenshots/ask-bgp-timers.png" width="1303" height="990" loading="lazy" alt="End of an Ask answer about BGP timers: the reason BGP uses its own keepalives, the 3:1 ratio marked as inference, Cisco 60/180 against the RFC's suggested 90-second hold time, the research line with 15 RAG calls, and four RFC 4271 source links.">
+      <figcaption><b>Figure 3.</b> The BGP timer question in the Ask window. Cisco and RFC values are given separately,
+      and the 3:1 ratio is marked as inference.</figcaption>
+    </figure>
+
+    <h3 class="part-label fix">If it doesn't</h3>
+    <ul class="fixes">
+      <li><code>rag_status</code> shows embeddings or reranking as degraded: the Forge isn't reachable, and searches
+      fall back to keyword matching until it is. Go back to step 8.</li>
+      <li><code>deep32 doctor</code> and <code>deep32 selftest</code> are on the images, but in 0.1.0-alpha.2 doctor
+      can't read the install record and selftest has no signed reference values, so neither gives a useful result yet.
+      Fixes for both are planned for 0.1.0-alpha.3.</li>
+    </ul>
+
+    <div class="done-box">
+      <h2>That's the install</h2>
+      <p>Starting, stopping, upgrading and removing the parts are in the <a href="advanced.html#afterwards">advanced
+      guide</a>. Optional features that would contact anything ship off;
+      <a href="https://github.com/hellobpdu/deep32/blob/main/docs/OPTIONAL-FEATURES.md">Optional Features</a> lists
+      each one and what it would contact. If something here didn't match what you saw, please open an
+      <a href="https://github.com/hellobpdu/deep32/issues">issue</a>.</p>
+    </div>
+  </div>
+</section>
+
+</main>
+</div>
+
+<footer class="site-footer">
+  <div class="inner">
+    <nav aria-label="Document set">
+      <ul class="docset">
+        <li><a href="https://github.com/hellobpdu/deep32#readme">Overview</a></li>
+        <li><a href="https://github.com/hellobpdu/deep32/blob/main/INSTALL.md">Installation</a></li>
+        <li><a href="https://github.com/hellobpdu/deep32/blob/main/docs/HARDWARE.md">Hardware</a></li>
+        <li><a href="https://github.com/hellobpdu/deep32/blob/main/docs/OPTIONAL-FEATURES.md">Optional features</a></li>
+        <li><a href="../tr/d32-tr-1.html">Design</a></li>
+        <li><a href="https://github.com/hellobpdu/deep32/blob/main/docs/DECISIONS.md">Decision record</a></li>
+        <li><a href="https://github.com/hellobpdu/deep32/blob/main/docs/contracts/README.md">Contracts</a></li>
+        <li><a href="https://github.com/hellobpdu/deep32/blob/main/adapters/README.md">Agent adapters</a></li>
+        <li><a href="https://github.com/hellobpdu/deep32/blob/main/SECURITY.md">Security</a></li>
+        <li><a href="https://github.com/hellobpdu/deep32/blob/main/CHANGELOG.md">Release notes</a></li>
+      </ul>
+    </nav>
+    <p>Copyright &copy; 2026 Jeffrey A. Cummings. Code under the Apache License 2.0, documentation under CC BY 4.0.</p>
+    <p class="fine">Personal work. Not affiliated with or endorsed by my employer. Cisco, IOS and Catalyst are trademarks of Cisco Systems, Inc. Other names belong to their owners and are used only to describe compatibility. This site loads nothing from other servers and sets no cookies.</p>
+  </div>
+</footer>
+</body>
+</html>

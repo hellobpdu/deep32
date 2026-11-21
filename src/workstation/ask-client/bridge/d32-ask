@@ -4,7 +4,9 @@
 import argparse
 import base64
 import csv
+import hashlib
 import importlib.util
+import io
 import json
 import os
 from pathlib import Path
@@ -42,8 +44,8 @@ ERRORS = {
     15: ("WINDOW_LOCKED", "Unlock this Ask window before starting a question."),
 }
 HELP = """Ask a question, then wait for the streamed answer. Ctrl+C interrupts a turn.
-/new                 Start a fresh session with the next engine
-/engine codex|claude Choose the NEXT session only; later sessions use Codex
+/new                 Start a fresh session
+/engine codex|claude Label only: the relay on the paired PC picks the engine
 /status              Show the link, pairing and available models
 /ledger              Show this session's RAG calls (metadata only)
 /refs                List the last answer's Library references
@@ -65,6 +67,9 @@ PACK_MAPS = (
     ("lib-e26", Path("/d32/libcontent/e26/cite-map.tsv")),
 )
 MAP_COLUMNS = ("rag_doc_id", "rag_anchor", "pack", "article_id", "article_anchor", "title")
+PACK_RECORDS = {"lib-corpus": "lib-corpus", "lib-e26": "lib-main"}
+# LEAD-WORDING
+MAP_NOTICE = "Library citation maps that could not be verified against the active knowledge base were skipped."
 LAUNCHER = "/d32/active/bin/e26"
 DOC_ID = r"[A-Za-z0-9][A-Za-z0-9._:-]*"
 RAG_ANCHOR = r"[A-Za-z0-9][A-Za-z0-9._:-]*"
@@ -114,15 +119,81 @@ def extract_cites(text):
 class CiteMaps:
     """Read installed generation snapshots; exact sections outrank fallbacks."""
 
-    def __init__(self, paths=PACK_MAPS):
-        self.entries = {}
-        for expected_pack, path in paths:
+    def __init__(self, paths=PACK_MAPS, content_root=Path("/d32/libcontent"),
+                 records_root=Path("/var/db/d32/import/packs")):
+        self.paths = tuple(paths)
+        self.content_root, self.records_root = Path(content_root), Path(records_root)
+        self.reload()
+
+    @staticmethod
+    def _regular(path):
+        if not stat.S_ISREG(path.lstat().st_mode):
+            raise ValueError("not a regular metadata file")
+        return path.read_bytes()
+
+    def _active_identity(self):
+        try:
+            path = (self.content_root / "kb/BUNDLE.json").resolve(strict=True)
+            bundle = json.loads(self._regular(path).decode("ascii"))
+            fingerprint = bundle.get("fingerprint")
+            if not isinstance(fingerprint, str) or not re.fullmatch(r"[0-9a-f]{16}", fingerprint):
+                return None
+            return path, fingerprint
+        except (OSError, ValueError, UnicodeError, AttributeError):
+            return None
+
+    def _bound(self, pack, path, raw):
+        # Retained pack records are public; the import journal is root-only.
+        # Match the resolved generation, never the stable pointer's spelling.
+        relative = path.relative_to(self.content_root.resolve()).as_posix()
+        member = "d32/libcontent/" + relative
+        bindings = []
+        for folder in sorted((self.records_root / PACK_RECORDS[pack]).iterdir()):
             try:
+                if folder.is_symlink() or not folder.is_dir():
+                    continue
+                manifest = self._regular(folder / "MANIFEST.tsv").decode("utf-8")
+                rows = [line.split("\t") for line in manifest.splitlines()]
+                rows = [row for row in rows if row and row[0] == member]
+                if not rows:
+                    continue
+                if (len(rows) != 1 or len(rows[0]) != 8 or rows[0][1] != "f" or
+                        rows[0][5] != str(len(raw)) or rows[0][6] != hashlib.sha256(raw).hexdigest()):
+                    return False
+                info = {}
+                for line in self._regular(folder / "INFO").decode("utf-8").splitlines():
+                    key, value = line.split("=", 1)
+                    if key in info:
+                        raise ValueError("duplicate pack metadata")
+                    info[key] = value
+                if (info.get("name") != PACK_RECORDS[pack] or info.get("class") != "library" or
+                        info.get("generation", folder.name) != folder.name):
+                    return False
+                bindings.append(info.get("kb_fingerprint"))
+            except (OSError, UnicodeError, ValueError):
+                return False
+        return bool(bindings) and all(value == self.identity[1] for value in bindings)
+
+    def reload(self):
+        self.entries = {}
+        self.notice = ""
+        self.identity = self._active_identity()
+        if self.identity is None:
+            self.notice = MAP_NOTICE
+            return
+        for expected_pack, path in self.paths:
+            try:
+                path = Path(path).resolve(strict=True)
+                raw = self._regular(path)
+                if not self._bound(expected_pack, path, raw):
+                    raise ValueError("map is not bound to the active knowledge base")
+                if raw.startswith(b"\xef\xbb\xbf") or b"\r" in raw or not raw.endswith(b"\n"):
+                    raise ValueError("invalid map encoding")
                 entries = {}
-                with Path(path).open(encoding="utf-8", newline="") as source:
+                with io.StringIO(raw.decode("utf-8"), newline="") as source:
                     rows = csv.DictReader(source, delimiter="\t", quoting=csv.QUOTE_NONE)
                     if tuple(rows.fieldnames or ()) != MAP_COLUMNS:
-                        continue
+                        raise ValueError("invalid map header")
                     for row in rows:
                         if None in row or any(value is None for value in row.values()):
                             raise ValueError("invalid map row")
@@ -148,10 +219,17 @@ class CiteMaps:
                         entries[key] = entry
                 for key, entry in entries.items():
                     self.entries.setdefault(key, entry)
-            except (OSError, UnicodeError, csv.Error, ValueError):
+            except (OSError, UnicodeError, csv.Error, ValueError, KeyError):
+                self.notice = MAP_NOTICE
                 continue
+        if self.identity != self._active_identity():
+            self.entries.clear()
+            self.notice = MAP_NOTICE
 
     def resolve(self, cite):
+        if self.identity != self._active_identity():
+            self.entries.clear()
+            self.notice = MAP_NOTICE
         doc, anchor = cite
         entry = self.entries.get((doc, anchor)) if anchor else None
         fallback = False
@@ -445,6 +523,7 @@ class EventSink:
     def __init__(self, out, window_auth=False):
         self.out, self.inbox = out, queue.Queue(64)
         self.window_auth = window_auth
+        self.plain = False  # set once the broker proves to have no window password
         self.write = out.buffer.write if hasattr(out, "buffer") else lambda data: out.write(data.decode())
 
     @staticmethod
@@ -499,7 +578,7 @@ class EventSink:
             if op == "U" and len(fields) == 2 and fields[0] in ("enroll", "unlock"):
                 if re.fullmatch(r"(?:[0-9a-f]{2}){12,256}", fields[1]):
                     return op, fields[0], bytearray.fromhex(fields[1])
-            elif op == "D" and len(fields) == 3 and valid_choice(*fields):
+            elif op == "D" and len(fields) == 3 and (valid_choice(*fields) or (self.plain and relay_choice(*fields))):
                 return op, *fields
             elif op == "A" and len(fields) == 1 and fields[0] in ("begin", "cancel"):
                 return op, fields[0]
@@ -592,6 +671,14 @@ def valid_choice(engine, model, effort):
             isinstance(effort, str) and effort in ("low", "medium", "high", "xhigh", "max", "ultra"))
 
 
+def relay_choice(engine, model, effort):
+    """A choice the window can show for a broker without the window password: the relay picks the engine, and the
+    window takes an id of at most 64 bytes for a model and 8 for an effort, in its id characters."""
+    return (engine == "relay" and
+            all(isinstance(value, str) and re.fullmatch(r"[A-Za-z0-9._:/-]+", value) for value in (model, effort)) and
+            len(model) <= 64 and len(effort) <= 8)
+
+
 class WindowAccess:
     locks = {"unconfigured", "locked", "unlocked", "offline", "unsupported"}
     providers = {"ready", "pending", "unavailable", "needs_login"}
@@ -604,6 +691,9 @@ class WindowAccess:
         self.choices = set()
         self.choice = None
         self.refresh = False
+        # plain: the broker has no window password (alpha.2's); probe: the ask.* request whose refusal is awaited
+        self.plain, self.probe = False, None
+        self.rows, self.fields = [], {}
 
     def state(self, lock, codex="unavailable", claude="unavailable", reason="none"):
         self.lock = lock
@@ -615,6 +705,7 @@ class WindowAccess:
 
     def receive(self, event, uplink):
         op = event["op"]
+        self.probe = None
         if op == "ask.state":
             lock, codex, claude, reason = (event.get(key) for key in ("lock", "codex", "claude", "reason"))
             if (isinstance(lock, str) and lock in self.locks and
@@ -776,8 +867,8 @@ class Ask:
     def __init__(self, uplink, args, out=sys.stdout, history=None, cite_maps=None, sink=None):
         self.ui, self.args, self.out = uplink, args, out
         self.history = history or History()
-        self.next_engine = args.engine
-        self.engine = args.engine
+        # A label only: the relay on the paired PC picks the engine (contract C9: session.open has no engine).
+        self.next_engine = self.engine = args.engine or "relay"
         self.model = args.model or "relay default"
         self.session = None
         self.links = {}
@@ -831,7 +922,10 @@ class Ask:
                 self.links[info["link"]] = info
                 if self.sink and self.started and info["link"] == self.args.link:
                     self.header()
-                    if self.window_access is not None and info.get("state") != "ACTIVE":
+                    if self.window_access is not None and self.window_access.plain:
+                        # No lock to drop: a question while the link is down gets RELAY_LOST, as in a terminal.
+                        self.plain_choices()
+                    elif self.window_access is not None and info.get("state") != "ACTIVE":
                         self.window_access.state("offline", reason="link_lost")
                     elif self.window_access is not None and self.window_access.lock == "offline":
                         self.ui.send("ask.status", link=self.args.link)
@@ -845,6 +939,9 @@ class Ask:
                 self.session = None
                 self.say("Session closed. Your next question will start a fresh session.")
             return
+        if (op == "error" and sid is None and self.window_access is not None and self.window_access.probe and
+                self.probe_reply(event.get("code"))):
+            return
         if sid is not None and self.session is not None and sid != self.session:
             return
         if op == "error":
@@ -857,7 +954,7 @@ class Ask:
             self.say(f"Error {number} {name}: {message}")
             if code == 11:
                 self.session = None
-                if self.window_access is not None:
+                if self.window_access is not None and not self.window_access.plain:
                     self.window_access.state("offline", reason="link_lost")
             elif code == 15 and self.window_access is not None:
                 self.window_access.state("locked")
@@ -899,7 +996,10 @@ class Ask:
             answer = "".join(self.parts)
             if answer:
                 self.save_history("assistant", answer)
+            self.cite_maps.reload()
             self.references = [self.cite_maps.resolve(cite) for cite in extract_cites(answer)]
+            if self.cite_maps.notice:
+                self.say(self.cite_maps.notice, "info")
             if self.sink:
                 self.turn_references[self.turn_number] = self.references
                 if len(self.turn_references) > 64:
@@ -911,7 +1011,7 @@ class Ask:
                 self.sink.emit("S", 0)
                 self.sink.emit("F", self.turn_number, status)
             elif self.references:
-                self.show_references()
+                self.show_references(refresh=False)
             self.parts = []
 
     @staticmethod
@@ -923,7 +1023,13 @@ class Ask:
         marking = ""
         return f"{title} [{cite}]", marking
 
-    def show_references(self):
+    def show_references(self, refresh=True):
+        if refresh:
+            self.cite_maps.reload()
+            self.references = [self.cite_maps.resolve(tuple(reference["cite"].partition("#")[::2]))
+                               for reference in self.references]
+            if self.cite_maps.notice:
+                self.say(self.cite_maps.notice, "info")
         if not self.references:
             self.say("No Library references in the last answer.")
             return
@@ -963,7 +1069,12 @@ class Ask:
 
     def status(self, detailed=False):
         self.ui.send("status")
-        self.wait(lambda e: e["op"] == "status" and "links" in e, 5)
+        event = self.wait(lambda e: e["op"] == "status" and "links" in e, 5)
+        if self.args.link is None:
+            # alpha.2 configures one link, "work" (d32-pairdesk); older Workstations named theirs "home".
+            links = event["links"] if isinstance(event["links"], list) else []
+            names = [info["link"] for info in links if isinstance(info, dict) and isinstance(info.get("link"), str)]
+            self.args.link = "home" if "home" in names or not names else names[0]
         self.header()
         if detailed:
             info = self.links.get(self.args.link, {})
@@ -974,6 +1085,55 @@ class Ask:
             signed = info.get("signed_in")
             self.say("Relay sign-in: " + ("yes" if signed is True else "no" if signed is False else "unknown"))
 
+    def probe_reply(self, code):
+        """Tell alpha.2's broker, which has no window password and refuses every ask.* request with error 1, from a
+        broker with one. That broker refuses ask.status with 1 only for a link it does not serve, and refuses
+        ask.capabilities before ask.status with 15, changing nothing; so only a second 1 means alpha.2's broker."""
+        access = self.window_access
+        probe, access.probe = access.probe, None
+        if probe == "status" and code == 1:
+            access.probe = "capabilities"
+            self.ui.send("ask.capabilities")
+            return True
+        if probe != "capabilities":
+            return False
+        if code != 1:
+            # A broker with the window password refused ask.status: report that refusal, as before.
+            self.event({"op": "error", "code": 1})
+            return True
+        # Owner decision 2026-11-20: with this broker the window has no password of its own in alpha.2. The
+        # Workstation login and the broker socket's mode (0660 root:_d32users) protect it, as they protect Ask in a
+        # terminal. A broker with the window password keeps the unlock flow above.
+        access.plain = self.sink.plain = True
+        self.plain_choices()
+        return True
+
+    def plain_choices(self):
+        """Open the window without a password: one engine, the relay's, with the models and efforts it advertises, or
+        the relay's own default while it advertises none (the link is down). Repeated only when they change."""
+        access = self.window_access
+        info = self.links.get(self.args.link, {})
+        models, efforts = info.get("models"), info.get("efforts")
+        rows = []
+        if isinstance(models, list) and isinstance(efforts, list):
+            rows = list(dict.fromkeys(("relay", model, effort) for model in models for effort in efforts
+                                      if relay_choice("relay", model, effort)))[:128]
+        fields = {row: {"model": row[1], "effort": row[2]} for row in rows}
+        if not rows:
+            rows = [("relay", "default", "default")]
+            fields = {rows[0]: {}}
+        access.fields = fields
+        if access.lock == "unlocked" and rows == access.rows:
+            return
+        if access.lock != "unlocked":
+            access.state("unlocked")
+        access.rows, access.choices = rows, set(rows)
+        if access.choice not in access.choices:
+            access.choice = rows[0]
+        for number, row in enumerate(rows):
+            self.sink.emit("M", *row, "", int(number == 0))
+        self.sink.emit("J")
+
     def open_session(self):
         self.had_error = False
         self.ledger = []
@@ -982,12 +1142,15 @@ class Ask:
                 self.say("Unlock Ask and choose an available engine, model and strength.", "error")
                 return False
             self.engine, self.model, effort = self.window_access.choice
-            fields = {"link": self.args.link, "engine": self.engine, "model": self.model, "effort": effort}
+            if self.window_access.plain:
+                fields = {"link": self.args.link, **self.window_access.fields[self.window_access.choice]}
+            else:
+                fields = {"link": self.args.link, "engine": self.engine, "model": self.model, "effort": effort}
         else:
             self.engine = self.next_engine
-            self.next_engine = "codex"
             self.model = self.args.model or "relay default"
-            fields = {"link": self.args.link, "engine": self.engine}
+            # The broker takes op, link, model and effort only; the relay picks its engine itself.
+            fields = {"link": self.args.link}
             for key in ("model", "effort"):
                 if getattr(self.args, key):
                     fields[key] = getattr(self.args, key)
@@ -1105,7 +1268,10 @@ class Ask:
         if number > len(references):
             self.say("That reference number is not in the last answer. Use /refs.")
             return
-        reference = references[number - 1]
+        self.cite_maps.reload()
+        reference = self.cite_maps.resolve(tuple(references[number - 1]["cite"].partition("#")[::2]))
+        if self.cite_maps.notice:
+            self.say(self.cite_maps.notice, "info")
         if reference["entry"] is None:
             self.say(reference["cite"] + " is not in the Library.")
             return
@@ -1157,7 +1323,7 @@ class Ask:
             if choice in access.choices and choice != access.choice:
                 self.close_session()
                 access.choice = choice
-        elif access.lock == "unlocked" and op == "A" and not self.active:
+        elif access.lock == "unlocked" and op == "A" and not self.active and not access.plain:
             self.ui.send("ask.codex.login." + fields[0])
 
     def command(self, line, interrupt_after=None):
@@ -1186,7 +1352,8 @@ class Ask:
                 self.say("Use /engine codex or /engine claude.")
             else:
                 self.next_engine = parts[1]
-                self.say(f"Engine {self.next_engine} selected for the NEXT session. Use /new to start it.")
+                self.say(f"The relay on the paired PC picks the engine. The header shows {self.next_engine} "
+                         "from the next session (/new starts one).")
         elif line == "/ledger":
             if not self.ledger:
                 self.say("No RAG calls recorded for this session.")
@@ -1229,6 +1396,7 @@ class Ask:
         if self.sink:
             self.sink.start()
             if self.window_access is not None:
+                self.window_access.probe = "status"
                 self.ui.send("ask.status", link=self.args.link)
             while not self.leaving:
                 self.drain()
@@ -1276,8 +1444,9 @@ def script_lines(path):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--socket", default="/var/run/d32/uplink.sock", help="local UNIX socket (default: %(default)s)")
-    parser.add_argument("--link", default="home")
-    parser.add_argument("--engine", choices=("codex", "claude"), default="codex")
+    parser.add_argument("--link", help="broker link (default: home if the broker has it, else its first link)")
+    parser.add_argument("--engine", choices=("codex", "claude"),
+                        help="header label only; the relay on the paired PC picks the engine")
     parser.add_argument("--model", help="relay model; omitted by default")
     parser.add_argument("--effort", help="relay effort; omitted by default")
     mode = parser.add_mutually_exclusive_group()
@@ -1316,7 +1485,7 @@ def main(argv=None):
             try:
                 ask.finish_answer()
                 ask.close_session()
-                if ask.window_access is not None:
+                if ask.window_access is not None and not ask.window_access.plain:
                     ui.send("ask.close")
             except (UplinkError, OSError, KeyboardInterrupt):
                 result = 1

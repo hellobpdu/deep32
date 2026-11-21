@@ -19,5 +19,24 @@ run() {
 	FW=$D32_ROOT/in/firmware/8.0 ksh "$S/ship/tools/mkimage-ship.sh" "$D32_RELEASE_ID" || die "mkimage-ship.sh failed"
 	mkdir -p "$OUT"
 	cp -Rp "/build/lanes/ship/out/$D32_RELEASE_ID/." "$OUT/"
+	# build-time package guard failure messages below.
+	# BEGIN alpha2 medium package guard: verify the actual FFS payload, read-only.
+	pm=$D32_ROOT/work/80-packages-mnt
+	mkdir -p "$pm"
+	pv=$(vnconfig "$OUT/deep32ws-$D32_RELEASE_ID-amd64.img") || die "package check: vnconfig failed"
+	trap 'umount "$pm" 2>/dev/null; vnconfig -u "$pv" 2>/dev/null' EXIT
+	mount -r "/dev/${pv}a" "$pm" || die "package check: read-only mount failed"
+	need_file "$pm/packages/amd64/roots"
+	grep -Eq '^tailscale(-[0-9][^[:space:]]*)?[[:space:]]*$' "$pm/packages/amd64/roots" ||
+		die "package check: tailscale missing from medium roots"
+	set -- "$pm"/packages/amd64/tailscale-[0-9]*.tgz
+	[ "$#" = 1 ] && [ -f "$1" ] || die "package check: expected one tailscale package on medium"
+	need_file "/build/pkgrepo/${1##*/}"
+	check_sha "$1" "$(sha256 -q "/build/pkgrepo/${1##*/}")"
+	(cd "$pm/packages/amd64" && find . -type f | sort | xargs sha256 -r) >"$OUT/MEDIUM-PACKAGES.sha256"
+	cp -p "$pm/packages/amd64/roots" "$OUT/MEDIUM-PACKAGE-ROOTS.txt"
+	umount "$pm"; vnconfig -u "$pv"; trap - EXIT
+	# END alpha2 medium package guard
+
 	log "image: $(ls -l "$OUT"/*.img | awk '{ print $NF, $5 }')"
 }

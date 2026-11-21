@@ -4,6 +4,12 @@
 # upstream resolvers from the DHCP lease into pf <dns> and unbound (ISO 2.6.3); table edit only
 [ -x /usr/local/d32/sbin/d32-dnsup ] && /usr/local/d32/sbin/d32-dnsup -w 30
 
+# Restore only an explicitly requested publication after the package services.
+# This is bounded and reports the prerequisite and resume command on failure.
+if [ -f /etc/d32/state/publication.json ] && [ -x /usr/local/d32/sbin/d32-publish ]; then
+	/usr/local/d32/sbin/d32-publish resume
+fi
+
 # test images only: the first-boot check, once, on the console and in /var/log/d32-firstboot-check.log
 if [ -f /var/db/d32/firstboot-check ] && [ -x /usr/local/d32/libexec/d32-firstboot-check ]; then
 	/usr/local/d32/libexec/d32-firstboot-check 2>&1 | tee /var/log/d32-firstboot-check.log

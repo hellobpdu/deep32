@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="351" viewBox="0 0 1000 351" role="img" aria-labelledby="t d">
+<title id="t">Deep32 setup on a Forge host</title>
+<desc id="d">A terminal window with a shortened run of the one-command setup, bash install/deep32-setup.sh, on a GPU machine. Every line the script prints starts with a tag. Info: this machine looks like a forge host. OK: gpgv for the signature checks; NVIDIA GeForce RTX 4070, class ada; 12282 MiB of GPU memory, and the Forge needs 10752; Docker running. Fix: the Tailscale name gpu-pc must start with deep32- for the Workstation to offer it. The script asks whether to rename the machine to deep32-forge on the tailnet, the answer is yes, and it reports OK: renamed to deep32-forge. Info: downloading, verifying and installing the GPU pack for ada into /opt/deep32. You: the installer shows its plan (folders, ports, images, sizes) and waits for you to accept it. OK: Forge installed and running; the door answers on https://deep32-forge.your-tailnet.ts.net:443 and asks for a token. You: on the Workstation, open Pairing, choose Forge, pick deep32-forge and type the code K7QM2XWB4T, valid five minutes. The machine names, the tailnet, the card and the code are placeholders.</desc>
+<metadata><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description rdf:about=""><dc:title>Deep32 setup on a Forge host</dc:title><dc:creator>Jeffrey A. Cummings</dc:creator><dc:rights>Copyright (C) 2026 Jeffrey A. Cummings</dc:rights><dc:source>https://github.com/hellobpdu/deep32</dc:source></rdf:Description></rdf:RDF></metadata>
+<style>.s{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans',Helvetica,Arial,sans-serif}.m{font-family:ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,'Liberation Mono',monospace}</style>
+<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 1L9.5 5L0 9z" fill="#59636e"/></marker><clipPath id="tw"><rect x="15" y="10" width="970" height="331" rx="10"/></clipPath></defs>
+<rect x="15" y="10" width="970" height="331" rx="10" fill="#ffffff"/>
+<rect x="15" y="10" width="970" height="30" fill="#f6f8fa" clip-path="url(#tw)"/>
+<line x1="15" y1="40" x2="985" y2="40" stroke="#d1d9e0"/>
+<rect x="15" y="10" width="970" height="331" rx="10" fill="none" stroke="#d1d9e0"/>
+<circle cx="37" cy="25" r="5" fill="#d1d9e0"/><circle cx="55" cy="25" r="5" fill="#d1d9e0"/><circle cx="73" cy="25" r="5" fill="#d1d9e0"/>
+<text x="500" y="29.5" class="s" font-size="12.5" font-weight="600" fill="#59636e" text-anchor="middle">Terminal</text>
+<text x="965" y="29" class="m" font-size="11.5" font-weight="400" fill="#59636e" text-anchor="end" letter-spacing="1.2">FORGE HOST · SHORTENED</text>
+<text x="37" y="65" class="m" font-size="12.5" fill="#1f2328"><tspan fill="#59636e">$</tspan> <tspan font-weight="600">bash install/deep32-setup.sh</tspan></text>
+<text x="37" y="85" class="m" font-size="12.5" fill="#1f2328"><tspan font-weight="600" fill="#59636e">[info]</tspan> this machine looks like a forge host (name another role to override)</text>
+<text x="37" y="105" class="m" font-size="12.5" fill="#1f2328"><tspan font-weight="600" fill="#1a7f37">[ok]</tspan> gpgv for the signature checks</text>
+<text x="37" y="125" class="m" font-size="12.5" fill="#1f2328"><tspan font-weight="600" fill="#1a7f37">[ok]</tspan> NVIDIA GeForce RTX 4070, class ada</text>
+<text x="37" y="145" class="m" font-size="12.5" fill="#1f2328"><tspan font-weight="600" fill="#1a7f37">[ok]</tspan> 12282 MiB of GPU memory (the Forge needs 10752)</text>
+<text x="37" y="165" class="m" font-size="12.5" fill="#1f2328"><tspan font-weight="600" fill="#1a7f37">[ok]</tspan> Docker running</text>
+<text x="37" y="185" class="m" font-size="12.5" fill="#1f2328"><tspan font-weight="600" fill="#9a6700">[fix]</tspan> Tailscale name 'gpu-pc' must start with deep32- for the Workstation to offer it</text>
+<text x="37" y="205" class="m" font-size="12.5" fill="#1f2328">Rename this machine to deep32-forge on your tailnet? [y/N] <tspan font-weight="600">y</tspan></text>
+<text x="37" y="225" class="m" font-size="12.5" fill="#1f2328"><tspan font-weight="600" fill="#1a7f37">[ok]</tspan> renamed to deep32-forge</text>
+<text x="37" y="245" class="m" font-size="12.5" fill="#1f2328"><tspan font-weight="600" fill="#59636e">[info]</tspan> downloading, verifying and installing the GPU pack for ada into /opt/deep32</text>
+<text x="37" y="265" class="m" font-size="12.5" fill="#1f2328"><tspan font-weight="600" fill="#0969da">[you]</tspan> the installer shows its plan (folders, ports, images, sizes) and waits for you to accept it</text>
+<text x="37" y="285" class="m" font-size="12.5" fill="#1f2328"><tspan font-weight="600" fill="#1a7f37">[ok]</tspan> Forge installed and running</text>
+<text x="37" y="305" class="m" font-size="12.5" fill="#1f2328"><tspan font-weight="600" fill="#1a7f37">[ok]</tspan> door answers on https://deep32-forge.your-tailnet.ts.net:443 and asks for a token</text>
+<text x="37" y="325" class="m" font-size="12.5" fill="#1f2328"><tspan font-weight="600" fill="#0969da">[you]</tspan> on the Workstation: open Pairing, choose Forge, pick deep32-forge and type the code K7QM2XWB4T (valid five minutes)</text>
+</svg>

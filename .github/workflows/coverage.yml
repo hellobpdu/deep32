@@ -1,0 +1,103 @@
+# Statement and branch coverage of the Python code while every test suite runs, on the same Windows runner and
+# Python as the Tests workflow, for each push to main. Settings: .github/coverage.rc (what is measured and what is left
+# out). The HTML, XML and JSON reports are kept as an artifact, and the totals go to the job summary.
+#
+# Coverage is a number I track; this workflow never fails on the percentage. It fails when a suite fails, after the
+# reports are written. Some suites take two or three times as long under coverage, so a few tests with short time
+# limits, or that remove a folder a child process still holds, can fail here and pass in the Tests workflow.
+name: Coverage
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: coverage-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  coverage:
+    name: Python coverage
+    runs-on: windows-latest
+    timeout-minutes: 340
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+      - name: Install coverage.py
+        run: python -m pip install --require-hashes -r .github/requirements-coverage.txt
+      - name: Choose the report folder
+        run: Add-Content -Path $env:GITHUB_ENV -Value "D32_COVERAGE_DIR=$env:RUNNER_TEMP/coverage-report"
+      - name: Run every suite under coverage
+        run: python -I -B -m coverage run --rcfile=.github/coverage.rc tests/run_all.py --timeout 3600
+      - name: Combine the data
+        if: ${{ !cancelled() }}
+        run: python -I -B -m coverage combine --rcfile=.github/coverage.rc
+      - name: Report by file
+        if: ${{ !cancelled() }}
+        run: python -I -B -m coverage report --rcfile=.github/coverage.rc --sort=cover
+      - name: Write the HTML report
+        if: ${{ !cancelled() }}
+        run: python -I -B -m coverage html --rcfile=.github/coverage.rc -q
+      - name: Write the XML report
+        if: ${{ !cancelled() }}
+        run: python -I -B -m coverage xml --rcfile=.github/coverage.rc -q
+      - name: Write the JSON report
+        if: ${{ !cancelled() }}
+        run: python -I -B -m coverage json --rcfile=.github/coverage.rc -q
+      - name: Totals
+        if: ${{ !cancelled() }}
+        shell: python
+        run: |
+          import json
+          import os
+          from collections import defaultdict
+
+          data = json.load(open(os.path.join(os.environ['D32_COVERAGE_DIR'], 'coverage.json'), encoding='utf-8'))
+          t = data['totals']
+          lines = [
+              f"Statements: {t['covered_lines']:,} of {t['num_statements']:,} ({t['percent_statements_covered']:.1f}%)",
+              f"Branches: {t['covered_branches']:,} of {t['num_branches']:,} ({t['percent_branches_covered']:.1f}%)",
+              f"Together, as coverage.py counts them: {t['percent_covered']:.1f}%",
+          ]
+          print('\n'.join(lines))
+
+          # The same numbers for each area: the first two folders of each path (src/gpu-pack, adapters/relay, ...).
+          areas = defaultdict(lambda: [0, 0, 0, 0, 0])
+          for name, entry in data['files'].items():
+              parts = name.replace('\\', '/').split('/')
+              s = entry['summary']
+              row = areas['/'.join(parts[:2]) if len(parts) > 2 else parts[0]]
+              row[0] += 1
+              row[1] += s['num_statements']
+              row[2] += s['covered_lines']
+              row[3] += s['num_branches']
+              row[4] += s['covered_branches']
+          table = ['| Area | Files | Statements | Statement % | Branch % |', '|---|---:|---:|---:|---:|']
+          for area, (files, stmts, covered, branches, taken) in sorted(areas.items(), key=lambda kv: -kv[1][1]):
+              spct = 100 * covered / stmts if stmts else 100.0
+              bpct = 100 * taken / branches if branches else 100.0
+              table.append(f'| `{area}` | {files} | {stmts:,} | {spct:.1f}% | {bpct:.1f}% |')
+          print('\n'.join(table))
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a', encoding='utf-8') as summary:
+              summary.write('## Python coverage\n\n' + '\n'.join(f'- {line}' for line in lines) + '\n\n')
+              summary.write('\n'.join(table) + '\n')
+      - name: Keep the reports
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage-report
+          path: |
+            ${{ env.D32_COVERAGE_DIR }}/html
+            ${{ env.D32_COVERAGE_DIR }}/coverage.xml
+            ${{ env.D32_COVERAGE_DIR }}/coverage.json
+          retention-days: 30

@@ -1,0 +1,48 @@
+# coverage.py settings for the Coverage workflow (.github/workflows/coverage.yml) and `make coverage`:
+#
+#   python -m coverage run --rcfile=.github/coverage.rc tests/run_all.py
+#   python -m coverage combine --rcfile=.github/coverage.rc
+#   python -m coverage report --rcfile=.github/coverage.rc
+#
+# Measured: every Python file under src/, adapters/ and install/, with branch coverage. Most suites start the programs
+# as separate Python processes, so `patch = subprocess` measures those processes too (`patch = execv` is not available
+# on Windows). Left out: test code (any tests/ folder, the test_*.py and test-*.py files beside the release tree builder
+# and the image build driver), the build driver's lab test harness under test-lane/, and the test fixture builder
+# make_test_root.py. Python programs without a .py suffix count once a suite runs them; until then they are not listed.
+#
+# The patterns start with */ so that they match in every measured process, whatever its working folder.
+# Output goes to coverage-report/ in the clone, or to the folder named by the D32_COVERAGE_DIR environment variable.
+
+[run]
+branch = True
+parallel = True
+patch =
+    subprocess
+    _exit
+source =
+    src
+    adapters
+    install
+omit =
+    */tests/*
+    */src/build/alpha2-tree/test_*.py
+    */src/build/s5-build-driver/test-*.py
+    */src/build/s5-build-driver/test-lane/*
+    */src/workstation/pyrag/tools/make_test_root.py
+data_file = ${D32_COVERAGE_DIR-coverage-report}/data/.coverage
+
+[report]
+include_namespace_packages = True
+ignore_errors = True
+precision = 1
+skip_empty = False
+
+[html]
+directory = ${D32_COVERAGE_DIR-coverage-report}/html
+title = Deep32 test coverage
+
+[xml]
+output = ${D32_COVERAGE_DIR-coverage-report}/coverage.xml
+
+[json]
+output = ${D32_COVERAGE_DIR-coverage-report}/coverage.json

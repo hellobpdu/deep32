@@ -19,7 +19,10 @@ import time
 
 STRINGS = '/usr/local/share/d32/setup/strings.tsv'
 
-STAGES = ('disc', 'signature', 'files', 'space', 'kb', 'library', 'blocks', 'switch', 'check', 'finish')
+# fetch (Download disc 2) leads the Workstation's stages since disc 2 can come over the network; a report written
+# before that has the other ten (LEGACY_STAGES) and still reads.
+LEGACY_STAGES = ('disc', 'signature', 'files', 'space', 'kb', 'library', 'blocks', 'switch', 'check', 'finish')
+STAGES = ('fetch',) + LEGACY_STAGES
 BLOCKS = ('block-rfc', 'block-cisco', 'block-powershell', 'block-system')
 TOP = ('format', 'format_version', 'node', 'import_id', 'attempt', 'resumed_from', 'report_seq', 'started',
        'written', 'finished', 'heartbeat', 'pid', 'state', 'outcome', 'stage', 'source', 'progress', 'stages',
@@ -30,6 +33,8 @@ STAGE_KEYS = ('id', 'state', 'started', 'finished', 'done_bytes', 'total_bytes',
               'error')
 UNIT_KEYS = ('id', 'kind', 'generation', 'bytes', 'sha256', 'parts', 'parts_checked', 'state', 'kb_fingerprint',
              'error')
+# The Workstation's units also carry when their files were read and checked, and when they were installed.
+UNIT_TIMES = ('copy_started', 'copy_finished', 'install_started', 'install_finished')
 KB_KEYS = ('generation', 'fingerprint', 'created', 'counts', 'embedding', 'engine_ok', 'meaning_search', 'previous')
 ROLLBACK = ('available', 'kb_generation', 'library', 'done')
 RESUME = ('resumable', 'next_stage', 'units_done', 'bytes_kept')
@@ -42,10 +47,13 @@ ERRORS = {
     'IMPORT_SPACE': ('needed_bytes', 'free_bytes'), 'IMPORT_WRITE': (), 'IMPORT_KB_FORM': (),
     'IMPORT_KB_ENGINE': ('engine', 'min', 'max'), 'IMPORT_PACK_FORM': (),
     'IMPORT_PACK_BINDING': ('pack_fingerprint', 'kb_fingerprint'), 'IMPORT_SWITCH': (), 'IMPORT_CHECK': ('what',),
-    'IMPORT_INTERNAL': (),
+    'IMPORT_INTERNAL': (), 'IMPORT_FETCH': ('reason',),
 }
+# why a download of disc 2 stopped (IMPORT_FETCH's reason; each has a fetch.why.REASON string)
+FETCH_REASONS = ('unreachable', 'refused', 'not-found', 'server', 'dropped', 'size', 'not-disc', 'tls', 'stopped',
+                 'write', 'attach')
 WARNINGS = {'IMPORT_RESUMED': ('from',), 'IMPORT_MEANING_WAIT': (), 'IMPORT_MEANING_MISMATCH': ('served', 'wanted'),
-            'IMPORT_OLD_KEPT': ('bytes',)}
+            'IMPORT_OLD_KEPT': ('bytes',), 'IMPORT_KB_ONLY': ()}
 STAGE_STATES = ('pending', 'running', 'done', 'failed', 'skipped')
 UNIT_STATES = ('pending', 'checking', 'checked', 'installing', 'installed', 'current', 'kept', 'skipped', 'failed')
 
@@ -165,6 +173,8 @@ def _check(raw):
         return out + ['top-level keys are not exactly, and in the order of, the contract']
     if r['format'] != 'deep32-import-report' or r['format_version'] != 1:
         return out + ['unknown format or version']
+    first = r['stages'][0] if isinstance(r['stages'], list) and r['stages'] else None
+    stage_order = STAGES if isinstance(first, dict) and first.get('id') == 'fetch' else LEGACY_STAGES
 
     def isint(v, lo=0):
         return isinstance(v, int) and not isinstance(v, bool) and v >= lo
@@ -197,7 +207,7 @@ def _check(raw):
         bad('started and written are required')
     if r['state'] not in ('running', 'done', 'failed'):
         bad('state')
-    if r['stage'] not in STAGES:
+    if r['stage'] not in stage_order:
         bad('stage')
     if r['state'] == 'running':
         if r['outcome'] is not None or r['finished'] is not None:
@@ -219,7 +229,7 @@ def _check(raw):
 
     s = r['source']
     if keys(s, SOURCE, 'source'):
-        if not (isinstance(s['device'], str) and re.match(r'^(cd[0-9]|sr[0-9]|loop[0-9]{1,3}|folder)$', s['device'])):
+        if not (isinstance(s['device'], str) and re.match(r'^((cd|sd)[0-9]{1,2}|vnd[0-9]|network|sr[0-9]|loop[0-9]{1,3}|folder)$', s['device'])):
             bad('source.device')
         if s['signature'] not in ('unchecked', 'good', 'bad'):
             bad('source.signature')
@@ -248,7 +258,7 @@ def _check(raw):
             bad('progress.done_bytes is above total_bytes')
 
     st = r['stages']
-    if not isinstance(st, list) or len(st) != len(STAGES):
+    if not isinstance(st, list) or len(st) != len(stage_order):
         bad('stages: every stage, in order')
     else:
         running = 0
@@ -256,8 +266,8 @@ def _check(raw):
         for i, g in enumerate(st):
             if not keys(g, STAGE_KEYS, 'stages[%d]' % i):
                 continue
-            if g['id'] != STAGES[i]:
-                bad('stages[%d] is %r, the contract has %s there' % (i, g['id'], STAGES[i]))
+            if g['id'] != stage_order[i]:
+                bad('stages[%d] is %r, the contract has %s there' % (i, g['id'], stage_order[i]))
             if g['state'] not in STAGE_STATES:
                 bad('stages[%d].state' % i)
             opt_time('stages[%d].started' % i, g['started'])
@@ -298,8 +308,11 @@ def _check(raw):
     else:
         order = []
         for i, u in enumerate(us):
-            if not keys(u, UNIT_KEYS, 'units[%d]' % i):
+            timed = isinstance(u, dict) and len(u) > len(UNIT_KEYS)
+            if not keys(u, UNIT_KEYS + UNIT_TIMES if timed else UNIT_KEYS, 'units[%d]' % i):
                 continue
+            for k in UNIT_TIMES if timed else ():
+                opt_time('units[%d].%s' % (i, k), u[k])
             if not (isinstance(u['id'], str) and UNIT_ID.match(u['id'])):
                 bad('units[%d].id' % i)
                 continue
@@ -356,7 +369,8 @@ def _check(raw):
 
     rs = r['resume']
     if keys(rs, RESUME, 'resume'):
-        if rs['resumable'] not in (True, False) or (rs['next_stage'] is not None and rs['next_stage'] not in STAGES):
+        if rs['resumable'] not in (True, False) or (rs['next_stage'] is not None and
+                                                     rs['next_stage'] not in stage_order):
             bad('resume values')
         if not isinstance(rs['units_done'], list) or not isint(rs['bytes_kept']):
             bad('resume.units_done or bytes_kept')
@@ -374,8 +388,11 @@ def _check(raw):
             if e['code'] not in table:
                 bad('%s[%d].code %r is not in the contract' % (lst, i, e['code']))
                 continue
-            if e['stage'] not in STAGES:
+            if e['stage'] not in stage_order:
                 bad('%s[%d].stage' % (lst, i))
+            if e['code'] == 'IMPORT_FETCH' and (not isinstance(e['args'], dict) or
+                                                e['args'].get('reason') not in FETCH_REASONS):
+                bad('%s[%d].args.reason is not a reason a download stops for' % (lst, i))
             if e['unit'] is not None and not (isinstance(e['unit'], str) and UNIT_ID.match(e['unit'])):
                 bad('%s[%d].unit' % (lst, i))
             if e['path'] is not None and not (isinstance(e['path'], str) and re.match(r'^(kb|corpus|library)/[A-Za-z0-9._/-]{1,200}$', e['path'])
@@ -437,6 +454,8 @@ def problem_text(w, e, step_names):
     if code == 'IMPORT_SPACE':
         a['needed'] = size(a.get('needed_bytes'))
         a['free'] = size(a.get('free_bytes'))
+    if code == 'IMPORT_FETCH':
+        a['reason'] = w('fetch.why.' + str(a.get('reason')))
     k = 'why.' + code
     why = w(k, **a) if w.has(k) else w('why.unknown')
     step = step_names.get(e['stage'], e['stage'])
@@ -475,7 +494,13 @@ def _render(r, w, now, pid_check):
     else:
         rows.append(('sig', w('report.sig.unchecked')))
     step = names[r['stage']]
-    if is_stopped:
+    fetched = r['stage'] == 'fetch' and r['stages'][0]['state'] == 'done'
+    if r['state'] == 'running' and fetched:
+        # d32-content-fetch has downloaded disc 2; the import itself writes the next report
+        rows.append(('state', w('report.state.fetched')))
+    elif r['state'] == 'running' and r['stage'] == 'fetch':
+        rows.append(('state', w('report.state.fetch.stopped' if is_stopped else 'report.state.fetching')))
+    elif is_stopped:
         rows.append(('state', w('report.state.stopped', step=step)))
     elif r['state'] == 'running':
         rows.append(('state', w('report.state.running', step=step)))
@@ -527,8 +552,16 @@ def _render(r, w, now, pid_check):
         rows.append(('note', w(k, **a)))
     if not r['errors']:
         rows.append(('problem', w('report.none')))
-    again = (is_stopped or r['state'] == 'failed') and r['resume']['resumable'] and r['source']['signature'] != 'bad'
-    if r['errors']:
+    again = ((is_stopped or r['state'] == 'failed') and r['resume']['resumable'] and r['source']['signature'] != 'bad'
+             and r['stage'] != 'fetch')
+    if r['stage'] == 'fetch':
+        # a download is carried on by Get Disc 2 over the Network, never by Try Again
+        last = r['errors'][-1]['code'] if r['errors'] else None
+        if last == 'IMPORT_SPACE':
+            rows.append(('hint', w('hint.fetch.space')))
+        elif last or (is_stopped and not fetched):
+            rows.append(('hint', w('hint.fetch')))
+    elif r['errors']:
         code = r['errors'][-1]['code']
         if w.has('hint.' + code):
             rows.append(('hint', w('hint.' + code)))

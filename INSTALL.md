@@ -1,473 +1,507 @@
-# Installing Deep32
+<div align="center">
 
-This page takes you from an empty machine to a working Deep32: the search system, its reference library, a GPU
-node for the models, and an agent (Claude Code or Codex) that answers from it. It assumes you know nothing about
-the system I run at home, and nothing of mine is needed. You sign in with your own accounts, and every key and
-token is made on your machines during the install.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/figures/head-install-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="docs/figures/head-install-light.svg">
+  <img alt="Deep32 Installation Guide, D32-IG: from download to a working first question." src="docs/figures/head-install-light.svg" width="100%">
+</picture>
+<br>
 
-> **Status: 0.1.0-alpha.1 (alpha), source release.** The research skills and a by-hand MCP connection ship
-> now; see [the headend](#the-headend-claude-code-or-codex). Disc installation, Deep32 Connect and the relay
-> remain planned. Steps marked **(planned)** describe software that is still being built. The inventory
-> program (`report` and `bench quick`), the install matrix (first draft, every profile untested), the release
-> verifiers and the release key files are also included. Names, options and sizes may change.
+</div>
 
-Contents: [What you are installing](#what-you-are-installing), [1. Check your machine](#1-check-your-machine),
-[2. Choose a profile](#2-choose-a-profile), [3. Get the discs](#3-get-the-discs-planned),
-[4. Verify the release yourself](#4-verify-the-release-yourself), [5. Install](#5-install-planned),
-[Tailscale](#tailscale), [Pairing](#pairing-planned), [The headend](#the-headend-claude-code-or-codex),
-[Afterwards](#afterwards-planned), [What is never stored](#what-is-never-stored).
+How to install Deep32 0.1.0-alpha.2, from checking your machines to a first question your agent answers from the
+corpus. Plan on an afternoon, most of it downloading.
 
-If an agent is doing the install for you, point it at [AGENTS.md](AGENTS.md).
+<sub>Applies to 0.1.0-alpha.2 · [1 Layout](#1-choose-a-layout) · [2 Check](#2-check-your-machines) · [3 Source](#3-get-and-verify-the-source) · [4 Download](#4-download-the-images) · [5 Forge](#5-install-the-forge) · [6 Workstation](#6-install-the-workstation) · [7 Tailscale](#7-tailscale) · [8 Pair](#8-pair-the-parts) · [9 Verify](#9-verify) · [10 Afterwards](#10-afterwards) · [11 Never stored](#11-what-is-never-stored)</sub>
 
 
-## What you are installing
+**Quick start.** On each machine, clone the repository and run one command. It works out whether the machine
+should be the Forge, the Workstation's host or the headend, checks it, fixes what it safely can with your consent,
+downloads and verifies the images, and installs. It stops only for a Tailscale sign-in, the installer's plan and the
+pairing code:
 
-Deep32 has four roles. Three come from the discs; the fourth is the computer you already work on.
+```sh
+git clone https://github.com/hellobpdu/deep32.git && cd deep32
+bash install/deep32-setup.sh
+```
 
-| Role | What it is | Comes from |
-|---|---|---|
-| Workstation | OpenBSD desktop with the Ask window, the Deep32 Library and its Reader, the search engine and the MCP gateway | Disc 1 installs it; disc 2 fills it |
-| Content | The ready-built knowledge base, the corpus blocks and the Library content | Disc 2, attached after the Workstation is up |
-| Forge | The GPU node: embeddings server, reranker, knowledge-base builder and PDF converter | Disc 3, as a VM, a second machine, WSL2 or Docker |
-| Headend | Claude Code or Codex with the research skills and a by-hand MCP connection; the Ask relay is planned | `adapters/` in this source release, copied to your own PC |
+On Windows, from PowerShell (elevated for a Forge):
 
-The three discs of 0.1.0-alpha.1, all on one signed release:
+```powershell
+git clone https://github.com/hellobpdu/deep32.git; cd deep32
+powershell -NoProfile -ExecutionPolicy Bypass -File install\deep32-setup.ps1
+```
 
-| Disc | Release files | Bootable | What it holds | Size |
+`check` as the first argument only checks; it changes nothing. If Claude Code or Codex runs on the machine, open it
+in the clone and ask it to set up Deep32: [AGENTS.md](AGENTS.md) tells it to run the same script and pass you only the steps that need
+you. The sections below do the same by hand and explain each step. I haven't yet run the setup scripts from start
+to finish on a clean machine, so the sections below are the tested path.
+
+## 1. Choose a layout
+
+A deployment has three parts: the Workstation (an OpenBSD VM or machine with the index), the Forge (the NVIDIA host
+that runs the search models) and the headend (the PC where Claude Code or Codex runs). They can share machines. Pick
+the layout, or journey, that matches what you have:
+
+| Journey | Machines | Workstation | Forge | In 0.1.0-alpha.2 |
 |---|---|---|---|---|
-| 1, SYSTEM | `deep32-<version>-disc1-workstation-amd64.img` | Yes | OpenBSD 8.0 and the Workstation: desktop, Ask window, Deep32 Library program (no content), search engine, gateway, Tailscale, signed updates | 1.9 GB |
-| 2, CONTENT | `deep32-<version>-disc2-content.iso`, in parts | No | The knowledge base, the corpus blocks `rfc`, `cisco`, `powershell` and `system`, and the Library content | 19.6 GB |
-| 3, GPU | `deep32-<version>-disc3-gpu-pack.iso`, in parts | No: a data disc, mounted on the host | The Forge containers (embeddings server, reranker, knowledge-base builder, PDF converter), the two models, and the two ways to start them: Docker on Linux or WSL2 on Windows | 62 GB |
+| J1 | Two Windows PCs | Hyper-V VM on the first | Docker Desktop on the second | Not yet run end to end |
+| J2 | A Windows PC and a Linux NVIDIA host | Hyper-V VM on the Windows PC | Docker on the Linux host | The Linux Forge is tested; the Hyper-V Workstation isn't yet |
+| J3 | One Linux NVIDIA host, no desktop | None: engine and gateway run in Docker | Docker on the same host | Not in this release: its image isn't among the downloads |
+| J4 | One Linux NVIDIA host | KVM VM on the same host | Docker on the same host | The tested parts: a KVM Workstation and a Docker Forge on Linux |
 
-Workstation requirements for disc 1:
+What I have run is a Workstation in a KVM virtual machine (on Proxmox) with a Forge on a separate Linux host. The
+other rows put the same parts in different places.
 
-Disk: 160 GB minimum for the guided install (the guided layout reserves room for two system update slots, the Library content and swap).
+The headend can be any of these machines or another PC. [docs/HARDWARE.md](docs/HARDWARE.md) has sizes, supported
+cards and hypervisor settings.
 
-In this alpha, disc 3 is a data disc: mounted, it feeds the Forge into WSL2 on a Windows PC or into Docker on
-an existing Linux host. A bootable disc 3 that installs the Forge on a VM with the graphics card passed through
-(Proxmox VE or KVM) or on a second machine is planned for a later release. A normal Hyper-V VM on Windows cannot be given the graphics card, so on
-Windows the Forge always runs in WSL2.
+## 2. Check your machines
 
-The Workstation has no model of its own. Meaning search and reranking happen on the Forge. A Workstation with
-no Forge still works, with keyword search only.
+The inventory reports what a machine can run and changes nothing. Run it on each machine with the role it will play:
 
-The installer also writes a tiny fourth disc for each install, the settings disc, with names and choices only:
-host names, user name, time zone, hardware profile and VM sizes. It never holds a secret. Without it, each
-system asks on its own console. (planned)
-
-Hardware needs are in [docs/HARDWARE.md](docs/HARDWARE.md).
-
-
-## 1. Check your machine
-
-`deep32-inventory` reads your machine and says which install profile fits. It changes nothing, needs no
-administrator rights, calls no language model and takes a few seconds. It collects no host name, user name,
-address or serial number.
-
-On Windows, in the repository folder:
-
-```
-powershell -NoProfile -ExecutionPolicy Bypass -File install/deep32-inventory.ps1
+```sh
+bash install/deep32-inventory.sh --journey J4 --role all --check-prereqs
 ```
 
-On Linux or macOS:
-
-```
-./install/deep32-inventory.sh
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File install\deep32-inventory.ps1 -Journey J1 -Role workstation-host -CheckPrereqs
 ```
 
-| Command | Time | What it does |
+Roles are `workstation-host`, `gpu-host`, `all` and `agent`. The report ends with a verdict for that role and, for a
+GPU host, the card class you'll pass to `deep32-get` in section [4](#4-download-the-images). Anything missing is
+listed with what to install.
+
+## 3. Get and verify the source
+
+Clone the repository at the release tag and check the tag's signature:
+
+```sh
+git clone --branch v0.1.0-alpha.2 https://github.com/hellobpdu/deep32.git
+cd deep32
+gpg --import install/release-key.asc
+git verify-tag v0.1.0-alpha.2
+```
+
+The signing key's fingerprint must be `B205 B406 5486 27AA BF52  50D8 A078 C5F2 5D02 5DD6`, as printed in the
+README. Use the scripts from this verified clone for every step below.
+
+## 4. Download the images
+
+`deep32-get` downloads an image, checks it against the release's signed metadata, and keeps it only if every check
+passes. It tries the Internet Archive first and then each mirror in the signed list, and it resumes an interrupted
+download from the last verified 64 MiB chunk.
+
+| Image | Needed for | Command |
 |---|---|---|
-| `report` (the default) | Seconds | Processor, memory, disks, graphics cards, virtualisation, hypervisors, WSL2, Docker, Tailscale, Claude Code and Codex. Then the verdict: the best profile, two runners-up, how each VM would be sized and what is missing |
-| `report --net` | Up to about a minute | The same, and it also checks that the sites an install needs answer: github.com, huggingface.co, archive.ubuntu.com, NVIDIA's CUDA package site and login.tailscale.com (one HEAD request each), and whether the GitHub CLI is signed in |
-| `bench quick` | About 2 minutes | Processor, memory and disk speed. It loads the machine fully while it runs, using one temporary file that is removed afterwards |
-| `bench system`, `bench stress` | | Not in this version (planned) |
+| Disc 1, Workstation | J1, J2, J4 | `bash src/release-tools/deep32-get.sh disc1` |
+| Disc 2, content | Every journey | `bash src/release-tools/deep32-get.sh disc2` |
+| Disc 3, Forge GPU pack | Forge installs | `bash src/release-tools/deep32-get.sh disc3 --gpu-class CLASS --ingestion` |
 
-Add `--json` for one compact JSON object instead of the page. `--help` lists the rest.
+On Windows use `src\release-tools\deep32-get.ps1` with the same arguments. Files go to `./deep32-downloads` unless you
+give `--to DIR`.
 
-The verdict uses four words:
+For disc 3, use the class for the compute capability reported by
+`nvidia-smi --query-gpu=compute_cap --format=csv,noheader`.
 
-| Fit | Meaning |
+| Compute capability | Disc 3 class |
 |---|---|
-| `ready` | Nothing missing, nothing unknown |
-| `unconfirmed` | Nothing missing, but some things could not be checked |
-| `changes` | Possible after the listed fixes or steps only you can do |
-| `no` | A hardware requirement is missing |
+| 7.5 | `turing` |
+| 8.0 | `ampere80` |
+| 8.6 or 8.7 | `ampere86` |
+| 8.9 | `ada` |
+| 9.0 | `hopper` |
+| 10.0 | `blackwell100` |
+| 12.0 | `blackwell120` |
 
-Lines starting `to confirm:` are about your other machines (a second PC, a Forge elsewhere), which no program
-on this machine can check.
+For disc 3 you get three images: the shared core (18.6 GB), your card's embedder (3.1 to 3.3 GB) and ingestion
+(15.3 GB), about 37.1 GB together. The alpha.2 Forge installer needs all three; ingestion
+also carries the PDF converter and the index builder. Disc 1 is 1.9 GB and disc 2 is 19.6 GB.
 
+If every mirror fails, `deep32-get` prints the image's torrent address from the signed metadata. Download it with
+any torrent client, then check it with `--from DIR`, which verifies files you already have without downloading.
 
-## 2. Choose a profile
+> [!NOTE]
+> You don't have to trust `deep32-get`. The release metadata is signed with the key from section 3, and the README's
+> [section 11](README.md#11-release-and-verification) shows how to check an image by hand with `gpgv` and SHA-256.
 
-`install/matrix.json` holds every profile. The inventory picks one; you confirm it before anything changes. It
-prefers a layout that runs on this machine alone: `two-machines`, `baremetal` and `headend-only` need another
-machine, so they are offered as alternatives and come first only when nothing can run on this machine by itself.
+<a id="5-install-planned"></a>
 
-| Profile | Found on the machine | Workstation | Forge | Relay | Target |
-|---|---|---|---|---|---|
-| `win-nvidia` | Windows 11 Pro, Enterprise or Education, an NVIDIA card, Hyper-V, WSL2 | Hyper-V VM from disc 1 | Disc 3 imported into WSL2 | On the same PC | Reference |
-| `proxmox-passthrough` | Proxmox VE, a card that can be passed through | VM from disc 1 | VM booted from disc 3 with the card passed through (needs the bootable disc 3, planned) | On your own PC | Reference |
-| `two-machines` | A PC for the Workstation, a second PC with an NVIDIA card on the same network | VM or real install from disc 1 | Disc 3 in the second PC's WSL2 or Docker (booting it from disc 3 is planned) | On either | Supported |
-| `linux-nvidia` | Linux, an NVIDIA card, KVM, Docker | KVM VM from disc 1 | Disc 3 payload in Docker on the host | MCP only in version 1.0 | Supported |
-| `headless` | Any Linux with an NVIDIA card | None | Disc 3 with the engine and gateway added | None: agents use MCP | Supported |
-| `no-gpu` | Windows or Linux with a hypervisor, no usable NVIDIA card | VM from disc 1 | None (keyword search only), a Forge on another machine, or disc 3 in processor mode (untested) | On this PC if it runs Windows | Supported |
-| `baremetal` | A laptop or PC of a known hardware profile (Dell Latitude 5430) | Installed from disc 1, replacing the operating system | On another machine | On another PC | Supported |
-| `headend-only` | Any PC, macOS included | None | None | Windows only in version 1.0; MCP everywhere | Supported |
-| `win-home`, `virtualbox`, `vmware`, `esxi` | As named | VM from disc 1 | Where possible | Where possible | Experimental |
+## 5. Install the Forge
 
-Target words: **Reference** is tested for every release. **Supported** is tested for version 1.0.
-**Experimental** is expected to work and untested. A profile's status changes only when a recorded test run
-says so. Today every profile is planned and none has been tested.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/figures/part-forge-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="docs/figures/part-forge-light.svg">
+  <img alt="Forge: the GPU powerhouse. Embed, rerank and convert, from disc 3." src="docs/figures/part-forge-light.svg" width="320">
+</picture>
 
-One machine or several: the names, ports and pairing are the same either way. Moving a part to another machine
-changes where it runs and nothing else.
+The Forge is the NVIDIA machine that runs the two search models: one turns text into vectors for meaning search, the
+other reranks the best candidates. It runs as Docker containers behind one authenticated door, on a Linux host, in an
+Ubuntu 24.04 WSL 2 distro on Windows, or in Docker Desktop on Windows.
 
+> [!IMPORTANT]
+> Check these first. Each one decides whether the install or the pairing works later.
+>
+> - **The host.** In 0.1.0-alpha.2 the installer accepts Ubuntu 24.04 on amd64 with Docker Engine, on the host itself
+>   or as a WSL 2 distro, for journeys J2 and J4, and Windows 11 build 26100 or later (Home, Pro, Enterprise or
+>   Education) with Docker Desktop 4.99.0 or later and Docker Engine 29.0.0 or later on the WSL 2 backend, for J1.
+>   It stops on any other system, Windows 10 and Windows Server included.
+> - **Free space.** About 281 to 284 GB free when you start, if the data folder and Docker's storage share one
+>   filesystem or volume. **Disk space** below has the figures for other layouts.
+> - **The card.** Compute capability 7.5 or newer and at least 10.5 GB of graphics memory, so an 11 GB card or larger
+>   ([docs/HARDWARE.md](docs/HARDWARE.md#5-graphics-card)).
+> - **Its Tailscale machine name starts with `deep32-`**, for example `deep32-forge`. The Workstation only offers
+>   machines named that way. Rename it on the admin console's Machines page or with
+>   `sudo tailscale set --hostname deep32-forge`.
+> - **It is in the same tailnet as the Workstation.** A machine shared in from someone else's tailnet is never
+>   offered for pairing.
+> - **Docker's classic image store.** The alpha.2 Forge images load only into Docker's classic store (`overlay2`).
+>   Docker Engine 29 and Docker Desktop keep images in containerd by default. To switch on Linux, add
+>   `"features": {"containerd-snapshotter": false}` to `/etc/docker/daemon.json` and restart Docker; in Docker
+>   Desktop, turn off **Use containerd for pulling and storing images** under Settings, General. Images and containers
+>   you keep in the other store stay hidden until you switch back, so the installer never changes this for you.
+> - **Python.** The installer needs Python 3.12 or newer. On Linux and WSL the 0.1.0-alpha.2 pairing helper also runs
+>   on the host's own `/usr/bin/python3`, which must be 3.10 or newer and able to import `ssl`:
+>   `sh install/forge-host-python.sh` checks it and `sudo sh install/forge-host-python.sh --install` installs it with
+>   apt, dnf, zypper or pacman. Appliance systems with a read-only root, such as Unraid, can't host an alpha.2 Forge.
 
-## 3. Get the discs (planned)
+**The short way.** One command checks all of that, downloads and verifies the three images, installs the Forge,
+checks its door and shows the pairing code:
 
-Each disc is a GitHub release of its own, cut into numbered parts so that every file stays under GitHub's
-2 GiB limit:
-
+```sh
+bash install/deep32-setup.sh forge
 ```
-deep32-system-<version>.iso.part001
-deep32-system-<version>.iso.part002
-...
-```
-
-The code release `v<version>` holds `MANIFEST.json` and its signature `MANIFEST.json.asc`. The manifest names
-the three discs that go together, every part with its size and SHA-256, and each whole disc with its size and
-SHA-256.
-
-`deep32-install fetch` downloads the parts, checks the signature and every hash, and joins each disc. It also
-takes a folder or a USB stick as its source, for example parts you downloaded yourself. No sign-in is needed
-to download from a public repository.
-
-
-## 4. Verify the release yourself
-
-You do not have to trust the installer. Everything it checks, you can check by hand with GnuPG's `gpgv` and a
-SHA-256 tool. `install/verify-release.ps1` (Windows) and `install/verify-release.sh` (Linux, macOS, Git Bash)
-do exactly the steps below.
-
-**The release key.** Releases are signed with my OpenPGP key:
-
-```
-B205 B406 5486 27AA BF52  50D8 A078 C5F2 5D02 5DD6
-```
-
-Ed25519, created 14 November 2026, expires 13 November 2028 (I extend it before then, and the files in
-`install/` are refreshed). The same fingerprint should appear in three places: the README, line 1 of
-`install/release-key.fingerprint`, and the key's entry on keys.openpgp.org. If they differ, stop.
-
-**Where `gpgv` comes from.** Linux distributions ship it (package `gpgv`). On Windows it comes with Git for
-Windows: open Git Bash and it is on the path. macOS users run `brew install gnupg` once.
-
-**Steps.** Put the parts of each disc, `MANIFEST.json`, `MANIFEST.json.asc`, and the repository's
-`install/release-key.gpg` and `install/release-key.asc` in one folder, open a terminal there (Git Bash on
-Windows), and run:
-
-1. Make an empty `gpg-check` folder; it keeps your own GnuPG setup out of every step below. Then, if you want
-   to see the fingerprint of the key you were given, show it with `gpg`:
-
-   ```
-   mkdir gpg-check
-   gpg --homedir ./gpg-check --show-keys ./release-key.asc
-   ```
-
-   The second line of the output must be the fingerprint `B205B406548627AABF5250D8A078C5F25D025DD6`. `gpg` is
-   needed only for this look at the key. The check itself needs only `gpgv` and the fingerprint above: step 2
-   compares the fingerprint of the key that made the signature with it, so you can skip this step if you have
-   no `gpg`.
-
-2. Check the manifest's signature against that key only:
-
-   ```
-   gpgv --homedir ./gpg-check --keyring ./release-key.gpg --status-fd 1 MANIFEST.json.asc MANIFEST.json
-   ```
-
-   It must exit 0 and print exactly one line starting `[GNUPG:] GOODSIG` (today
-   `[GNUPG:] GOODSIG A078C5F25D025DD6 Jeffrey A. Cummings ...`) and exactly one line starting
-   `[GNUPG:] VALIDSIG`. In the `VALIDSIG` line the last field must be the fingerprint
-   `B205B406548627AABF5250D8A078C5F25D025DD6`, and the field just before it, the signature class, must be `00`
-   (a signature over the exact bytes). Any `BADSIG`, `ERRSIG`, `EXPSIG`, `EXPKEYSIG`, `REVKEYSIG` or
-   `NO_PUBKEY` line means stop. Write the keyring as `./release-key.gpg`: the `gpgv` of Git for Windows cannot
-   open a keyring given as `C:/...` and reports `NO_PUBKEY` instead.
-
-3. Check every part. Compare each part's SHA-256 with its `sha256` in the manifest (`discs`, then `parts`):
-
-   ```
-   sha256sum deep32-*.part*
-   ```
-
-   On macOS use `shasum -a 256`. In Windows PowerShell, `Get-FileHash -Algorithm SHA256 <file>` gives the same
-   value in capitals.
-
-4. Join each disc's parts in order and check the whole disc against the disc's own `sha256` in the manifest:
-
-   ```
-   cat deep32-system-<version>.iso.part* > deep32-system-<version>.iso
-   sha256sum deep32-system-<version>.iso
-   ```
-
-   The three-digit part numbers keep the order right.
-
-Signed tags give a second check, with your own GnuPG. Import the key once by its fingerprint, then check the
-release's tag in your clone of the repository:
-
-```
-gpg --keyserver hkps://keys.openpgp.org --recv-keys B205B406548627AABF5250D8A078C5F25D025DD6   # fingerprint
-git verify-tag v<version>
-```
-
-**The shipped verifiers.**
-
-```
-powershell -NoProfile -ExecutionPolicy Bypass -File install\verify-release.ps1 -PartsDir <folder>
-sh install/verify-release.sh <folder>
-```
-
-They run `gpgv` with a new empty home folder and the shipped key only, accept the signature only when
-`VALIDSIG` names the pinned fingerprint, check every part, then join each disc and check it. A disc that fails
-its check is deleted. There is no unsigned mode.
-
-| Exit | Meaning |
-|---|---|
-| 0 | Every check passed |
-| 1 | Usage error |
-| 2 | An input file or folder is missing or unreadable |
-| 3 | `gpgv` was not found |
-| 4 | The signature is not good, or not by the pinned key |
-| 5 | The manifest is not usable |
-| 6 | A part is missing or the wrong size |
-| 7 | A part has the wrong SHA-256 |
-| 8 | A joined disc has the wrong size or SHA-256 (it is deleted) |
-| 9 | A joined disc could not be written |
-| 10 | (shell only) No SHA-256 tool was found |
-
-**A new key, later.** A manifest names the key that signed it. If I ever change keys, the new one is
-introduced by a release signed with the old one, and the installer trusts it only from such a release.
-
-
-## 5. Install (planned)
-
-`deep32-install` (`deep32-install.ps1` on Windows PowerShell 5.1, `deep32-install.sh` on Linux and macOS) reads
-the same matrix as the inventory.
-
-| Verb | Does |
-|---|---|
-| `check` | Runs the inventory report. Changes nothing |
-| `plan` | Prints the ordered steps for the profile, what each changes, and the moments that need you. Changes nothing |
-| `fetch` | Gets the three discs from GitHub or a folder; verifies the signature and every hash; joins the parts |
-| `apply` | Runs the steps. Each has a check before and after and is safe to repeat; a stopped run resumes |
-| `verify` | Proof that it works: a cited passage through the gateway, a checked quotation, both models answering, the desktop up, direct network paths |
-| `install` | All of the above in order, stopping only where it needs you |
-| `status`, `update`, `remove` | Read the state; apply a newer disc 2, a signed system update or a newer Forge; take off everything `apply` made |
-
-Run `check`, then `plan`, and read the plan before `apply`.
-
-**Moments that need you.** The installer stops, says exactly what to do, and waits:
-
-- switching virtualisation on in the firmware, and the IOMMU for GPU passthrough;
-- accepting the administrator prompt;
-- each Tailscale sign-in, one per node;
-- the GitHub sign-in, only if the discs come from a private repository;
-- typing a pairing code the installer cannot read itself;
-- preparing the host for GPU passthrough and restarting it;
-- signing in to Claude Code or Codex;
-- agreeing that a real install replaces the machine's operating system (`baremetal`);
-- choosing passphrases: the disk passphrase on a real install, and the Ask password at first use.
-
-Everything else runs unattended.
-
-**Notes per profile.**
-
-- `win-nvidia`: the Workstation VM is Hyper-V Generation 1 (OpenBSD does not support Generation 2). The Forge
-  is imported into WSL2 and uses the Windows NVIDIA driver; nothing is installed as a Linux driver inside WSL.
-- `proxmox-passthrough`: Proxmox's default vCPU type hides AVX, so the installer gives the Forge VM CPU type
-  `host` (or `x86-64-v3`). The Workstation VM never uses a virtio-gpu display.
-- `two-machines`: install the Workstation first, then set disc 3 up on the second machine (WSL2 or Docker), then pair.
-- `no-gpu`: search works on keywords only until a Forge on another machine is paired.
-- `baremetal`: disk encryption is on by default for a real install. In a VM it is off by default.
-
-
-## Known issues in 0.1.0-alpha.1
-
-- The guided install needs a disk of 160 GB or more; a compact layout comes in the beta.
-- During the guided install, the optional question about a root maintenance SSH key prints
-  "printf: not found" instead of its prompt. Press Enter to skip it (no maintenance key, the default). Entering
-  a key there does not work in this build.
-- If a previous install attempt left an OpenBSD partition on the target disk, the installer reuses that
-  partition's size; wipe the disk first (from the installer's (S)hell: `bioctl -d` on the old softraid volume if
-  one is attached, then `dd if=/dev/zero of=/dev/rsdNc bs=1m count=16`, then reboot).
-
-
-## Tailscale
-
-Every machine or VM that hosts a part joins **your own** tailnet, signed in with **your own** Tailscale account
-during the install. No auth key is on any disc or in the repository, and nothing is pre-authorised. What the
-installer does in this section is planned; what Tailscale does is Tailscale's own behaviour.
-
-- **Sign-in.** Each node prints a login address (and a QR code); open it on any device and sign in. The Forge in
-  WSL2 rides on its Windows host's node and needs no sign-in of its own.
-- **Names and HTTPS.** Deep32 publishes its services with Tailscale Serve over HTTPS. That needs MagicDNS and
-  HTTPS certificates switched on in your tailnet; the installer checks and says which switch is off. With HTTPS
-  certificates on, every machine name in your tailnet appears in the public Certificate Transparency log. The
-  installer says so before it starts; give your nodes names that say nothing about you. If you decline HTTPS,
-  a setting uses plain tailnet addresses instead, still encrypted by Tailscale. (planned)
-- **Key expiry.** Tailscale expires a device's sign-in after 180 days by default (1 to 180 days, set per
-  tailnet). To avoid signing in again, choose "Disable Key Expiry" for these devices on the Machines page of
-  your admin console.
-- **Direct paths.** Nodes on one machine or one network should talk directly. Through Tailscale's relays, every
-  search slows by tens of milliseconds (70 to 157 ms relayed against 1 to 2 ms direct on my system). `verify`
-  checks the path and reports it; `tailscale status` shows `direct` or `relay` for each peer.
-- **Internet.** Tailscale needs the internet at sign-in and from time to time. A network with no internet at all
-  is not supported in version 1.0.
-- **Your settings stay yours.** The installer never changes your tailnet's settings. It prints an optional
-  access-rule snippet that you may paste in yourself.
-
-
-## Pairing (planned)
-
-Being on the tailnet is not enough to use a service. Pairing makes the keys and tokens between your nodes:
-the gateway token for your agents, the Forge's tokens for the Workstation, the public half of the Forge's
-knowledge-base signing key, and the relay's link keys.
-
-One side shows a short one-time code and you type it on the other side. The window lasts five minutes and
-allows one attempt; after three failed windows, pairing locks for 15 minutes. Where the installer created the
-VM itself, it reads the code from the VM's console and types it for you.
-
-The Ask window has one more lock: the first time you use it, you set an Ask password. It is a second factor
-that only you know, stored hashed (PBKDF2-SHA256, 600,000 rounds), and pairing never makes or sees it.
-
-
-## The headend: Claude Code or Codex
-
-The 0.1.0-alpha.1 (alpha) source release ships the research skills for Claude Code and Codex. You can copy
-these skills and connect your agent to an installed Workstation by hand now. The connection uses MCP over
-streamable HTTP on your own tailnet. Sign in to the agent and Tailscale with your own accounts.
-
-Deep32 Connect and the relay for the Workstation's Ask window remain planned. The steps below set up direct
-MCP access; they do not install the relay. Every question uses your own Claude Code or Codex usage.
-
-### Read your Workstation's gateway token
-
-After the Workstation's first start has completed, sign in as root at its local console and read the
-agent token:
-
-```
-cat /etc/d32/state/mcp.token
-```
-
-The source names this file at
-[`src/workstation/distrib/site/usr/local/d32/sbin/d32-firstboot:100`](src/workstation/distrib/site/usr/local/d32/sbin/d32-firstboot#L100),
-makes a fresh token at line 125, writes it into `RAG_MCP_TOKENS` at line 134, and stores the same token in
-this root-owned file with mode `0600` at lines 142-143. The environment files are root-owned mode `0400`
-(lines 138-139). The gateway reads `RAG_MCP_TOKENS` from its environment at
-[`src/gateway/rag_edge.py:202`](src/gateway/rag_edge.py#L202). The shipped local MCP client also reads the
-separate token file at
-[`src/workstation/ship/apps/usr/local/d32/ship/libexec/d32-mcp.py:134`](src/workstation/ship/apps/usr/local/d32/ship/libexec/d32-mcp.py#L134)
-and line 139.
-
-Transfer that agent token privately to your headend and set `DEEP32_MCP_TOKEN` in the environment of the
-process that starts Claude Code or Codex. For example, Bash can prompt without echoing it or putting it in
-shell history:
-
-```bash
-read -r -s -p 'Gateway token: ' DEEP32_MCP_TOKEN
-printf '\n'
-export DEEP32_MCP_TOKEN
-```
-
-On Windows, prompt in PowerShell before starting your agent from the same terminal:
 
 ```powershell
-$gatewayToken = Read-Host 'Gateway token' -AsSecureString
-$env:DEEP32_MCP_TOKEN = [System.Net.NetworkCredential]::new('', $gatewayToken).Password
-Remove-Variable gatewayToken
+# from an elevated PowerShell, with Docker Desktop running
+powershell -NoProfile -ExecutionPolicy Bypass -File install\deep32-setup.ps1 forge
 ```
 
-Keep the token out of committed files and command arguments. The URL below is an example placeholder;
-replace it with your Workstation's own tailnet HTTPS URL, ending in `/mcp`.
+**By hand.**
 
-### Connect your agent by hand: Claude Code
+1. Put the three images from section [4](#4-download-the-images) in one folder with the five signed files of the same
+   release: `SHA256SUMS`, `SHA256SUMS.sig`, `MIRRORS.json`, `CAPABILITIES.json` and `FORGE-PREREQUISITES.json`. If you
+   downloaded with `deep32-get`, they are already in `./deep32-downloads`, the signed files in its
+   `.deep32-v0.1.0-alpha.2/revision-*` snapshot.
+2. Run the installer. On Linux or in WSL:
 
-Copy the whole `adapters/claude-code/skills/deep32/` folder to your own `~/.claude/skills/deep32/`
-(on Windows, `%USERPROFILE%\.claude\skills\deep32\`). Keep its inner files and folders together.
+   ```sh
+   sudo bash src/release-tools/deep32-get.sh disc3 --gpu-class CLASS --install --journey J2 --data-root /opt/deep32 --from ./deep32-downloads
+   ```
 
-Add an MCP entry named `deep32` to your project's `.mcp.json`, merging it with any existing entries. This
-uses streamable HTTP and an environment-variable reference for the bearer token:
+   On Windows, from an elevated PowerShell with Docker Desktop running:
 
-```json
-{
-  "mcpServers": {
-    "deep32": {
-      "type": "http",
-      "url": "https://workstation.example.ts.net/mcp",
-      "headers": {
-        "Authorization": "Bearer ${DEEP32_MCP_TOKEN}"
-      }
-    }
-  }
-}
+   ```powershell
+   powershell -NoProfile -ExecutionPolicy Bypass -File src\release-tools\deep32-get.ps1 disc3 --gpu-class CLASS --install --journey J1 --data-root C:\Deep32 --from .\deep32-downloads
+   ```
+
+3. The installer checks the host before it changes anything: the host recipe and the driver and memory floors in
+   `FORGE-PREREQUISITES.json`, that the Forge's ports are free (or already this Forge's), and the free space against
+   the signed storage budget. It asks you to confirm the tailnet the Forge will publish on, and to agree that its name
+   goes into the public Certificate Transparency logs. Then it shows its plan, with the folders, the ports and the size
+   and SHA-256 of each image, and waits for you to type the plan digest.
+
+   Each host type in the list above is accepted for this release under an owner waiver (see the note below), so the
+   host check prints one line just before its result. On Ubuntu 24.04 for J2 it reads:
+
+   ```text
+   Note: this host type is accepted for 0.1.0-alpha.2 under an owner waiver dated 2026-11-18 (recipe ubuntu-24.04-docker-engine-j2). I have not yet run a full install on it; FORGE-PREREQUISITES.json lists what was not run.
+   ```
+
+   For J4 the recipe is `ubuntu-24.04-docker-engine-j4`, and on Windows `windows-11-docker-desktop-wsl2-j1`. The line
+   doesn't stop the install.
+4. It joins the three images into one verified copy, loads the Docker images and starts the embedding and reranking
+   services behind one door. The PDF converter runs only for a conversion job; while it runs, the Forge pauses the two
+   models and brings them back afterwards.
+
+On Windows, give `--docker-storage-path DIR` if Docker Desktop keeps its disk image somewhere other than its default,
+so the space check looks at the right drive.
+
+**Disk space.** The installer compares free space with the storage budget signed into the release. For 0.1.0-alpha.2
+the budgets are declared upper bounds: I computed them from the sizes of the three images, with a margin over what my
+test runs used, and the check line ends with `(declared upper bound; no measurement yet)`. The installer checks twice,
+before it joins the images and again after it has written the joined copy (36.8 GB), each time against the whole
+budget. So have the budget plus the joined copy free when you start:
+
+| Where the Forge writes | Budget | Free at the start |
+|---|---|---|
+| Linux, data folder and Docker's storage on one filesystem | 244.0 GB | 280.8 GB |
+| Linux or Windows, the data folder on a filesystem or volume of its own | 123.8 GB | 160.6 GB |
+| Linux, Docker's storage on a filesystem of its own | 120.2 GB | 120.2 GB |
+| Windows, data folder and Docker Desktop's disk image on one volume | 246.2 GB | 283.0 GB |
+| Windows, Docker Desktop's disk image on a volume of its own | 122.5 GB | 122.5 GB |
+| Windows, inside Docker Desktop's virtual disk | 176.8 GB | 176.8 GB |
+
+The figures are for a `turing` card; the other classes need up to about 1 GB more. GB here means 10⁹ bytes; `df -h`
+and Windows count in GiB and show numbers about 7% smaller. The joined copy goes beside the data folder, in
+`/opt/deep32.deep32-media` for `/opt/deep32`, so if the data folder is a mount point of its own, the joined copy lands
+on the filesystem above it. On 18 November 2026, joining the earlier alpha.2 images for a `turing` card and loading
+them into Docker Engine 29.1.3 in an Ubuntu 24.04 WSL 2 distro used 26.1 GB for the joined copy and at most 27.0 GB
+on Docker's side. The released images carry the door, reranker, index builder and converter with uncompressed layers,
+so their joined copy is about 10.7 GB larger than in that run.
+
+> [!NOTE]
+> The Forge install ships before its full end-to-end run from the signed release, so I accept the host types above
+> under an owner waiver for this release, and the installer says so. Its parts were each checked on one RTX 2080 Ti in
+> an Ubuntu 24.04 WSL 2 distro: the images and their join, both models, and the Workstation's check of both models.
+> On Windows the images were joined and loaded into Docker Desktop; no model has run there yet.
+> `FORGE-PREREQUISITES.json` lists what wasn't run for each host type. This release's ingestion image converted a
+> one-page PDF with `--tier standard` on the same card in about 2 minutes 22 seconds, with Docker Engine in that
+> distro; the default `--tier advanced` and Docker Desktop on Windows haven't run a conversion yet. Please report
+> anything that fails as a GitHub issue.
+
+**Verify.** The door answers `401`: it is up and wants a token.
+
+```sh
+curl -s -o /dev/null -w '%{http_code}\n' https://deep32-forge.YOUR-TAILNET.ts.net/health
 ```
-
-Start Claude Code with `DEEP32_MCP_TOKEN` set. The configuration holds the variable reference, never the
-token literal. Set the variable again whenever you start from a new environment.
-
-### Connect your agent by hand: Codex
-
-`adapters/codex/` contains `skills/deep32/`, the five lens skill folders, `AGENTS.deep32.md`,
-`config.deep32.toml`, `setup.ps1` and `setup.sh`. The setup scripts copy all six skill folders into your own
-Codex home's `skills/` directory, merge the Deep32 block into its `AGENTS.md`, and add the `deep32` MCP
-entry if one does not already exist. They leave an existing entry for you to review. They use `CODEX_HOME`
-when set, otherwise your own `~/.codex` (`%USERPROFILE%\.codex` on Windows).
-
-From the repository folder, on Linux, macOS or Git Bash:
-
-```bash
-bash adapters/codex/setup.sh --workstation-url https://workstation.example.ts.net/mcp
-```
-
-On Windows:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File adapters/codex/setup.ps1 -WorkstationUrl https://workstation.example.ts.net/mcp
+curl.exe -s -o NUL -w "%{http_code}`n" https://deep32-forge.YOUR-TAILNET.ts.net/health
 ```
 
-For a manual configuration, merge the entry from `adapters/codex/config.deep32.toml` into your own Codex
-home's `config.toml` and replace `{{WORKSTATION_MCP_URL}}` with the Workstation URL. Its
-`[mcp_servers.deep32]` entry uses streamable HTTP and `bearer_token_env_var = "DEEP32_MCP_TOKEN"`; the token
-stays in the process environment. Start Codex from that environment.
+Port 8443 answers the same way. The setup script runs both checks for you.
 
+## 6. Install the Workstation
 
-## Afterwards (planned)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/figures/part-workstation-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="docs/figures/part-workstation-light.svg">
+  <img alt="Workstation: search and archive. OpenBSD with the gateway and the Library, from disc 1." src="docs/figures/part-workstation-light.svg" width="320">
+</picture>
 
-- `deep32-install status` reads the state of every part. `verify` can be run at any time.
-- `deep32-install update` imports a newer disc 2 the same way as the first (the previous knowledge base is kept
-  for roll-back), applies a signed Workstation update, or loads a newer Forge. Where the hypervisor can, it takes
-  a snapshot first.
-- `deep32-install remove` takes off everything `apply` made.
+**Procedure 1. Create the VM**
 
-Nothing is switched on that you did not ask for. The optional features (a web switch for the desktop's browser,
-and later others) are listed in [docs/OPTIONAL-FEATURES.md](docs/OPTIONAL-FEATURES.md), with what each would
-contact.
+1. Let `deep32-get` write the VM settings and commands for your hypervisor:
 
+   ```sh
+   bash src/release-tools/deep32-get.sh disc1 --prepare-vm --hypervisor kvm
+   ```
 
-## What is never stored
+   It writes files and prints commands; it doesn't create or change a VM itself.
+2. Create the VM with those settings. On Hyper-V the VM must be Generation 1. On KVM use BIOS firmware, IDE disks, a
+   VGA display and an e1000 network adapter. Give it a disk of 200 GB or more: the guided layout sizes the Library
+   partition from the disk, and the disc 2 import needs about 20 GB free there. The commands from step 1 still make
+   a 160 GB disk, so change `160GB` (Hyper-V) or `160G` (KVM) to `200GB` or `200G` before you run them.
+3. Disc 1 is a disk image. Attach the installer image from step 1 (installer.vhd on Hyper-V, installer.img
+   on KVM) as the VM's first disk, the empty 200 GB disk as the second, and boot from the first. The wizard's VM
+   guide (`--vm-guide`, or `-VmGuide` in PowerShell) gives these settings for Proxmox VE, Hyper-V, KVM, VMware and
+   VirtualBox, and checks each one.
 
-No disc, release file or file in this repository holds a secret key, token, password or sign-in. The only
-keys that ship are public halves, such as the release key in `install/`. Each install makes its own (planned):
+**Procedure 2. Run the guided install**
+
+1. The installer asks, in this order: keyboard layout, machine name, whether to allow root maintenance over SSH with
+   your own key (off unless you choose it), your user name, the disk to install on, whether to encrypt that disk, and
+   your time zone. Press Enter to accept a default. The install disk's default is the empty disk; you confirm it by
+   typing its name, because the whole disk is erased.
+2. The install copies the system and the Deep32 packages, then prints
+   `Remove the install medium before starting the installed system.` and halts with
+   `The operating system has halted. Please press any key to reboot.` It takes about 15 minutes. Don't press a key
+   there: with disc 1 still first in the boot order, that starts the installer again. Turn the machine off instead
+   (on Proxmox, stop the VM). The status line just above says the same.
+3. Remove the installer disk from the VM, or put the installed disk first in the boot order, then start the VM.
+
+**Procedure 3. First boot**
+
+1. Set the passwords for your user and for root on the console.
+2. The Workstation makes its own tokens and keys, then starts Tailscale once its network is up. It shows the sign-in
+   address in three places: on the text console (Ctrl+Alt+F1), in a status line with
+   `signin=https://login.tailscale.com/a/…`; on the VM's serial port, if it has one, every 10 seconds; and in the
+   **First Start** window under **Sign-in address**. First Start opens by itself when you log in to the desktop. Open
+   the address on any device and sign in with your account (section [7](#7-tailscale)). If the address expires before
+   you use it, Tailscale makes a new one and First Start shows it. As root, `tailscale status` prints it too.
+3. Give the Workstation disc 2 in one of three ways and leave it there. Once the Workstation is signed in, it finds
+   disc 2 and imports it by itself.
+   - **A CD drive.** In a VM, put disc 2 in the VM's CD drive in place of disc 1, or attach it as a second CD drive.
+     On a real machine, burn it to a 25 GB Blu-ray disc (BD-R) for an optical drive.
+   - **A USB stick.** Write the disc 2 image to a stick of 32 GB or more with balenaEtcher or `dd` (this erases the
+     stick) and plug it in.
+   - **Over the network.** In First Start, choose **Get Disc 2 over the Network**, or run
+     `doas /usr/local/d32/sbin/d32-content-fetch` on the console. Pick a PC on your tailnet that has disc 2 and type
+     the code the wizard's **Send disc 2** shows on it (`bash install/deep32-wizard.sh --send-disc2`, or
+     `-SendDisc2` in PowerShell; it needs root or the Tailscale operator setting on Linux, and an administrator
+     PowerShell on Windows), or choose the Internet Archive mirror. The Workstation
+     downloads the image to its empty update slot, carries on after an interruption, shows the progress, and deletes
+     the image when the import is done.
+
+   First Start and the console follow the import,
+   and the desktop's **Import Report** shows each step. The import checks disc 2's signature and the free space
+   first. Then it reads the disc once, in two parts, checking each file's size and SHA-256 against the signed
+   manifest as it copies it. First comes what search needs: the knowledge base is installed and switched on by
+   itself, and the console says "the knowledge base is ready; the Library is still importing". From then on search,
+   Ask, publication and pairing work, so you can carry on with sections 8 and 9. The Library follows in the
+   background and switches on when it has checked out. On my lab VM (KVM on Proxmox, disc 2 on a virtual CD drive)
+   the knowledge base was ready about 8 minutes after sign-in, and the whole import took about
+   2 hours.
+
+   Don't start the import by hand. Only if Import Report shows that the import stopped, press **Try Again** there, or
+   run `doas /usr/local/d32/sbin/d32-import-resume` from your user's Terminal; it carries on where the import
+   stopped. As root on the console you can also name the drive: `cd0` for a CD, `sd1` or similar for a USB stick
+   (`dmesg | grep -E '^(cd|sd)[0-9]'` lists them):
+
+   ```sh
+   /usr/local/d32/libexec/d32-content-import --device cd0
+   ```
+
+   `/usr/local/d32/libexec/d32-import-report` shows the import's progress in a Terminal, and
+   `/usr/local/d32/libexec/d32-content-import --report` does the same on the console.
+
+Until disc 2 is imported, the boot messages list `kiwix_serve(failed)`. That is expected: the encyclopedia server has
+no library to serve before the import, and the import starts it.
+
+**Verify.** `tail /var/log/d32-import.log` ends with a `finish outcome=imported` line. Keyword search works from here
+on; meaning search and reranking start working once the Forge is paired.
+
+## 7. Tailscale
+
+Every part joins **your own** tailnet with **your own** Tailscale account. No auth key is on any image or in this
+repository.
+
+- **Sign-in.** Each node prints a sign-in address. Open it on any device and sign in. A Forge in Docker Desktop uses
+  its Windows host's node; a Forge in a WSL 2 distro runs Tailscale inside the distro and is a node of its own.
+- **Names and HTTPS.** Deep32 publishes its services with Tailscale Serve over HTTPS, which needs MagicDNS and HTTPS
+  certificates turned on in your tailnet. The installer checks both and names the one that's off; it never changes
+  tailnet settings itself. With HTTPS certificates on, machine names appear in the public Certificate Transparency
+  logs, so give your nodes names that say nothing about you. Publication asks you to agree to this once.
+- **Key expiry.** Tailscale expires a device's sign-in after 180 days by default. To avoid signing in again, choose
+  **Disable key expiry** for these devices on the Machines page of the admin console.
+- **Direct paths.** Parts on one network should reach each other directly. `tailscale status` shows `direct` or
+  `relay` for each peer. A relayed path adds tens of milliseconds to every search.
+- **Internet.** Tailscale needs internet access at sign-in and from time to time.
+
+<a id="pair-the-distributed-forge-next-rebuilt-discs"></a>
+
+## 8. Pair the parts
+
+**Procedure 4. Pair the Forge with the Workstation**
+
+1. On the Forge, start it (section [10](#10-afterwards) lists the commands). Until it is paired, each start opens a
+   five-minute pairing window with a ten-character code. The code appears on the machine's own console and in a file
+   only root can read; over SSH, read it with:
+
+   ```sh
+   sudo grep -o 'pair=[A-Z2-7]*' /opt/deep32/status/status
+   ```
+
+   On Windows the pairing window comes from a small helper you run after the install, from an elevated PowerShell in
+   the clone. It keeps the current code in `C:\Deep32\status\windows-pair`, readable only by you and SYSTEM, and
+   `install\deep32-setup.ps1 forge` runs it and shows the code for you:
+
+   ```powershell
+   python -I -B src\release-tools\forge_pair_windows.py --data-root C:\Deep32
+   ```
+
+2. On the Workstation, open **Pairing**, choose **Forge**, pick your Forge from the list and type the code. As root on
+   the console, `/usr/local/d32/sbin/d32-pairdesk -forge` opens the same screen; from your user's Terminal it is
+   `doas /usr/local/d32/sbin/d32-pairdesk -forge`.
+3. Pairing turns meaning search on by itself. Within a minute the Workstation has checked both of the Forge's models;
+   as root, `/usr/local/d32/sbin/d32-gpu-ext status` then shows `"verified": true` for `embed` and `rerank`.
+
+After three failed attempts within 30 minutes, pairing locks for 15 minutes. If the window closes before you pair,
+start the Forge again to open a new one.
+
+**Procedure 5. Connect your agent**
+
+1. Publish the Workstation's gateway first, once, as root on its console (Ctrl+Alt+F1):
+
+   ```sh
+   /usr/local/d32/sbin/d32-publish publish --accept-ct
+   ```
+
+   With `--accept-ct` you agree that the Workstation's HTTPS name, `<workstation>.<tailnet>.ts.net`, is recorded in
+   the public Certificate Transparency logs, as every Tailscale HTTPS name is. Without it, publication stays off. The
+   command checks the gateway and ends with the Connect command for this Workstation, for Linux and for Windows. That
+   command says `--agent both`, which pairs twice, once for each agent. To connect one agent, name it as in step 2.
+2. On the headend, from the Deep32 source folder, start Connect with your agent, `claude` for Claude Code or `codex`
+   for Codex, and the Workstation's address:
+
+   ```sh
+   bash adapters/connect.sh --agent claude --workstation 'https://<workstation>.<tailnet>.ts.net/mcp'
+   ```
+
+   ```powershell
+   powershell -NoProfile -ExecutionPolicy Bypass -File adapters\connect.ps1 -Agent claude -Workstation 'https://<workstation>.<tailnet>.ts.net/mcp'
+   ```
+
+   Connect checks the published gateway, then waits at
+   `Workstation one-time code for claude (hidden, 10 characters):`.
+3. On the Workstation, open **Pairing** and choose **Headend**, or run `/usr/local/d32/sbin/d32-pairdesk -headend` as
+   root on the console (`doas /usr/local/d32/sbin/d32-pairdesk -headend` from your user's Terminal). It shows a ten-character code that lasts five minutes. Type the code at Connect's prompt on
+   the headend; it shows a dot for each character. On the console, press Enter afterwards to close the pairing screen.
+4. If the agent already has a configuration on the headend, Connect lists the files it will back up and merge and
+   asks `Type merge to approve this file plan:`. Type `merge` to go on. If you decline, Connect stops without changing
+   those files. To leave an existing configuration alone, connect a separate profile instead
+   ([adapters/README.md](adapters/README.md#3-use-a-separate-profile)).
+5. Start the agent with the `Launch:` command Connect prints.
+
+**Verify.** Run the Connect command from step 2 again with `--check` (`-Check` in PowerShell). It changes nothing and
+ends with:
+
+```text
+claude: read-only authentication and eleven-tool checks passed; client version …
+```
+
+[adapters/README.md](adapters/README.md) has the details for both agents, separate profiles and the optional Ask relay.
+Ask has no password of its own: every account in the Workstation's `_d32users` group can use it, as
+[SECURITY.md section 5](SECURITY.md#5-known-limitations) explains.
+
+## 9. Verify
+
+1. On the Workstation, **Pairing** lists the Forge as paired, and a search there ranks by meaning (a question in plain
+   words finds the right RFC section even when it shares no keywords with it).
+2. Ask your agent something you already know, such as the BGP hold time in RFC 4271, and check that it cites the RFC
+   and quotes it.
+
+`deep32 doctor` and `deep32 selftest` are on the images, but in 0.1.0-alpha.2 doctor can't read the install record
+and selftest has no signed reference values, so neither gives a useful result yet. Fixes for both are planned for
+0.1.0-alpha.3.
+
+## 10. Afterwards
+
+- **Status.** `bash install/deep32-setup.sh check` can be run at any time; it never changes anything.
+- **Revoking a Workstation.** In 0.1.0-alpha.2, revoking a paired Workstation on the Forge rotates the Forge's token,
+  and the Forge then refuses to restart because its identity record no longer matches. Until 0.1.0-alpha.3, revoke by
+  uninstalling the Forge and installing it into a new data folder, then pair again.
+- **Updates.** The Forge's `--upgrade` action installs new GPU media over the old and keeps the Forge's data and
+  pairing identity. A Forge installed fresh into an empty folder makes a new token and certificate, so pair it with the
+  Workstation again afterwards. In the alpha releases a Workstation is installed fresh.
+- **Removal.** The Forge's `uninstall` action stops the Forge and takes off its Serve routes and its startup launcher.
+  It keeps the data folder, its keys and the loaded Docker images, so you can revoke the Forge on the Workstation first.
+  Then delete the data folder and remove the `deep32-local/*` images yourself. A Workstation VM is removed with the
+  hypervisor.
+- **Optional features** that would contact anything ship off. [docs/OPTIONAL-FEATURES.md](docs/OPTIONAL-FEATURES.md)
+  lists each one and what it would contact.
+
+On Linux the Forge keeps the kit it was installed from under `/opt/deep32/releases/RELEASE/kit`, and every later
+action runs from there. `cat /opt/deep32/startup-hook-v1.sh` names the current RELEASE.
+
+```sh
+K=/opt/deep32/releases/RELEASE/kit
+sudo bash $K/forms/load-docker.sh --status --docker-role forge --data-root /opt/deep32
+sudo bash $K/forms/load-docker.sh --start  --docker-role forge --data-root /opt/deep32
+sudo bash $K/forms/load-docker.sh --stop   --docker-role forge --data-root /opt/deep32
+sudo bash $K/forms/load-docker.sh --resume --docker-role forge --data-root /opt/deep32
+sudo python3 -I -B $K/forms/forge_docker_role.py uninstall --data-root /opt/deep32
+```
+
+`--status` prints one JSON line: whether the three services are healthy, whether the routes are published, and the
+next step.
+
+## 11. What is never stored
+
+No image, release file or file in this repository holds a secret key, token, password or sign-in. The only keys that
+ship are public halves, such as the release key in `install/`. Each install makes its own:
 
 | What | Made where and when |
 |---|---|
 | Tailscale membership | Your sign-in on each node |
-| Gateway token for your agents | On the Workstation at first boot; read locally as above for a by-hand connection; pairing is planned |
 | Engine token | On the Workstation at first boot; it never leaves it |
-| Forge tokens | On the Forge at first boot; handed over during pairing |
-| Forge knowledge-base signing key | On the Forge at first boot; its public half is enrolled at pairing |
-| Relay link keys | By pairing |
-| Ask password | By you, at first use |
-| GitHub, Hugging Face, Claude Code and Codex sign-ins | Yours, kept in those tools' own stores |
+| Gateway token for each agent | On the Workstation, when that agent pairs |
+| Forge token | On the Forge at first boot; handed to the Workstation at pairing |
+| Forge bundle signing key | On the Forge at first boot; its public half goes to the Workstation at pairing |
+| Ask link keys | On each side; the pins are exchanged at pairing |
+| Claude Code, Codex and GitHub sign-ins | Yours, kept in those tools' own stores |
 
-The settings disc holds names and choices only.
+---
+
+<p align="center"><sub><a href="README.md">Overview</a> · <b>Installation</b> · <a href="docs/HARDWARE.md">Hardware</a> · <a href="docs/OPTIONAL-FEATURES.md">Optional features</a> · <a href="docs/tr/README.md">Design</a> · <a href="docs/DECISIONS.md">Decision record</a> · <a href="docs/contracts/README.md">Contracts</a> · <a href="adapters/README.md">Agent adapters</a> · <a href="SECURITY.md">Security</a> · <a href="CHANGELOG.md">Release notes</a></sub></p>

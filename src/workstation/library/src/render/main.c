@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 Jeffrey A. Cummings */
 /* e26-render: the picture and PDF helper (W1-IMAGE; LIB-PROTOCOL.md "e26-render named operations"). d32library
  * starts it on a socketpair (descriptor 3, spawn.h); every src/render/op_<x>.c registers its operations (REG_RENDEROP)
  * through the generated render_modules.gen.c, and serve.c answers them. MuPDF (HAVE_MUPDF) reads PNG, JPEG, GIF, SVG

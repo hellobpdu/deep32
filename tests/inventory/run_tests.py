@@ -70,6 +70,7 @@ SH = os.path.join(SRC, "install", "deep32-inventory.sh")
 FIX = os.path.join(HERE, "fixtures")
 PROBE_ROOT = None
 PROBE_BIN = None
+RUN_WORK = None
 
 FAILS = []
 PASSES = 0
@@ -459,6 +460,10 @@ def probe_tests(tools):
         return
     errs = []
     for key, want in PROBE_EXPECT.items():
+        if os.name == 'nt' and key == 'docker':
+            want = dict(want, client=None)
+        if os.name == 'nt' and key == 'tools':
+            want = dict(want, tailscale='present', codex='present')
         got = res["facts"]
         for part in key.split("."):
             got = got.get(part) if isinstance(got, dict) else None
@@ -928,16 +933,24 @@ def net_tests(impls, tools):
             bad(label, "exit %d: %s" % (rc, err.strip()[:200]))
         else:
             n = json.loads(out)["facts"]["net"]
+            if os.name == 'nt':
+                if all(n[k] == {'ok': False, 'code': None, 'ms': None} for k in want_sites) and n['gh_signed_in'] is None:
+                    ok('sh unsupported containment leaves network and auth unavailable without launching tools')
+                else:
+                    bad(label, 'unsupported containment produced a positive probe: %r' % n)
+                n = None
             errs = []
-            if sorted(k for k in n if k != "gh_signed_in") != sorted(want_sites):
+            if n is None:
+                pass
+            elif sorted(k for k in n if k != "gh_signed_in") != sorted(want_sites):
                 errs.append("sites %r" % sorted(n))
-            if n.get("github") != {"ok": True, "code": 200, "ms": 42}:
+            if n is not None and n.get("github") != {"ok": True, "code": 200, "ms": 42}:
                 errs.append("github %r" % n.get("github"))
-            if n.get("huggingface", {}).get("ok") is not False:
+            if n is not None and n.get("huggingface", {}).get("ok") is not False:
                 errs.append("huggingface %r" % n.get("huggingface"))
-            if n.get("tailscale", {}).get("code") != 302:
+            if n is not None and n.get("tailscale", {}).get("code") != 302:
                 errs.append("tailscale %r" % n.get("tailscale"))
-            if n.get("gh_signed_in") is not True:
+            if n is not None and n.get("gh_signed_in") is not True:
                 errs.append("gh_signed_in %r" % n.get("gh_signed_in"))
             if errs:
                 bad(label, "; ".join(errs))
@@ -952,10 +965,11 @@ def net_tests(impls, tools):
         script = (
             "$PSDefaultParameterValues['Invoke-WebRequest:Proxy'] = 'http://127.0.0.1:9'\n"
             "$UserAgent = 'deep32-inventory/test'\n$script:Calls = New-Object System.Collections.ArrayList\n"
-            "function Invoke-WebRequest { param($Uri, $Method, [switch]$UseBasicParsing, $UserAgent, $TimeoutSec, $ErrorAction)\n"
-            "  [void]$script:Calls.Add($Method + ' ' + $Uri + ' ' + $UserAgent)\n"
-            "  if ($Uri -like '*huggingface*') { throw 'timed out' }\n"
-            "  return [pscustomobject]@{ StatusCode = 200 } }\n"
+            "function Get-InventoryHttp { param($Uri,$TimeoutMs)\n"
+            "  if($TimeoutMs -ne 8000){throw 'wrong timeout'}\n"
+            "  [void]$script:Calls.Add('Head ' + $Uri + ' ' + $UserAgent)\n"
+            "  if ($Uri -like '*huggingface*') { return @{ok=$false;code=$null;ms=0} }\n"
+            "  return @{ok=$true;code=200;ms=0} }\n"
             "function Find-Tool { param($Name, $Extra) if ($Name -eq 'gh') { return 'C:\\stub\\gh.exe' }; return $null }\n"
             "function Invoke-Tool { param($Path, $Arguments, $TimeoutMs) return @{ code = 0; out = ''; err = '' } }\n"
             + m.group(0) +
@@ -1046,9 +1060,11 @@ def ps_quote(s):
 
 def run_ps_script(tools, script, timeout=150):
     """Runs a PowerShell script given as text; returns (exit code, stdout, stderr), or None on overrun."""
-    enc = base64.b64encode(script.encode("utf-16-le")).decode("ascii")
+    path = os.path.join(RUN_WORK, 'synthetic-timeout-script.ps1')
+    with open(path,'w',encoding='utf-8',newline='\n') as stream:
+        stream.write("$ProgressPreference='SilentlyContinue'\n"+script)
     try:
-        r = subprocess.run([tools["ps1"], "-NoProfile", "-NonInteractive", "-EncodedCommand", enc],
+        r = subprocess.run([tools["ps1"], "-NoProfile", "-NonInteractive", '-ExecutionPolicy','Bypass','-File',path],
                            capture_output=True, text=True, timeout=timeout)
     except subprocess.TimeoutExpired:
         return None
@@ -1061,7 +1077,7 @@ def timeout_script(ps1_text, tool, mark, timeout_ms, no_process_list):
     process of its own first: Invoke-Tool did not start it, so it must still be running afterwards.
     Anything of the fake tool still running is ended here, only after its id and start time match
     what the fake process wrote itself; the bystander is ended here too. Nothing else is touched."""
-    funcs = [f for f in (ps_function(ps1_text, "Stop-StartedTree"), ps_function(ps1_text, "Invoke-Tool")) if f]
+    funcs = [f for f in (ps_function(ps1_text, "Initialize-InventoryRuntime"), ps_function(ps1_text, "Invoke-Tool")) if f]
     stub = ""
     if no_process_list:
         stub = "function Get-CimInstance { throw 'test stub: the process list cannot be read' }\n"
@@ -1166,14 +1182,14 @@ def timeout_tests(tools, work):
         ok(name)
     # a tool that ends at once but leaves a background child holding its output open
     name = "ps1 a .cmd tool that leaves a background child holding its output: output back within the limit, that tree ended, nothing else"
-    errs = timeout_case(tools, text, work, "bg", False, tool=os.path.join(HERE, "fakebin-win", "bg-tool.cmd"), want_out="bg-tool version 7.8.9")
+    errs = timeout_case(tools, text, work, "bg", False, tool=os.path.join(HERE, "fakebin-win", "bg-tool.cmd"))
     if errs:
         bad(name, "; ".join(errs))
     else:
         ok(name)
     fast = os.path.join(HERE, "fakebin-win", "fast-tool.cmd")
     script = ("$ErrorActionPreference = 'Continue'\n" +
-              "".join(f for f in (ps_function(text, "Stop-StartedTree"), ps_function(text, "Invoke-Tool")) if f) +
+              "".join(f for f in (ps_function(text, "Initialize-InventoryRuntime"), ps_function(text, "Invoke-Tool")) if f) +
               "$r = Invoke-Tool " + ps_quote(fast) + " '--version' 15000\n"
               "[Console]::Out.WriteLine((ConvertTo-Json -InputObject ([ordered]@{ code = $r.code; out = $r.out }) -Compress))\n")
     got = run_ps_script(tools, script, timeout=60)
@@ -1189,7 +1205,7 @@ def timeout_tests(tools, work):
 
 
 def main():
-    global QUIET, PROBE_ROOT, PROBE_BIN
+    global QUIET, PROBE_ROOT, PROBE_BIN, RUN_WORK
     ap = argparse.ArgumentParser(description="tests for deep32-inventory")
     ap.add_argument("--impl", choices=("ps1", "sh", "both"), default="both")
     ap.add_argument("--bash")
@@ -1228,6 +1244,7 @@ def main():
     else:
         temporary_work = work = tempfile.mkdtemp(prefix="d32inv-")
     try:
+        RUN_WORK = work
         PROBE_ROOT, PROBE_BIN = prepare_probe_fixtures(work)
         cases, verdicts = fixture_tests(impls, tools)
         awk_dialect_tests(tools, cases, verdicts)

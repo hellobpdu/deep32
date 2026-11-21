@@ -1,0 +1,369 @@
+{
+  "$defs": {
+    "check": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "else": {
+            "properties": {
+              "fix": {
+                "minLength": 1,
+                "pattern": "^[ -~]+$",
+                "type": "string"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "state": {
+                "const": "OK"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "blocked_by": {
+                "maxItems": 0
+              },
+              "fix": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ],
+      "properties": {
+        "blocked_by": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9.-]{0,63}$",
+            "type": "string"
+          },
+          "maxItems": 16,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "detail": {
+          "maxLength": 512,
+          "pattern": "^[ -~]*$",
+          "type": "string"
+        },
+        "fix": {
+          "maxLength": 768,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "id": {
+          "pattern": "^[a-z][a-z0-9.-]{0,63}$",
+          "type": "string"
+        },
+        "observed": {
+          "$ref": "#/$defs/observed"
+        },
+        "source": {
+          "items": {
+            "maxLength": 512,
+            "minLength": 1,
+            "pattern": "^[ -~]+$",
+            "type": "string"
+          },
+          "maxItems": 8,
+          "minItems": 1,
+          "type": "array"
+        },
+        "state": {
+          "enum": [
+            "OK",
+            "WARN",
+            "FAIL",
+            "SKIP"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "state",
+        "detail",
+        "observed",
+        "fix",
+        "blocked_by",
+        "source"
+      ],
+      "type": "object"
+    },
+    "observed": {
+      "additionalProperties": false,
+      "maxProperties": 16,
+      "properties": {
+        "age_seconds": {
+          "minimum": 0,
+          "type": "number"
+        },
+        "agent": {
+          "enum": [
+            "codex",
+            "claude"
+          ]
+        },
+        "breaker": {
+          "enum": [
+            "closed",
+            "open",
+            "half-open",
+            "unknown",
+            null
+          ]
+        },
+        "device_kind": {
+          "enum": [
+            "gpu",
+            "cpu",
+            "unknown"
+          ]
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "error_kind": {
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9_-]+$",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "expected_fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "expected_generation": {
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9._+-]+$",
+          "type": "string"
+        },
+        "expected_revision": {
+          "pattern": "^[0-9a-f]{40}$",
+          "type": "string"
+        },
+        "expired": {
+          "type": "boolean"
+        },
+        "fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "free_bytes": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "generation": {
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9._+-]+$",
+          "type": "string"
+        },
+        "healthy": {
+          "type": "boolean"
+        },
+        "http_status": {
+          "maximum": 599,
+          "minimum": 100,
+          "type": "integer"
+        },
+        "matched": {
+          "type": "boolean"
+        },
+        "minimum_version": {
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9._+-]+$",
+          "type": "string"
+        },
+        "model": {
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9._/-]+$",
+          "type": "string"
+        },
+        "n_chunks": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "n_docs": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "offset_lower_ms": {
+          "type": "number"
+        },
+        "offset_upper_ms": {
+          "type": "number"
+        },
+        "online": {
+          "type": "boolean"
+        },
+        "owner_verified": {
+          "type": "boolean"
+        },
+        "path_kind": {
+          "enum": [
+            "direct",
+            "relayed",
+            "unknown"
+          ]
+        },
+        "peer_role": {
+          "enum": [
+            "workstation",
+            "forge",
+            "headend"
+          ]
+        },
+        "port": {
+          "maximum": 65535,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "present": {
+          "type": "boolean"
+        },
+        "required_bytes": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "revision": {
+          "pattern": "^[0-9a-f]{40}$",
+          "type": "string"
+        },
+        "routes": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "rtt_ms": {
+          "minimum": 0,
+          "type": "number"
+        },
+        "safe_running_bytes": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "service": {
+          "maxLength": 64,
+          "pattern": "^[a-z][a-z0-9-]+$",
+          "type": "string"
+        },
+        "stage": {
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9_-]+$",
+          "type": "string"
+        },
+        "state": {
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9_-]+$",
+          "type": "string"
+        },
+        "tool_count": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "version": {
+          "maxLength": 160,
+          "pattern": "^[A-Za-z0-9 ._()+:/-]+$",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  "$id": "urn:deep32:doctor-output:v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "checked_at": {
+      "format": "date-time",
+      "pattern": "Z$",
+      "type": "string"
+    },
+    "checks": {
+      "items": {
+        "$ref": "#/$defs/check"
+      },
+      "maxItems": 256,
+      "minItems": 1,
+      "type": "array"
+    },
+    "complete": {
+      "type": "boolean"
+    },
+    "exit_code": {
+      "enum": [
+        0,
+        1,
+        2
+      ]
+    },
+    "hostname": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9.-]{0,252}$",
+      "type": "string"
+    },
+    "platform": {
+      "enum": [
+        "openbsd",
+        "linux",
+        "windows",
+        "macos",
+        null
+      ]
+    },
+    "role": {
+      "enum": [
+        "workstation",
+        "forge",
+        "headend",
+        null
+      ]
+    },
+    "schema": {
+      "const": "deep32.doctor-output.v1"
+    },
+    "summary": {
+      "additionalProperties": false,
+      "properties": {
+        "fail": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "ok": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "skip": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "warn": {
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "ok",
+        "warn",
+        "fail",
+        "skip"
+      ],
+      "type": "object"
+    }
+  },
+  "required": [
+    "schema",
+    "role",
+    "platform",
+    "hostname",
+    "checked_at",
+    "complete",
+    "checks",
+    "summary",
+    "exit_code"
+  ],
+  "title": "Deep32 doctor-output version 1",
+  "type": "object"
+}

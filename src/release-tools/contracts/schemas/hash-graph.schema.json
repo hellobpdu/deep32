@@ -1,0 +1,67 @@
+{
+  "$id": "urn:deep32:hash-graph:v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "format": {
+      "const": "deep32-hash-graph"
+    },
+    "format_version": {
+      "const": 1
+    },
+    "nodes": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "depends_on": {
+            "items": {
+              "maxLength": 240,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$",
+              "type": "string"
+            },
+            "maxItems": 1024,
+            "minItems": 0,
+            "type": "array",
+            "uniqueItems": true
+          },
+          "path": {
+            "maxLength": 240,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$",
+            "type": "string"
+          },
+          "sha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "size": {
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "path",
+          "sha256",
+          "size",
+          "depends_on"
+        ],
+        "type": "object"
+      },
+      "maxItems": 1024,
+      "minItems": 1,
+      "type": "array"
+    },
+    "release": {
+      "const": "v0.1.0-alpha.2"
+    }
+  },
+  "required": [
+    "format",
+    "format_version",
+    "release",
+    "nodes"
+  ],
+  "title": "Deep32 hash-graph version 1",
+  "type": "object"
+}

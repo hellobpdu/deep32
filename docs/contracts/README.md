@@ -1,25 +1,27 @@
 # Deep32 contracts
 
-The parts of Deep32 meet at ten small written contracts. Each is one page with a version number. A part is built
-and tested against its contract alone, so the discs, the installer and the relay can be built in any order and
-still fit together.
+Contract index, version 2, 2026-11-17.
+Changed: the alpha.2 release interface, contract versions, pairing distinction, and revision convention.
+
+The parts of Deep32 meet at ten versioned written contracts.
+The pages describe the interfaces checked against the merged source; unresolved implementation and qualification points remain explicit.
 
 ## The ten
 
 | # | Contract | File | Fixes | Status |
 |---|---|---|---|---|
-| C1 | Install matrix | `C1-install-matrix.md` | the schema of `install/matrix.json`: detection rules, forms, sizing, steps, status, reference figures | draft, version 1, 2026-11-14 |
-| C2 | Release manifest | `C2-release-manifest-draft.md` | parts, sizes, hashes, the bill of materials tying three disc versions together, the signature | draft, version 1, 2026-11-14 (written with the release tooling) |
-| C3 | Knowledge-base bundle | `C3-knowledge-base-bundle.md` | one layout for both platforms, the compatibility fields, the signature, what it may hold | draft, version 1, 2026-11-14 |
-| C4 | Corpus block | `C4-corpus-block.md` | `block.json` and the archive layout of the four blocks | draft, version 1, 2026-11-14 |
-| C5 | Library pack | `C5-library-pack.md` | the existing pack layout, parts under 2 GiB, cite maps bound to a knowledge-base fingerprint | draft, version 1, 2026-11-14 |
-| C6 | Console status channel | `C6-console-status.md` | the status lines a new node writes: stage, sign-in address, pairing code, error | draft, version 1, 2026-11-14 |
-| C7 | Settings disc | `C7-settings-disc.md` | names and choices for one node; the rule that no secret is ever added | draft, version 1, 2026-11-14 |
-| C8 | Network | `C8-network.md` | node names, ports, tokens, discovery, one pairing procedure, the transport switch | draft, version 1, 2026-11-14 |
-| C9 | Headend | `C9-headend.md` | the D32U/1 link, the engine adapters, what the relay reports, the MCP entry, the box an Ask session runs in | draft, version 1, 2026-11-14 |
-| C10 | Installer and inventory | `C10-inventory-draft.md` | verbs, JSON output, exit codes, the state file, human-only moments, inventory and benchmark results | draft, version 1, 2026-11-14: the inventory half; the installer half comes in stage 9 (written with the inventory program) |
+| C1 | Install matrix | `C1-install-matrix.md` | the schema of `install/matrix.json`: detection rules, forms, sizing, steps, status, reference figures | draft, version 2, 2026-11-17 |
+| C2 | Release manifest | `C2-release-manifest-draft.md` | whole images and Forge bundles, sizes, hashes, signed root and child lists, mirrors, asset map and chunks | draft, version 2, 2026-11-17 (written with the release tooling) |
+| C3 | Knowledge-base bundle | `C3-knowledge-base-bundle.md` | one layout for both platforms, the compatibility fields, the signature, what it may hold | draft, version 2, 2026-11-17 |
+| C4 | Corpus block | `C4-corpus-block.md` | `block.json` and the archive layout of the four blocks | draft, version 2, 2026-11-17 |
+| C5 | Library pack | `C5-library-pack.md` | the existing pack layout, parts under 2 GiB, cite maps bound to a knowledge-base fingerprint | draft, version 2, 2026-11-17 |
+| C6 | Console status channel | `C6-console-status.md` | the status lines a new node writes: stage, sign-in address, pairing code, error | draft, version 2, 2026-11-17 |
+| C7 | Settings disc | `C7-settings-disc.md` | names and choices for one node; the rule that no secret is ever added | draft, version 2, 2026-11-17 |
+| C8 | Network | `C8-network.md` | node names, ports, tokens, discovery, one pairing procedure, the transport switch | draft, version 2, 2026-11-17 |
+| C9 | Headend | `C9-headend.md` | the D32U/1 link, the engine adapters, what the relay reports, the MCP entry, the box an Ask session runs in | draft, version 2, 2026-11-17 |
+| C10 | Installer and inventory | `C10-inventory-draft.md` | verbs, JSON output, exit codes, the state file, human-only moments, inventory and benchmark results | draft, version 2, 2026-11-17: the inventory half; the installer half comes in stage 9 (written with the inventory program) |
 
-None is frozen yet. They are frozen at the end of stage 1, before parts are built against them.
+None is frozen yet. Remaining open points and release acceptance still need the named owner's decision or evidence.
 
 ## How they connect
 
@@ -28,7 +30,7 @@ None is frozen yet. They are frozen at the end of stage 1, before parts are buil
   built from; C5's cite maps name the knowledge base (C3) they belong to.
 - C6 carries the sign-in address and pairing codes that C8's pairing needs; its error codes come from C10.
 - C7 sets the choices C8 reads (`transport`, `publish`) and the profile C1 names.
-- C8 gives C9 its pairing, its tokens and the relay's reach on the tailnet.
+- C8 supplies gateway enrollment, MCP tokens and tailnet publication; C9's Ask link uses separate SAS certificate-pin pairing.
 
 ## Words used on these pages
 
@@ -56,6 +58,8 @@ None is frozen yet. They are frozen at the end of stage 1, before parts are buil
 
 ## Changing a contract
 
-Before a contract is frozen, edit it freely and keep version 1. After that, any change raises its version and is
-recorded in the build record with the reason and the list of parts that must be retested. C2's draft says which
-programs that means for the release manifest.
+This reconciliation raises each changed contract to version 2 and records the changes in its Changed line.
+Later changes raise the version and record the reason and the parts that must be retested.
+C2 names the release-manifest programs.
+
+Sources: `docs/contracts/C1-install-matrix.md` through `C10-inventory-draft.md`; implementation paths are cited on each page and in the reconciliation ledger.

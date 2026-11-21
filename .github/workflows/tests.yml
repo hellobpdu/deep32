@@ -1,0 +1,50 @@
+# Lint and static analysis on Linux, and every test suite on Windows, for each push and pull request to main.
+# The suites run on Windows because that is where they are verified for each release; on Linux several of them
+# drive the Windows forms of the scripts. tests/run_all.py skips a suite whose tool the runner lacks and says why.
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Ruff and Bandit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+      - name: Install Ruff and Bandit
+        run: python -m pip install --require-hashes -r .github/requirements-lint.txt
+      - name: Ruff
+        run: ruff check --no-cache .
+      - name: Bandit, new findings only
+        run: bandit -c bandit.yaml -r . -b bandit-baseline.json
+
+  tests:
+    name: Test suites
+    runs-on: windows-latest
+    timeout-minutes: 150
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+      - name: Run every suite
+        run: python -I -B tests/run_all.py

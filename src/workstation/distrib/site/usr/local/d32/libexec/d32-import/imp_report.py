@@ -17,7 +17,9 @@ import imp_fs
 import imp_paths
 
 
-STAGES = ('disc', 'signature', 'files', 'space', 'kb', 'library', 'blocks',
+# fetch (Download disc 2) is d32-content-fetch's: it writes the stage while it downloads the image, and the importer
+# records it as done (the disc is that image) or skipped (any other disc).
+STAGES = ('fetch', 'disc', 'signature', 'files', 'space', 'kb', 'library', 'blocks',
           'switch', 'check', 'finish')
 ERROR_ARGS = {
     'IMPORT_NO_DISC': ('device',), 'IMPORT_NOT_DISC2': ('missing',),
@@ -30,10 +32,12 @@ ERROR_ARGS = {
     'IMPORT_KB_FORM': (), 'IMPORT_KB_ENGINE': ('engine', 'min', 'max'),
     'IMPORT_PACK_FORM': (), 'IMPORT_PACK_BINDING': ('pack_fingerprint', 'kb_fingerprint'),
     'IMPORT_SWITCH': (), 'IMPORT_CHECK': ('what',), 'IMPORT_INTERNAL': (),
+    'IMPORT_FETCH': ('reason',),
 }
 WARNING_ARGS = {
     'IMPORT_RESUMED': ('from',), 'IMPORT_MEANING_WAIT': (),
     'IMPORT_MEANING_MISMATCH': ('served', 'wanted'), 'IMPORT_OLD_KEPT': ('bytes',),
+    'IMPORT_KB_ONLY': (),
 }
 _ARG = re.compile(r'[A-Za-z0-9._:/+-]{1,128}\Z')
 _ID = re.compile(r'[0-9]{8}T[0-9]{6}Z-[0-9a-f]{8}\Z')

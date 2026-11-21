@@ -22,10 +22,10 @@ row() {	# row name file class rights
 m_system() {
 	mkdir -p $OUT/packs
 	$PY --name d32-node --class system \
-		--rights "Deep32 code (deep32-engine, deep32-gateway, node shims): AGPL-3.0-or-later, Copyright (C) 2026 Jeffrey A. Cummings (https://github.com/hellobpdu); CPython, SQLite and the PyPI wheels under their own licences (pyrag/locks)" \
+		--rights "Deep32 code (deep32-engine, deep32-gateway, node shims): Apache-2.0, Copyright (C) 2026 Jeffrey A. Cummings (https://github.com/hellobpdu); CPython, SQLite and the PyPI wheels under their own licences (pyrag/locks)" \
 		$L/stage/d32-node=. | gzip -6n >$OUT/packs/d32-node.tgz
 	$PY --name d32-apps --class system \
-		--rights "Deep32 code: AGPL-3.0-or-later; Deep32 documentation: CC-BY-4.0; Deep32 art and sounds: CC BY-NC 4.0; Copyright (C) 2026 Jeffrey A. Cummings (https://github.com/hellobpdu); third-party data and fonts under their own licences (see NOTICES)" \
+		--rights "Deep32 code: Apache-2.0, except the picture and PDF helper e26-render, which uses MuPDF and is AGPL-3.0-or-later; Deep32 documentation: CC-BY-4.0; Deep32 art and sounds: CC BY-NC 4.0; Copyright (C) 2026 Jeffrey A. Cummings (https://github.com/hellobpdu); third-party artwork, data and fonts under their own terms (see NOTICES)" \
 		$L/stage/d32-apps=. | gzip -6n >$OUT/packs/d32-apps.tgz
 	log "system packs: $(ls -l $OUT/packs/*.tgz | awk '{ printf "%s %d MB; ", $NF, $5 / 1048576 }')"
 }
@@ -55,8 +55,8 @@ m_library() {
 m_sign() {
 	: >$OUT/PACKS.tsv.new
 	print -r -- "# name	file	class	bytes	sha256	rights (install order within a class = this order)" >>$OUT/PACKS.tsv.new
-	row d32-node packs/d32-node.tgz system "Deep32 code (AGPL-3.0-or-later) + third-party runtime under its own licences"
-	row d32-apps packs/d32-apps.tgz system "Deep32 code (AGPL-3.0-or-later), documentation (CC-BY-4.0), art (CC BY-NC 4.0)"
+	row d32-node packs/d32-node.tgz system "Deep32 code (Apache-2.0) + third-party runtime under its own licences"
+	row d32-apps packs/d32-apps.tgz system "Deep32 code (Apache-2.0; e26-render uses MuPDF and is AGPL-3.0-or-later), documentation (CC-BY-4.0), Deep32 art (CC BY-NC 4.0), third-party artwork under its own terms"
 	for n in lib-encyclopedia lib-cisco lib-ietf lib-catalogue; do
 		f=$(cd $OUT && ls library/$n.t*)
 		row $n $f library "Library class (see the pack INFO for its rights)"

@@ -1,0 +1,100 @@
+{
+  "$id": "urn:deep32:sbom-gap:v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "format": {
+      "const": "deep32-sbom-gap"
+    },
+    "format_version": {
+      "const": 1
+    },
+    "gaps": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "approval": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "path": {
+                    "maxLength": 240,
+                    "minLength": 1,
+                    "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$",
+                    "type": "string"
+                  },
+                  "sha256": {
+                    "pattern": "^[0-9a-f]{64}$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "path",
+                  "sha256"
+                ],
+                "type": "object"
+              }
+            ]
+          },
+          "component": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]*$",
+            "type": "string"
+          },
+          "missing_input": {
+            "maxLength": 512,
+            "minLength": 1,
+            "pattern": "^[ -~]+$",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 512,
+            "minLength": 1,
+            "pattern": "^[ -~]+$",
+            "type": "string"
+          },
+          "scope": {
+            "enum": [
+              "components",
+              "licences"
+            ]
+          }
+        },
+        "required": [
+          "scope",
+          "component",
+          "missing_input",
+          "reason",
+          "approval"
+        ],
+        "type": "object"
+      },
+      "maxItems": 4096,
+      "minItems": 1,
+      "type": "array"
+    },
+    "release": {
+      "const": "v0.1.0-alpha.2"
+    },
+    "subject_path": {
+      "maxLength": 240,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$",
+      "type": "string"
+    }
+  },
+  "required": [
+    "format",
+    "format_version",
+    "release",
+    "subject_path",
+    "gaps"
+  ],
+  "title": "Deep32 sbom-gap version 1",
+  "type": "object"
+}

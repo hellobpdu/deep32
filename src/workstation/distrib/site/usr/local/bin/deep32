@@ -1,0 +1,23 @@
+#!/bin/ksh
+# Workstation role and runtime are bound by the image, never by the environment.
+set -eu
+python=/usr/local/bin/python3.14
+entrypoint=/usr/local/d32/diagnostics/deep32_doctor.py
+if [ ! -x "$python" ] || [ ! -f "$entrypoint" ] || [ ! -r "$entrypoint" ]; then
+    # fixed startup error; do not disclose installation paths.
+    print -r -- 'The Python diagnostic runtime could not start.' >&2
+    exit 2
+fi
+case "${1-}" in
+    doctor)
+        shift
+        # The installed Workstation launcher fixes the role; duplicate role flags
+        # are refused by the shared parser instead of selecting another role.
+        exec "$python" -I -B "$entrypoint" doctor --role workstation "$@"
+        ;;
+    *)
+        # Includes selftest and bad arguments: preserve the shared dispatcher's
+        # JSON/text contract, bounded errors and exit status without shell parsing.
+        exec "$python" -I -B "$entrypoint" "$@"
+        ;;
+esac

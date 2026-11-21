@@ -1,0 +1,26 @@
+{
+  "bundle_id": "fixture-beacons-v1",
+  "checks": [
+    {
+      "check": "forge-models",
+      "detail": "Forge is unavailable.",
+      "fix": "Restore the paired Forge and run deep32 doctor on the Workstation.",
+      "state": "FAIL"
+    }
+  ],
+  "completed_questions": 0,
+  "details": [],
+  "exit_code": 2,
+  "fixture_only": true,
+  "measured": null,
+  "question_count": 2,
+  "reference": {
+    "hit_at_1": 0.5,
+    "hit_at_3": 1.0,
+    "hit_at_8": 1.0,
+    "mrr_at_10": 0.75
+  },
+  "release": "v0.1.0-alpha.2",
+  "schema_version": 1,
+  "status": "INCOMPLETE"
+}

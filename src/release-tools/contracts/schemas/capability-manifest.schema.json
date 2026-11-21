@@ -1,0 +1,467 @@
+{
+  "$defs": {
+    "budget": {
+      "additionalProperties": false,
+      "properties": {
+        "backend": {
+          "enum": [
+            "docker-engine",
+            "docker-desktop"
+          ]
+        },
+        "domains": {
+          "items": {
+            "$ref": "#/$defs/domain"
+          },
+          "maxItems": 4,
+          "minItems": 3,
+          "type": "array"
+        },
+        "evidence": {
+          "maxLength": 512,
+          "minLength": 1,
+          "type": "string"
+        },
+        "method": {
+          "const": "declared-upper-bound"
+        }
+      },
+      "required": [
+        "backend",
+        "evidence",
+        "domains"
+      ],
+      "type": "object"
+    },
+    "bundle": {
+      "additionalProperties": false,
+      "properties": {
+        "corresponds_to": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_-]{0,79}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "hardware_class": {
+          "anyOf": [
+            {
+              "enum": [
+                "turing",
+                "ada",
+                "ampere80",
+                "ampere86",
+                "hopper",
+                "blackwell100",
+                "blackwell120"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "id": {
+          "pattern": "^[a-z][a-z0-9_-]{0,79}$",
+          "type": "string"
+        },
+        "images": {
+          "items": {
+            "$ref": "#/$defs/image"
+          },
+          "maxItems": 3,
+          "minItems": 0,
+          "type": "array"
+        },
+        "kind": {
+          "enum": [
+            "core",
+            "embedder",
+            "ingestion",
+            "full",
+            "corresponding-source-build"
+          ]
+        },
+        "members": {
+          "items": {
+            "$ref": "#/$defs/member"
+          },
+          "maxItems": 100000,
+          "minItems": 1,
+          "type": "array"
+        },
+        "models": {
+          "items": {
+            "$ref": "#/$defs/model"
+          },
+          "maxItems": 2,
+          "minItems": 0,
+          "type": "array"
+        },
+        "requires": {
+          "items": {
+            "enum": [
+              "core",
+              "ingestion"
+            ]
+          },
+          "maxItems": 2,
+          "minItems": 0,
+          "type": "array"
+        },
+        "storage_budgets": {
+          "items": {
+            "$ref": "#/$defs/budget"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "hardware_class",
+        "corresponds_to",
+        "requires",
+        "members",
+        "images",
+        "models",
+        "storage_budgets"
+      ],
+      "type": "object"
+    },
+    "domain": {
+      "additionalProperties": false,
+      "properties": {
+        "domain": {
+          "enum": [
+            "download",
+            "data",
+            "docker",
+            "desktop-backing"
+          ]
+        },
+        "download_bytes": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "headroom_bytes": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "image_bytes": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "peak_bytes": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "retained_bytes": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "rollback_bytes": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "steady_bytes": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "transient_bytes": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "workspace_bytes": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "domain",
+        "download_bytes",
+        "retained_bytes",
+        "image_bytes",
+        "transient_bytes",
+        "rollback_bytes",
+        "workspace_bytes",
+        "headroom_bytes",
+        "steady_bytes",
+        "peak_bytes"
+      ],
+      "type": "object"
+    },
+    "image": {
+      "additionalProperties": false,
+      "properties": {
+        "archive_format": {
+          "enum": [
+            "classic",
+            "oci"
+          ]
+        },
+        "config_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "image_id": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "index_digest": {
+          "anyOf": [
+            {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "manifest_digest": {
+          "anyOf": [
+            {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "path": {
+          "maxLength": 512,
+          "minLength": 1,
+          "type": "string"
+        },
+        "role": {
+          "pattern": "^[a-z][a-z0-9_-]{0,79}$",
+          "type": "string"
+        },
+        "source_digest": {
+          "anyOf": [
+            {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "role",
+        "path",
+        "image_id",
+        "config_digest",
+        "index_digest",
+        "manifest_digest",
+        "archive_format",
+        "source_digest"
+      ],
+      "type": "object"
+    },
+    "member": {
+      "additionalProperties": false,
+      "properties": {
+        "category": {
+          "enum": [
+            "image",
+            "model",
+            "runtime",
+            "licence",
+            "provenance",
+            "source",
+            "lock",
+            "wheel",
+            "package",
+            "build"
+          ]
+        },
+        "path": {
+          "maxLength": 512,
+          "minLength": 1,
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "size": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "path",
+        "size",
+        "sha256",
+        "category"
+      ],
+      "type": "object"
+    },
+    "model": {
+      "additionalProperties": false,
+      "properties": {
+        "files": {
+          "items": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 100000,
+          "minItems": 1,
+          "type": "array"
+        },
+        "licence_path": {
+          "maxLength": 512,
+          "minLength": 1,
+          "type": "string"
+        },
+        "repository": {
+          "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$",
+          "type": "string"
+        },
+        "revision": {
+          "pattern": "^[0-9a-f]{40}$",
+          "type": "string"
+        },
+        "role": {
+          "enum": [
+            "tei",
+            "reranker",
+            "mineru_small",
+            "mineru_vlm"
+          ]
+        },
+        "root": {
+          "maxLength": 512,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "role",
+        "repository",
+        "revision",
+        "root",
+        "files",
+        "licence_path"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "https://deep32.invalid/contracts/capability-manifest/2",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "bundles": {
+      "items": {
+        "$ref": "#/$defs/bundle"
+      },
+      "maxItems": 20,
+      "minItems": 18,
+      "type": "array"
+    },
+    "code_licence": {
+      "const": "Apache-2.0"
+    },
+    "concept_doi": {
+      "const": "10.5281/zenodo.24272647"
+    },
+    "documentation_licence": {
+      "const": "CC-BY-4.0"
+    },
+    "format": {
+      "const": "deep32-capability-manifest"
+    },
+    "format_version": {
+      "const": 2
+    },
+    "hardware_classes": {
+      "items": {
+        "enum": [
+          "turing",
+          "ada",
+          "ampere80",
+          "ampere86",
+          "hopper",
+          "blackwell100",
+          "blackwell120"
+        ]
+      },
+      "maxItems": 7,
+      "minItems": 7,
+      "type": "array"
+    },
+    "image_index_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "jina_model_licence": {
+      "const": "CC-BY-NC-4.0"
+    },
+    "legacy_policy": {
+      "const": "refuse-unsupported-version"
+    },
+    "pins_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "previous_images": {
+      "const": "retain-until-user-removes"
+    },
+    "release": {
+      "const": "0.1.0-alpha.2"
+    },
+    "source_commit": {
+      "pattern": "^[0-9a-f]{40}$",
+      "type": "string"
+    },
+    "storage_evidence": {
+      "additionalProperties": false,
+      "properties": {
+        "file": {"const": "STORAGE-MEASUREMENTS.json"},
+        "sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"}
+      },
+      "required": ["file", "sha256"],
+      "type": "object"
+    }
+  },
+  "required": [
+    "format",
+    "format_version",
+    "release",
+    "concept_doi",
+    "code_licence",
+    "documentation_licence",
+    "jina_model_licence",
+    "source_commit",
+    "pins_sha256",
+    "image_index_sha256",
+    "hardware_classes",
+    "previous_images",
+    "legacy_policy",
+    "bundles"
+  ],
+  "title": "Deep32 alpha.2 capability manifest",
+  "type": "object"
+}

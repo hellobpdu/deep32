@@ -1,0 +1,20 @@
+{
+  "BackendState": "Running",
+  "CertDomains": [
+    "workstation.fixture.ts.net"
+  ],
+  "CurrentTailnet": {
+    "MagicDNSEnabled": false,
+    "Name": "fixture.ts.net"
+  },
+  "Self": {
+    "CurAddr": "192.0.2.9:41641",
+    "DNSName": "workstation.fixture.ts.net.",
+    "Expired": false,
+    "Online": true,
+    "Relay": "fixture-relay",
+    "TailscaleIPs": [
+      "100.64.0.9"
+    ]
+  }
+}

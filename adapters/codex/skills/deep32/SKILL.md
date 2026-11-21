@@ -19,6 +19,18 @@ this Codex home there). Evidence comes only from the deep32 MCP tools. Do not wr
 3.1). They are a setting: when that table or the question names other releases, use those. In these files "17.9"
 stands for the IOS XE pin, "20.9" for the SD-WAN pin, "2.3" for the Catalyst Center pin and "3.1" for the ISE pin.
 
+## First-session check
+
+When invoked with `first-session check`, discover this installation's MCP server and confirm that it advertises
+exactly the eleven research tool names listed in section 1. Use its configured prefix if its server name is
+installation-scoped. Ask for the agent's normal narrow tool consent when needed; never approve another server
+or a wildcard group. Call `rag_status` and record its generation and model identity. Use `list_documents` or
+`lookup_id` to choose a public corpus-covered document, run a lookup or keyword search, retrieve its section with
+`get_section`, and check a short quotation from that section with `verify_quote`. Report tool discovery, status,
+section ID and quote result separately. If keyword search works but dense search or reranking is degraded,
+label the check keyword-only. Do not claim model health or live acceptance from copied skill/configuration files.
+The runtime first-session check requires Phase B media with published HTTPS and an enrolled headend.
+
 ## 1. Check the tools (once per session, and again after any tool error)
 
 1. **The tools.** The deep32 MCP server gives you `rag_status`, `search_many`, `search_rag`, `get_section`,

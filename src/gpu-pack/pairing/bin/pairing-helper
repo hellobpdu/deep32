@@ -1,0 +1,14 @@
+#!/usr/bin/python3 -IB
+"""Deep32 Forge pairing helper.
+Usage: pairing-helper pair-forge < REQUEST
+Usage: pairing-helper host-signin
+Usage: pairing-helper --help | --version
+Exit: 0 done; 1 internal; 2 bad request; 3 locked; 4 no attempt;
+5 attempt failed; 6 local state; 7 peer or file conflict; 8 bad code;
+9 discovery unavailable; 64 not provided.
+"""
+import pathlib
+import sys
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
+from deep32net.cli import helper_main
+raise SystemExit(helper_main(sys.argv[1:]))

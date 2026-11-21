@@ -1,9 +1,13 @@
 #!/bin/ksh
 # /usr/local/d32/libexec/d32-content-import: the disc 2 importer of the Deep32 Workstation. It checks the signed
-# content manifest of disc 2 (contract C2 section 4) and every file on the disc, installs the knowledge base (C3) and
-# the Deep32 Library packs (C5) beside the ones in use, switches to them in one step, checks them and writes the import
-# report (deep32-import-report 1) and console status lines (C6). The work is done by d32-import/d32import.py.
-#   d32-content-import --device cdN    import disc 2 from that drive (the first start runs this)
+# content manifest of disc 2 (contract C2 section 4), then reads every file on the disc once, checking each one as it
+# copies it into a stage folder, in two parts. The knowledge base (C3) goes first: installed from its copies beside
+# the one in use, switched on alone and checked, so search and Ask use it while the Deep32 Library packs (C5) follow,
+# installed the same way and switched in one step. It writes the import report (deep32-import-report 1) and console
+# status lines (C6). The work is done by d32-import/d32import.py.
+#   d32-content-import --device DEV    import disc 2 from DEV: cdN, an optical drive, sdN, a USB stick with the
+#                                      disc 2 image written to it, or vndN, the image d32-content-fetch downloaded
+#                                      (the first start runs this)
 #   d32-content-import --resume        carry on with the newest import when it can be carried on
 #   d32-content-import --report        print the current import report and change nothing
 # Exit: 0 imported or already in use; 1 usage; 2 failed (the report says why); 3 another import is running;

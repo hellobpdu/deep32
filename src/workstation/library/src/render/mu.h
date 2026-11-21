@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 Jeffrey A. Cummings */
 /* mu.h: e26-render's one MuPDF context (W1-IMAGE). MuPDF's headers are not C99-pedantic clean (typedefs declared
  * twice, a C11 feature), so they are read here, with those two diagnostics off for them alone. Every allocation
  * MuPDF makes is counted against a ceiling (MU_HEAP): a picture or page that would need more fails as E_TOO_LARGE

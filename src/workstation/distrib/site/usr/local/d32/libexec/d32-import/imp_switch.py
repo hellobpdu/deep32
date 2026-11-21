@@ -92,15 +92,18 @@ def _unit(record):
 
 
 def _targets(record):
-    return {value.split('/')[0] for value in (record or {}).get('pointers', {}).values()}
+    return ({value.split('/')[0] for value in (record or {}).get('pointers', {}).values()} |
+            set((record or {}).get('targets', [])))
 
 
 def _present(ctx, record):
     if not record:
         return False
-    return all(read_pointer(ctx.p.cr / pointer) == value and
+    return (all(read_pointer(ctx.p.cr / pointer) == value and
                (ctx.p.cr / value).is_dir()
-               for pointer, value in record.get('pointers', {}).items())
+                for pointer, value in record.get('pointers', {}).items()) and
+            all((ctx.p.cr / target).is_dir() and not (ctx.p.cr / target).is_symlink()
+                for target in record.get('targets', [])))
 
 
 def already_current(ctx):
@@ -115,8 +118,11 @@ def _commit_registry(ctx):
     active = {'manifest_sha256': ctx.journal.data['manifest_sha256'],
               'import_id': ctx.import_id,
               'disc_version': ctx.report.data['source']['disc_version'],
-              'pointers': {row['pointer']: row['value'] for row in _records(ctx)}}
-    if switch['pointers']:
+              'pointers': {row['pointer']: row['value'] for row in _records(ctx) if row['pointer'] is not None}}
+    targets = sorted(row['target'] for row in _records(ctx) if row['pointer'] is None)
+    if targets:
+        active['targets'] = targets
+    if switch['pointers'] or targets != (old or {}).get('targets', []):
         ctx.registry.previous = copy.deepcopy(old)
     ctx.registry.active = active
     ctx.registry.save()
@@ -125,6 +131,8 @@ def _commit_registry(ctx):
 def run_switch(ctx):
     pointers = []
     for row in _records(ctx):
+        if row['pointer'] is None:
+            continue
         old = read_pointer(ctx.p.cr / row['pointer'])
         if old != row['value']:
             pointers.append({'pointer': row['pointer'], 'old': old,
@@ -207,6 +215,9 @@ def _services(ctx, restoring=False):
 
 
 def _pointer_folder(ctx, row):
+    if row['pointer'] is None:
+        folder = ctx.p.cr / row['target']
+        return folder if folder.is_dir() and not folder.is_symlink() else None
     path = ctx.p.cr / row['pointer']
     if read_pointer(path) != row['value']:
         return None

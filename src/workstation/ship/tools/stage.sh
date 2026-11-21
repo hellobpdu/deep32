@@ -30,10 +30,13 @@ s_build() {
 }
 
 s_node() {
+	bridge_source=${D32_MODEL_BRIDGE_SOURCE:-$S/../model-bridge/d32_model_bridge.py}
+	[ -f "$bridge_source" ] || { echo "stage: shared model bridge source is missing; stage src/model-bridge and set D32_MODEL_BRIDGE_SOURCE" >&2; exit 1; }
 	N=$L/stage/d32-node
 	rm -rf $N
 	mkdir -p $N/usr/local $N/etc/rc.d $N/etc/login.conf.d $N/etc/d32
 	cp -Rp /usr/local/d32 $N/usr/local/
+	install -m 0444 "$bridge_source" $N/usr/local/d32/node/shims/d32_model_bridge.py
 	# Deep32's own unit tests run on the build VM (node/run-gen.sh), never on a node (update 2, U58)
 	rm -f $N/usr/local/d32/node/test_*.py $N/usr/local/d32/node/__pycache__/test_*.pyc
 	# never ship a token, an env file or a secret key that a test left behind

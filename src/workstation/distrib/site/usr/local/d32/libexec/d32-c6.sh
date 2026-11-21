@@ -4,10 +4,12 @@
 # C6_DIR, C6_SERIAL, C6_REPEAT, D32_TTY_OUT select test files and timing.
 # c6_encode SEQ NODE STAGE STATE [key=value ...]: 0 encoded, 1 refused.
 c6_encode() {
+    local LC_ALL=C
+    export LC_ALL
     local _d32seq=${1-} _d32node=${2-} _d32stage=${3-} _d32state=${4-}
     local _d32boot= _d32version= _d32name= _d32signin= _d32pair=
     local _d32with= _d32expires= _d32error= _d32msg= _d32seen=' '
-    local _d32arg _d32key _d32val _d32line
+    local _d32arg _d32key _d32val _d32line _d32available _d32marker='[truncated]'
     [ "$#" -ge 4 ] || return 1
     shift 4
     case $_d32seq in ''|0*|*[!0-9]*) return 1;; esac
@@ -65,7 +67,6 @@ c6_encode() {
             case $_d32val in *[!A-Z0-9_]*) return 1;; esac
             _d32error=$_d32val;;
         msg)
-            [ "${#_d32val}" -le 240 ] || return 1
             _d32msg=$_d32val;;
         *) return 1;;
         esac
@@ -82,8 +83,18 @@ c6_encode() {
     [ -z "$_d32with" ] || _d32line="$_d32line pair_with=$_d32with"
     [ -z "$_d32expires" ] || _d32line="$_d32line expires=$_d32expires"
     [ -z "$_d32error" ] || _d32line="$_d32line error=$_d32error"
-    [ -z "$_d32msg" ] || _d32line="$_d32line msg=$_d32msg"
     [ "${#_d32line}" -le 511 ] || return 1
+    if [ -n "$_d32msg" ]; then
+        _d32available=$((511 - ${#_d32line} - 5))
+        [ "$_d32available" -le 240 ] || _d32available=240
+        if [ "${#_d32msg}" -gt "$_d32available" ]; then
+            # show when message details have been shortened.
+            [ "$_d32available" -ge "${#_d32marker}" ] || _d32marker='~'
+            [ "$_d32available" -ge "${#_d32marker}" ] || return 1
+            _d32msg=$(printf '%.*s%s' "$((_d32available - ${#_d32marker}))" "$_d32msg" "$_d32marker")
+        fi
+        _d32line="$_d32line msg=$_d32msg"
+    fi
     echo -n "$_d32line"
 }
 
@@ -176,6 +187,7 @@ c6_current() {
     local _d32line
     [ -r "${C6_DIR-}/status" ] || return 3
     IFS= read -r _d32line <"$C6_DIR/status" || return 3
+    c6_check "$_d32line" || return 3
     echo -n "$_d32line"
 }
 

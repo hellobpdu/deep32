@@ -32,7 +32,8 @@ Before this run the operator stages: authenticated Ubuntu ISO and archive snapsh
 official NVIDIA toolkit and Tailscale signed repositories; pinned TEI images from
 ghcr.io/huggingface/text-embeddings-inference; pinned runtime base and application
 images; exact Hugging Face snapshots; complete hashed wheels and upstream licences;
-the reviewed converter chain and S7 pairing helper. Fetch plan: fetch-inputs.sh --dry-run.
+the reviewed converter chain. Pairing is bundled in the runtime kit.
+Fetch plan: fetch-inputs.sh --dry-run.
 Sources and manifest: PINS.md. Validate every TO-PIN, exact payload inventory and model revision.
 Refuse existing output paths, special members and unresolved or unverified inputs.
 Copy the identical kit and payload, normalise timestamps and write provenance.
@@ -63,7 +64,7 @@ copy_payload() {
   cp -- "$stage_dir/pins.json" "$destination/kit/pins.json"
   find "$destination" -type f -exec chmod 0644 {} +
   find "$destination" -type f -name '*.sh' -exec chmod 0755 {} +
-  chmod 0755 "$destination/payload/bin/pairing-helper"
+  chmod 0755 "$destination/kit/pairing/bin/deep32-pair" "$destination/kit/pairing/bin/pairing-helper"
   find "$destination" -type d -exec chmod 0755 {} +
   find "$destination" -exec touch -h -d "@$SOURCE_DATE_EPOCH" {} +
 }

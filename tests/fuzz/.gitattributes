@@ -1,0 +1,2 @@
+# Seeds are test inputs whose exact bytes matter (some hold CR LF or binary data): never convert them.
+corpus/** -text

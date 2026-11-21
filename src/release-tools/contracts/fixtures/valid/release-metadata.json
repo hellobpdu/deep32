@@ -1,0 +1,14 @@
+{
+  "code_licence": "Apache-2.0",
+  "concept_doi": "10.5281/zenodo.24272647",
+  "documentation_licence": "CC-BY-4.0",
+  "format": "deep32-release-metadata",
+  "format_version": 1,
+  "model_licences": {
+    "embedding": "CC-BY-NC-4.0",
+    "reranker": "CC-BY-NC-4.0"
+  },
+  "release": "v0.1.0-alpha.2",
+  "signer_fingerprint": "B205B406548627AABF5250D8A078C5F25D025DD6",
+  "version": "0.1.0-alpha.2"
+}

@@ -1,0 +1,338 @@
+{
+  "format": "deep32-reproducibility",
+  "format_version": 1,
+  "generator_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "release": "v0.1.0-alpha.2",
+  "source_commit": "0000000000000000000000000000000000000000",
+  "source_date_epoch": 946684800,
+  "subjects": [
+    {
+      "byte_comparison": true,
+      "generator_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "input_manifest_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "provenance": null,
+      "reason": null,
+      "receipt": {
+        "path": "synthetic-comparison-1.json",
+        "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "recipe_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "runs": [
+        {
+          "architecture": "amd64",
+          "clean": true,
+          "clean_method": "New synthetic output and cache directories.",
+          "environment": {
+            "locale": "C",
+            "source_date_epoch": 946684800,
+            "tz": "UTC",
+            "umask": "0022"
+          },
+          "exit_code": 0,
+          "id": "synthetic-clean-run-1",
+          "output": {
+            "sha256": "cd389f69edebba3b206857c8baf77bc2b248d5c102123aa39ab64ec2e66583dc",
+            "size": 26
+          },
+          "platform": "fixture-linux",
+          "tool_versions": [
+            {
+              "name": "fixture-assembler",
+              "version": "1.0"
+            }
+          ],
+          "verification": "passed"
+        },
+        {
+          "architecture": "amd64",
+          "clean": true,
+          "clean_method": "New synthetic output and cache directories.",
+          "environment": {
+            "locale": "C",
+            "source_date_epoch": 946684800,
+            "tz": "UTC",
+            "umask": "0022"
+          },
+          "exit_code": 0,
+          "id": "synthetic-clean-run-2",
+          "output": {
+            "sha256": "cd389f69edebba3b206857c8baf77bc2b248d5c102123aa39ab64ec2e66583dc",
+            "size": 26
+          },
+          "platform": "fixture-linux",
+          "tool_versions": [
+            {
+              "name": "fixture-assembler",
+              "version": "1.0"
+            }
+          ],
+          "verification": "passed"
+        }
+      ],
+      "scope": "media-assembly",
+      "status": "proven",
+      "subject": {
+        "aliases": [],
+        "kind": "disc",
+        "path": "deep32-0.1.0-alpha.2-disc1-workstation-amd64.img",
+        "sha256": "cd389f69edebba3b206857c8baf77bc2b248d5c102123aa39ab64ec2e66583dc",
+        "size": 26
+      },
+      "toolchain_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+    },
+    {
+      "byte_comparison": true,
+      "generator_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "input_manifest_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "provenance": null,
+      "reason": null,
+      "receipt": {
+        "path": "synthetic-comparison-2.json",
+        "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "recipe_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "runs": [
+        {
+          "architecture": "amd64",
+          "clean": true,
+          "clean_method": "New synthetic output and cache directories.",
+          "environment": {
+            "locale": "C",
+            "source_date_epoch": 946684800,
+            "tz": "UTC",
+            "umask": "0022"
+          },
+          "exit_code": 0,
+          "id": "synthetic-clean-run-1",
+          "output": {
+            "sha256": "1fe5fabf26b93afbd0a9d2a4cba3651380b397046b075296c1f1096c74f795a3",
+            "size": 26
+          },
+          "platform": "fixture-linux",
+          "tool_versions": [
+            {
+              "name": "fixture-assembler",
+              "version": "1.0"
+            }
+          ],
+          "verification": "passed"
+        },
+        {
+          "architecture": "amd64",
+          "clean": true,
+          "clean_method": "New synthetic output and cache directories.",
+          "environment": {
+            "locale": "C",
+            "source_date_epoch": 946684800,
+            "tz": "UTC",
+            "umask": "0022"
+          },
+          "exit_code": 0,
+          "id": "synthetic-clean-run-2",
+          "output": {
+            "sha256": "1fe5fabf26b93afbd0a9d2a4cba3651380b397046b075296c1f1096c74f795a3",
+            "size": 26
+          },
+          "platform": "fixture-linux",
+          "tool_versions": [
+            {
+              "name": "fixture-assembler",
+              "version": "1.0"
+            }
+          ],
+          "verification": "passed"
+        }
+      ],
+      "scope": "media-assembly",
+      "status": "proven",
+      "subject": {
+        "aliases": [],
+        "kind": "disc",
+        "path": "deep32-0.1.0-alpha.2-disc2-content.iso",
+        "sha256": "1fe5fabf26b93afbd0a9d2a4cba3651380b397046b075296c1f1096c74f795a3",
+        "size": 26
+      },
+      "toolchain_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+    },
+    {
+      "byte_comparison": true,
+      "generator_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "input_manifest_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "provenance": null,
+      "reason": null,
+      "receipt": {
+        "path": "synthetic-comparison-3.json",
+        "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "recipe_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "runs": [
+        {
+          "architecture": "amd64",
+          "clean": true,
+          "clean_method": "New synthetic output and cache directories.",
+          "environment": {
+            "locale": "C",
+            "source_date_epoch": 946684800,
+            "tz": "UTC",
+            "umask": "0022"
+          },
+          "exit_code": 0,
+          "id": "synthetic-clean-run-1",
+          "output": {
+            "sha256": "ef20d2113f484125ec6f95fc2c2c2cb95e6036341c44bc27c30674b0624a93f1",
+            "size": 26
+          },
+          "platform": "fixture-linux",
+          "tool_versions": [
+            {
+              "name": "fixture-assembler",
+              "version": "1.0"
+            }
+          ],
+          "verification": "passed"
+        },
+        {
+          "architecture": "amd64",
+          "clean": true,
+          "clean_method": "New synthetic output and cache directories.",
+          "environment": {
+            "locale": "C",
+            "source_date_epoch": 946684800,
+            "tz": "UTC",
+            "umask": "0022"
+          },
+          "exit_code": 0,
+          "id": "synthetic-clean-run-2",
+          "output": {
+            "sha256": "ef20d2113f484125ec6f95fc2c2c2cb95e6036341c44bc27c30674b0624a93f1",
+            "size": 26
+          },
+          "platform": "fixture-linux",
+          "tool_versions": [
+            {
+              "name": "fixture-assembler",
+              "version": "1.0"
+            }
+          ],
+          "verification": "passed"
+        }
+      ],
+      "scope": "media-assembly",
+      "status": "proven",
+      "subject": {
+        "aliases": [],
+        "kind": "disc",
+        "path": "deep32-0.1.0-alpha.2-disc3-gpu-pack.iso",
+        "sha256": "ef20d2113f484125ec6f95fc2c2c2cb95e6036341c44bc27c30674b0624a93f1",
+        "size": 26
+      },
+      "toolchain_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+    },
+    {
+      "byte_comparison": true,
+      "generator_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "input_manifest_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "provenance": null,
+      "reason": null,
+      "receipt": {
+        "path": "synthetic-comparison-4.json",
+        "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "recipe_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "runs": [
+        {
+          "architecture": "amd64",
+          "clean": true,
+          "clean_method": "New synthetic output and cache directories.",
+          "environment": {
+            "locale": "C",
+            "source_date_epoch": 946684800,
+            "tz": "UTC",
+            "umask": "0022"
+          },
+          "exit_code": 0,
+          "id": "synthetic-clean-run-1",
+          "output": {
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "size": 16
+          },
+          "platform": "fixture-linux",
+          "tool_versions": [
+            {
+              "name": "fixture-assembler",
+              "version": "1.0"
+            }
+          ],
+          "verification": "passed"
+        },
+        {
+          "architecture": "amd64",
+          "clean": true,
+          "clean_method": "New synthetic output and cache directories.",
+          "environment": {
+            "locale": "C",
+            "source_date_epoch": 946684800,
+            "tz": "UTC",
+            "umask": "0022"
+          },
+          "exit_code": 0,
+          "id": "synthetic-clean-run-2",
+          "output": {
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "size": 16
+          },
+          "platform": "fixture-linux",
+          "tool_versions": [
+            {
+              "name": "fixture-assembler",
+              "version": "1.0"
+            }
+          ],
+          "verification": "passed"
+        }
+      ],
+      "scope": "runtime-assembly",
+      "status": "proven",
+      "subject": {
+        "aliases": [],
+        "kind": "runtime",
+        "path": "forge-docker.tar",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "size": 16
+      },
+      "toolchain_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+    },
+    {
+      "byte_comparison": null,
+      "generator_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "input_manifest_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "provenance": {
+        "path": "sealed-upstream-provenance.json",
+        "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "reason": null,
+      "receipt": null,
+      "recipe_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "runs": [],
+      "scope": "unchanged-upstream-input",
+      "status": "reused",
+      "subject": {
+        "aliases": [
+          {
+            "path": "payload/images/full.tar",
+            "role": "full"
+          },
+          {
+            "path": "payload/images/full.tar",
+            "role": "model-bridge"
+          }
+        ],
+        "kind": "container",
+        "path": "payload/images/full.tar",
+        "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "size": 8
+      },
+      "toolchain_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+    }
+  ]
+}

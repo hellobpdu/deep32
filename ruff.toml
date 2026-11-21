@@ -1,0 +1,91 @@
+# Ruff configuration for Deep32.
+#
+# I use Ruff as a linter for mistakes: syntax errors, undefined names, unused imports and variables, redefinitions
+# and a short list of well-known bug patterns. I don't use it as a formatter, and nothing here asks for a style.
+# Keep each file's style as it is.
+#
+#   ruff check --no-cache .
+#
+# docs/BUILDING.md section 3 has the commands and the findings recorded for the current release.
+#
+# Never run `ruff format` or `ruff check --fix` on src/gpu-pack or src/workstation: the published images are built
+# from exactly those files, and they change only with a release.
+
+# The release tools and the Forge host helpers run on Python 3.10 and newer.
+target-version = "py312"  # the documented minimum (INSTALL.md); ExceptionGroup is a builtin
+
+# Python programs that have no .py suffix.
+extend-include = [
+    "src/gpu-pack/pairing/bin/deep32-pair",
+    "src/gpu-pack/pairing/bin/pairing-helper",
+    "src/workstation/ask-client/bridge/d32-ask",
+    "src/workstation/distrib/site/usr/local/d32/libexec/d32-forge-enrol",
+    "src/workstation/distrib/site/usr/local/d32/libexec/d32-gateway-enrol",
+    "src/workstation/distrib/site/usr/local/d32/libexec/d32-uijson",
+    "src/workstation/distrib/site/usr/local/d32/libexec/deep32-pair",
+    "src/workstation/distrib/site/usr/local/d32/libexec/pairing-helper",
+    "src/workstation/distrib/site/usr/local/d32/sbin/d32-content-fetch",
+    "src/workstation/distrib/site/usr/local/d32/sbin/d32-publish",
+    "tests/pairing/reference/bin/deep32-pair",
+    "tests/pairing/reference/bin/pairing-helper",
+]
+
+[lint]
+# The rule set is named in full because Ruff's defaults change between versions.
+select = [
+    "E9",   # syntax errors and unreadable files
+    "F",    # Pyflakes: undefined names, unused imports and variables, redefinitions
+    "PLE",  # Pylint errors, including invisible and bidirectional characters in source
+    "B",    # flake8-bugbear: likely bugs
+]
+ignore = [
+    "B007",  # loop variable not used in the loop body: no effect on behavior
+    "B023",  # closure over a loop variable: every one of these I read is called before the loop moves on
+    "B904",  # raise inside except without "from": changes only how a traceback is chained
+    "B905",  # zip() without strict=: Python's default behavior, used throughout
+]
+
+[lint.per-file-ignores]
+# Sealed media source: these files change only with a release, so their existing findings stay until then.
+"src/gpu-pack/**" = ["F401", "F541", "F841", "PLE2502", "PLE2515"]
+"src/workstation/**" = ["F401", "F811", "F841"]
+# Byte-exact copies: the pairing reference package as imported, and the importer payload the build slots carry.
+"tests/pairing/reference/**" = ["F401", "B017"]
+"src/build/s5-build-driver/slots/**" = ["F401", "F841"]
+# A verbatim copy of gateway 2.4.1's renderer, kept to compare output; its postponed annotations name a type
+# from that package.
+"tests/gateway/edge_241_render.py" = ["F821"]
+# Test code: an unused import or a broad assertRaises does no harm there.
+"tests/**" = ["F401", "F811", "F841", "B017"]
+"adapters/tests/**" = ["F401"]
+
+# Baseline: findings reviewed on 19 November 2026; none is a defect (docs/BUILDING.md section 3). Each entry covers
+# only the rules already found in that file. Remove an entry once its file is cleaned up; new files get every check.
+"adapters/relay/deep32_relay/engine.py" = ["F401", "F811"]
+"adapters/relay/deep32_relay/native.py" = ["F401"]
+"adapters/relay/deep32_relay/pairing.py" = ["F401"]
+"adapters/relay/deep32_relay/platform.py" = ["F401"]
+"adapters/relay/deep32_relay/selftest.py" = ["F401"]
+"adapters/relay/deep32_relay/state.py" = ["F401"]
+"adapters/relay/deep32_relay/tls.py" = ["F401"]
+"src/build/alpha2-tree/make-alpha2-tree.py" = ["B008"]
+"src/build/disc3-pins/resolve-pins.py" = ["B013"]
+"src/build/name-bitmaps/splash.py" = ["F841"]
+"src/build/name-bitmaps/worldof.py" = ["F841"]
+"src/build/s5-build-driver/test-alpha2-patches.py" = ["F401"]
+"src/build/s5-build-driver/test-alpha2-stages.py" = ["F401"]
+"src/diagnostics/deep32_diag/mcp.py" = ["B013"]
+"src/diagnostics/deep32_diag/models.py" = ["B033"]
+"src/diagnostics/deep32_diag/platform/windows_forge.py" = ["F401"]
+"src/diagnostics/deep32_diag/selftest.py" = ["F401"]
+"src/engine/src/rag_core/db.py" = ["F401"]
+"src/engine/src/rag_core/ingest.py" = ["F401"]
+"src/kb-tools/kb-bundle/kb_bundle.py" = ["F841"]
+"src/kb-tools/kb-bundle/kb_qdrant.py" = ["F401", "F841"]
+"src/kb-tools/linux-line/s3-pre/derived_layers.py" = ["F541"]
+"src/model-bridge/d32_model_bridge.py" = ["F401"]
+"src/model-bridge/linux_runtime.py" = ["F401"]
+"src/release-tools/deep32_get_whole.py" = ["F841"]
+"src/release-tools/forge_preflight_windows.py" = ["F401"]
+"src/release-tools/sbom/inputs.py" = ["F401"]
+"src/release-tools/source_build_catalog.py" = ["F401"]

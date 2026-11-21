@@ -1,8 +1,9 @@
 # Document style extraction
 
 This optional command reads original PDF, HTML and ePub documents and writes
-the same lexicon JSON used by the KB builder. It is part of the separate AGPL
-converter. Its PDF path imports PyMuPDF only in this process.
+the same lexicon JSON used by the KB builder. It is part of the separate
+converter, which is under AGPL-3.0-or-later because it uses PyMuPDF and MuPDF.
+Its PDF path imports PyMuPDF only in this process.
 
 The KB-side document_styles.py is a launcher. Set DEEP32_CONVERTER_PYTHON to a
 local converter interpreter, or DEEP32_STYLES_COMMAND to a JSON argument array

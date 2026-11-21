@@ -54,7 +54,7 @@ refresh() {
 		kb)	XtSetValues $KB labelString:"$a" ;;
 		meaning) XtSetValues $MEANING labelString:"$a" ;;
 		note)	note=$a ;;
-		step)	if [ $n -lt 10 ]; then
+		step)	if [ $n -lt 11 ]; then
 				eval "XtSetValues \$STEP$n labelString:\"\$(pad \"\$a\" 9)\$b\""
 				if [ "$d" = current ]; then eval "XtSetValues \$STEP$n fontList:\"\$BOLD\""
 				else eval "XtSetValues \$STEP$n fontList:\"\$MONO\""; fi
@@ -112,7 +112,8 @@ XtCreateManagedWidget SFRAME sframe XmFrame $FORM topAttachment:ATTACH_WIDGET to
 XtCreateManagedWidget STITLE stitle XmLabel $SFRAME childType:FRAME_TITLE_CHILD labelString:"$(say report.frame.steps)"
 XtCreateManagedWidget SRC steps XmRowColumn $SFRAME orientation:VERTICAL marginWidth:10 marginHeight:8 spacing:2
 i=0
-while [ $i -lt 10 ]; do
+# eleven steps: Download disc 2 (when it came over the network) and the import's ten
+while [ $i -lt 11 ]; do
 	XtCreateManagedWidget W step$i XmLabel $SRC alignment:ALIGNMENT_BEGINNING labelString:" " fontList:"$MONO"
 	eval STEP$i=\$W
 	i=$((i + 1))

@@ -1,10 +1,42 @@
 param(
     [Parameter(Mandatory = $true)][string]$ReleaseDirectory,
-    [Parameter(Mandatory = $true)][string]$Fingerprint
+    [Parameter(Mandatory = $true)][string]$Fingerprint,
+    [ValidateSet('disc1', 'disc2', 'disc3')][string]$Disc,
+    [string]$Key = '',
+    [string]$Gpg = '',
+    [string]$Release = '',
+    [ValidateSet('metadata', 'whole')][string]$Scope = '',
+    [string[]]$ImagePath = @(),
+    [switch]$LegacySplit
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+
+if (-not $LegacySplit) {
+    if (-not $Scope) { throw 'Choose -Scope metadata or whole.' }
+    if ($Disc) { throw 'Selected legacy-disc verification requires -LegacySplit.' }
+    if (-not $Key) { $Key = Join-Path $PSScriptRoot '..\..\install\release-key.gpg' }
+    . (Join-Path $PSScriptRoot 'deep32-get.ps1')
+    $wholeArguments = @('verify-whole', $ReleaseDirectory, $Fingerprint, '--scope', $Scope, '--key', $Key)
+    if ($Gpg) { $wholeArguments += @('--gpg', $Gpg) }
+    if ($Release) { $wholeArguments += @('--release', $Release) }
+    foreach ($source in $ImagePath) { $wholeArguments += @('--image', $source) }
+    try { Invoke-Deep32ManifestHelper -Arguments $wholeArguments; exit 0 }
+    catch { [Console]::Error.WriteLine($_.Exception.Message); exit 1 }
+}
+if ($Scope -or $ImagePath.Count) { throw 'Whole-release scope options cannot be combined with -LegacySplit.' }
+if (-not $Release) { $Release = 'v0.1.0-alpha.1' }
+
+if ($Disc) {
+    if (-not $Key) { $Key = Join-Path $PSScriptRoot '..\..\install\release-key.gpg' }
+    . (Join-Path $PSScriptRoot 'deep32-get.ps1')
+    $selectedArguments = @('verify-selected', $ReleaseDirectory, $Fingerprint,
+        '--disc', $Disc, '--key', $Key, '--release', $Release)
+    if ($Gpg) { $selectedArguments += @('--gpg', $Gpg) }
+    try { Invoke-Deep32ManifestHelper -Arguments $selectedArguments; exit 0 }
+    catch { [Console]::Error.WriteLine($_.Exception.Message); exit 1 }
+}
 
 function Assert-SafeName([string]$Name) {
     if ($Name.Length -gt 200 -or $Name -cnotmatch '^[A-Za-z0-9][A-Za-z0-9._-]*$' -or $Name.Contains('..')) {
@@ -200,6 +232,8 @@ function Assert-Signature([string]$ChecksumPath, [string]$ExpectedFingerprint, [
             if (($fields.Count -ne 11 -and $fields.Count -ne 12) -or $fields[2] -cnotmatch '^(?:[0-9A-Fa-f]{40}|[0-9A-Fa-f]{64})$') {
                 throw 'Malformed gpg VALIDSIG status.'
             }
+            # Release checks require a binary signature over the exact bytes.
+            if ($fields[10] -cne '00') { throw 'Only binary detached signatures (class 00) are accepted.' }
             $primary = $fields[2]
             if ($fields.Count -eq 12) { $primary = $fields[11] }
             if ($primary -cnotmatch '^(?:[0-9A-Fa-f]{40}|[0-9A-Fa-f]{64})$' -or $primary.ToUpperInvariant() -cne $ExpectedFingerprint) {

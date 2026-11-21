@@ -1,0 +1,187 @@
+{
+  "version": 1,
+  "vectors": [
+    {
+      "name": "HELLO",
+      "hex": "000000c000000000010000007b2270726f746f223a22443332552f31222c226964223a226e6f64652d74657374222c2276657273696f6e223a312c2276657273696f6e73223a5b315d2c22726f6c65223a226e6f6465222c226665617475726573223a5b2272657365617263682d7631225d2c226e6f6e6365223a2230303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030222c2273657373696f6e73223a5b5d7d",
+      "decoded": {
+        "length": 192,
+        "stream": 0,
+        "type": 1,
+        "channel": 0,
+        "flags": 0,
+        "payload_hex": "7b2270726f746f223a22443332552f31222c226964223a226e6f64652d74657374222c2276657273696f6e223a312c2276657273696f6e73223a5b315d2c22726f6c65223a226e6f6465222c226665617475726573223a5b2272657365617263682d7631225d2c226e6f6e6365223a2230303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030222c2273657373696f6e73223a5b5d7d"
+      },
+      "meaning": "HELLO: stream 0, channel 0; {\"proto\":\"D32U/1\",\"id\":\"node-test\",\"version\":1,\"versions\":[1],\"role\":\"node\",\"features\":[\"research-v1\"],\"nonce\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"sessions\":[]}"
+    },
+    {
+      "name": "HELLO_ACK",
+      "hex": "0000003600000000020000007b2276657273696f6e223a312c226665617475726573223a5b2272657365617263682d7631225d2c22706169726564223a747275657d",
+      "decoded": {
+        "length": 54,
+        "stream": 0,
+        "type": 2,
+        "channel": 0,
+        "flags": 0,
+        "payload_hex": "7b2276657273696f6e223a312c226665617475726573223a5b2272657365617263682d7631225d2c22706169726564223a747275657d"
+      },
+      "meaning": "HELLO_ACK: stream 0, channel 0; {\"version\":1,\"features\":[\"research-v1\"],\"paired\":true}"
+    },
+    {
+      "name": "OPEN",
+      "hex": "0000001000000001030100007b2273657373696f6e223a227331227d",
+      "decoded": {
+        "length": 16,
+        "stream": 1,
+        "type": 3,
+        "channel": 1,
+        "flags": 0,
+        "payload_hex": "7b2273657373696f6e223a227331227d"
+      },
+      "meaning": "OPEN: stream 1, channel 1; {\"session\":\"s1\"}"
+    },
+    {
+      "name": "OPEN_ACK",
+      "hex": "000000000000000104010000",
+      "decoded": {
+        "length": 0,
+        "stream": 1,
+        "type": 4,
+        "channel": 1,
+        "flags": 0,
+        "payload_hex": ""
+      },
+      "meaning": "OPEN_ACK: stream 1, channel 1; {}"
+    },
+    {
+      "name": "DATA",
+      "hex": "0000000f00000001050100017b226f70223a22737461747573227d",
+      "decoded": {
+        "length": 15,
+        "stream": 1,
+        "type": 5,
+        "channel": 1,
+        "flags": 1,
+        "payload_hex": "7b226f70223a22737461747573227d"
+      },
+      "meaning": "DATA: stream 1, channel 1; {\"op\":\"status\"}"
+    },
+    {
+      "name": "WINDOW_UPDATE",
+      "hex": "00000004000000010601000000010000",
+      "decoded": {
+        "length": 4,
+        "stream": 1,
+        "type": 6,
+        "channel": 1,
+        "flags": 0,
+        "payload_hex": "00010000"
+      },
+      "meaning": "WINDOW_UPDATE: stream 1, channel 1; 00010000"
+    },
+    {
+      "name": "CLOSE",
+      "hex": "000000000000000107010000",
+      "decoded": {
+        "length": 0,
+        "stream": 1,
+        "type": 7,
+        "channel": 1,
+        "flags": 0,
+        "payload_hex": ""
+      },
+      "meaning": "CLOSE: stream 1, channel 1; {}"
+    },
+    {
+      "name": "RESET",
+      "hex": "00000004000000020803000000000003",
+      "decoded": {
+        "length": 4,
+        "stream": 2,
+        "type": 8,
+        "channel": 3,
+        "flags": 0,
+        "payload_hex": "00000003"
+      },
+      "meaning": "RESET: stream 2, channel 3; 00000003"
+    },
+    {
+      "name": "PING",
+      "hex": "0000000800000000090000000001020304050607",
+      "decoded": {
+        "length": 8,
+        "stream": 0,
+        "type": 9,
+        "channel": 0,
+        "flags": 0,
+        "payload_hex": "0001020304050607"
+      },
+      "meaning": "PING: stream 0, channel 0; 0001020304050607"
+    },
+    {
+      "name": "PONG",
+      "hex": "00000008000000000a0000000001020304050607",
+      "decoded": {
+        "length": 8,
+        "stream": 0,
+        "type": 10,
+        "channel": 0,
+        "flags": 0,
+        "payload_hex": "0001020304050607"
+      },
+      "meaning": "PONG: stream 0, channel 0; 0001020304050607"
+    },
+    {
+      "name": "ERROR",
+      "hex": "00000004000000000b00000000000001",
+      "decoded": {
+        "length": 4,
+        "stream": 0,
+        "type": 11,
+        "channel": 0,
+        "flags": 0,
+        "payload_hex": "00000001"
+      },
+      "meaning": "ERROR: stream 0, channel 0; 00000001"
+    },
+    {
+      "name": "PAIR_CONFIRM",
+      "hex": "00000020000000000c0000000000000000000000000000000000000000000000000000000000000000000000",
+      "decoded": {
+        "length": 32,
+        "stream": 0,
+        "type": 12,
+        "channel": 0,
+        "flags": 0,
+        "payload_hex": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "meaning": "PAIR_CONFIRM: stream 0, channel 0; 0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "name": "PAIR_COMMIT",
+      "hex": "00000000000000000d000000",
+      "decoded": {
+        "length": 0,
+        "stream": 0,
+        "type": 13,
+        "channel": 0,
+        "flags": 0,
+        "payload_hex": ""
+      },
+      "meaning": "PAIR_COMMIT: stream 0, channel 0; {}"
+    },
+    {
+      "name": "PAIR_SHARE",
+      "hex": "00000041000000000e0000000400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+      "decoded": {
+        "length": 65,
+        "stream": 0,
+        "type": 14,
+        "channel": 0,
+        "flags": 0,
+        "payload_hex": "0400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "meaning": "PAIR_SHARE: stream 0, channel 0; 0400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ]
+}

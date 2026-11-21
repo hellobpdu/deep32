@@ -79,11 +79,17 @@ err() { printf 'deep32-inventory: %s\n' "$*" >&2; }
 usage() {
     printf '%s\n' 'usage: deep32-inventory.sh [report] [--json] [--net] [--matrix FILE] [--facts FILE]' \
         '       deep32-inventory.sh bench quick [--seconds N] [--json] [--guard-file FILE]' \
-        'exit codes: 0 done, 1 other error, 2 bad arguments, 3 refused'
+        '       deep32-inventory.sh --journey J1..J5 --role workstation-host|gpu-host|agent|all --check-prereqs [--format text|json]' \
+        '       for local alpha.2 Forge add --forge-media DIR --forge-class CLASS --forge-data-root DIR' \
+        '       to check the complete reviewed Forge plan add --forge-plan FILE --accept-plan DIGEST' \
+        'exit codes: 0 done, 1 other error, 2 bad arguments, 3 legacy refused, 10 prerequisite action needed'
 }
 
 # ------------------------------------------------------------------ arguments
 MODE=""; SUB=""; JSON=0; NET=0; BENCH_SECS=120; SECS_GIVEN=0
+CHECK_PREREQS=0; JOURNEY=""; ROLE=""; PR_FORMAT=""; FORMAT_GIVEN=0
+FORGE_MEDIA=""; FORGE_CLASS=""; FORGE_DATA=""; FORGE_KEY=""; FORGE_GPG=""
+FORGE_FINGERPRINT=""; FORGE_PLAN=""; FORGE_ACCEPT=""
 MATRIX=""; FACTS=""; GUARD="$DEFAULT_GUARD"; GUARD_EXTRA=""
 GUARD_ONLY=0
 if [ "${DEEP32_INVENTORY_TEST_GUARD_ONLY:-}" = 1 ]; then
@@ -95,9 +101,10 @@ while [ $# -gt 0 ]; do
     case "$a" in
         --json|-json) JSON=1 ;;
         --net|-net) NET=1 ;;
+        --check-prereqs) CHECK_PREREQS=1 ;;
         --help|-h|-help) usage; exit 0 ;;
         --version|-version) printf 'deep32-inventory %s\n' "$TOOL_VERSION"; exit 0 ;;
-        --seconds|--matrix|--facts|--guard-file)
+        --seconds|--matrix|--facts|--guard-file|--journey|--role|--format|--forge-media|--forge-class|--forge-data-root|--forge-key|--forge-fingerprint|--forge-gpg|--forge-plan|--accept-plan)
             if [ $# -lt 2 ]; then err "$a needs a value"; usage >&2; exit 2; fi
             v="$2"; shift
             if [ -z "$v" ]; then err "$a needs a value"; usage >&2; exit 2; fi
@@ -108,8 +115,19 @@ while [ $# -gt 0 ]; do
                     v=$((10#$v))
                     if [ "$v" -lt 1 ] || [ "$v" -gt 600 ]; then err '--seconds must be a whole number from 1 to 600'; exit 2; fi
                     BENCH_SECS="$v"; SECS_GIVEN=1 ;;
+                --journey) JOURNEY="$v" ;;
+                --role) ROLE="$v" ;;
+                --format) if [ "$FORMAT_GIVEN" = 1 ] && [ "$PR_FORMAT" != "$v" ]; then err "conflicting formats"; exit 2; fi; PR_FORMAT="$v"; FORMAT_GIVEN=1 ;;
                 --matrix) MATRIX="$v" ;;
                 --facts) FACTS="$v" ;;
+                --forge-media) FORGE_MEDIA="$v" ;;
+                --forge-class) FORGE_CLASS="$v" ;;
+                --forge-data-root) FORGE_DATA="$v" ;;
+                --forge-key) FORGE_KEY="$v" ;;
+                --forge-fingerprint) FORGE_FINGERPRINT="$v" ;;
+                --forge-gpg) FORGE_GPG="$v" ;;
+                --forge-plan) FORGE_PLAN="$v" ;;
+                --accept-plan) FORGE_ACCEPT="$v" ;;
                 --guard-file) GUARD_EXTRA="$v" ;;
             esac ;;
         -*) err "unknown option $a"; usage >&2; exit 2 ;;
@@ -135,16 +153,52 @@ case "$MODE" in
         if [ -n "$FACTS" ]; then err '--facts belongs to report'; exit 2; fi ;;
     *) err "unknown mode $MODE"; usage >&2; exit 2 ;;
 esac
+if [ "$CHECK_PREREQS" = 1 ]; then
+    if [ "$MODE" != report ] || [ "$NET" = 1 ]; then err 'prerequisite checks belong to report and cannot use --net'; exit 2; fi
+    if [ -z "$JOURNEY" ] || [ -z "$ROLE" ]; then err '--check-prereqs needs --journey and --role'; exit 2; fi
+    if [ "$JSON" = 1 ] && [ "$PR_FORMAT" = text ]; then err 'conflicting formats'; exit 2; fi
+    [ "$JSON" = 1 ] && PR_FORMAT=json
+    [ -z "$PR_FORMAT" ] && PR_FORMAT=text
+    case "$PR_FORMAT" in text|json) ;; *) err '--format needs text or json'; exit 2;; esac
+elif [ -n "$JOURNEY" ] || [ -n "$ROLE" ] || [ "$FORMAT_GIVEN" = 1 ]; then err '--journey, --role and --format need --check-prereqs'; exit 2
+fi
+if [ -n "$FORGE_MEDIA$FORGE_CLASS$FORGE_DATA$FORGE_KEY$FORGE_GPG$FORGE_FINGERPRINT$FORGE_PLAN$FORGE_ACCEPT" ]; then
+    case "$CHECK_PREREQS:$UNAME_S:$ROLE:$JOURNEY" in
+        1:Linux:gpu-host:J1|1:Linux:gpu-host:J2|1:Linux:gpu-host:J4) ;;
+        *) err 'Forge storage observations require native Linux gpu-host prerequisite mode'; exit 2 ;;
+    esac
+    if [ -n "$FACTS" ] || [ -z "$FORGE_MEDIA" ] || [ -z "$FORGE_CLASS" ] || [ -z "$FORGE_DATA" ]; then
+        err 'Supply local Forge media, class, and data-root together with live probes'; exit 2
+    fi
+    if [ -n "$FORGE_PLAN$FORGE_ACCEPT" ] && { [ -z "$FORGE_PLAN" ] || [[ ! "$FORGE_ACCEPT" =~ ^[0-9a-f]{64}$ ]]; }; then
+        err 'Supply the reviewed --forge-plan and its --accept-plan digest together'; exit 2
+    fi
+fi
 SCRIPT_DIR=$(cd "$(dirname "$0")" 2>/dev/null && pwd)
+[ -n "$FORGE_KEY" ] || FORGE_KEY="$SCRIPT_DIR/release-key.gpg"
+[ -n "$FORGE_FINGERPRINT" ] || FORGE_FINGERPRINT=B205B406548627AABF5250D8A078C5F25D025DD6
 [ -z "$MATRIX" ] && MATRIX="$SCRIPT_DIR/matrix.json"
 
 # ------------------------------------------------------------------ small helpers
 have() { command -v "$1" >/dev/null 2>&1; }
-run_to() {
-    # run_to SECONDS command...: with a time limit where the system has one
-    _s="$1"; shift
-    if have timeout; then timeout "$_s" "$@"; else "$@"; fi
-}
+fpath() { printf '%s%s\n' "$R" "$1"; }
+run_to() (
+    # A PID namespace owns detached and reparented descendants as well as the direct child.
+    # Fail closed: no requested tool starts if this containment is unavailable.
+    _seconds="$1"; shift
+    case "$(uname -s 2>/dev/null)" in
+        Linux) ;;
+        *) return 124 ;;
+    esac
+    have timeout && have unshare || return 124
+    timeout --signal=KILL "$_seconds" unshare --user --map-current-user --pid --fork --kill-child=KILL "$BASH" -c '
+        "$@"; status=$?
+        case "$status" in 0) exit 0;; 1) exit 51;; *) exit 52;; esac
+    ' inventory-tool "$@"
+    _status=$?
+    case "$_status" in 0) return 0;; 51) return 1;; 52) return 2;; *) return 124;; esac
+)
+
 ascii() { printf '%s' "$1" | LC_ALL=C tr -cd '\040-\176' | sed 's/  */ /g; s/^ //; s/ $//'; }
 lc() { printf '%s' "$1" | tr '[:upper:]' '[:lower:]'; }
 first_ver() { sed -n 's/^[^0-9]*\([0-9][0-9]*\.[0-9][0-9]*\(\.[0-9][0-9]*\)\{0,1\}\).*/\1/p' | head -n 1; }
@@ -230,8 +284,68 @@ function jstring(   out, c, h) {
 function jnumber(   s, c) {
     s = ""
     while (JP <= JL) { c = substr(JT, JP, 1); if (c ~ /[-+0-9.eE]/) { s = s c; JP++ } else break }
+    if (s !~ /^-?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][+-]?[0-9]+)?$/) JERR = 1
     return s
 }
+function deccmp(a,b) { if(length(a)!=length(b))return length(a)>length(b)?1:-1; return ("x" a)==("x" b)?0:(("x" a)>("x" b)?1:-1) }
+function decadd(a,b,   i,j,carry,n,out) {
+    i=length(a);j=length(b);carry=0;out=""
+    while(i>0||j>0||carry) {n=(i>0?substr(a,i--,1)+0:0)+(j>0?substr(b,j--,1)+0:0)+carry;out=(n%10) out;carry=int(n/10)}
+    return out==""?"0":out
+}
+function decsub(a,b,   i,j,borrow,n,out) {
+    i=length(a);j=length(b);borrow=0;out=""
+    while(i>0) {n=substr(a,i--,1)-borrow-(j>0?substr(b,j--,1):0);borrow=(n<0);if(borrow)n+=10;out=n out}
+    sub(/^0+/,"",out);return out==""?"0":out
+}
+function signednorm(s,   negative) {negative=(substr(s,1,1)=="-");sub(/^[+-]/,"",s);sub(/^0+/,"",s);return s==""?"0":(negative?"-":"") s}
+function signedadd(a,b,   an,bn,c) {
+    a=signednorm(a);b=signednorm(b);an=(substr(a,1,1)=="-");bn=(substr(b,1,1)=="-")
+    if(an)a=substr(a,2);if(bn)b=substr(b,2)
+    if(an==bn)return signednorm((an?"-":"") decadd(a,b))
+    c=deccmp(a,b);if(c==0)return "0"
+    return c>0?signednorm((an?"-":"") decsub(a,b)):signednorm((bn?"-":"") decsub(b,a))
+}
+function intnorm(digits,exponent,   end,removed) {
+    sub(/^0+/,"",digits);if(digits=="")return "0@0"
+    end=length(digits);while(end>1&&substr(digits,end,1)=="0")end--
+    removed=length(digits)-end
+    return substr(digits,1,end) "@" signedadd(exponent,sprintf("%.0f",removed))
+}
+function integer(s,   a,n,coefficient,exponent,point,fraction,digits,result) {
+    n=split(s,a,/[eE]/);coefficient=a[1];exponent=(n==2?signednorm(a[2]):"0")
+    point=index(coefficient,".");fraction=(point?length(coefficient)-point:0)
+    digits=coefficient;gsub(/[-.]/,"",digits);sub(/^0+/,"",digits)
+    if(digits=="")return "0@0"
+    if(substr(coefficient,1,1)=="-")return ""
+    result=intnorm(digits,signedadd(exponent,"-" sprintf("%.0f",fraction)))
+    split(result,a,/@/);return substr(a[2],1,1)=="-"?"":result
+}
+function bigcmp(a,b,   aa,bb,c,i,x,y) {
+    split(a,aa,/@/);split(b,bb,/@/)
+    if(aa[1]=="0"||bb[1]=="0")return aa[1]==bb[1]?0:(aa[1]=="0"?-1:1)
+    c=deccmp(decadd(aa[2],sprintf("%.0f",length(aa[1]))),decadd(bb[2],sprintf("%.0f",length(bb[1]))));if(c)return c
+    for(i=1;i<=length(aa[1])||i<=length(bb[1]);i++) {x=(i<=length(aa[1])?substr(aa[1],i,1):"0");y=(i<=length(bb[1])?substr(bb[1],i,1):"0");if(x!=y)return x>y?1:-1}
+    return 0
+}
+function zeroes(n,   out) {if(n==0)return "";out="0";while(length(out)<n)out=out out;return substr(out,1,n)}
+function bigadd(a,b,   aa,bb,gap,swap) {
+    split(a,aa,/@/);split(b,bb,/@/)
+    if(aa[1]=="0")return b;if(bb[1]=="0")return a
+    if(deccmp(aa[2],bb[2])==0)return intnorm(decadd(aa[1],bb[1]),aa[2])
+    if(deccmp(aa[2],bb[2])<0) {swap=a;a=b;b=swap;split(a,aa,/@/);split(b,bb,/@/)}
+    gap=decsub(aa[2],bb[2])
+    # Limit expanded result storage, never the numeric magnitude.
+    if(deccmp(gap,"65536")>0||gap+length(aa[1])>65536||length(bb[1])>65536)return ""
+    return intnorm(decadd(aa[1] zeroes(gap+0),bb[1]),bb[2])
+}
+function bigjson(a,   aa,total) {
+    split(a,aa,/@/);if(aa[1]=="0")return "0"
+    total=decadd(aa[2],sprintf("%.0f",length(aa[1])))
+    if(deccmp(total,"4096")<=0)return aa[1] zeroes(aa[2]+0)
+    return aa[1] "e" aa[2]
+}
+
 function hexval(h,   i, c, v) {
     v = 0; h = tolower(h)
     for (i = 1; i <= length(h); i++) { c = index("0123456789abcdef", substr(h, i, 1)); if (c == 0) return -1; v = v * 16 + c - 1 }
@@ -608,10 +722,163 @@ function nobom(s) {
     if (substr(s, 1, 2) == "\377\376" || substr(s, 1, 2) == "\376\377") return substr(s, 3)
     return s
 }
+function prhas(scope) { return index(" " PRSCOPES " ", " " scope " ") > 0 }
+function prselected(p,   i) { for(i=0;i<N[p];i++) if(prhas(V[p "[" i "]"]))return 1; return 0 }
+function prversion(v) { return v ~ /^[0-9]+\.[0-9]+(\.[0-9]+)?(\.[0-9]+)?$/ && length(v)<40 }
+function prge(v,m,   a,b,n,k,i) { n=split(v,a,"."); k=split(m,b,"."); for(i=1;i<=4;i++) { if((a[i]+0)>(b[i]+0))return 1; if((a[i]+0)<(b[i]+0))return 0 }; return 1 }
+function prstate(p,minimum,   s,v) {
+    if(T[p]=="b") return V[p]=="true"?(minimum!=""?"unknown":"met"):"missing"
+    if(T[p]=="s") { s=V[p]; if(s=="met"||s=="missing"||s=="unknown") return (s=="met"&&minimum!=""?"unknown":s); return "unknown" }
+    if(T[p]!="o") return "unknown"
+    s=V[p ".state"]; if(s!="met"&&s!="missing"&&s!="unknown") s="unknown"
+    v=V[p ".version"]
+    if(minimum!="" && s=="met") { if(!prversion(v))s="unknown"; else if(!prge(v,minimum))s="missing" }
+    return s
+}
+function prsetup(   j,r,f,e,ok) {
+    j=ENVIRON["D32_JOURNEY"]; r=ENVIRON["D32_ROLE"]; f=V["x.facts.os.family"]; e=V["x.facts.os.edition"]
+    PRJOURNEY=(j~/^J[1-5]$/?j:"unsupported"); PRROLE=(r=="workstation-host"||r=="gpu-host"||r=="agent"||r=="all"?r:"unsupported"); PRPLATFORM=(f=="windows"||f=="linux"||f=="macos"?f:"unknown")
+    PRWS=0; PRGPU=0; PRAGENT=0; ok=1
+    if(r=="agent")PRAGENT=1
+    else if(j=="J3") { if(r=="all"||r=="gpu-host")PRGPU=1; else ok=0 }
+    else if(r=="workstation-host")PRWS=1
+    else if(r=="gpu-host") { if(j=="J5")ok=0; else PRGPU=1 }
+    else if(r=="all") {
+        PRAGENT=1
+        if(j=="J2"&&f=="linux")PRGPU=1
+        else { PRWS=1; if(j=="J1"||j=="J4")PRGPU=1 }
+    } else ok=0
+    if(j!~/^J[1-5]$/)ok=0
+    if(PRAGENT && f!="windows" && f!="linux" && f!="macos")ok=0
+    if(PRWS && ((j=="J1"||j=="J2") && f!="windows"))ok=0
+    if(PRWS && j=="J4" && f!="linux")ok=0
+    if(PRWS && j=="J5" && f!="windows" && f!="linux")ok=0
+    if(PRGPU && f!="windows" && f!="linux")ok=0
+    if(PRWS&&f!="windows" && !(f=="linux"&&e=="ubuntu"&&V["x.facts.os.version"]=="24.04"))ok=0
+    PRSCOPES="base publish download"; if(f!="windows")PRSCOPES=PRSCOPES " unix-download"; if(PRWS||PRGPU)PRSCOPES=PRSCOPES " host"
+    if(PRWS) { PRSCOPES=PRSCOPES " vm"; if(f=="windows")PRSCOPES=PRSCOPES " windows-vm"; else PRSCOPES=PRSCOPES " linux-vm" }
+    if(PRGPU) { PRSCOPES=PRSCOPES " gpu docker"; if(j=="J3")PRSCOPES=PRSCOPES " full"; if(f=="windows")PRSCOPES=PRSCOPES " windows-gpu" }
+    if(PRAGENT)PRSCOPES=PRSCOPES " agent"
+    return ok
+}
+function prmemory(   p,i,key,v,total,available,vm,reserve,needed) {
+    p="x.facts.workstation_memory_plan"
+    if(T[p]!="o")return "unknown"
+    for(i=1;i<=4;i++) {
+        key=(i==1?"total_bytes":(i==2?"available_bytes":(i==3?"vm_bytes":"host_reserve_bytes")))
+        v=V[p "." key]+0
+        if(T[p "." key]!="n"||v<0||v>9007199254740991||int(v)!=v)return "unknown"
+    }
+    total=V[p ".total_bytes"]+0; available=V[p ".available_bytes"]+0
+    vm=V[p ".vm_bytes"]+0; reserve=V[p ".host_reserve_bytes"]+0
+    if(total==0||vm==0||reserve==0||available>total)return "unknown"
+    needed=vm+reserve; if(needed>9007199254740991)return "unknown"
+    return needed>available?"missing":"met"
+}
+function prstorage(   i,p,id,n,free,out,k,nf,sum,root,basis,declared) {
+    PRSTORAGE="[]"; PRSTORAGESTATE="unknown"; PRSTORAGERESOURCE=0; PRSTORAGEDECLARED=0; nf=0; declared=0
+    root="x.facts.storage_plan"
+    if(ENVIRON["D32_FORGE_PLAN"]=="1")root="x.facts.forge_evidence.storage_plan"
+    if(T[root]!="a"||N[root]==0)return
+    for(i=0;i<N[root];i++) {
+        p=root "[" i "]"; id=V[p ".filesystem_id"]
+        if(T[p ".filesystem_id"]!="s"||id==""||T[p ".needed_bytes"]!="n"||T[p ".free_bytes"]!="n")return
+        n=integer(V[p ".needed_bytes"]); free=integer(V[p ".free_bytes"])
+        if(n==""||free=="")return
+        if(!(id in PRFS)) { PRFS[id]=++nf; PRFREE[nf]=free; PRNEED[nf]="0@0" }
+        k=PRFS[id];sum=bigadd(PRNEED[k],n);if(sum==""){PRSTORAGERESOURCE=1;return};PRNEED[k]=sum;if(bigcmp(free,PRFREE[k])<0)PRFREE[k]=free
+        # A declared budget is checked like a measured one and keeps its label.
+        basis=T[p ".basis"]
+        if(basis!="") { if(basis!="s"||V[p ".basis"]!="declared-upper-bound")return; PRBASIS[k]=1; declared=1 }
+    }
+    out="["; PRSTORAGESTATE="met"; PRSTORAGEDECLARED=declared
+    for(k=1;k<=nf;k++) { if(k>1)out=out ","; out=out "{\"filesystem\":\"filesystem-" k "\",\"needed_bytes\":" bigjson(PRNEED[k]) ",\"free_bytes\":" bigjson(PRFREE[k]) (PRBASIS[k]?",\"basis\":\"declared-upper-bound\"":"") "}"; if(bigcmp(PRFREE[k],PRNEED[k])<0)PRSTORAGESTATE="missing" }
+    PRSTORAGE=out "]"
+}
+function prcheck(   file,line,text,p,i,id,s,minimum,v,code,fix,need,required,arr,sep,roles,sel,rc,reboot,nextaction,action,forge,proof,detail,recipe,notice) {
+    file=ENVIRON["D32_PREREQUISITES"]; text=""
+    while((getline line < file)>0)text=text line "\n"; close(file)
+    jparse(nobom(text),"pr")
+    if(JERR||V["pr.schema"]!="deep32.prerequisites.v1"||T["pr.checks"]!="a") { print "deep32-inventory: prerequisite resource is invalid" > "/dev/stderr"; exit 1 }
+    jparse(FT,"x")
+    if(JERR||T["x.facts"]!="o") { print "deep32-inventory: the facts are not a JSON object with a facts member" > "/dev/stderr"; exit 1 }
+    forge=(ENVIRON["D32_FORGE_PLAN"]=="1")
+    sel=prsetup(); prstorage(); arr="["; sep=""; rc=0; reboot=0; nextaction="Next: bash install/deep32-inventory.sh --journey " PRJOURNEY " --role " PRROLE " --check-prereqs"; if(PRPLATFORM=="windows")nextaction="Next: powershell -NoProfile -ExecutionPolicy Bypass -File install\\deep32-inventory.ps1 -Journey " PRJOURNEY " -Role " PRROLE " -CheckPrereqs"; if(!sel)nextaction="Next: bash install/deep32-inventory.sh --help"
+    if(!sel) { arr=arr "{\"id\":\"selection.supported\",\"required\":true,\"state\":\"missing\",\"code\":\"PR_SELECTION_UNSUPPORTED\",\"need\":\"Choose a supported journey and local role\",\"detected_version\":null,\"minimum_version\":null,\"action_id\":\"selection.supported\",\"fix\":\"Run --help and choose the journey for this host; J3 all checks only the local full-container host.\",\"requires_elevation\":false,\"requires_reboot\":false,\"recipe_maturity\":\"unverified-offline\"}"; sep=","; rc=10 }
+    for(i=0;i<N["pr.checks"];i++) {
+        p="pr.checks[" i "]"; id=V[p ".id"]; required=prselected(p ".scopes")
+        # Windows uses its native transfer stack. Agent-only hosts still need the clone helper tools.
+        if(id=="download.curl"||id=="download.bash")required=required && PRPLATFORM!="windows"
+        minimum=V[p ".minimum_version"]; s=prstate("x.facts.prerequisites." id,minimum)
+        proof="x.facts.forge_evidence.prerequisites." id
+        if(forge&&T[proof]=="b")s=prstate(proof,minimum)
+        if(!required)s="unknown"
+        if(required&&id=="storage.plan")s=PRSTORAGESTATE
+        if(required&&id=="workstation.memory"&&("x.facts.workstation_memory_plan" in T))s=prmemory()
+        if(required&&id=="windows.edition" && V["x.facts.os.edition"]=="home")s="missing"
+        v=V["x.facts.prerequisites." id ".version"]; if(!prversion(v))v=""
+        code="PR_" toupper(id); gsub(/[.-]/,"_",code)
+        if(!required)code=code "_NOT_NEEDED"; else if(s=="met")code=code "_MET"; else code=code "_" toupper(s)
+        if(required&&id=="storage.plan"&&PRSTORAGERESOURCE)code="PR_STORAGE_PLAN_RESOURCE_UNAVAILABLE"
+        if(required&&s!="met")rc=10
+        need=V[p ".need"]; fix=V[p ".actions." PRPLATFORM]; if(fix=="")fix=V[p ".actions.linux"]
+        if(required&&id=="storage.plan"&&PRSTORAGEDECLARED)need=need " (declared upper bound; no measurement yet)"
+        if(id=="windows.edition"&&V["x.facts.os.edition"]=="home")fix="Windows Home lacks Hyper-V management; use the tested Ubuntu/KVM route or an accepted Windows edition."
+        detail="x.facts.forge_evidence.details." id
+        if(forge&&T[detail]=="s"&&length(V[detail])<=300)fix=V[detail]
+        action=(required&&s!="met"?fix:"")
+        if(required&&s!="met"&&V[p ".requires_reboot"]=="true")reboot=1
+        arr=arr sep "{\"id\":" jq(id) ",\"required\":" (required?"true":"false") ",\"state\":" jq(s) ",\"code\":" jq(code) ",\"need\":" jq(need) ",\"detected_version\":" (v!=""?jq(v):"null") ",\"minimum_version\":" (minimum!=""?jq(minimum):"null") ",\"action_id\":" jq(id) ",\"fix\":" jq(action) ",\"requires_elevation\":" (V[p ".requires_elevation"]=="true"?"true":"false") ",\"requires_reboot\":" (required&&s!="met"&&V[p ".requires_reboot"]=="true"?"true":"false") ",\"recipe_maturity\":\"unverified-offline\"}"; sep=","
+        if(ENVIRON["D32_PR_FORMAT"]!="json"&&required) { print id "=" s ": " need; if(action!="")print "  Next: " action }
+        if(required&&id=="platform.recipe")recipe=s
+    }
+    arr=arr "]"; roles="["; sep=""; if(PRWS){roles=roles "\"workstation-host\"";sep=","}; if(PRGPU){roles=roles sep "\"gpu-host\"";sep=","}; if(PRAGENT)roles=roles sep "\"agent\""; roles=roles "]"
+    if(rc==0)nextaction="Prerequisites passed for " ENVIRON["D32_ROLE"] "; review the selected installation plan before changes."
+    if(ENVIRON["D32_PR_FORMAT"]=="json") print "{\"schema\":\"deep32.inventory.v2\",\"tool\":" jq(VERSION) ",\"impl\":\"sh\",\"mode\":\"check-prereqs\",\"journey\":" jq(PRJOURNEY) ",\"role\":" jq(PRROLE) ",\"platform\":" jq(PRPLATFORM) ",\"selected_roles\":" roles ",\"recipe_maturity\":\"unverified-offline\",\"prerequisites\":" arr ",\"storage_plan\":" PRSTORAGE ",\"requires_reboot\":" (reboot?"true":"false") ",\"next_action\":" jq(nextaction) "}"
+    else {
+        if(!sel)print "selection.supported=missing: choose the journey for this host and a local role"
+        # The signed preflight says when the matched host recipe rests on an owner waiver. Say so once, in its words.
+        notice=V["x.facts.forge_evidence.notice"]
+        if(forge&&recipe=="met"&&T["x.facts.forge_evidence.notice"]=="s"&&length(notice)<=300&&notice~/^[ -~]+$/)print notice
+        print nextaction
+    }
+    exit rc
+}
+
 BEGIN { FT = ""; MT = "" }
 { FT = FT $0 "\n" }
 END {
     FT = nobom(FT)
+    if(("D32_TS_ONLY" in ENVIRON) && ENVIRON["D32_TS_ONLY"]=="1") {
+        jparse(FT,"ts"); if(JERR||T["ts"]!="o") { print ",\"host.tailscale-daemon\":null,\"host.tailscale-signed-in\":null"; exit }
+        daemon=(V["ts.BackendState"]!="" && V["ts.BackendState"]!="NoState")
+        signed=(V["ts.BackendState"]=="Running" && V["ts.Self.Online"]=="true")
+        printf ",\"host.tailscale-daemon\":%s,\"host.tailscale-signed-in\":%s",daemon?"true":"false",signed?"true":"false"
+        dns="ts.CurrentTailnet.MagicDNSEnabled"
+        printf ",\"host.magicdns\":%s",T[dns]=="b"?V[dns]:"null"
+        host=tolower(V["ts.Self.DNSName"]); sub(/[.]$/,"",host)
+        if(T["ts.CertDomains"]=="a" && T["ts.Self.DNSName"]=="s" && host ~ /^[a-z0-9][a-z0-9.-]*[.]ts[.]net$/) {
+            cert=0
+            for(ci=0;ci<N["ts.CertDomains"];ci++) {
+                domain="ts.CertDomains[" ci "]"
+                eligible=tolower(V[domain]); sub(/[.]$/,"",eligible)
+                if(T[domain]=="s" && eligible==host) cert=1
+            }
+            printf ",\"host.https-certificates\":%s",cert?"true":"false"
+        } else printf ",\"host.https-certificates\":null"
+        exit
+    }
+    if(("D32_DOCKER_ONLY" in ENVIRON) && ENVIRON["D32_DOCKER_ONLY"]=="1") {
+        jparse(FT,"dk")
+        engine=(!JERR && T["dk.OSType"]=="s" && V["dk.OSType"]=="linux")
+        gpu=(T["dk.Runtimes.nvidia"]=="o")
+        for(dkey in T) if(dkey~/^dk\.(CDIDevices|DiscoveredDevices)([.]|\[|$)/ &&
+                ((T[dkey]=="s" && V[dkey]~/^nvidia\.com\/gpu=[A-Za-z0-9_.:-]+$/) ||
+                 dkey~/[.]nvidia\.com\/gpu=[A-Za-z0-9_.:-]+$/)) gpu=1
+        printf ",\"docker.local-context\":%s,\"docker.nvidia-runtime\":%s",engine?"true":(JERR?"null":"false"),(engine&&gpu)?"true":(JERR?"null":"false")
+        exit
+    }
+    if(("D32_CHECK_PREREQS" in ENVIRON) && ENVIRON["D32_CHECK_PREREQS"]=="1")prcheck()
     if (("D32_GUARD_ONLY" in ENVIRON) && ENVIRON["D32_GUARD_ONLY"] == "1") {
         if (FT != "") jparse(FT, "g")
         if (FT == "" || JERR || T["g"] != "o" || !(("g.mode") in T) || T["g.mode"] != "s") print "unreadable"
@@ -810,7 +1077,9 @@ probe_linux_disks() {
     have df || return 0
     _types=""
     [ -r "$R"/proc/mounts ] && _types=$(awk '{ m = $2; gsub(/\\040/, " ", m); print m "\t" $3 }' "$R"/proc/mounts 2>/dev/null)
-    _rows=$(df -P -k 2>/dev/null | awk 'NR > 1 { m = $6; for (i = 7; i <= NF; i++) m = m " " $i; print $1 "\t" $2 "\t" $4 "\t" m }')
+    _df=$(df -P -k 2>/dev/null) || return 0
+    [ -n "$_df" ] || return 0
+    _rows=$(printf '%s\n' "$_df" | awk 'NR > 1 { m = $6; for (i = 7; i <= NF; i++) m = m " " $i; print $1 "\t" $2 "\t" $4 "\t" m }')
     _list=""; _seen=" "; _n=0
     while IFS="$TAB" read -r _fs _size _avail _mnt; do
         [ -z "$_fs" ] && continue
@@ -836,12 +1105,13 @@ probe_linux_disks() {
         _sz=$(awk -v k="$_size" 'BEGIN { printf "%.1f", k / 1048576 }')
         _fr=$(awk -v k="$_avail" 'BEGIN { printf "%.1f", k / 1048576 }')
         _row="{\"mount\":$(js "$(sanitize_mount "$_mnt")"),\"size_gb\":$(jn "$_sz"),\"free_gb\":$(jn "$_fr"),\"ssd\":$(jb "$_ssd")}"
-        _list="$_list$_sz$TAB$_row
+        _list="$_list$_size$TAB$_row
 "
         _n=$((_n + 1))
     done <<EOF
 $_rows
 EOF
+    [ -n "$_list" ] || return 0
     DISKS_JSON="[$(printf '%s' "$_list" | sort -t "$TAB" -k1,1 -n -r | head -n 6 | cut -f2- | paste -s -d, -)]"
 }
 
@@ -947,20 +1217,21 @@ probe_macos() {
     if [ -d /Applications/VirtualBox.app ]; then HYP_VBOX=true; else HYP_VBOX=false; fi
     if [ -d "/Applications/VMware Fusion.app" ]; then HYP_VMWARE=true; else HYP_VMWARE=false; fi
     if have virsh; then HYP_LIBVIRT=true; else HYP_LIBVIRT=false; fi
-    # disks: local volumes, one row per distinct free figure (APFS volumes share a container)
+    # Distinct local device identities; equal free space does not identify a volume.
     _list=""; _seen=" "
-    _rows=$(df -P -k -l 2>/dev/null | awk 'NR > 1 && $1 ~ /^\/dev\// { m = $6; for (i = 7; i <= NF; i++) m = m " " $i; print $2 "\t" $4 "\t" m }')
-    while IFS="$TAB" read -r _size _avail _mnt; do
+    _df=$(df -P -k -l 2>/dev/null) || _df=""
+    _rows=$(printf '%s\n' "$_df" | awk 'NR > 1 && $1 ~ /^\/dev\// { m = $6; for (i = 7; i <= NF; i++) m = m " " $i; print $1 "\t" $2 "\t" $4 "\t" m }')
+    while IFS="$TAB" read -r _fs _size _avail _mnt; do
         [ -z "$_size" ] && continue
-        case "$_seen" in *" $_avail "*) continue ;; esac
-        _seen="$_seen$_avail "
+        case "$_seen" in *" $_fs "*) continue ;; esac
+        _seen="$_seen$_fs "
         _sz=$(awk -v k="$_size" 'BEGIN { printf "%.1f", k / 1048576 }'); _fr=$(awk -v k="$_avail" 'BEGIN { printf "%.1f", k / 1048576 }')
-        _list="$_list$_sz$TAB{\"mount\":$(js "$(sanitize_mount "$_mnt")"),\"size_gb\":$(jn "$_sz"),\"free_gb\":$(jn "$_fr"),\"ssd\":null}
+        _list="$_list$_size$TAB{\"mount\":$(js "$(sanitize_mount "$_mnt")"),\"size_gb\":$(jn "$_sz"),\"free_gb\":$(jn "$_fr"),\"ssd\":null}
 "
     done <<EOF
 $_rows
 EOF
-    DISKS_JSON="[$(printf '%s' "$_list" | sort -t "$TAB" -k1,1 -n -r | head -n 6 | cut -f2- | paste -s -d, -)]"
+    [ -z "$_list" ] || DISKS_JSON="[$(printf '%s' "$_list" | sort -t "$TAB" -k1,1 -n -r | head -n 6 | cut -f2- | paste -s -d, -)]"
     # graphics
     _g=$(system_profiler SPDisplaysDataType 2>/dev/null | awk -F': ' '/Chipset Model:/ { n = $2; gsub(/^ +| +$/, "", n); print n }')
     _list=""
@@ -1010,17 +1281,20 @@ probe_net() {
                  nvidia=https://developer.download.nvidia.com/compute/cuda/repos/ tailscale=https://login.tailscale.com/; do
         _k=${_pair%%=*}; _u=${_pair#*=}; _ok=false; _code=null; _ms=null
         if have curl; then
-            _r=$(curl -sS -o /dev/null -I -A "$UA" -m 8 -w '%{http_code} %{time_total}' "$_u" 2>/dev/null)
+            _r=$(run_to 8 curl -sS -o /dev/null -I -A "$UA" -m 8 -w '%{http_code} %{time_total}' "$_u" 2>/dev/null)
             _c=${_r%% *}; _t=${_r#* }
             case "$_c" in ''|000|*[!0-9]*) ;; *) _ok=true; _code=$((10#$_c)); _ms=$(awk -v t="$_t" 'BEGIN { printf "%d", t * 1000 }') ;; esac
         elif have wget; then
-            if wget -q --spider -T 8 -U "$UA" "$_u" 2>/dev/null; then _ok=true; fi
+            _r=$(run_to 8 wget --spider --server-response --tries=1 --max-redirect=0 -T 8 -U "$UA" "$_u" 2>&1)
+            _c=$(printf '%s\n' "$_r" | awk '/^[[:space:]]*HTTP\/[0-9.]+[[:space:]]+[0-9][0-9][0-9]([[:space:]]|$)/ {code=$2} END {print code}')
+            case "$_c" in ''|000|*[!0-9]*) ;; *) _ok=true; _code=$((10#$_c));; esac
         fi
         _o="$_o${_o:+,}\"$_k\":{\"ok\":$_ok,\"code\":$_code,\"ms\":$_ms}"
     done
     _gs=false
     if have gh; then
-        if run_to 20 gh auth status --hostname github.com >/dev/null 2>&1; then _gs=true; fi
+        run_to 20 gh auth status --hostname github.com >/dev/null 2>&1; _status=$?
+        case "$_status" in 0) _gs=true;; 124|125|126|127|137) _gs=null;; esac
     fi
     NET_JSON="{$_o,\"gh_signed_in\":$_gs}"
 }
@@ -1320,8 +1594,168 @@ do_bench() {
 }
 
 # ------------------------------------------------------------------ main
+# Check-mode probes are separate from legacy report and never run --net.
+pr_run() {
+    # Without a bounded runner a tool is unknown; never fall back to an unbounded wait.
+    run_to 4 "$@" </dev/null 2>/dev/null
+}
+pr_put() { printf '%s%s:%s' "$PRSEP" "$(js "$1")" "$2"; PRSEP=,; }
+pr_tool() {
+    _id=$1; _tool=$2; shift 2
+    if ! have "$_tool"; then pr_put "$_id" false; return; fi
+    _out=$(pr_run "$_tool" "$@"); _rc=$?
+    if [ "$_rc" != 0 ]; then pr_put "$_id" null; return; fi
+    _ver=$(printf '%s' "$_out" | first_ver)
+    if [ -n "$_ver" ]; then pr_put "$_id" "{\"state\":\"met\",\"version\":$(js "$_ver")}"; else pr_put "$_id" null; fi
+}
+pr_forge_capability() {
+    # The authenticated bundle selection has already bound the requested class.
+    # Match the sealed Docker loader's exact compute-capability policy, which
+    # requires all visible GPUs to be in one class.
+    local caps cap seen=0
+    caps=$(pr_run nvidia-smi --query-gpu=compute_cap --format=csv,noheader) || { pr_put gpu.capability null; return; }
+    while IFS= read -r cap; do
+        cap=$(ascii "$cap")
+        [ -n "$cap" ] || continue
+        seen=1
+        case "$FORGE_CLASS:$cap" in
+            turing:7.5|ampere80:8.0|ampere86:8.6|ampere86:8.7|ada:8.9|hopper:9.0|blackwell100:10.0|blackwell120:12.0) ;;
+            *) pr_put gpu.capability false; return ;;
+        esac
+    done <<< "$caps"
+    if [ "$seen" = 1 ]; then pr_put gpu.capability true; else pr_put gpu.capability null; fi
+}
+pr_forge_storage() {
+    local args
+    args=(disc3 --release v0.1.0-alpha.2 --from "$FORGE_MEDIA" --gpu-class "$FORGE_CLASS" --ingestion
+          --key "$FORGE_KEY" --fingerprint "$FORGE_FINGERPRINT" --forge-storage --forge-data-root "$FORGE_DATA")
+    if [ -n "$FORGE_GPG" ]; then args+=(--gpg "$FORGE_GPG"); fi
+    # The helper reauthenticates release metadata and observes the filesystems.
+    # Docker info is from the explicit native socket above; never print it.
+    printf '%s' "$_runtime" | run_to 20 python3 -I -B "$SCRIPT_DIR/../src/release-tools/deep32_get_whole.py" "${args[@]}" 2>/dev/null
+}
+pr_forge_evidence() {
+    local args
+    args=(--source "$FORGE_MEDIA" --gpu-class "$FORGE_CLASS" --forge-data-root "$FORGE_DATA"
+          --key "$FORGE_KEY" --fingerprint "$FORGE_FINGERPRINT" --plan "$FORGE_PLAN"
+          --accept-plan "$FORGE_ACCEPT" --journey "$JOURNEY" --os-id "$_edition"
+          --os-version "$_version" --architecture "$_arch")
+    if [ -n "$FORGE_GPG" ]; then args+=(--gpg "$FORGE_GPG"); fi
+    printf '{"docker":%s,"tailscale":%s}' "${_runtime:-null}" "${_ts:-null}" |
+        run_to 45 python3 -I -B "$SCRIPT_DIR/../src/release-tools/forge_preflight.py" "${args[@]}" 2>/dev/null
+}
+pr_live() {
+    _forge_storage='' _forge_evidence='' _runtime='' _ts=''
+    _family=linux; _edition=''; _version=''; _arch="$UNAME_M"
+    case "$UNAME_S" in Darwin) _family=macos;; MINGW*|MSYS*|CYGWIN*) _family=windows;; esac
+    if [ "$_family" = linux ]; then
+        # Parse data; never source os-release as shell code.
+        if [ -r "$(fpath /etc/os-release)" ]; then
+            _edition=$(sed -n 's/^ID="\{0,1\}\([^" ]*\).*/\1/p' "$(fpath /etc/os-release)" | head -n 1)
+            _version=$(sed -n 's/^VERSION_ID="\{0,1\}\([^" ]*\).*/\1/p' "$(fpath /etc/os-release)" | head -n 1)
+        fi
+    fi
+    printf '{"facts":{"os":{"family":%s,"edition":%s,"version":%s,"arch":%s},"prerequisites":{' "$(js "$_family")" "$(js "$_edition")" "$(js "$_version")" "$(js "$_arch")"
+    PRSEP=''
+    pr_tool download.git git --version
+    pr_tool download.gpg gpg --version
+    pr_tool download.python python3 --version
+    if [ "$_family" != windows ]; then
+        pr_tool download.curl curl --version
+        pr_tool download.bash "$BASH" --version
+    fi
+    if [ -r "$SCRIPT_DIR/release-key.gpg" ]; then pr_put download.key true; else pr_put download.key false; fi
+    case "$_arch" in x86_64|amd64|x64) pr_put host.architecture true;; *) pr_put host.architecture false;; esac
+    _gpu=0; _vm=0; _agent=0
+    case "$ROLE:$JOURNEY" in gpu-host:J1|gpu-host:J2|gpu-host:J3|gpu-host:J4|all:J1|all:J3|all:J4) _gpu=1;; all:J2) [ "$_family" = linux ] && _gpu=1;; esac
+    case "$ROLE:$JOURNEY" in workstation-host:*|all:J1|all:J4|all:J5) _vm=1;; all:J2) [ "$_family" = windows ] && _vm=1;; esac
+    case "$ROLE:$JOURNEY" in agent:*|all:J1|all:J2|all:J4|all:J5) _agent=1;; esac
+    if [ "$_family" = linux ]; then
+        if [ -f "$(fpath /run/reboot-required)" ]; then pr_put host.reboot-clear false; else pr_put host.reboot-clear true; fi
+        if [ "$_vm" = 1 ] && [ -r /proc/cpuinfo ]; then
+            if LC_ALL=C grep -Eq '(^|[[:space:]])(vmx|svm)([[:space:]]|$)' /proc/cpuinfo; then pr_put host.cpu-virtualisation true; else pr_put host.cpu-virtualisation null; fi
+            if LC_ALL=C grep -Eq '(^|[[:space:]])(ept|npt)([[:space:]]|$)' /proc/cpuinfo; then pr_put host.slat true; else pr_put host.slat null; fi
+        fi
+        if [ "$_vm" = 1 ]; then
+        if [ -r /dev/kvm ] && [ -w /dev/kvm ]; then pr_put linux.kvm-device true; else pr_put linux.kvm-device false; fi
+        if have qemu-system-x86_64 && have qemu-img; then pr_put linux.qemu true; else pr_put linux.qemu false; fi
+        # No libvirt default URI: it may be remote. Force only the local socket.
+        if have virsh && have virt-install; then
+            if pr_run virsh --connect qemu:///system list --all >/dev/null; then pr_put linux.libvirt true; else pr_put linux.libvirt null; fi
+        else pr_put linux.libvirt false; fi
+        fi
+    fi
+    if have tailscale; then
+        pr_tool host.tailscale-installed tailscale version
+        if [ -n "$FORGE_PLAN" ]; then
+            _ts=$(unset TS_SOCKET; pr_run tailscale status --json); _trc=$?
+        else
+            _ts=$(pr_run tailscale status --json); _trc=$?
+        fi
+        if [ "$_trc" = 0 ]; then
+            # The existing parser extracts booleans only; raw identity/status is discarded.
+            printf '%s' "$_ts" | D32_TS_ONLY=1 LC_ALL=C awk "$VERDICT_AWK"
+            PRSEP=,
+        else _ts=''; pr_put host.tailscale-daemon null; pr_put host.tailscale-signed-in null; fi
+    else pr_put host.tailscale-installed false; pr_put host.tailscale-daemon false; pr_put host.tailscale-signed-in false; fi
+    if [ "$_gpu" = 1 ] && ! have nvidia-smi; then pr_put gpu.driver false; pr_put gpu.capability false; pr_put gpu.memory false; fi
+    # Never ask a selected Docker context for its endpoint: it may initiate ssh/TCP.
+    # Host-local sockets are explicit; environment and user context cannot redirect this probe.
+    if [ "$_gpu" = 1 ] && [ "$_family" = linux ] && [ -S "$(fpath /var/run/docker.sock)" ] && have docker; then
+        _dver=$(pr_run docker --host unix:///var/run/docker.sock version --format '{{.Server.Version}}'); _drc=$?
+        _v=$(printf '%s' "$_dver" | first_ver)
+        if [ "$_drc" = 0 ] && [ -n "$_v" ]; then pr_put docker.server "{\"state\":\"met\",\"version\":$(js "$_v")}"; else pr_put docker.server null; fi
+        _comp=$(pr_run docker --host unix:///var/run/docker.sock compose version --short); _crc=$?
+        _v=$(printf '%s' "$_comp" | first_ver)
+        _sealed_version='^[[:space:]]*v?[0-9]+(\.[0-9]+){1,3}([-+][A-Za-z0-9_.-]+)?[[:space:]]*$'
+        if [ "$_crc" = 0 ] && [ -n "$FORGE_MEDIA" ] && ! [[ $_comp =~ $_sealed_version ]]; then
+            pr_put docker.compose false
+        elif [ "$_crc" = 0 ] && [ -n "$_v" ]; then
+            pr_put docker.compose "{\"state\":\"met\",\"version\":$(js "$_v")}"
+        else pr_put docker.compose null; fi
+        _runtime=$(pr_run docker --host unix:///var/run/docker.sock info --format '{{json .}}'); _rrc=$?
+        if [ "$_rrc" = 0 ]; then
+            printf '%s' "$_runtime" | D32_DOCKER_ONLY=1 LC_ALL=C awk "$VERDICT_AWK"; PRSEP=,
+            if [ -n "$FORGE_MEDIA" ] && [ -z "$FORGE_PLAN" ]; then
+                if _forge_storage=$(pr_forge_storage); then
+                    pr_put docker.storage true
+                    if have nvidia-smi; then pr_forge_capability; fi
+                else
+                    _forge_storage=''
+                    pr_put docker.storage null
+                fi
+            fi
+        else _runtime=''; pr_put docker.local-context null; pr_put docker.nvidia-runtime null; fi
+    elif [ "$_gpu" = 1 ] && [ "$_family" = linux ]; then
+        pr_put docker.server false; pr_put docker.nvidia-runtime false
+        if ! have docker; then pr_put docker.compose false; pr_put docker.local-context false; fi
+    fi
+    if [ "$_agent" = 1 ]; then
+        if have codex; then pr_tool agent.cli codex --version; elif have claude; then pr_tool agent.cli claude --version; else pr_put agent.cli false; fi
+    fi
+    if [ -n "$FORGE_PLAN" ]; then
+        _forge_evidence=$(pr_forge_evidence) || _forge_evidence='{}'
+        printf '},"forge_evidence":%s}}' "$_forge_evidence"
+    elif [ -n "$_forge_storage" ]; then printf '},"storage_plan":%s}}' "$_forge_storage"
+    else printf '}}}'; fi
+}
+do_prereqs() {
+    [ -r "$SCRIPT_DIR/prerequisites.json" ] || { err 'prerequisites.json is missing or unreadable'; return 1; }
+    if [ -n "$FACTS" ] && [ ! -f "$FACTS" ]; then err "facts file not found: $FACTS"; return 2; fi
+    if [ -z "$FACTS" ]; then
+        case "$JOURNEY:$ROLE" in
+            J3:workstation-host|J5:gpu-host) printf '{"facts":{}}' | D32_CHECK_PREREQS=1 D32_PREREQUISITES="$SCRIPT_DIR/prerequisites.json" D32_JOURNEY="$JOURNEY" D32_ROLE="$ROLE" D32_PR_FORMAT="$PR_FORMAT" LC_ALL=C awk -v VERSION="$TOOL_VERSION" "$VERDICT_AWK"; return $? ;;
+            J[1-5]:workstation-host|J[1-5]:gpu-host|J[1-5]:agent|J[1-5]:all) ;;
+            *) printf '{"facts":{}}' | D32_CHECK_PREREQS=1 D32_PREREQUISITES="$SCRIPT_DIR/prerequisites.json" D32_JOURNEY="$JOURNEY" D32_ROLE="$ROLE" D32_PR_FORMAT="$PR_FORMAT" LC_ALL=C awk -v VERSION="$TOOL_VERSION" "$VERDICT_AWK"; return $?;;
+        esac
+    fi
+    if [ -n "$FACTS" ]; then
+        tr -d '\000' < "$FACTS"
+    else pr_live; fi | D32_CHECK_PREREQS=1 D32_FORGE_PLAN="${FORGE_PLAN:+1}" D32_PREREQUISITES="$SCRIPT_DIR/prerequisites.json" D32_JOURNEY="$JOURNEY" D32_ROLE="$ROLE" D32_PR_FORMAT="$PR_FORMAT" LC_ALL=C awk -v VERSION="$TOOL_VERSION" "$VERDICT_AWK"
+}
+
 case "$MODE" in
-    report) do_report; exit $? ;;
+    report) if [ "$CHECK_PREREQS" = 1 ]; then do_prereqs; exit $?; fi; do_report; exit $? ;;
     bench) do_bench; exit $? ;;
 esac
 exit 1

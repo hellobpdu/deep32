@@ -202,11 +202,11 @@ def preflight(config, stage):
         destinations.add(record['path'])
     required = {'payload/keyrings/ubuntu.gpg',
                 'payload/keyrings/nvidia.gpg', 'payload/keyrings/tailscale.gpg', 'payload/licences/AGPL-3.0.txt',
-                'payload/bin/pairing-helper', 'payload/models/mineru-home/config.yaml'}
+                'payload/models/mineru-home/config.yaml'}
     if not release_profile.is_pack(config):
         required.add('payload/keyrings/ubuntu-release.gpg')
     if not required <= destinations:
-        raise ValueError('missing keyring, licence, helper or MinerU configuration input')
+        raise ValueError('missing keyring, licence or MinerU configuration input')
     licence = next(row for row in fetch['files'] if row['path'] == 'payload/licences/AGPL-3.0.txt')
     licence_url = urllib.parse.urlsplit(licence['url'])
     if licence_url.scheme != 'file' or licence_url.netloc not in {'', 'localhost'}:
@@ -599,8 +599,6 @@ def execute(config, stage):
         fetch_model(name, model, stage)
     for role, record in sorted(config['fetch']['locks'].items()):
         fetch_wheels(role, record, stage)
-    if prov.digest(stage / 'payload/bin/pairing-helper') != config['runtime']['pairing_helper_sha256']:
-        raise ValueError('pairing helper pin differs')
     # This is a fetch inventory, not an assertion that lab or release gates passed.
     (stage / 'FETCHED.json').write_text(prov.canonical(prov.members(stage)), encoding='ascii')
     print('Fetched and hashed files:', len(prov.members(stage)) - 1)

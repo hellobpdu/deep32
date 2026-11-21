@@ -1,0 +1,277 @@
+{
+  "$id": "https://example.invalid/deep32/selftest-reference.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "bundle_id": {
+      "maxLength": 96,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+      "type": "string"
+    },
+    "corpus_fingerprint": {
+      "maxLength": 64,
+      "minLength": 64,
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "fixture_only": {
+      "type": "boolean"
+    },
+    "generation": {
+      "maxLength": 128,
+      "minLength": 1,
+      "type": "string"
+    },
+    "measurement": {
+      "additionalProperties": false,
+      "properties": {
+        "complete_runs": {
+          "const": 3
+        },
+        "gateway_version": {
+          "maxLength": 64,
+          "minLength": 1,
+          "type": "string"
+        },
+        "hardware_class": {
+          "maxLength": 256,
+          "minLength": 1,
+          "type": "string"
+        },
+        "identical_ranks": {
+          "const": true
+        },
+        "search_p50_ms": {
+          "minimum": 0,
+          "type": "number"
+        },
+        "search_p95_ms": {
+          "minimum": 0,
+          "type": "number"
+        }
+      },
+      "required": [
+        "complete_runs",
+        "identical_ranks",
+        "hardware_class",
+        "gateway_version",
+        "search_p50_ms",
+        "search_p95_ms"
+      ],
+      "type": "object"
+    },
+    "models": {
+      "additionalProperties": false,
+      "properties": {
+        "embedding": {
+          "additionalProperties": false,
+          "properties": {
+            "model": {
+              "maxLength": 256,
+              "minLength": 1,
+              "type": "string"
+            },
+            "revision": {
+              "maxLength": 64,
+              "minLength": 40,
+              "pattern": "^[0-9a-f]{40,64}$",
+              "type": "string"
+            }
+          },
+          "required": [
+            "model",
+            "revision"
+          ],
+          "type": "object"
+        },
+        "reranker": {
+          "additionalProperties": false,
+          "properties": {
+            "model": {
+              "maxLength": 256,
+              "minLength": 1,
+              "type": "string"
+            },
+            "revision": {
+              "maxLength": 64,
+              "minLength": 40,
+              "pattern": "^[0-9a-f]{40,64}$",
+              "type": "string"
+            }
+          },
+          "required": [
+            "model",
+            "revision"
+          ],
+          "type": "object"
+        }
+      },
+      "required": [
+        "embedding",
+        "reranker"
+      ],
+      "type": "object"
+    },
+    "numerators": {
+      "additionalProperties": false,
+      "properties": {
+        "hit_at_1": {
+          "maximum": 64,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "hit_at_3": {
+          "maximum": 64,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "hit_at_8": {
+          "maximum": 64,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "reciprocal_rank_sum_at_10": {
+          "maximum": 64,
+          "minimum": 0,
+          "type": "number"
+        }
+      },
+      "required": [
+        "hit_at_1",
+        "hit_at_3",
+        "hit_at_8",
+        "reciprocal_rank_sum_at_10"
+      ],
+      "type": "object"
+    },
+    "policy": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "maximum-absolute-drop"
+        },
+        "tolerance": {
+          "const": 0.02
+        }
+      },
+      "required": [
+        "kind",
+        "tolerance"
+      ],
+      "type": "object"
+    },
+    "question_count": {
+      "maximum": 64,
+      "minimum": 1,
+      "type": "integer"
+    },
+    "questions_sha256": {
+      "maxLength": 64,
+      "minLength": 64,
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "reference": {
+      "additionalProperties": false,
+      "properties": {
+        "hit_at_1": {
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        },
+        "hit_at_3": {
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        },
+        "hit_at_8": {
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        },
+        "mrr_at_10": {
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        }
+      },
+      "required": [
+        "hit_at_1",
+        "hit_at_3",
+        "hit_at_8",
+        "mrr_at_10"
+      ],
+      "type": "object"
+    },
+    "release": {
+      "maxLength": 96,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+      "type": "string"
+    },
+    "request": {
+      "additionalProperties": false,
+      "properties": {
+        "debug": {
+          "const": true
+        },
+        "deep": {
+          "const": true
+        },
+        "format": {
+          "const": "json"
+        },
+        "max_chars": {
+          "const": 2400
+        },
+        "mode": {
+          "const": "hybrid"
+        },
+        "rerank": {
+          "const": "auto"
+        }
+      },
+      "required": [
+        "mode",
+        "rerank",
+        "max_chars",
+        "deep",
+        "format",
+        "debug"
+      ],
+      "type": "object"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "settings": {
+      "type": "object"
+    },
+    "settings_sha256": {
+      "maxLength": 64,
+      "minLength": 64,
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "bundle_id",
+    "release",
+    "fixture_only",
+    "questions_sha256",
+    "question_count",
+    "generation",
+    "corpus_fingerprint",
+    "models",
+    "request",
+    "settings",
+    "settings_sha256",
+    "reference",
+    "numerators",
+    "policy",
+    "measurement"
+  ],
+  "type": "object"
+}

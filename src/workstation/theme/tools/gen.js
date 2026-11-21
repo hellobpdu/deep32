@@ -46,9 +46,11 @@ const ICON_DIR = 'etc/dt/appconfig/icons/C';
 const TYPES_DIR = 'etc/dt/appconfig/types/C';
 const APPMGR_DIR = 'etc/dt/appconfig/appmanager/C';
 const FONT_LICENCE = 'LGPL-2.1 code / CC BY-SA 3.0 media (The Open Group)';
-const DTWMRC_LICENCE = 'LGPL-2.1 (CDE 2.5.3 sys.dtwmrc, The Open Group) with AGPL-3.0-or-later (Deep32) additions';
+const DTWMRC_LICENCE = 'LGPL-2.1 (CDE 2.5.3 sys.dtwmrc, The Open Group) with Apache-2.0 (Deep32) additions';
 const THEME = 'usr/local/share/d32/theme';
 const LOCALES = ['C', 'en_US.UTF-8'];
+// Deep32's own art drawn as code keeps its recorded terms (asset ledger key OWN-ART), whatever the code's license is
+const ART_LICENCE = 'CC-BY-NC-4.0 (Deep32)';
 
 function build(opt = {}) {
   const d = require('../src/theme-data');
@@ -140,8 +142,8 @@ function build(opt = {}) {
   const icons = art.icons();
   for (const [name, txt] of Object.entries(icons)) S(`${ICON_DIR}/${name}`, txt, { licence: 'CC-BY-NC-4.0 (Deep32), DRAFT art', note: 'draft icon' });
   const bds = art.backdrops();
-  for (const [name, txt] of Object.entries(bds)) S(`etc/dt/backdrops/${name}`, txt, { note: 'original backdrop' });
-  M(`${THEME}/login/emblem-224.xpm`, art.emblem(), { note: 'login emblem (draft)' });
+  for (const [name, txt] of Object.entries(bds)) S(`etc/dt/backdrops/${name}`, txt, { licence: ART_LICENCE, note: 'original backdrop' });
+  M(`${THEME}/login/emblem-224.xpm`, art.emblem(), { licence: ART_LICENCE, note: 'login emblem (draft)' });
 
   // ---- the genuine originals (private build only, update item 43) -------------------------------------------------
   // Each file is copied byte for byte from the owner's own discs (the HP-UX and AIX lanes' read-only extraction); the
@@ -188,7 +190,7 @@ function build(opt = {}) {
       const td = `usr/local/share/themes/${name}`;
       M(`${td}/index.theme`, bridge.indexTheme(name, p.name, use, profObj));
       M(`${td}/gtk-3.0/gtk.css`, bridge.gtk3(name, s, profObj));
-      for (const [f, buf] of Object.entries(bridge.assets(s, profObj))) M(`${td}/gtk-3.0/assets/${f}`, buf);
+      for (const [f, buf] of Object.entries(bridge.assets(s, profObj))) M(`${td}/gtk-3.0/assets/${f}`, buf, { licence: ART_LICENCE });
       M(`${td}/gtk-2.0/gtkrc`, bridge.gtk2(name, s, profObj));
       M(`${THEME}/qt/${name}.conf`, bridge.qtColours(name, s));
       M(`${THEME}/qt/${name}.qss`, bridge.qss(name, s, profObj, `/${td}/gtk-3.0/assets`));
@@ -222,8 +224,8 @@ function build(opt = {}) {
   for (const f of dt.DT_FILES) user.write(`.dt/types/${f}`, dt.dtFile(dd, release, f).replace(/^(\s+EXEC_STRING\s+)\$D32LBIN\/d32-look$/m, '$1$HOME/.dt/d32/bin/d32-look'));
   for (const [f, txt] of Object.entries(lookFiles)) user.write(`.dt/d32/looks/${f}`, txt);
   user.write('.dt/d32/bin/d32-look', look.SCRIPT, { mode: '0555' });
-  for (const [name, txt] of Object.entries(icons)) user.write(`.dt/icons/${name}`, txt);
-  for (const [name, txt] of Object.entries(bds)) user.write(`.dt/backdrops/${name}`, txt);
+  for (const [name, txt] of Object.entries(icons)) user.write(`.dt/icons/${name}`, txt, { licence: ART_LICENCE });
+  for (const [name, txt] of Object.entries(bds)) user.write(`.dt/backdrops/${name}`, txt, { licence: ART_LICENCE });
   // app-defaults through XUSERFILESEARCHPATH=$HOME/app-defaults/%N: the class resources of the Xt bridge, one file per
   // class, for the build palette (the palette follower merges the same text with xrdb on a palette change).
   const xtText = bridge.xt(defTheme, sets(palettes[palName], d.palettes.colourUse));
@@ -242,7 +244,7 @@ function build(opt = {}) {
     const td = `.themes/${defTheme}`;
     user.write(`${td}/index.theme`, bridge.indexTheme(defTheme, palName, d.palettes.colourUse, profObj));
     user.write(`${td}/gtk-3.0/gtk.css`, bridge.gtk3(defTheme, s, profObj));
-    for (const [f, buf] of Object.entries(bridge.assets(s, profObj))) user.write(`${td}/gtk-3.0/assets/${f}`, buf);
+    for (const [f, buf] of Object.entries(bridge.assets(s, profObj))) user.write(`${td}/gtk-3.0/assets/${f}`, buf, { licence: ART_LICENCE });
     user.write(`${td}/gtk-2.0/gtkrc`, bridge.gtk2(defTheme, s, profObj));
     user.write('.config/fontconfig/fonts.conf', F.fontconfig.replace('<dir>/usr/local/share/fonts/d32hp</dir>', '<dir>~/fonts/d32hp-otb</dir>'));
     user.write('.config/gtk-3.0/settings.ini', `[Settings]

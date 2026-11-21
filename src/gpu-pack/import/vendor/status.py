@@ -6,6 +6,11 @@ import re
 import secrets
 
 FIELDS = {'boot', 'stage', 'state', 'version', 'name', 'signin', 'pair', 'pair_with', 'expires', 'error', 'msg'}
+# mark shortened message details while reserving CR LF space.
+TRUNCATION = '[truncated]'
+SHORT_TRUNCATION = '~'
+MAX_BODY = 510
+
 STAGES = {'install', 'firstboot', 'keys', 'signin', 'tailnet', 'content', 'import', 'pairing', 'ready'}
 
 
@@ -33,15 +38,21 @@ def encode(seq, node, state):
         if not value or not value.isascii() or any(c.isspace() or ord(c) < 33 or ord(c) > 126 for c in value):
             raise ValueError('invalid field value')
         parts.append(key + '=' + value)
+    body = ' '.join(parts)
+    if len(body) > MAX_BODY:
+        raise ValueError('status exceeds 512 bytes')
     if 'msg' in state:
         value = state['msg']
         if not value.isascii() or any(ord(c) < 32 or ord(c) > 126 for c in value):
             raise ValueError('invalid message')
-        parts.append('msg=' + value)
-    line = ' '.join(parts) + '\n'
-    if len(line.encode('ascii')) > 512:
-        raise ValueError('status exceeds 512 bytes')
-    return line
+        available = MAX_BODY - len(body) - len(' msg=')
+        if len(value) > available:
+            if available < len(SHORT_TRUNCATION):
+                raise ValueError('status exceeds 512 bytes')
+            marker = TRUNCATION if available >= len(TRUNCATION) else SHORT_TRUNCATION
+            value = value[:available - len(marker)] + marker
+        body += ' msg=' + value
+    return body + '\n'
 
 
 class Status:
@@ -68,7 +79,7 @@ class Status:
         print(line, end='', flush=True)
         for console in self.consoles:
             try:
-                fd = os.open(console, os.O_WRONLY | os.O_NOCTTY | os.O_NONBLOCK)
+                fd = os.open(console, os.O_WRONLY | os.O_NOCTTY | os.O_NONBLOCK | getattr(os, 'O_BINARY', 0))
                 try:
                     os.write(fd, line.replace('\n', '\r\n').encode('ascii'))
                 finally:

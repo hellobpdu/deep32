@@ -5,13 +5,20 @@ Exit 3 means the requested disc is pending; other refusals exit 1.
 """
 
 import hashlib
+import argparse
+import contextlib
+import importlib.util
+import io
 import json
 import os
 from pathlib import Path
 import re
 import stat
+import shutil
+import subprocess
 import sys
 import tempfile
+import time
 from urllib.parse import unquote, urlsplit
 
 
@@ -30,6 +37,10 @@ class Refusal(Exception):
 
 
 class PendingDisc(Refusal):
+    pass
+
+
+class NeedsAction(Refusal):
     pass
 
 
@@ -87,11 +98,20 @@ def integer(value, minimum=1, maximum=None):
     return value
 
 
+def read_metadata(value, *, limit=MAX_META):
+    """Bound bytes at the open stream, including growth after any earlier stat."""
+    with path(value, "file").open("rb") as source:
+        raw = source.read(limit + 1)
+    if len(raw) > limit:
+        raise Refusal("Metadata exceeds the size limit")
+    return raw
+
+
 def read_sums(value):
     source = path(value, "file")
     if source.stat().st_size > MAX_META:
         raise Refusal("SHA256SUMS is too large")
-    raw = source.read_bytes()
+    raw = read_metadata(source)
     if not raw.endswith(b"\n") or any(byte != 10 and not 32 <= byte <= 126 for byte in raw):
         raise Refusal("Root checksums must be ASCII with LF line endings")
     result = {}
@@ -362,11 +382,492 @@ def validsig(status, key_status):
     fields = records[0]
     if len(fields) not in (9, 10) or not FINGERPRINT.fullmatch(fields[0]):
         raise Refusal("Malformed GPG VALIDSIG status")
+    # Release checks require a binary signature over the exact bytes.
+    if fields[8] != "00":
+        raise Refusal("Only binary detached signatures (class 00) are accepted")
     primary = fields[9] if len(fields) == 10 else fields[0]
     if not FINGERPRINT.fullmatch(primary):
         raise Refusal("Malformed primary fingerprint in GPG status")
     if primary.upper() != expected:
         raise Refusal("The signature primary fingerprint does not match the supplied public key")
+
+
+def gpg_executable(explicit=""):
+    """Resolve a file, never shell text. Windows discovery uses native GnuPG."""
+    candidates = [explicit] if explicit else []
+    if not explicit and os.name == "nt":
+        for base in (os.environ.get("ProgramFiles", "C:/Program Files"),
+                     os.environ.get("ProgramFiles(x86)", "C:/Program Files (x86)")):
+            candidates.extend(str(Path(base) / suffix) for suffix in (
+                "GnuPG/bin/gpg.exe", "Gpg4win/bin/gpg.exe"))
+    if not explicit:
+        candidates += [shutil.which("gpg") or ""]
+    for candidate in candidates:
+        if not explicit and os.name == "nt" and str(candidate).replace("\\", "/").lower().endswith("/usr/bin/gpg.exe"):
+            # Git/MSYS may be installed under any directory name or be on PATH.
+            continue
+        if candidate and Path(candidate).is_file():
+            selected = path(candidate, "file")
+            if os.name == 'nt' and selected.suffix.lower() != '.exe':
+                if explicit:
+                    raise Refusal('--gpg must name a native .exe file on Windows')
+                continue
+            result = subprocess.run([str(selected), "--no-options", "--version"], capture_output=True,
+                                    timeout=10, check=False)
+            if result.returncode == 0 and b"gpg (GnuPG)" in result.stdout:
+                return selected
+            if explicit:
+                raise Refusal("The --gpg file is not a working GnuPG executable")
+    # GnuPG fixes use the host's own package manager or vendor download.
+    requirement = ("GnuPG was not found; install GnuPG using this host's package manager "
+                   "or the vendor download; ")
+    raise NeedsAction(requirement + ("reopen PowerShell and run this check again." if os.name == "nt" else
+                                    "reopen the terminal and run this check again."))
+
+
+def authenticate(cache, key, fingerprint, executable="", checksum="SHA256SUMS"):
+    """Import one public key into a fresh temporary home and pin its primary."""
+    if not FINGERPRINT.fullmatch(fingerprint):
+        raise Refusal("Expected primary fingerprint must be 40 or 64 hexadecimal digits")
+    cache, key = path(cache, "dir"), path(key, "file")
+    if not safe_name(checksum):
+        raise Refusal("Invalid checksum file name")
+    for name in (checksum, checksum + ".sig"):
+        if path(cache / name, "file").stat().st_size > MAX_META:
+            raise Refusal("Checksum or signature exceeds the metadata size limit")
+    if key.stat().st_size > MAX_META:
+        raise Refusal("Public key exceeds the metadata size limit")
+    gpg = gpg_executable(executable)
+    with tempfile.TemporaryDirectory(prefix=".deep32-public-key-", dir=cache) as name:
+        os.chmod(name, 0o700)
+        base = [str(gpg), "--no-options", "--homedir", str(name), "--batch",
+                "--no-autostart", "--no-auto-key-retrieve", "--auto-key-locate", "clear"]
+        environment = os.environ.copy()
+        environment["GNUPGHOME"] = str(name)
+
+        def run(arguments, public_import=False):
+            start = time.monotonic()
+            with subprocess.Popen(base + [str(a) for a in arguments], env=environment,
+                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE) as child:
+                while True:
+                    try:
+                        out, _ = child.communicate(timeout=10)
+                        break
+                    except subprocess.TimeoutExpired:
+                        print("Waiting for local public-key verification; stop and retry if GnuPG is blocked.", file=sys.stderr)
+                        if time.monotonic() - start >= 60:
+                            child.kill()
+                            child.communicate()
+                            raise Refusal("Local GnuPG verification timed out; retry the same command")
+                # Public-key import can exit 2 when --no-autostart prevents an
+                # optional agent notification (including Windows long paths).
+                # Only an explicit IMPORT_OK for our pinned public key is
+                # usable; the subsequent VALIDSIG is still mandatory.
+                imported = any(line.startswith(b"[GNUPG:] IMPORT_OK ") and
+                               line.split()[-1].decode("ascii", "replace").upper() == fingerprint.upper()
+                               for line in out.splitlines())
+                if child.returncode and not (public_import and child.returncode == 2 and imported):
+                    raise Refusal("Public key or checksum signature failed; check the expected release fingerprint")
+                return out
+
+        listing = run(["--with-colons", "--show-keys", "--fingerprint", str(key)])
+        if any(line.split(b":", 1)[0] in (b"sec", b"ssb") for line in listing.splitlines()):
+            raise Refusal("Secret-key input is refused; supply a public .asc or binary keyring")
+        listing_path = Path(name) / "public-status"
+        listing_path.write_bytes(listing)
+        if primary_fingerprint(listing_path) != fingerprint.upper():
+            raise Refusal("Supplied public key does not match the expected primary fingerprint")
+        run(["--status-fd", "1", "--import-options", "import-minimal", "--import", str(key)], public_import=True)
+        status = run(["--status-fd", "1", "--verify", str(cache / (checksum + ".sig")), str(cache / checksum)])
+        status_path = Path(name) / "signature-status"
+        status_path.write_bytes(status)
+        validsig(status_path, listing_path)
+
+
+def contract_module(name='contract_validate'):
+    """Load the bundled validator by its fixed sibling path under isolated Python."""
+    spec = importlib.util.spec_from_file_location("deep32_" + name, path(Path(__file__).with_name(name + ".py"), "file"))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def read_mirrors(manifest, sums_path, release=None):
+    """Read MIRRORS only after the caller authenticated sums_path.
+
+    Raw bytes are hashed before JSON parsing or inspection of any index field.
+    This low-level reader deliberately performs no retrieval or key discovery.
+    """
+    sums = read_sums(sums_path)
+    source = path(manifest, "file")
+    if source.name != "MIRRORS.json" or source.stat().st_size > MAX_META:
+        raise Refusal("Invalid MIRRORS.json file or size")
+    raw = read_metadata(source)
+    if sums.get("MIRRORS.json") != hashlib.sha256(raw).hexdigest():
+        raise Refusal("MIRRORS.json does not match authenticated SHA256SUMS")
+    validator = contract_module()
+    data = validator.validate_contract("mirrors", validator.strict_loads(raw, max_bytes=MAX_META))
+    if release is not None and data["release"] != release:
+        raise Refusal("MIRRORS release does not match the requested release")
+    for disc in validator.mirror_transports(data):
+        if sums.get(disc["file"]) != disc["sha256"]:
+            raise Refusal("Whole image does not agree with authenticated root checksums")
+    if data["format_version"] == 2:
+        binding = data["capability_manifest"]
+        if sums.get(binding["file"]) != binding["sha256"]:
+            raise Refusal("Capability manifest does not agree with authenticated root checksums")
+    return data
+
+
+def read_mirror_capabilities(data, sums_path, capability_path=None):
+    """Read only capability bytes bound by the authenticated root and index."""
+    if data["format_version"] != 2:
+        raise Refusal("Bundle selection requires mirrors version 2")
+    binding = data["capability_manifest"]
+    sums = read_sums(sums_path)
+    source = path(capability_path or Path(sums_path).parent / binding["file"], "file")
+    if source.name != binding["file"]:
+        raise Refusal("Capability manifest basename differs from the mirror binding")
+    raw = read_metadata(source, limit=8 * 1024 * 1024)
+    if sums.get(binding["file"]) != binding["sha256"] or hashlib.sha256(raw).hexdigest() != binding["sha256"]:
+        raise Refusal("Capability manifest bytes differ from authenticated release metadata")
+    validator = contract_module()
+    manifest = validator.strict_loads(raw, max_bytes=8 * 1024 * 1024)
+    validator.validate_mirror_capabilities(data, manifest, capability_bytes=raw)
+    return manifest
+
+
+def select_whole(manifest, sums_path, role, release):
+    """Return one whole-image descriptor from an already authenticated root."""
+    if role not in ROLES:
+        raise Refusal("Invalid disc role")
+    data = read_mirrors(manifest, sums_path, release)
+    if role == "disc3" and data["format_version"] == 2:
+        raise Refusal("Disc3 requires an explicit hardware class and bundle selection")
+    return next(disc for disc in data["discs"] if disc["role"] == role)
+
+
+def validate_whole_release(folder, *, release=None, images=None, scope="metadata", require_signatures=True):
+    """Check exact whole-release coverage after root authentication.
+
+    Signing preflight calls this with require_signatures=False, before any GPG
+    signing command. It validates bytes/closure, never claims authentication.
+    Images are absent only at the three precisely signed MIRRORS names.
+    """
+    if scope not in ("metadata", "whole"):
+        raise Refusal("Choose metadata or whole verification scope")
+    folder = path(folder, "dir")
+    sums = read_sums(folder / "SHA256SUMS")
+    data = read_mirrors(folder / "MIRRORS.json", folder / "SHA256SUMS", release)
+    validator = contract_module()
+    for name in sums:
+        validator.safe_path(name, basename=True)
+    transports = validator.mirror_transports(data)
+    image_names = {disc["file"] for disc in transports}
+    if any(name == "SHA256SUMS" or name.lower().endswith(".sig") or name == "ASSEMBLY.json"
+           or re.search(r"\.part(?:[0-9]{3}|s\.tsv)$", name)
+           or (name.lower().endswith((".img", ".iso")) and name not in image_names) for name in sums):
+        raise Refusal("Whole root contains an excluded or legacy payload entry")
+    files = {}
+    folded = set()
+    for item in sorted(folder.iterdir()):
+        path(item, "file")
+        if not safe_name(item.name) or item.name.lower() in folded:
+            raise Refusal("Release contains an unsafe or colliding file name")
+        validator.safe_path(item.name, basename=True)
+        files[item.name] = item
+        folded.add(item.name.lower())
+    child_names = validator.mirror_child_names(data)
+    children = {name: [d for d in transports if d.get("role", "disc3") == role]
+                for role, name in child_names.items()}
+    readmes = {name.removesuffix("-SHA256SUMS") + "-README.md" for name in children}
+    if any(name.endswith("-SHA256SUMS") and name not in children for name in sums):
+        raise Refusal("Unexpected per-disc checksum file")
+    small = set(sums) - image_names
+    if not ({"MIRRORS.json", "ASSETS.txt", "ASSET-MAP.json"} | set(children) | readmes) <= small:
+        raise Refusal("Required whole-release metadata is absent from root checksums")
+    signatures = {"SHA256SUMS.sig", *(name + ".sig" for name in children)}
+    expected = small | {"SHA256SUMS"} | (signatures if require_signatures else set())
+    if set(files) != expected:
+        raise Refusal("Release metadata has missing or unexpected files: " + ", ".join(sorted(set(files) ^ expected)))
+    capabilities = contract_module('capabilities') if data['format_version'] == 2 else None
+    storage_name = capabilities.STORAGE_ASSET if capabilities is not None else None
+    for name in sorted(small):
+        if name == storage_name:
+            continue  # The detached verifier reads and hashes this file with its own bound.
+        limit = (8 * 1024 * 1024 if data["format_version"] == 2 and
+                 name == data["capability_manifest"]["file"] else MAX_META)
+        if files[name].stat().st_size > limit or sha256(files[name]) != sums[name]:
+            raise Refusal("Metadata size or SHA256 failed: " + name)
+    if capabilities is not None:
+        capability = read_mirror_capabilities(data, folder / 'SHA256SUMS')
+        storage = read_metadata(files[storage_name], limit=capabilities.STORAGE_LIMIT) if storage_name in files else None
+        capabilities.verify_detached_storage(
+            capability, storage, sums.get(storage_name),
+            observed={row['bundle_id']: {'iso_bytes': row['size']} for row in data['bundles']})
+        if storage is not None and 'FORGE-PREREQUISITES.json' in files:
+            requirements = contract_module('forge_requirements')
+            requirements.validate(read_metadata(files[requirements.ASSET], limit=requirements.LIMIT),
+                                  capability_sha256=data['capability_manifest']['sha256'],
+                                  pins_sha256=capability['pins_sha256'], release=capability['release'],
+                                  storage_evidence_sha256=sums[storage_name])
+    for name in sorted(signatures if require_signatures else ()):
+        if files[name].stat().st_size > MAX_META:
+            raise Refusal("Signature exceeds metadata size limit")
+    raw_assets = read_metadata(files["ASSETS.txt"])
+    if not raw_assets.endswith(b"\n"):
+        raise Refusal("ASSETS.txt must end with LF")
+    asset_names = raw_assets.decode("ascii").split("\n")[:-1]
+    uploads = small | {"SHA256SUMS"} | signatures
+    if (any(not safe_name(name) for name in asset_names) or len(asset_names) != len(set(asset_names))
+            or asset_names != sorted(uploads)):
+        raise Refusal("ASSETS.txt must list exactly the sorted small uploads and four signatures")
+    validator = contract_module()
+    asset_map = validator.load_contract("asset-map", files["ASSET-MAP.json"])
+    if any(entry["asset"] not in small for entry in asset_map["entries"]):
+        raise Refusal("Asset map names metadata absent from the authenticated root")
+    mapped = {entry["asset"] for entry in asset_map["entries"]}
+    for child_name, descriptors in sorted(children.items()):
+        child = read_sums(files[child_name])
+        if storage_name in small and (storage_name in child) != (child_name == child_names['disc3']):
+            raise Refusal('Physical storage measurements must belong to the Disc 3 checksum list only.')
+        mandatory = {*(d["file"] for d in descriptors), child_name.removesuffix("-SHA256SUMS") + "-README.md"}
+        if not mandatory <= set(child):
+            raise Refusal("Per-disc checksums must cover its whole image and README")
+        forbidden = image_names | readmes | set(children) | {"SHA256SUMS", "MIRRORS.json", "ASSETS.txt", "ASSET-MAP.json"}
+        for name, digest in child.items():
+            if (name not in sums or sums[name] != digest
+                    or (name not in mandatory and (name in forbidden or name not in mapped))):
+                raise Refusal("Per-disc checksum differs from its explicitly named release files")
+    if scope == "whole":
+        images = ({disc.get("role", disc.get("bundle_id")): folder.parent / "images" / disc["file"] for disc in transports}
+                  if not images else images)
+        if set(images) != {disc.get("role", disc.get("bundle_id")) for disc in transports}:
+            raise Refusal("Whole scope requires one explicit path for every declared transport")
+        seen_paths = set()
+        for disc in transports:
+            source = path(images[disc.get("role", disc.get("bundle_id"))], "file")
+            identity = (source.stat().st_dev, source.stat().st_ino)
+            if identity in seen_paths:
+                raise Refusal("Duplicate image input")
+            seen_paths.add(identity)
+            check_file(source, disc["size"], disc["sha256"])
+    return data
+
+
+def verify_whole(argv, *, signing=False):
+    parser = argparse.ArgumentParser(description="Verify explicit whole-image or metadata-only scope")
+    if signing:
+        parser.add_argument("--release-dir", dest="directory", required=True)
+    else:
+        parser.add_argument("directory")
+        parser.add_argument("fingerprint")
+        parser.add_argument("--key", default=str(Path(__file__).parents[2] / "install/release-key.gpg"))
+        parser.add_argument("--gpg", default="")
+    parser.add_argument("--scope", choices=("metadata", "whole"), required=not signing, default="metadata" if signing else None)
+    parser.add_argument("--image", action="append", default=[])
+    parser.add_argument("--release")
+    args = parser.parse_args(argv)
+    images = {}
+    for item in args.image:
+        role, separator, source = item.partition("=")
+        if not separator or not re.fullmatch(r"[a-z][a-z0-9-]{0,95}", role) or role in images or not source:
+            raise Refusal("Each --image must name a unique disc role or bundle ID and explicit path")
+        images[role] = source
+    if args.scope != "whole" and images:
+        raise Refusal("Explicit image inputs require whole verification scope")
+    folder = path(args.directory, "dir")
+    if signing and read_mirrors(folder / "MIRRORS.json", folder / "SHA256SUMS", args.release)["format_version"] != 2:
+        raise Refusal("New alpha.2 signing preflight requires mirrors version 2")
+    if not signing:
+        authenticate(folder, args.key, args.fingerprint, args.gpg)
+    data = validate_whole_release(folder, release=args.release, images=images, scope=args.scope, require_signatures=not signing)
+    if not signing:
+        for child in contract_module().mirror_child_names(data).values():
+            authenticate(folder, args.key, args.fingerprint, args.gpg, child)
+        print("Release signatures and metadata verified; scope: %s%s." %
+              (args.scope, " (image bytes were not checked)" if args.scope == "metadata" else " (all declared whole objects checked)"))
+    else:
+        print("Whole-image signing preflight passed; exact metadata coverage checked.")
+
+
+def selected_records(manifest, sums, role, release):
+    output = io.StringIO()
+    with contextlib.redirect_stdout(output):
+        selection(manifest, sums, role, release)
+    rows = [line.split("\t") for line in output.getvalue().splitlines()]
+    return rows[0], rows[1:]
+
+
+def storage_plan(manifest, sums, role, release, destination, cache, style="sh", vm=""):
+    """Peak *additional* allocation, grouped by the backing filesystem once."""
+    image, assets = selected_records(manifest, sums, role, release)
+    destination, cache = path(destination, "dir"), path(cache, "dir")
+    target = destination / image[1]
+    allocations = []
+    if target.exists():
+        check_file(target, image[2], image[3])
+    else:
+        for _, name, size, digest in assets:
+            where = destination if style == "sh" and name == image[1] else cache
+            asset = path(where / name)
+            if asset.exists():
+                check_file(asset, size, digest)
+                needed = 0
+            else:
+                partial = path(str(asset) + ".download")
+                retained = partial.stat().st_size if partial.exists() else 0
+                if retained > int(size):
+                    raise Refusal("Partial download exceeds its authenticated size")
+                needed = int(size) - retained
+            allocations.append((where, "retained-payload", needed))
+        if style == "ps1" or assets[0][1] != image[1]:
+            allocations.append((destination, "joined-image", int(image[2])))
+    if vm:
+        if role != "disc1" or vm not in ("hyper-v", "kvm"):
+            raise Refusal("VM preparation requires disc1 and hyper-v or kvm")
+        allocations.append((destination, "installer-copy", int(image[2]) + (512 if vm == "hyper-v" else 0)))
+    groups = {}
+    for folder, label, amount in allocations:
+        identity = str(folder.stat().st_dev)
+        row = groups.setdefault(identity, {"filesystem": identity, "path": str(folder), "needed": 0,
+                                           "available": shutil.disk_usage(folder).free, "allocations": []})
+        row["needed"] += amount
+        row["allocations"].append({"stage": label, "bytes": amount})
+    for row in groups.values():
+        row["remaining"] = row["available"] - row["needed"]
+        row["ready"] = row["remaining"] >= 0
+    return {"schema": "deep32.storage.v1", "scope": "download-and-preparation", "disc": role,
+            "filesystems": [groups[key] for key in sorted(groups)],
+            "installed_storage": "unknown: payload, Docker data-root, WSL backing volume and rollback need measured Phase B media"}
+
+
+def print_storage(*args):
+    plan = storage_plan(*args)
+    print(json.dumps(plan, sort_keys=True, separators=(",", ":")))
+    if any(not row["ready"] for row in plan["filesystems"]):
+        raise NeedsAction("Insufficient storage; free the printed needed bytes on that filesystem and rerun the same command")
+
+
+def publication_check(folder):
+    """Fail before payload transfer if atomic no-overwrite publication is absent."""
+    folder = path(folder, 'dir')
+    with tempfile.TemporaryDirectory(prefix='.deep32-filesystem-', dir=folder) as name:
+        source, target = Path(name) / 'synthetic-source', Path(name) / 'synthetic-link'
+        source.write_bytes(b'Deep32 filesystem capability probe\n')
+        try:
+            os.link(source, target)
+        except OSError:
+            raise NeedsAction('This filesystem cannot publish files without overwrite; choose a local hard-link-capable --to filesystem and rerun the same command') from None
+
+
+def prepare_vm(image, size, digest, hypervisor, destination):
+    """Write installer artefacts and commands only. Never run a hypervisor."""
+    image, destination = path(image, "file"), path(destination, "dir")
+    check_file(image, size, digest)
+    if hypervisor not in ("hyper-v", "kvm") or image.suffix != ".img":
+        raise Refusal("VM preparation requires a verified disc1 raw .img and hyper-v or kvm")
+    target = path(destination / (image.stem + "-" + hypervisor))
+    if target.exists():
+        raise Refusal("VM preparation destination exists; choose an empty --to directory")
+    publication_check(destination)
+    need = int(size) + (512 if hypervisor == "hyper-v" else 0)
+    if shutil.disk_usage(destination).free < need:
+        raise NeedsAction("Insufficient storage for the VM installer artefact; choose a larger --to filesystem")
+    with tempfile.TemporaryDirectory(prefix=".deep32-vm-", dir=destination) as temporary:
+        staging = Path(temporary)
+        installer = staging / ("installer.vhd" if hypervisor == "hyper-v" else "installer.img")
+        if hypervisor == "hyper-v":
+            if int(size) % (1 << 20):
+                raise Refusal("Hyper-V raw installer size must be a whole number of MiB")
+            converter = Path(__file__).resolve().parents[1] / "workstation/release/tools/raw2vhd.py"
+            spec = importlib.util.spec_from_file_location("deep32_raw2vhd", path(converter, "file"))
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            shutil.copyfile(image, installer)
+            with installer.open("ab") as stream:
+                stream.write(module.footer(int(size), bytes.fromhex(digest)))
+        else:
+            shutil.copyfile(image, installer)
+        expected_size = int(size) + (512 if hypervisor == 'hyper-v' else 0)
+        if installer.stat().st_size != expected_size:
+            raise Refusal('VM installer copy has the wrong size')
+        copied = hashlib.sha256()
+        with installer.open('rb') as stream:
+            remaining = int(size)
+            while remaining:
+                block = stream.read(min(BUFFER, remaining))
+                if not block:
+                    raise Refusal('VM installer copy is truncated')
+                copied.update(block)
+                remaining -= len(block)
+            if hypervisor == 'hyper-v' and stream.read() != module.footer(int(size), bytes.fromhex(digest)):
+                raise Refusal('VM installer VHD footer failed validation')
+        if copied.hexdigest() != digest:
+            raise Refusal('VM installer copy changed during preparation')
+        # Never interpolate a path into executable syntax: commands locate their
+        # own directory. Existing switch/network choices require human review.
+        if hypervisor == "hyper-v":
+            commands = """# Review this unqualified recipe on a disposable host before use.
+# Run from this directory in an elevated PowerShell session after prerequisite checks.
+$root = (Get-Location).Path
+$switch = Read-Host 'Existing external or NAT switch with DHCP'
+New-VHD -Path (Join-Path $root 'target.vhdx') -Dynamic -SizeBytes 160GB
+New-VM -Name Deep32Workstation -Generation 1 -MemoryStartupBytes 12GB -NoVHD -SwitchName $switch
+Set-VMProcessor -VMName Deep32Workstation -Count 6
+Add-VMHardDiskDrive -VMName Deep32Workstation -ControllerType IDE -ControllerNumber 0 -ControllerLocation 0 -Path (Join-Path $root 'installer.vhd')
+Add-VMHardDiskDrive -VMName Deep32Workstation -ControllerType IDE -ControllerNumber 0 -ControllerLocation 1 -Path (Join-Path $root 'target.vhdx')
+# Review disk identities before installation: installer is IDE 0:0; empty target is IDE 0:1.
+# After shutdown, detach installer.vhd and boot target.vhdx. Attach signed disc2 as DVD.
+# No VM is created or started by deep32-get.
+"""
+        else:
+            commands = """# Review this unqualified recipe on a disposable host before use.
+# Run from this directory after prerequisite checks; the existing default NAT network needs DHCP.
+qemu-img create -f qcow2 target.qcow2 160G
+virt-install --name Deep32Workstation --memory 12288 --vcpus 6 --os-variant generic --import --boot hd --disk path=installer.img,format=raw,bus=ide --disk path=target.qcow2,format=qcow2,bus=ide --network network=default,model=e1000 --graphics vnc,listen=127.0.0.1 --video vga --noautoconsole --print-xml > workstation.xml
+# Review workstation.xml before virsh define workstation.xml and virsh start Deep32Workstation.
+# Install to the empty second disk only. Shut down, detach installer.img, put target first, attach signed disc2 as a read-only CD-ROM.
+# No VM is created or started by deep32-get.
+"""
+        (staging / "commands.txt").write_text(commands, encoding="ascii", newline="\n")
+        (staging / "recipe.json").write_text(json.dumps({"schema": "deep32.vm-recipe.v1", "hypervisor": hypervisor,
+            "maturity": "awaiting-clean-host-boot-test", "installer_sha256": digest,
+            "installer_bytes": int(size), "target_minimum_bytes": 160_000_000_000,
+            "firmware": "legacy-bios", "network": "wired-virtual-nic-with-dhcp",
+            "content": "signed-disc2-read-only-optical-after-install", "starts_vm": False}, sort_keys=True, indent=2) + "\n", encoding="ascii")
+        # mkdir without exist_ok prevents overwriting another completed recipe.
+        target.mkdir()
+        for item in sorted(staging.iterdir()):
+            publish(item, target / item.name)
+    print("VM artefacts written: %s; review commands.txt. Host boot qualification is pending." % target)
+
+
+def verify_selected(argv):
+    parser = argparse.ArgumentParser(description="Verify one selected disc; complete-release mode is unchanged")
+    parser.add_argument("directory")
+    parser.add_argument("fingerprint")
+    parser.add_argument("--disc", required=True, choices=sorted(ROLES))
+    parser.add_argument("--key", default=str(Path(__file__).parents[2] / "install/release-key.gpg"))
+    parser.add_argument("--gpg", default="")
+    parser.add_argument("--release", default="v0.1.0-alpha.1")
+    args = parser.parse_args(argv)
+    folder = path(args.directory, "dir")
+    authenticate(folder, args.key, args.fingerprint, args.gpg)
+    image, assets = selected_records(folder / "ASSEMBLY.json", folder / "SHA256SUMS", args.disc, args.release)
+    # A downloader's cache may have its joined image beside it. One complete
+    # selected payload set is mandatory; a joined image alone cannot hide parts.
+    allowed = set(read_sums(folder / 'SHA256SUMS')) | {"SHA256SUMS", "SHA256SUMS.sig", image[1]}
+    for _, name, size, digest in assets:
+        check_file(folder / name, size, digest)
+        allowed.add(name)
+    if (folder / image[1]).exists():
+        check_file(folder / image[1], image[2], image[3])
+    for child in folder.iterdir():
+        path(child, "file")
+        if child.name not in allowed:
+            raise Refusal("Selected-disc directory contains an unexpected entry")
+    print("Selected %s signatures, manifest and payloads verified; scope is not the complete release." % args.disc)
 
 
 def main(argv):
@@ -398,6 +899,20 @@ def main(argv):
         print(path(item, "file").stat().st_size if item.exists() else 0)
     elif command == "validsig":
         validsig(*args)
+    elif command == "authenticate":
+        authenticate(*args)
+    elif command == "storage":
+        print_storage(*args)
+    elif command == "prepare-vm":
+        prepare_vm(*args)
+    elif command == 'publication-check':
+        publication_check(*args)
+    elif command == "verify-selected":
+        verify_selected(args)
+    elif command == "verify-whole":
+        verify_whole(args)
+    elif command == "sign-preflight":
+        verify_whole(args, signing=True)
     else:
         raise Refusal("Unknown helper command")
 
@@ -411,6 +926,9 @@ if __name__ == "__main__":
     except PendingDisc as error:
         print(str(error), file=sys.stderr)
         sys.exit(3)
+    except NeedsAction as error:
+        print(str(error), file=sys.stderr)
+        sys.exit(10)
     except (Refusal, OSError, ValueError, TypeError, UnicodeError, KeyError, RecursionError) as error:
         print("Download refused: %s" % error, file=sys.stderr)
         sys.exit(1)

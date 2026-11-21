@@ -1,0 +1,9 @@
+{
+  "BackendState": "NeedsLogin",
+  "AuthURL": "https://login.tailscale.com/a/0000000000",
+  "Self": {
+    "HostName": "localhost",
+    "TailscaleIPs": []
+  },
+  "Peer": null
+}

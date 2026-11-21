@@ -1,0 +1,11 @@
+Deep32
+Copyright 2026 Jeffrey A. Cummings
+
+Deep32 was created by Jeffrey A. Cummings.
+Original project: https://github.com/hellobpdu/deep32
+
+Deep32's own code is licensed under the Apache License, Version 2.0 (see
+LICENSE). The Forge's PDF converter and the Workstation Library's renderer
+e26-render use MuPDF and are licensed under AGPL-3.0-or-later (see
+licenses/AGPL-3.0-or-later.txt). Third-party components keep their own
+licenses; see the notices folder.

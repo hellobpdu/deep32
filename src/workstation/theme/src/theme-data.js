@@ -10,7 +10,7 @@ const identity = {
   // SYSV-FLAVOUR 2.5: the locked footer, verbatim, broken after "content only ·" when narrower than 88 columns.
   notice: 'Deep32 Workstation · reference library and research desk',
   noticeLines: ['Deep32 Workstation ·', 'reference library and research desk'],
-  notices: '/usr/local/share/doc/d32/NOTICES',
+  notices: '/usr/local/share/doc/d32/NOTICE',
 };
 
 // Trains (REPLAN 1, ISO 9.4, DECISIONS C "25 Train: core (F0-F4) in D.32.14"). A control or action whose train is

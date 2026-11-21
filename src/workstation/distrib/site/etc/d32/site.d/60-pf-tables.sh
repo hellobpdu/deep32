@@ -8,6 +8,13 @@ for t in ts_infra gpu_hub rag_edge ntp web_site relay_hub relay_work; do
 	chown root:wheel /etc/d32/pf/$t
 	chmod 0640 /etc/d32/pf/$t
 done
+# The Forge and relay addresses change at pairing, so they live in /etc/d32/state (not schg); 65-state owns them.
+install -d -o root -g wheel -m 0700 /etc/d32/state
+for t in gpu_hub relay_hub relay_work; do
+	[ -f /etc/d32/state/$t ] || print -r -- "# <$t>: empty until pairing" >/etc/d32/state/$t
+	chown root:wheel /etc/d32/state/$t
+	chmod 0600 /etc/d32/state/$t
+done
 chown root:wheel /etc/pf.conf
 chmod 0600 /etc/pf.conf
 if pfctl -nf /etc/pf.conf 2>/tmp/d32-pf.err; then

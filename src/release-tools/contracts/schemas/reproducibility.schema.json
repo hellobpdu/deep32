@@ -1,0 +1,363 @@
+{
+  "$id": "urn:deep32:reproducibility:v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "format": {
+      "const": "deep32-reproducibility"
+    },
+    "format_version": {
+      "const": 1
+    },
+    "generator_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "release": {
+      "const": "v0.1.0-alpha.2"
+    },
+    "source_commit": {
+      "pattern": "^[0-9a-f]{40}$",
+      "type": "string"
+    },
+    "source_date_epoch": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "subjects": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "byte_comparison": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "boolean"
+              }
+            ]
+          },
+          "generator_sha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "input_manifest_sha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": ["string", "null"]
+          },
+          "provenance": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "path": {
+                    "maxLength": 240,
+                    "minLength": 1,
+                    "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$",
+                    "type": "string"
+                  },
+                  "sha256": {
+                    "pattern": "^[0-9a-f]{64}$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "path",
+                  "sha256"
+                ],
+                "type": "object"
+              }
+            ]
+          },
+          "reason": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "maxLength": 512,
+                "minLength": 1,
+                "pattern": "^[ -~]+$",
+                "type": "string"
+              }
+            ]
+          },
+          "receipt": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "path": {
+                    "maxLength": 240,
+                    "minLength": 1,
+                    "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$",
+                    "type": "string"
+                  },
+                  "sha256": {
+                    "pattern": "^[0-9a-f]{64}$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "path",
+                  "sha256"
+                ],
+                "type": "object"
+              }
+            ]
+          },
+          "recipe_sha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": ["string", "null"]
+          },
+          "runs": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "architecture": {
+                  "const": "amd64"
+                },
+                "clean": {
+                  "type": "boolean"
+                },
+                "clean_method": {
+                  "maxLength": 512,
+                  "minLength": 1,
+                  "pattern": "^[ -~]+$",
+                  "type": "string"
+                },
+                "environment": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "locale": {
+                      "maxLength": 128,
+                      "minLength": 1,
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]*$",
+                      "type": "string"
+                    },
+                    "source_date_epoch": {
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "tz": {
+                      "const": "UTC"
+                    },
+                    "umask": {
+                      "pattern": "^0[0-7]{3}$",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "tz",
+                    "locale",
+                    "umask",
+                    "source_date_epoch"
+                  ],
+                  "type": "object"
+                },
+                "exit_code": {
+                  "const": 0
+                },
+                "id": {
+                  "maxLength": 128,
+                  "minLength": 1,
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]*$",
+                  "type": "string"
+                },
+                "output": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "sha256": {
+                      "pattern": "^[0-9a-f]{64}$",
+                      "type": "string"
+                    },
+                    "size": {
+                      "minimum": 0,
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "size",
+                    "sha256"
+                  ],
+                  "type": "object"
+                },
+                "platform": {
+                  "maxLength": 128,
+                  "minLength": 1,
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]*$",
+                  "type": "string"
+                },
+                "tool_versions": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "maxLength": 128,
+                        "minLength": 1,
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]*$",
+                        "type": "string"
+                      },
+                      "version": {
+                        "maxLength": 128,
+                        "minLength": 1,
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]*$",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "version"
+                    ],
+                    "type": "object"
+                  },
+                  "maxItems": 1024,
+                  "minItems": 1,
+                  "type": "array"
+                },
+                "verification": {
+                  "const": "passed"
+                }
+              },
+              "required": [
+                "id",
+                "clean",
+                "output",
+                "exit_code",
+                "environment",
+                "platform",
+                "architecture",
+                "tool_versions",
+                "clean_method",
+                "verification"
+              ],
+              "type": "object"
+            },
+            "maxItems": 2,
+            "minItems": 0,
+            "type": "array"
+          },
+          "scope": {
+            "enum": [
+              "media-assembly",
+              "runtime-assembly",
+              "local-container-build",
+              "unchanged-upstream-input"
+            ]
+          },
+          "status": {
+            "enum": [
+              "proven",
+              "not-proven",
+              "reused"
+            ]
+          },
+          "subject": {
+            "additionalProperties": false,
+            "properties": {
+              "aliases": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "path": {
+                      "maxLength": 240,
+                      "minLength": 1,
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$",
+                      "type": "string"
+                    },
+                    "role": {
+                      "maxLength": 128,
+                      "minLength": 1,
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]*$",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "role",
+                    "path"
+                  ],
+                  "type": "object"
+                },
+                "maxItems": 32,
+                "minItems": 0,
+                "type": "array",
+                "uniqueItems": true
+              },
+              "kind": {
+                "enum": [
+                  "disc",
+                  "runtime",
+                  "container",
+                  "model",
+                  "source"
+                ]
+              },
+              "path": {
+                "maxLength": 240,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$",
+                "type": "string"
+              },
+              "sha256": {
+                "pattern": "^[0-9a-f]{64}$",
+                "type": "string"
+              },
+              "size": {
+                "minimum": 0,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "kind",
+              "path",
+              "size",
+              "sha256",
+              "aliases"
+            ],
+            "type": "object"
+          },
+          "toolchain_sha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": ["string", "null"]
+          }
+        },
+        "required": [
+          "subject",
+          "scope",
+          "status",
+          "input_manifest_sha256",
+          "recipe_sha256",
+          "generator_sha256",
+          "toolchain_sha256",
+          "runs",
+          "byte_comparison",
+          "receipt",
+          "provenance",
+          "reason"
+        ],
+        "type": "object"
+      },
+      "maxItems": 1024,
+      "minItems": 1,
+      "type": "array"
+    }
+  },
+  "required": [
+    "format",
+    "format_version",
+    "release",
+    "source_commit",
+    "source_date_epoch",
+    "generator_sha256",
+    "subjects"
+  ],
+  "title": "Deep32 reproducibility version 1",
+  "type": "object"
+}

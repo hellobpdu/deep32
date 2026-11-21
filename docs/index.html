@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deep32: local retrieval for network and security engineering questions</title>
+<meta name="description" content="Deep32 answers network and security engineering questions from a local corpus of RFCs and Cisco documents, through Claude Code or Codex. Install guides for 0.1.0-alpha.2.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d1117" media="(prefers-color-scheme: dark)">
+<link rel="canonical" href="https://hellobpdu.github.io/deep32/">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/site.css">
+<script>document.documentElement.className += ' js';</script>
+<script src="assets/site.js" defer></script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="inner">
+    <a class="wordmark" href="index.html" aria-label="Deep32 home"><span>DEEP<span class="n">32</span></span><span class="strip" aria-hidden="true"><i></i><i></i><i></i></span></a>
+    <nav class="site-nav" aria-label="Site">
+      <a href="install/index.html">Setup</a>
+      <a href="install/advanced.html">Advanced</a>
+      <a href="tr/d32-tr-1.html">Report</a>
+      <a href="https://github.com/hellobpdu/deep32">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+
+    <section class="hero" aria-labelledby="hero-title">
+      <h1 id="hero-title">
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="figures/banner-dark.svg">
+          <img src="figures/banner-light.svg" width="1000" height="172" alt="Deep32: retrieval-augmented question answering for network and security engineering">
+        </picture>
+      </h1>
+      <div class="intro">
+        <p>Deep32 answers network and security engineering questions from a local corpus of 365 RFCs and 489 Cisco
+        documents. Claude Code or Codex does the research through eleven MCP tools: it searches the corpus, reads whole
+        sections, looks up RFC status and checks each quotation against the stored text. Two more collections come with
+        it and are searched only when you ask for them: 241 PowerShell documents and 85 about Deep32 itself.</p>
+        <p>The corpus, the index and the search engine run on your own machines. The language model is hosted, so the
+        question, the queries the agent writes and the passages it gets back go to the model provider.</p>
+        <p>This release is an alpha. It assumes you're comfortable installing an operating system in a VM and running
+        Docker.</p>
+      </div>
+      <div class="status-line">
+        <span class="pill">0.1.0-alpha.2 &middot; 20 November 2026</span>
+        <span class="pill">Code: Apache-2.0</span>
+        <a class="pill" href="https://doi.org/10.5281/zenodo.24272647">DOI 10.5281/zenodo.24272647</a>
+        <a class="pill tested" href="https://www.bestpractices.dev/projects/16932">OpenSSF Best Practices</a>
+        <a class="pill tested" href="https://scorecard.dev/viewer/?uri=github.com/hellobpdu/deep32">OpenSSF Scorecard</a>
+      </div>
+    </section>
+
+    <section aria-label="Ways to install">
+      <div class="entries">
+        <a class="entry primary" href="install/index.html">
+          <p class="kicker">Start here</p>
+          <h2>General setup</h2>
+          <span class="steps-mini" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+          <p>One PC with an NVIDIA card runs the Forge and your agent, and the Workstation runs as a VM on it. The setup
+          wizard checks each step. Eleven steps, each with what you need, what to do, what you should see and what to
+          do if it doesn't.</p>
+          <span class="go">Start the walkthrough</span>
+        </a>
+        <a class="entry" href="install/advanced.html">
+          <p class="kicker">By hand</p>
+          <h2>Advanced install</h2>
+          <p>Each part by hand with <code>deep32-get</code>, layouts across machines and sites, disk budgets, ports,
+          tailnet rules, the Forge on Docker Desktop or Docker Engine, and what to do afterwards.</p>
+          <span class="go">Read the advanced guide</span>
+        </a>
+        <a class="entry" href="https://github.com/hellobpdu/deep32/blob/main/AGENTS.md">
+          <p class="kicker">With an agent</p>
+          <h2>Install with Claude Code or Codex</h2>
+          <p>Open Claude Code or Codex in a clone of the repository and run <code>/deep32-install</code> or
+          <code>$deep32-install</code>. It follows AGENTS.md and asks before it changes anything; passwords, sign-in
+          clicks and pairing codes stay yours.</p>
+          <span class="go">Read AGENTS.md</span>
+        </a>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="glance-title">
+      <h2 id="glance-title" class="visually-hidden">At a glance</h2>
+      <figure>
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="figures/glance-dark.svg">
+          <img src="figures/glance-light.svg" width="1000" height="138" alt="At a glance: hit@1 0.955; hit@8 0.991; 854 documents (365 RFCs, 489 Cisco); 11 MCP tools for Claude Code and Codex; median search 542 ms with hybrid search and reranking.">
+        </picture>
+        <figcaption>Retrieval on 696 labeled questions, measured on my development setup through the gateway, 2 November 2026.
+        The <a href="https://github.com/hellobpdu/deep32#8-evaluation">evaluation</a> has the details.</figcaption>
+      </figure>
+    </section>
+
+    <section class="section" aria-labelledby="parts-title">
+      <h2 id="parts-title">The three parts</h2>
+      <p class="sub">A deployment has three parts. They can share one machine or sit on separate ones, at home or
+      across sites. They talk over your own Tailscale network, your tailnet, and each pair of parts is introduced once
+      with a short code.</p>
+      <div class="parts">
+        <div class="part ws">
+          <picture>
+            <source media="(prefers-color-scheme: dark)" srcset="figures/part-workstation-dark.svg">
+            <img src="figures/part-workstation-light.svg" width="320" height="84" alt="Workstation: search and archive. OpenBSD with the gateway and the Library, from disc 1.">
+          </picture>
+          <h3>Workstation</h3>
+          <p>An OpenBSD VM or machine that holds the corpus and the index, with the search engine, the MCP gateway, the
+          Ask window and the Deep32 Library. It installs from disc 1 and imports its content from disc 2.</p>
+        </div>
+        <div class="part forge">
+          <picture>
+            <source media="(prefers-color-scheme: dark)" srcset="figures/part-forge-dark.svg">
+            <img src="figures/part-forge-light.svg" width="320" height="84" alt="Forge: the GPU powerhouse. Embed, rerank and convert, from disc 3.">
+          </picture>
+          <h3>Forge</h3>
+          <p>The machine with the NVIDIA card. It runs the embedding and reranking models in Docker, behind one
+          authenticated door. Without a Forge, search works on keywords only.</p>
+        </div>
+        <div class="part agent">
+          <picture>
+            <source media="(prefers-color-scheme: dark)" srcset="figures/part-headend-dark.svg">
+            <img src="figures/part-headend-light.svg" width="320" height="84" alt="Headend: your agent, Claude Code or Codex, on your PC.">
+          </picture>
+          <h3>Agent PC</h3>
+          <p>The PC where Claude Code or Codex runs. Connect pairs it with the Workstation and installs the research
+          skill. The rest of the documentation calls it the headend.</p>
+        </div>
+      </div>
+      <figure>
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="figures/topology-dark.svg">
+          <img src="figures/topology-light.svg" width="1000" height="410" alt="Deployment topology: the headend, the Workstation and the Forge on your tailnet. The headend's agent reaches the Workstation's MCP gateway over HTTPS with an agent token; the Workstation calls the Forge's models over HTTPS with a bearer token; the parts are paired once with a short code. Only the hosted language model is outside, and it receives the question and the retrieved passages.">
+        </picture>
+        <figcaption><b>Figure 1.</b> The three parts of an install. They can all run on one machine or on separate ones.</figcaption>
+      </figure>
+    </section>
+
+    <section class="section" aria-labelledby="look-title">
+      <h2 id="look-title">The Workstation</h2>
+      <p class="sub">Your agent can use Deep32 over MCP while it works, or you can type a question in the Workstation's
+      Ask window and have the agent on your PC answer it there.</p>
+      <figure>
+        <img class="shot" src="screenshots/workstation-desktop.png" width="1600" height="900" loading="lazy" alt="The Deep32 Workstation desktop. The Ask window shows a cited answer about BGP keepalive and hold timers; a network calculator, a text editor and the desktop style menu are open beside it.">
+        <figcaption><b>Figure 2.</b> The Workstation on my laptop, in the HP-UX CDE look the release installs. Ask is
+        answering the BGP timer question, with the network calculator, a text editor and the desktop style menu open.
+        Panels that exist only in my private build are blanked.</figcaption>
+      </figure>
+    </section>
+
+    <section class="section" aria-labelledby="more-title">
+      <h2 id="more-title">Read more</h2>
+      <div class="links-grid">
+        <a class="link-card" href="tr/d32-tr-1.html"><strong>Technical report D32-TR-1</strong><span>The design in RFC form: corpus, retrieval, tools, deployment, release format and evaluation.</span></a>
+        <a class="link-card" href="tr/d32-tr-1.pdf"><strong>D32-TR-1 as PDF</strong><span>The same report, printed from its HTML form.</span></a>
+        <a class="link-card" href="https://github.com/hellobpdu/deep32"><strong>Repository</strong><span>The source, the README and the full document set.</span></a>
+        <a class="link-card" href="https://github.com/hellobpdu/deep32/releases/tag/v0.1.0-alpha.2"><strong>Release 0.1.0-alpha.2</strong><span>The signed checksum list and the signed index of mirrors.</span></a>
+        <a class="link-card" href="https://github.com/hellobpdu/deep32/blob/main/CHANGELOG.md"><strong>Release notes</strong><span>What changed in each release, and the known issues.</span></a>
+        <a class="link-card" href="https://github.com/hellobpdu/deep32/releases"><strong>All releases</strong><span>Every release, each signed and archived on Zenodo.</span></a>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="support-title">
+      <h2 id="support-title" class="visually-hidden">Support</h2>
+      <div class="support">
+        <p>Questions go to <a href="https://github.com/hellobpdu/deep32/discussions">Discussions</a> and bugs to
+        <a href="https://github.com/hellobpdu/deep32/issues">Issues</a>. If you like Deep32 and want to support it,
+        everything donated goes to costs for this project.</p>
+        <div class="btns">
+          <a class="btn" href="https://github.com/sponsors/hellobpdu">GitHub Sponsors</a>
+          <a class="btn" href="https://ko-fi.com/hellobpdu">Ko-fi</a>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="inner">
+    <nav aria-label="Document set">
+      <ul class="docset">
+        <li><a href="https://github.com/hellobpdu/deep32#readme">Overview</a></li>
+        <li><a href="https://github.com/hellobpdu/deep32/blob/main/INSTALL.md">Installation</a></li>
+        <li><a href="https://github.com/hellobpdu/deep32/blob/main/docs/HARDWARE.md">Hardware</a></li>
+        <li><a href="https://github.com/hellobpdu/deep32/blob/main/docs/OPTIONAL-FEATURES.md">Optional features</a></li>
+        <li><a href="tr/d32-tr-1.html">Design</a></li>
+        <li><a href="https://github.com/hellobpdu/deep32/blob/main/docs/DECISIONS.md">Decision record</a></li>
+        <li><a href="https://github.com/hellobpdu/deep32/blob/main/docs/contracts/README.md">Contracts</a></li>
+        <li><a href="https://github.com/hellobpdu/deep32/blob/main/adapters/README.md">Agent adapters</a></li>
+        <li><a href="https://github.com/hellobpdu/deep32/blob/main/SECURITY.md">Security</a></li>
+        <li><a href="https://github.com/hellobpdu/deep32/blob/main/CHANGELOG.md">Release notes</a></li>
+      </ul>
+    </nav>
+    <p>Copyright &copy; 2026 Jeffrey A. Cummings &middot; <a href="https://orcid.org/0009-0003-8091-4637">ORCID 0009-0003-8091-4637</a> &middot; <a href="https://github.com/hellobpdu">@hellobpdu</a>. Code under the Apache License 2.0, documentation under CC BY 4.0.</p>
+    <p class="fine">Personal work. Not affiliated with or endorsed by my employer. Cisco, IOS and Catalyst are trademarks of Cisco Systems, Inc. Other names belong to their owners and are used only to describe compatibility. This site loads nothing from other servers and sets no cookies.</p>
+  </div>
+</footer>
+</body>
+</html>

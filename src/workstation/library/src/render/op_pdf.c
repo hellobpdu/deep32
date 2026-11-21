@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 Jeffrey A. Cummings */
 /* op_pdf.c: e26-render's PDF reading operations (W1-IMAGE, the engine half of plan L2; LIB-PROTOCOL "e26-render
  * named operations"): pdf_open, page_render, page_text, page_outline and pdf_close. A PDF arrives as a read-only
  * descriptor (pdf_open keeps it until pdf_close or the connection's end) and is named afterwards by an opaque handle

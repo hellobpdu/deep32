@@ -6,6 +6,29 @@ export LC_ALL=C
 shopt -s nullglob dotglob
 
 die() { printf 'Error: %s\n' "$*" >&2; exit 1; }
+legacy_split=false
+declare -a forwarded=()
+for option in "$@"; do
+    if [[ $option == --legacy-split ]]; then
+        [[ $legacy_split == false ]] || die 'Supply --legacy-split at most once.'
+        legacy_split=true
+    else
+        forwarded+=("$option")
+    fi
+done
+set -- "${forwarded[@]}"
+if [[ $legacy_split == false ]]; then
+    script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
+    exec "${DEEP32_PYTHON:-python3}" -I -B "$script_dir/deep32_get_manifest.py" verify-whole "$@"
+fi
+# Selected-disc verification uses the same authenticated ASSEMBLY selection as
+# the downloader. The strict complete-release path below is unchanged.
+for option in "$@"; do
+    if [[ $option == --disc ]]; then
+        script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
+        exec python3 -I -B "$script_dir/deep32_get_manifest.py" verify-selected "$@"
+    fi
+done
 safe_name() {
     [[ ${#1} -le 200 && $1 =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ && $1 != *..* ]]
 }
@@ -50,6 +73,8 @@ verify_signature() {
         read -r -a fields <<< "${line#'[GNUPG:] VALIDSIG '}"
         [[ ${#fields[@]} -eq 9 || ${#fields[@]} -eq 10 ]] || die 'Malformed GPG VALIDSIG status.'
         [[ ${fields[0]} =~ ^([[:xdigit:]]{40}|[[:xdigit:]]{64})$ ]] || die 'Malformed signing fingerprint in GPG status.'
+        # Release checks require a binary signature over the exact bytes.
+        [[ ${fields[8]} == 00 ]] || die 'Only binary detached signatures (class 00) are accepted.'
         primary=${fields[9]:-${fields[0]}}
         [[ $primary =~ ^([[:xdigit:]]{40}|[[:xdigit:]]{64})$ ]] || die 'Malformed primary fingerprint in GPG status.'
         [[ ${primary^^} == "$fingerprint" ]] || die 'The signature primary fingerprint does not match the expected fingerprint.'

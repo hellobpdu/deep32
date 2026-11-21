@@ -1,0 +1,377 @@
+# OSV-Scanner configuration for the all-pins job of .github/workflows/osv-scanner.yml, which passes it with
+# --config so that it applies to every pin file in the tree. Each entry below is an advisory that the OpenVEX
+# document docs/security/deep32-0.1.0-alpha.2.openvex.json marks not_affected for 0.1.0-alpha.2, with the
+# justification from that document; docs/security/README.md says how the triage was done. Ignoring one ID of an
+# advisory also ignores its aliases (GHSA, PYSEC, CVE). The entries expire on effectiveUntil, after which the
+# findings show again until they are triaged again or the pins move. The changeable-pins job does not use this
+# file, so any known vulnerability in those pins still fails the workflow.
+
+[[IgnoredVulns]]
+id = "GHSA-24c4-3p7v-29cm"
+effectiveUntil = 2027-02-19
+reason = "aiohttp 3.14.3: not_affected, vulnerable_code_not_in_execute_path. server: base64 multipart parts bypass client_max_size. OpenVEX statement CVE-2026-128127 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-28qf-cpwq-vmc2"
+effectiveUntil = 2027-02-19
+reason = "aiohttp 3.14.3: not_affected, vulnerable_code_not_in_execute_path. server, pure-Python parser: request replay behind a declined upgrade. OpenVEX statement CVE-2026-128130 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-2g87-pp6c-29x5"
+effectiveUntil = 2027-02-19
+reason = "aiohttp 3.14.3: not_affected, vulnerable_code_not_in_execute_path. WebSocket frame reassembly memory growth. OpenVEX statement CVE-2026-123817 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-3rp8-rxj8-mvjw"
+effectiveUntil = 2027-02-19
+reason = "aiohttp 3.14.3: not_affected, vulnerable_code_not_in_execute_path. WebSocket max_msg_size integer overflow. OpenVEX statement CVE-2026-128128 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-494j-54xm-rwp3"
+effectiveUntil = 2027-02-19
+reason = "aiohttp 3.14.3: not_affected, vulnerable_code_not_in_execute_path. client: Secure attribute not enforced for shared cookie. OpenVEX statement CVE-2026-111063 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-5pv8-vvhc-h7jv"
+effectiveUntil = 2027-02-19
+reason = "aiohttp 3.14.3: not_affected, vulnerable_code_not_in_execute_path. client: unbounded CookieJar storage. OpenVEX statement CVE-2026-128125 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-5rmc-48h2-hvcm"
+effectiveUntil = 2027-02-19
+reason = "aiohttp 3.14.3: not_affected, vulnerable_code_not_in_execute_path. WebSocket receive-queue limits bypassed. OpenVEX statement CVE-2026-128132 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-5wr8-gcqf-gqf3"
+effectiveUntil = 2027-02-19
+reason = "aiohttp 3.14.3: not_affected, vulnerable_code_not_in_execute_path. server: no initial request/header timeout. OpenVEX statement CVE-2026-111064 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-6cjc-53gc-5rqm"
+effectiveUntil = 2027-02-19
+reason = "aiohttp 3.14.3: not_affected, vulnerable_code_not_in_execute_path. client: connector pool exhaustion via Max-Age overflow. OpenVEX statement CVE-2026-111065 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-9xw5-w5jj-pvcg"
+effectiveUntil = 2027-02-19
+reason = "aiohttp 3.14.3: not_affected, vulnerable_code_not_in_execute_path. server: file-descriptor exhaustion in multipart Request.post(). OpenVEX statement CVE-2026-111066 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-f9xw-jh8m-3mwq"
+effectiveUntil = 2027-02-19
+reason = "aiohttp 3.14.3: not_affected, vulnerable_code_not_in_execute_path. server: absolute-form targets spoof Request.scheme. OpenVEX statement CVE-2026-111748 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-gx76-c99x-2c96"
+effectiveUntil = 2027-02-19
+reason = "aiohttp 3.14.3: not_affected, vulnerable_code_not_in_execute_path. client: subdomain cookie strips Host-Only scope. OpenVEX statement CVE-2026-111749 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-h4cc-hm5h-fmm9"
+effectiveUntil = 2027-02-19
+reason = "aiohttp 3.14.3: not_affected, vulnerable_code_not_in_execute_path. concatenated compressed streams: quadratic decompression. OpenVEX statement CVE-2026-128131 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-jm3w-gw2p-xjfj"
+effectiveUntil = 2027-02-19
+reason = "aiohttp 3.14.3: not_affected, vulnerable_code_not_in_execute_path. server: Application.add_domain wildcard regex stall. OpenVEX statement CVE-2026-128124 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-pqxq-w44r-73xw"
+effectiveUntil = 2027-02-19
+reason = "aiohttp 3.14.3: not_affected, vulnerable_code_not_in_execute_path. server, pure-Python parser: request smuggling. OpenVEX statement CVE-2026-111750 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-pw86-h8fm-j323"
+effectiveUntil = 2027-02-19
+reason = "aiohttp 3.14.3: not_affected, vulnerable_code_not_in_execute_path. server: unbounded buffering during an upgrade request. OpenVEX statement CVE-2026-128129 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-xgw8-8ccx-rmqh"
+effectiveUntil = 2027-02-19
+reason = "aiohttp 3.14.3: not_affected, vulnerable_code_not_in_execute_path. server: too many URL-encoded form fields block the event loop. OpenVEX statement CVE-2026-128126 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-6q48-6c7w-9gw2"
+effectiveUntil = 2027-02-19
+reason = "certifi 2026.7.22: not_affected, vulnerable_code_not_in_execute_path. bundled emSign ECC Root CA - G3 trusted (compromised eMudhra intermediates). OpenVEX statement GHSA-6q48-6c7w-9gw2 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-567q-5qvw-pf92"
+effectiveUntil = 2027-02-19
+reason = "filelock 3.32.3: not_affected, vulnerable_code_not_in_execute_path. Windows oplock holds SoftFileLock.acquire past its timeout. OpenVEX statement CVE-2026-112907 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-6627-m3xw-93mp"
+effectiveUntil = 2027-02-19
+reason = "filelock 3.32.3: not_affected, vulnerable_code_cannot_be_controlled_by_adversary. StrictSoftFileLock claim directories created without lock mode. OpenVEX statement CVE-2026-112908 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-69hj-f68j-2879"
+effectiveUntil = 2027-02-19
+reason = "filelock 3.32.3: not_affected, vulnerable_code_cannot_be_controlled_by_adversary. UnixFileLock truncates/chmods a file another user renames or links onto the lock path. OpenVEX statement CVE-2026-112909 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-8mx5-7m5m-r77g"
+effectiveUntil = 2027-02-19
+reason = "filelock 3.32.3: not_affected, vulnerable_code_not_in_execute_path. WindowsFileLock ignores mode. OpenVEX statement CVE-2026-112910 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-9c4x-gm8v-wgc4"
+effectiveUntil = 2027-02-19
+reason = "filelock 3.32.3: not_affected, vulnerable_code_cannot_be_controlled_by_adversary. StrictSoftFileLock/SoftReadWriteLock adopt a directory another user created. OpenVEX statement CVE-2026-112911 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-9vhv-jxww-xfm5"
+effectiveUntil = 2027-02-19
+reason = "filelock 3.32.3: not_affected, vulnerable_code_not_in_execute_path. ReadWriteLock on Windows acts on SQLite side files. OpenVEX statement CVE-2026-112913 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-cwqr-hh33-gh44"
+effectiveUntil = 2027-02-19
+reason = "filelock 3.32.3: not_affected, vulnerable_code_cannot_be_controlled_by_adversary. crafted ReadWriteLock database stalls acquire. OpenVEX statement CVE-2026-112915 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-fq56-3cx3-fjxp"
+effectiveUntil = 2027-02-19
+reason = "filelock 3.32.3: not_affected, vulnerable_code_not_in_execute_path. SoftFileLock stale-lock break on a reused inode admits two holders. OpenVEX statement CVE-2026-112935 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-j8f7-rjxc-mr56"
+effectiveUntil = 2027-02-19
+reason = "filelock 3.32.3: not_affected, vulnerable_code_cannot_be_controlled_by_adversary. ReadWriteLock follows a symlink at the lock path into SQLite. OpenVEX statement CVE-2026-112936 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-m462-7rxw-wvpg"
+effectiveUntil = 2027-02-19
+reason = "filelock 3.32.3: not_affected, vulnerable_code_cannot_be_controlled_by_adversary. StrictSoftFileLock follows a swapped symlink at <path>.filelock. OpenVEX statement CVE-2026-112938 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-rfpc-qcw5-3pc4"
+effectiveUntil = 2027-02-19
+reason = "filelock 3.32.3: not_affected, vulnerable_code_cannot_be_controlled_by_adversary. SoftFileLock removes a live marker when another user forges its PID. OpenVEX statement CVE-2026-112939 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-v4x8-3wr5-3wq8"
+effectiveUntil = 2027-02-19
+reason = "filelock 3.32.3: not_affected, vulnerable_code_cannot_be_controlled_by_adversary. ReadWriteLock SQLite reopens by name; planted symlink/journal overwrites files. OpenVEX statement CVE-2026-112940 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-mf5v-w3w3-f6cg"
+effectiveUntil = 2027-02-19
+reason = "opentelemetry-api 1.45.0: not_affected, vulnerable_code_cannot_be_controlled_by_adversary. traceparent extraction quadratic regex (CPU DoS); MCP _meta named as a path. OpenVEX statement CVE-2026-126360 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-xcq7-p3pf-p88h"
+effectiveUntil = 2027-02-19
+reason = "opentelemetry-api 1.45.0: not_affected, vulnerable_code_cannot_be_controlled_by_adversary. TraceState.from_header quadratic regex on a long tracestate (CPU DoS). OpenVEX statement CVE-2026-114603 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-jhr6-gm9c-rqjv"
+effectiveUntil = 2027-02-19
+reason = "sentence-transformers 5.3.0: not_affected, vulnerable_code_cannot_be_controlled_by_adversary. import_module_class trust gate bypassed when the model path exists locally (modules.json custom code runs with trust_remote_code=False). OpenVEX statement CVE-2026-68770 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-h35f-9h28-mq5c"
+effectiveUntil = 2027-02-19
+reason = "setuptools 80.10.2, 81.0.0: not_affected, vulnerable_code_not_in_execute_path. MANIFEST.in exclude bypass when building an sdist on macOS APFS/HFS+. OpenVEX statement CVE-2026-59890 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-xmj3-9gf7-h52w"
+effectiveUntil = 2027-02-19
+reason = "setuptools 80.10.2, 81.0.0: not_affected, vulnerable_code_not_in_execute_path. Windows path escape via namespace_packages.txt in legacy egg install. OpenVEX statement GHSA-xmj3-9gf7-h52w in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-rrmf-rvhw-rf47"
+effectiveUntil = 2027-02-19
+reason = "torch 2.11.0+cpu: not_affected, vulnerable_code_cannot_be_controlled_by_adversary. memory corruption in torch.jit.script on crafted code (local). OpenVEX statement CVE-2025-3000 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-fgcw-684q-jj6r"
+effectiveUntil = 2027-02-19
+reason = "transformers 5.3.0: not_affected, vulnerable_code_not_in_execute_path. LightGlue config overrides trust_remote_code during model init. OpenVEX statement CVE-2026-5241 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-x9r9-c232-4q39"
+effectiveUntil = 2027-02-19
+reason = "transformers 5.3.0: not_affected, vulnerable_code_not_in_execute_path. load_custom_generate writes remote code before trust consent. OpenVEX statement CVE-2026-80047 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-xrqw-3rrv-vx5w"
+effectiveUntil = 2027-02-19
+reason = "transformers 5.3.0: not_affected, vulnerable_code_not_in_execute_path. save_pretrained path traversal through chat_template keys. OpenVEX statement CVE-2026-9856 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-3j69-69wj-xqx2"
+effectiveUntil = 2027-02-19
+reason = "ujson 5.12.0: not_affected, vulnerable_code_not_in_execute_path. ujson.dumps(reject_bytes=False) accepts malformed UTF-8. OpenVEX statement CVE-2026-54911 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-c38f-wx89-p2xg"
+effectiveUntil = 2027-02-19
+reason = "ujson 5.12.0: not_affected, vulnerable_code_not_in_execute_path. memory leak in ujson.dump when the file write fails. OpenVEX statement CVE-2026-44660 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-2823-qmq8-rwvj"
+effectiveUntil = 2027-02-19
+reason = "vllm 0.28.0: not_affected, vulnerable_code_not_in_execute_path. cache_salt validation kills EngineCore on LMCache-MP. OpenVEX statement CVE-2026-105756 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-2phq-3phc-84px"
+effectiveUntil = 2027-02-19
+reason = "vllm 0.28.0: not_affected, vulnerable_code_not_in_execute_path. late-interaction /score and /rerank query cache keyed by X-Request-Id. OpenVEX statement CVE-2026-105755 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-542m-9234-8gvf"
+effectiveUntil = 2027-02-19
+reason = "vllm 0.28.0: not_affected, vulnerable_code_cannot_be_controlled_by_adversary. unbounded chat_template Jinja rendering wedges the renderer pool. OpenVEX statement CVE-2026-115911 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-58v5-2m8f-94pr"
+effectiveUntil = 2027-02-19
+reason = "vllm 0.28.0: not_affected, vulnerable_code_not_in_execute_path. GLMGA video sampler CPU/memory exhaustion via media_io_kwargs. OpenVEX statement CVE-2026-105760 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-6757-hggm-hp2w"
+effectiveUntil = 2027-02-19
+reason = "vllm 0.28.0: not_affected, vulnerable_code_not_in_execute_path. SHM multimodal cache handle forgery reaches pickle.loads. OpenVEX statement CVE-2026-115912 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-8397-8qf6-f2gm"
+effectiveUntil = 2027-02-19
+reason = "vllm 0.28.0: not_affected, vulnerable_code_not_in_execute_path. Phi-4 multimodal audio encoder OOM. OpenVEX statement CVE-2026-115913 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-85xf-c7hm-whqw"
+effectiveUntil = 2027-02-19
+reason = "vllm 0.28.0: not_affected, vulnerable_code_not_in_execute_path. structured-output request errors kill EngineCore. OpenVEX statement CVE-2026-105757 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-935w-9g4m-p28p"
+effectiveUntil = 2027-02-19
+reason = "vllm 0.28.0: not_affected, vulnerable_code_not_in_execute_path. Harmony tool continuations drop cache_salt (GPT-OSS /v1/responses). OpenVEX statement CVE-2026-105752 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-frvg-qw88-hww9"
+effectiveUntil = 2027-02-19
+reason = "vllm 0.28.0: not_affected, vulnerable_code_not_in_execute_path. P2P OffloadingConnector ZeroMQ socket exhaustion. OpenVEX statement CVE-2026-94624 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-gq5q-89c7-vhvx"
+effectiveUntil = 2027-02-19
+reason = "vllm 0.28.0: not_affected, vulnerable_code_not_in_execute_path. DeepSeek-OCR image guard crashes the engine. OpenVEX statement CVE-2026-115914 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-gx7p-2j49-hfq4"
+effectiveUntil = 2027-02-19
+reason = "vllm 0.28.0: not_affected, vulnerable_code_not_in_execute_path. unvalidated per-request mm_processor_kwargs cause OOM. OpenVEX statement CVE-2026-114055 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-h3rc-6mm3-gc2m"
+effectiveUntil = 2027-02-19
+reason = "vllm 0.28.0: not_affected, vulnerable_code_not_in_execute_path. request-controlled mm_processor_kwargs.code_revision RCE (needs --trust-remote-code). OpenVEX statement CVE-2026-114053 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-h3rc-j82p-2c3h"
+effectiveUntil = 2027-02-19
+reason = "vllm 0.28.0: not_affected, vulnerable_code_not_in_execute_path. ImageMediaIO lets EPS reach Ghostscript (DoS/RCE). OpenVEX statement CVE-2026-115915 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-p92p-rxj5-7p2x"
+effectiveUntil = 2027-02-19
+reason = "vllm 0.28.0: not_affected, vulnerable_code_cannot_be_controlled_by_adversary. forged multimodal uuid plus processor-cache eviction drift crashes the engine. OpenVEX statement CVE-2026-114050 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-ph72-cqr5-qpp7"
+effectiveUntil = 2027-02-19
+reason = "vllm 0.28.0: not_affected, vulnerable_code_not_in_execute_path. scale-out disaggregated multimodal transport trusts caller features. OpenVEX statement CVE-2026-105754 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-q97c-p368-75c4"
+effectiveUntil = 2027-02-19
+reason = "vllm 0.28.0: not_affected, vulnerable_code_cannot_be_controlled_by_adversary. out-of-vocabulary pre-tokenized prompt id triggers a CUDA assert. OpenVEX statement CVE-2026-115916 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-vvpg-rrww-wpmh"
+effectiveUntil = 2027-02-19
+reason = "vllm 0.28.0: not_affected, vulnerable_code_not_in_execute_path. permissive default CORS on the HTTP server. OpenVEX statement CVE-2026-115917 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-x567-49g5-p4cf"
+effectiveUntil = 2027-02-19
+reason = "vllm 0.28.0: not_affected, vulnerable_code_not_in_execute_path. Responses API bypasses trust_request_chat_template. OpenVEX statement CVE-2026-115918 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-x6mc-67gf-chw4"
+effectiveUntil = 2027-02-19
+reason = "vllm 0.28.0: not_affected, vulnerable_code_not_in_execute_path. Qwen2-VL/Qwen3-VL video sampler max_frames memory exhaustion. OpenVEX statement CVE-2026-105758 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "PYSEC-2026-3996"
+effectiveUntil = 2027-02-19
+reason = "vllm 0.28.0: not_affected, vulnerable_code_not_in_execute_path. P/D disaggregation leaks decode metadata for max_tokens=0 requests. OpenVEX statement CVE-2026-93436 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "PYSEC-2026-3998"
+effectiveUntil = 2027-02-19
+reason = "vllm 0.28.0: not_affected, vulnerable_code_cannot_be_controlled_by_adversary. allowed_token_ids validated against tokenizer length, corrupting logits state. OpenVEX statement CVE-2026-93840 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "PYSEC-2026-3999"
+effectiveUntil = 2027-02-19
+reason = "vllm 0.28.0: not_affected, vulnerable_code_cannot_be_controlled_by_adversary. Triton _bincount_kernel out-of-bounds write from prompt token ids (audio requests). OpenVEX statement CVE-2026-93841 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "PYSEC-2026-4000"
+effectiveUntil = 2027-02-19
+reason = "vllm 0.28.0: not_affected, vulnerable_code_cannot_be_controlled_by_adversary. bad_words token indices not validated. OpenVEX statement CVE-2026-93989 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "PYSEC-2026-4004"
+effectiveUntil = 2027-02-19
+reason = "vllm 0.28.0: not_affected, vulnerable_code_not_in_execute_path. NIXL connector incomplete kv_transfer_params KeyError. OpenVEX statement CVE-2026-94622 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "PYSEC-2026-4005"
+effectiveUntil = 2027-02-19
+reason = "vllm 0.28.0: not_affected, vulnerable_code_not_in_execute_path. NIXL prefix-caching block count assertion. OpenVEX statement CVE-2026-94623 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "PYSEC-2026-4007"
+effectiveUntil = 2027-02-19
+reason = "vllm 0.28.0: not_affected, vulnerable_code_not_in_execute_path. MooncakeConnector ownerless transfer placeholders. OpenVEX statement CVE-2026-94625 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "PYSEC-2026-4008"
+effectiveUntil = 2027-02-19
+reason = "vllm 0.28.0: not_affected, vulnerable_code_not_in_execute_path. unvalidated tp_size in kv_transfer_params. OpenVEX statement CVE-2026-94626 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "PYSEC-2026-4184"
+effectiveUntil = 2027-02-19
+reason = "vllm 0.28.0: not_affected, vulnerable_code_not_in_execute_path. remote/inline media fetched and decoded before size limits. OpenVEX statement CVE-2026-100650 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "PYSEC-2026-4319"
+effectiveUntil = 2027-02-19
+reason = "vllm 0.28.0: not_affected, vulnerable_code_cannot_be_controlled_by_adversary. penalty handler crash (get_token_bin_counts_and_mask) with prompt_embeds. OpenVEX statement CVE-2026-105922 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "PYSEC-2026-4325"
+effectiveUntil = 2027-02-19
+reason = "vllm 0.28.0: not_affected, vulnerable_code_not_in_execute_path. Rust frontend metrics label growth from arbitrary HTTP methods. OpenVEX statement CVE-2026-105759 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "PYSEC-2026-4353"
+effectiveUntil = 2027-02-19
+reason = "vllm 0.28.0: not_affected, vulnerable_code_not_in_execute_path. inconsistent mm_placeholders on /inference/v1/generate crash Qwen2.5-VL positions. OpenVEX statement CVE-2026-116178 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "PYSEC-2026-4361"
+effectiveUntil = 2027-02-19
+reason = "vllm 0.28.0: not_affected, vulnerable_code_not_in_execute_path. MOSS-Audio processor cache per mm_processor_kwargs value. OpenVEX statement CVE-2026-114052 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "PYSEC-2026-4362"
+effectiveUntil = 2027-02-19
+reason = "vllm 0.28.0: not_affected, vulnerable_code_cannot_be_controlled_by_adversary. cache aliasing through EXIF ImageID or cache_salt. OpenVEX statement CVE-2026-114054 in docs/security/deep32-0.1.0-alpha.2.openvex.json."

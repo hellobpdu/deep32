@@ -1,0 +1,19 @@
+{
+  "format": "deep32-sbom-gap",
+  "format_version": 1,
+  "gaps": [
+    {
+      "approval": {
+        "path": "partial-inventory-approval.json",
+        "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "component": "fixture-upstream",
+      "missing_input": "Sealed inherited package inventory.",
+      "reason": "Synthetic opaque upstream fixture.",
+      "scope": "components"
+    }
+  ],
+  "release": "v0.1.0-alpha.2",
+  "subject_path": "payload/images/full.tar",
+  "unknown_field": true
+}

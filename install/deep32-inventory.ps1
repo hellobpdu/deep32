@@ -18,7 +18,7 @@ What it does:
                     for the GitHub CLI sign-in check) is ended together with every process
                     it started (a .cmd tool's node too), and no other process. So is a tool
                     that ends in time but leaves a process of its own holding its output
-                    open past the limit (the output read so far is kept).
+                    open past the limit (the tool is reported unavailable).
   bench quick       About 2 minutes (--seconds N to shorten): processor single-thread and
                     all-thread scores (compiled C#), memory copy speed, disk sequential
                     and random speed on one temporary file in the system temp folder.
@@ -86,14 +86,18 @@ function Resolve-ArgPath([string]$p) {
     return [System.IO.Path]::GetFullPath([System.IO.Path]::Combine($base, $p))
 }
 
-function Show-Usage {
-    Out-Line 'usage: deep32-inventory.ps1 [report] [--json] [--net] [--matrix FILE] [--facts FILE]'
-    Out-Line '       deep32-inventory.ps1 bench quick [--seconds N] [--json] [--guard-file FILE]'
-    Out-Line 'exit codes: 0 done, 1 other error, 2 bad arguments, 3 refused'
+function Show-Usage([bool]$Diagnostic = $false) {
+    $writer=[Console]::Out;if($Diagnostic){$writer=[Console]::Error}
+    $writer.WriteLine('usage: deep32-inventory.ps1 [report] [--json] [--net] [--matrix FILE] [--facts FILE]')
+    $writer.WriteLine('       deep32-inventory.ps1 bench quick [--seconds N] [--json] [--guard-file FILE]')
+    $writer.WriteLine('       deep32-inventory.ps1 -Journey J1..J5 -Role workstation-host|gpu-host|agent|all -CheckPrereqs [-Format text|json]')
+    $writer.WriteLine('exit codes: 0 done, 1 other error, 2 bad arguments, 3 legacy refused, 10 prerequisite action needed')
 }
 
 # ---------------------------------------------------------------- arguments
 $Mode = $null; $Sub = $null; $Json = $false; $Net = $false; $Seconds = 120; $SecondsGiven = $false
+$CheckPrereqs=$false; $Journey=$null; $Role=$null; $PrFormat=$null; $FormatGiven=$false
+$InternalForgeEvidencePath=$null
 $MatrixPath = $null; $FactsPath = $null; $GuardFile = $DefaultGuardFile; $GuardExtra = $null
 $GuardOnly = ($env:DEEP32_INVENTORY_TEST_GUARD_ONLY -eq '1')
 if ($GuardOnly -and $env:DEEP32_INVENTORY_TEST_DEFAULT_GUARD) { $GuardFile = $env:DEEP32_INVENTORY_TEST_DEFAULT_GUARD }
@@ -104,13 +108,15 @@ while ($i -lt $argList.Count) {
     $al = $a.ToLowerInvariant()
     if ($al -eq '--json' -or $al -eq '-json') { $Json = $true }
     elseif ($al -eq '--net' -or $al -eq '-net') { $Net = $true }
+    elseif ($al -eq '--check-prereqs' -or $al -eq '-checkprereqs') {$CheckPrereqs=$true}
     elseif ($al -eq '--help' -or $al -eq '-h' -or $al -eq '-help' -or $al -eq '/?') { Show-Usage; exit 0 }
     elseif ($al -eq '--version' -or $al -eq '-version') { Out-Line ('deep32-inventory ' + $ToolVersion); exit 0 }
     elseif ($al -eq '--seconds' -or $al -eq '-seconds' -or $al -eq '--matrix' -or $al -eq '-matrix' -or
-            $al -eq '--facts' -or $al -eq '-facts' -or $al -eq '--guard-file' -or $al -eq '-guard-file') {
-        if ($i + 1 -ge $argList.Count) { Write-Err ($a + ' needs a value'); Show-Usage; exit 2 }
+            $al -eq '--facts' -or $al -eq '-facts' -or $al -eq '--guard-file' -or $al -eq '-guard-file' -or
+            $al -in @('--journey','-journey','--role','-role','--format','-format','-internalforgeevidence')) {
+        if ($i + 1 -ge $argList.Count) { Write-Err ($a + ' needs a value'); Show-Usage $true; exit 2 }
         $v = [string]$argList[$i + 1]; $i++
-        if ($v -eq '') { Write-Err ($a + ' needs a value'); Show-Usage; exit 2 }
+        if ($v -eq '') { Write-Err ($a + ' needs a value'); Show-Usage $true; exit 2 }
         if ($al -like '*seconds') {
             # digits only, as the shell version takes them (no sign, no spaces)
             if ($v -cnotmatch '\A[0-9]{1,9}\z') { Write-Err '--seconds must be a whole number from 1 to 600'; exit 2 }
@@ -118,14 +124,18 @@ while ($i -lt $argList.Count) {
             if ($n -lt 1 -or $n -gt 600) { Write-Err '--seconds must be a whole number from 1 to 600'; exit 2 }
             $Seconds = $n; $SecondsGiven = $true
         }
+        elseif($al -in @('--journey','-journey')){$Journey=$v}
+        elseif($al -in @('--role','-role')){$Role=$v}
+        elseif($al -in @('--format','-format')){if($FormatGiven -and $PrFormat -cne $v){Write-Err 'conflicting formats';exit 2};$PrFormat=$v;$FormatGiven=$true}
+        elseif($al -eq '-internalforgeevidence'){if($InternalForgeEvidencePath){Write-Err 'duplicate internal Forge evidence';exit 2};$InternalForgeEvidencePath=$v}
         elseif ($al -like '*matrix') { $MatrixPath = $v }
         elseif ($al -like '*facts') { $FactsPath = $v }
         else { $GuardExtra = $v }
     }
-    elseif ($al.StartsWith('-')) { Write-Err ('unknown option ' + $a); Show-Usage; exit 2 }
+    elseif ($al.StartsWith('-')) { Write-Err ('unknown option ' + $a); Show-Usage $true; exit 2 }
     elseif ($null -eq $Mode) { $Mode = $al }
     elseif ($null -eq $Sub) { $Sub = $al }
-    else { Write-Err ('unexpected argument ' + $a); Show-Usage; exit 2 }
+    else { Write-Err ('unexpected argument ' + $a); Show-Usage $true; exit 2 }
     $i++
 }
 if ($null -eq $Mode) { $Mode = 'report' }
@@ -135,11 +145,22 @@ if ($Mode -eq 'report') {
 }
 elseif ($Mode -eq 'bench') {
     if ($Sub -eq 'system' -or $Sub -eq 'stress') { Write-Err ('bench ' + $Sub + ' is not in this version (it comes with an installed system)'); exit 2 }
-    if ($Sub -ne 'quick') { Write-Err 'bench needs quick'; Show-Usage; exit 2 }
+    if ($Sub -ne 'quick') { Write-Err 'bench needs quick'; Show-Usage $true; exit 2 }
     if ($Net) { Write-Err '--net belongs to report'; exit 2 }
     if ($null -ne $FactsPath) { Write-Err '--facts belongs to report'; exit 2 }
 }
-else { Write-Err ('unknown mode ' + $Mode); Show-Usage; exit 2 }
+else { Write-Err ('unknown mode ' + $Mode); Show-Usage $true; exit 2 }
+if($CheckPrereqs) {
+    if($Mode -ne 'report' -or $Net){Write-Err 'prerequisite checks belong to report and cannot use --net';exit 2}
+    if(-not $Journey -or -not $Role){Write-Err '--check-prereqs needs --journey and --role';exit 2}
+    if($Json -and $PrFormat -ceq 'text'){Write-Err 'conflicting formats';exit 2}
+    if($Json){$PrFormat='json'};if(-not $PrFormat){$PrFormat='text'}
+    if($PrFormat -cnotin @('text','json')){Write-Err '--format needs text or json';exit 2}
+} elseif($Journey -or $Role -or $FormatGiven){Write-Err '--journey, --role and --format need --check-prereqs';exit 2}
+if($InternalForgeEvidencePath -and (-not $CheckPrereqs -or $Role -cne 'gpu-host' -or
+        $Journey -cnotin @('J1','J2','J4') -or $FactsPath -or $MatrixPath)) {
+    Write-Err 'internal Forge evidence requires native split GPU-host prerequisite checks';exit 2
+}
 if ($null -eq $MatrixPath) { $MatrixPath = Join-Path $PSScriptRoot 'matrix.json' } else { $MatrixPath = Resolve-ArgPath $MatrixPath }
 if ($null -ne $FactsPath) { $FactsPath = Resolve-ArgPath $FactsPath }
 if ($null -ne $GuardExtra) { $GuardExtra = Resolve-ArgPath $GuardExtra }
@@ -162,9 +183,259 @@ function Read-TextFile([string]$path) {
     $full = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($path)
     return [System.IO.File]::ReadAllText($full)
 }
+function Initialize-InventoryRuntime {
+    if ('D32InventoryRuntime' -as [type]) { return }
+    Add-Type -AssemblyName System.Numerics
+    Add-Type -ReferencedAssemblies System.Numerics -TypeDefinition @'
+    using System;
+    using System.Collections.Generic;
+    using System.Globalization;
+    using System.IO;
+    using System.Numerics;
+    using System.Runtime.InteropServices;
+    using System.Text;
+    using System.Text.RegularExpressions;
+    using System.Threading.Tasks;
+    using Microsoft.Win32.SafeHandles;
+    public sealed class D32InventoryNumber {
+        public string Text;
+        public D32InventoryNumber(string text) { Text = text; }
+    }
+    public sealed class D32InventoryInteger {
+        public readonly string Digits;
+        public readonly BigInteger Exponent;
+        public D32InventoryInteger(string digits, BigInteger exponent) {
+            digits=digits.TrimStart('0');
+            if(digits.Length==0) {Digits="0";Exponent=BigInteger.Zero;return;}
+            int end=digits.Length;while(end>1 && digits[end-1]=='0')end--;
+            Digits=digits.Substring(0,end);Exponent=exponent+(digits.Length-end);
+        }
+        public string JsonText() {
+            if(Digits=="0")return "0";
+            if(Exponent+Digits.Length<=4096)return Digits+new string('0',(int)Exponent);
+            return Digits+"e"+Exponent.ToString(CultureInfo.InvariantCulture);
+        }
+        public static int Compare(D32InventoryInteger a,D32InventoryInteger b) {
+            if(a.Digits=="0" || b.Digits=="0")return a.Digits==b.Digits?0:(a.Digits=="0"?-1:1);
+            int order=(a.Exponent+a.Digits.Length).CompareTo(b.Exponent+b.Digits.Length);
+            if(order!=0)return order;
+            for(int i=0;i<Math.Max(a.Digits.Length,b.Digits.Length);i++) {
+                char x=i<a.Digits.Length?a.Digits[i]:'0',y=i<b.Digits.Length?b.Digits[i]:'0';
+                if(x!=y)return x<y?-1:1;
+            }
+            return 0;
+        }
+        static string AddDigits(string a,string b) {
+            var output=new char[Math.Max(a.Length,b.Length)+1];int i=a.Length-1,j=b.Length-1,k=output.Length-1,carry=0;
+            while(k>=0) {int n=(i>=0?a[i--]-'0':0)+(j>=0?b[j--]-'0':0)+carry;output[k--]=(char)('0'+n%10);carry=n/10;}
+            return new string(output).TrimStart('0');
+        }
+        public static D32InventoryInteger Add(D32InventoryInteger a,D32InventoryInteger b) {
+            if(a.Digits=="0")return b;if(b.Digits=="0")return a;
+            if(a.Exponent==b.Exponent)return new D32InventoryInteger(AddDigits(a.Digits,b.Digits),a.Exponent);
+            if(a.Exponent<b.Exponent) {var swap=a;a=b;b=swap;}
+            BigInteger gap=a.Exponent-b.Exponent;
+            // Limit expanded result storage, never the numeric magnitude.
+            if(gap+a.Digits.Length>65536 || b.Digits.Length>65536)return null;
+            return new D32InventoryInteger(AddDigits(a.Digits+new string('0',(int)gap),b.Digits),b.Exponent);
+        }
+    }
+    public static class D32InventoryRuntime {
+        public static Task<int> HttpStatus(System.Net.HttpWebRequest request) {
+            return Task.Factory.StartNew(delegate {
+                System.Net.WebResponse response=null;
+                try {
+                    try {response=request.GetResponse();}
+                    catch(System.Net.WebException error) {if(error.Response==null)throw;response=error.Response;}
+                    return (int)((System.Net.HttpWebResponse)response).StatusCode;
+                } finally {if(response!=null)response.Close();}
+            });
+        }
+        public static void CancelHttp(System.Net.HttpWebRequest request) {
+            System.Threading.ThreadPool.QueueUserWorkItem(delegate {try{request.Abort();}catch{}});
+        }
+        public static D32InventoryInteger Integer(string text) {
+            Match m = Regex.Match(text, @"\A(-?)(0|[1-9][0-9]*)(?:\.([0-9]+))?(?:[eE]([+-]?[0-9]+))?\z");
+            if (!m.Success) return null;
+            string digits = (m.Groups[2].Value + m.Groups[3].Value).TrimStart('0');
+            if (digits.Length == 0) return new D32InventoryInteger("0",BigInteger.Zero);
+            if (m.Groups[1].Value == "-") return null;
+            BigInteger shift = (m.Groups[4].Success ? BigInteger.Parse(m.Groups[4].Value, CultureInfo.InvariantCulture) : BigInteger.Zero) - m.Groups[3].Value.Length;
+            var result=new D32InventoryInteger(digits,shift);
+            return result.Exponent.Sign<0?null:result;
+        }
+        public static object Parse(string text) { return new Parser(text).Read(); }
+        sealed class Parser {
+            readonly string text; int pos;
+            public Parser(string input) { text=input; }
+            void Ws() { while(pos<text.Length && " \r\n\t".IndexOf(text[pos])>=0) pos++; }
+            Exception Bad() { return new FormatException("Invalid JSON facts."); }
+            public object Read() { object value=Value(); Ws(); if(pos!=text.Length) throw Bad(); return value; }
+            object Value() {
+                Ws(); if(pos>=text.Length) throw Bad(); char c=text[pos];
+                if(c=='"') return Str();
+                if(c=='{') {
+                    pos++; Ws(); var result=new Dictionary<string,object>(StringComparer.Ordinal);
+                    if(pos<text.Length && text[pos]=='}') {pos++;return result;}
+                    while(true) { Ws(); if(pos>=text.Length || text[pos]!='"') throw Bad(); string key=Str(); Ws(); if(pos>=text.Length || text[pos++]!=':')throw Bad(); result[key]=Value(); Ws(); if(pos>=text.Length)throw Bad(); c=text[pos++]; if(c=='}')return result; if(c!=',')throw Bad(); }
+                }
+                if(c=='[') {
+                    pos++; Ws(); var result=new List<object>();
+                    if(pos<text.Length && text[pos]==']') {pos++;return result.ToArray();}
+                    while(true) { result.Add(Value()); Ws(); if(pos>=text.Length)throw Bad(); c=text[pos++]; if(c==']')return result.ToArray(); if(c!=',')throw Bad(); }
+                }
+                foreach(string word in new[]{"true","false","null"}) if(pos+word.Length<=text.Length && text.Substring(pos,word.Length)==word) { pos+=word.Length; return word=="null"?null:(object)(word=="true"); }
+                Match m=Regex.Match(text.Substring(pos), @"\A-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?");
+                if(!m.Success)throw Bad(); pos+=m.Length; return new D32InventoryNumber(m.Value);
+            }
+            string Str() {
+                pos++; var result=new StringBuilder();
+                while(pos<text.Length) {
+                    char c=text[pos++]; if(c=='"')return result.ToString(); if(c<' ')throw Bad();
+                    if(c!='\\') {result.Append(c);continue;}
+                    if(pos>=text.Length)throw Bad(); c=text[pos++];
+                    switch(c) {
+                        case '"':case '\\':case '/':result.Append(c);break;
+                        case 'b':result.Append('\b');break;case 'f':result.Append('\f');break;case 'n':result.Append('\n');break;case 'r':result.Append('\r');break;case 't':result.Append('\t');break;
+                        case 'u': if(pos+4>text.Length || !Regex.IsMatch(text.Substring(pos,4),@"\A[0-9a-fA-F]{4}\z"))throw Bad(); result.Append((char)int.Parse(text.Substring(pos,4),NumberStyles.HexNumber));pos+=4;break;
+                        default:throw Bad();
+                    }
+                }
+                throw Bad();
+            }
+        }
+        [StructLayout(LayoutKind.Sequential)] struct SECURITY_ATTRIBUTES { public int size; public IntPtr descriptor; public int inherit; }
+        [StructLayout(LayoutKind.Sequential, CharSet=CharSet.Unicode)] struct STARTUPINFO { public int cb; public string reserved,desktop,title; public int x,y,xs,ys,xc,yc,fill,flags; public short show,reserved2; public IntPtr reservedPtr,input,output,error; }
+        [StructLayout(LayoutKind.Sequential)] struct PROCESS_INFORMATION { public IntPtr process,thread; public int pid,tid; }
+        [StructLayout(LayoutKind.Sequential)] struct BASIC_LIMIT { public long processTime,jobTime; public uint flags; public UIntPtr minWorking,maxWorking; public uint active; public UIntPtr affinity; public uint priority,scheduling; }
+        [StructLayout(LayoutKind.Sequential)] struct IO_COUNTERS { public ulong a,b,c,d,e,f; }
+        [StructLayout(LayoutKind.Sequential)] struct EXTENDED_LIMIT { public BASIC_LIMIT basic; public IO_COUNTERS io; public UIntPtr processMemory,jobMemory,peakProcess,peakJob; }
+        [DllImport("kernel32.dll",SetLastError=true)] static extern IntPtr CreateJobObject(IntPtr attributes,string name);
+        [DllImport("kernel32.dll",SetLastError=true)] static extern bool SetInformationJobObject(IntPtr job,int info,ref EXTENDED_LIMIT value,int size);
+        [DllImport("kernel32.dll",SetLastError=true)] static extern bool AssignProcessToJobObject(IntPtr job,IntPtr process);
+        [DllImport("kernel32.dll",SetLastError=true)] static extern bool TerminateJobObject(IntPtr job,uint code);
+        [DllImport("kernel32.dll",SetLastError=true)] static extern bool CreatePipe(out IntPtr read,out IntPtr write,ref SECURITY_ATTRIBUTES attributes,int size);
+        [DllImport("kernel32.dll",SetLastError=true)] static extern bool SetHandleInformation(IntPtr handle,uint mask,uint flags);
+        [DllImport("kernel32.dll",CharSet=CharSet.Unicode,SetLastError=true)] static extern IntPtr CreateFile(string name,uint access,uint sharing,ref SECURITY_ATTRIBUTES attributes,uint disposition,uint flags,IntPtr template);
+        [DllImport("kernel32.dll",CharSet=CharSet.Unicode,SetLastError=true)] static extern bool CreateProcess(string app,StringBuilder command,IntPtr pa,IntPtr ta,bool inherit,uint flags,IntPtr environment,string cwd,ref STARTUPINFO startup,out PROCESS_INFORMATION process);
+        [DllImport("kernel32.dll",SetLastError=true)] static extern uint ResumeThread(IntPtr thread);
+        [DllImport("kernel32.dll")] static extern uint WaitForSingleObject(IntPtr handle,uint ms);
+        [DllImport("kernel32.dll")] static extern bool GetExitCodeProcess(IntPtr process,out uint code);
+        [DllImport("kernel32.dll")] static extern bool TerminateProcess(IntPtr process,uint code);
+        [DllImport("kernel32.dll")] static extern bool CloseHandle(IntPtr handle);
+        public sealed class ToolResult { public int code; public string output,error; public bool timedOut; }
+        static void Check(bool ok) { if(!ok)throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error()); }
+        public static ToolResult Run(string file,string arguments,int timeout) {
+            IntPtr job=IntPtr.Zero,or=IntPtr.Zero,ow=IntPtr.Zero,er=IntPtr.Zero,ew=IntPtr.Zero,input=IntPtr.Zero;
+            PROCESS_INFORMATION process=new PROCESS_INFORMATION(); StreamReader output=null,error=null;
+            Task<string> ot=null,et=null;
+            var clock=System.Diagnostics.Stopwatch.StartNew();
+            try {
+                job=CreateJobObject(IntPtr.Zero,null); Check(job!=IntPtr.Zero);
+                var limit=new EXTENDED_LIMIT();limit.basic.flags=0x2000;
+                Check(SetInformationJobObject(job,9,ref limit,Marshal.SizeOf(typeof(EXTENDED_LIMIT))));
+                var security=new SECURITY_ATTRIBUTES();security.size=Marshal.SizeOf(typeof(SECURITY_ATTRIBUTES));security.inherit=1;
+                Check(CreatePipe(out or,out ow,ref security,0));Check(CreatePipe(out er,out ew,ref security,0));
+                Check(SetHandleInformation(or,1,0));Check(SetHandleInformation(er,1,0));
+                input=CreateFile("NUL",0x80000000,3,ref security,3,0,IntPtr.Zero);Check(input!=new IntPtr(-1));
+                var startup=new STARTUPINFO();startup.cb=Marshal.SizeOf(typeof(STARTUPINFO));startup.flags=0x100;startup.input=input;startup.output=ow;startup.error=ew;
+                Check(CreateProcess(file,new StringBuilder("\""+file+"\" "+arguments),IntPtr.Zero,IntPtr.Zero,true,0x08000004,IntPtr.Zero,null,ref startup,out process));
+                // A suspended process cannot spawn a child before containment succeeds.
+                Check(AssignProcessToJobObject(job,process.process));
+                output=new StreamReader(new FileStream(new SafeFileHandle(or,true),FileAccess.Read));or=IntPtr.Zero;
+                error=new StreamReader(new FileStream(new SafeFileHandle(er,true),FileAccess.Read));er=IntPtr.Zero;
+                CloseHandle(ow);ow=IntPtr.Zero;CloseHandle(ew);ew=IntPtr.Zero;
+                ot=output.ReadToEndAsync();et=error.ReadToEndAsync();
+                Check(ResumeThread(process.thread)!=0xffffffff);
+                bool finished=false;
+                int deadline=Math.Max(0,timeout-25);
+                while(clock.ElapsedMilliseconds<deadline) {
+                    if(WaitForSingleObject(process.process,0)==0 && ot.IsCompleted && et.IsCompleted) {finished=true;break;}
+                    System.Threading.Thread.Sleep(Math.Min(5,Math.Max(1,deadline-(int)clock.ElapsedMilliseconds)));
+                }
+                // End the job before returning, including detached descendants and descendants
+                // which closed their output after their original parent exited.
+                uint code;GetExitCodeProcess(process.process,out code);
+                Check(TerminateJobObject(job,124));
+                while(clock.ElapsedMilliseconds<timeout && !(ot.IsCompleted && et.IsCompleted)) System.Threading.Thread.Sleep(1);
+                bool drained=ot.IsCompleted && et.IsCompleted && !ot.IsFaulted && !et.IsFaulted;
+                return new ToolResult{code=(int)code,output=drained?ot.Result:"",error=drained?et.Result:"",timedOut=!finished};
+            } finally {
+                if(job!=IntPtr.Zero) {TerminateJobObject(job,124);CloseHandle(job);}
+                if(process.process!=IntPtr.Zero) {TerminateProcess(process.process,124);CloseHandle(process.process);}
+                if(process.thread!=IntPtr.Zero)CloseHandle(process.thread);
+                foreach(IntPtr handle in new[]{or,ow,er,ew,input})if(handle!=IntPtr.Zero && handle!=new IntPtr(-1))CloseHandle(handle);
+                // Disposing is safe only after the reads have completed; job termination closes writers.
+                if(output!=null) { if(ot==null || ot.IsCompleted) {try{output.Dispose();}catch{}} else ot.ContinueWith(delegate {try{output.Dispose();}catch{}}); }
+                if(error!=null) { if(et==null || et.IsCompleted) {try{error.Dispose();}catch{}} else et.ContinueWith(delegate {try{error.Dispose();}catch{}}); }
+            }
+        }
+    }
+
+'@
+}
+
+function Convert-InventoryValue($value,[string]$path) {
+    if ($null -eq $value) { return $null }
+    if ($value -is [D32InventoryNumber]) {
+        if ($path -cmatch '\A\$\.facts\.storage_plan\[[0-9]+\]\.(needed_bytes|free_bytes)\z') { return $value }
+        $integer = [long]0
+        if ([long]::TryParse($value.Text,[ref]$integer)) { return $integer }
+        $number = [double]::Parse($value.Text,[Globalization.CultureInfo]::InvariantCulture)
+        if ([double]::IsInfinity($number)) { return $value }
+        return $number
+    }
+    if ($value -is [Collections.IDictionary]) {
+        $result = [ordered]@{}
+        foreach ($key in $value.Keys) { $result[$key] = Convert-InventoryValue $value[$key] ($path+'.'+$key) }
+        return [pscustomobject]$result
+    }
+    if ($value -is [array]) {
+        $result = New-Object Collections.ArrayList
+        for ($index=0;$index -lt $value.Count;$index++) { [void]$result.Add((Convert-InventoryValue $value[$index] ($path+'['+$index+']'))) }
+        return ,@($result)
+    }
+    return $value
+}
+function Read-InventoryJson([string]$text) {
+    Initialize-InventoryRuntime
+    return Convert-InventoryValue ([D32InventoryRuntime]::Parse($text)) '$'
+}
+function Get-InventoryInteger($value) {
+    if ($value -is [D32InventoryNumber]) { return [D32InventoryRuntime]::Integer($value.Text) }
+    if ($value -is [D32InventoryInteger]) { return $value }
+    if ($value -is [System.Numerics.BigInteger]) { return [D32InventoryRuntime]::Integer($value.ToString([Globalization.CultureInfo]::InvariantCulture)) }
+    if (-not (Test-Num $value)) { return $null }
+    return [D32InventoryRuntime]::Integer($value.ToString([Globalization.CultureInfo]::InvariantCulture))
+}
+function Write-InventoryJsonValue($value,[Text.StringBuilder]$builder) {
+    if ($null -eq $value) { [void]$builder.Append('null'); return }
+    if ($value -is [D32InventoryNumber]) { [void]$builder.Append($value.Text); return }
+    if ($value -is [D32InventoryInteger]) { [void]$builder.Append($value.JsonText()); return }
+    if ($value -is [System.Numerics.BigInteger]) { [void]$builder.Append($value.ToString([Globalization.CultureInfo]::InvariantCulture)); return }
+    if ($value -is [string] -or $value -is [char]) { [void]$builder.Append((ConvertTo-Json -InputObject ([string]$value) -Compress)); return }
+    if ($value -is [bool]) { [void]$builder.Append($value.ToString().ToLowerInvariant()); return }
+    if (Test-Num $value) { [void]$builder.Append((ConvertTo-Json -InputObject $value -Compress)); return }
+    if ($value -is [Collections.IDictionary] -or $value -is [pscustomobject]) {
+        [void]$builder.Append('{');$sep=''
+        $keys=@();if($value -is [Collections.IDictionary]){$keys=@($value.Keys)}else{$keys=@($value.PSObject.Properties.Name)}
+        foreach($key in $keys) { [void]$builder.Append($sep);Write-InventoryJsonValue ([string]$key) $builder;[void]$builder.Append(':');$item=$value.$key;Write-InventoryJsonValue $item $builder;$sep=',' }
+        [void]$builder.Append('}');return
+    }
+    if ($value -is [Collections.IEnumerable]) {
+        [void]$builder.Append('[');$sep=''
+        foreach($item in $value) { [void]$builder.Append($sep);Write-InventoryJsonValue $item $builder;$sep=',' }
+        [void]$builder.Append(']');return
+    }
+    throw 'An inventory value cannot be encoded as JSON.'
+}
+
 function ConvertTo-AsciiJson($obj, [int]$depth) {
     # Compact JSON with every character outside ASCII written as a \u escape, so the console code page cannot change it
-    $s = $obj | ConvertTo-Json -Depth $depth -Compress
+    Initialize-InventoryRuntime
+    $builder=New-Object Text.StringBuilder
+    Write-InventoryJsonValue $obj $builder
+    $s=$builder.ToString()
     return [regex]::Replace($s, '[^\x00-\x7F]', { param($m) '\u' + ([int][char]$m.Value).ToString('x4') })
 }
 function Get-GB($bytes, [int]$digits) {
@@ -180,111 +451,17 @@ function Find-Tool([string]$Name, [string[]]$Extra) {
     foreach ($e in $Extra) { if ($e -and (Test-Path -LiteralPath $e -PathType Leaf)) { return $e } }
     return $null
 }
-function Stop-StartedTree([System.Diagnostics.Process]$Root, [long]$RootTicks) {
-    # Ends a process this program started ($Root, created at UTC ticks $RootTicks) and every process
-    # descended from it (a .cmd tool runs in cmd.exe, which starts node, which may start more), and
-    # no other process. A process joins the tree only when (1) its parent is already in the tree,
-    # (2) it was created no earlier than that parent, so an older process whose own parent once had
-    # the same id is never taken, and (3) the process this program opens is still the one the system
-    # listed (same id and same start time). A handle to every process of the tree stays open until
-    # the end, so Windows cannot give one of their ids to another process meanwhile. Each process is
-    # ended before its children are listed, so it cannot start new ones afterwards. If the process
-    # list cannot be read at all, taskkill /T /F ends the tree of the started process (still alive
-    # then, so its id is its own), and the started process is ended directly as well.
-    $tree = New-Object System.Collections.ArrayList
-    $rootUs = $RootTicks - ($RootTicks % 10)
-    [void]$tree.Add(@{ id = $Root.Id; us = $rootUs; p = $Root })
-    $listOk = $true
-    try { [void](Get-CimInstance -ClassName Win32_Process -Filter ('ProcessId=' + [int]$Root.Id) -Property ProcessId -ErrorAction Stop) } catch { $listOk = $false }
-    if (-not $listOk) {
-        try {
-            $kpsi = New-Object System.Diagnostics.ProcessStartInfo
-            $kpsi.FileName = Join-Path $env:SystemRoot 'System32\taskkill.exe'
-            $kpsi.Arguments = '/T /F /PID ' + [int]$Root.Id
-            $kpsi.UseShellExecute = $false; $kpsi.CreateNoWindow = $true
-            $kpsi.RedirectStandardOutput = $true; $kpsi.RedirectStandardError = $true
-            $k = [System.Diagnostics.Process]::Start($kpsi)
-            $ko = $k.StandardOutput.ReadToEndAsync(); $ke = $k.StandardError.ReadToEndAsync()
-            if (-not $k.WaitForExit(15000)) { try { $k.Kill() } catch { } }
-            $k.Dispose()
-        } catch { }
-        try { $Root.Kill() } catch { }
-        return
-    }
-    try { $Root.Kill() } catch { }
-    try { [void]$Root.WaitForExit(5000) } catch { }
-    $i = 0
-    while ($i -lt $tree.Count -and $tree.Count -lt 512) {
-        $n = $tree[$i]; $i++
-        $rows = @()
-        try { $rows = @(Get-CimInstance -ClassName Win32_Process -Filter ('ParentProcessId=' + [int]$n.id) -Property ProcessId, CreationDate -ErrorAction Stop) } catch { $rows = @() }
-        foreach ($row in $rows) {
-            if ($null -eq $row -or $null -eq $row.CreationDate) { continue }
-            $cid = [int]$row.ProcessId
-            $seen = $false
-            foreach ($t in $tree) { if ($t.id -eq $cid) { $seen = $true; break } }
-            if ($seen) { continue }
-            $ct = ([datetime]$row.CreationDate).ToUniversalTime().Ticks
-            $cus = $ct - ($ct % 10)
-            if ($cus -lt $n.us) { continue }
-            $cp = $null; $sus = $null
-            try {
-                $cp = [System.Diagnostics.Process]::GetProcessById($cid)
-                [void]$cp.Handle
-                $st = $cp.StartTime.ToUniversalTime().Ticks
-                $sus = $st - ($st % 10)
-            } catch { if ($cp) { try { $cp.Dispose() } catch { } }; continue }
-            if ([math]::Abs($sus - $cus) -gt 10) { try { $cp.Dispose() } catch { }; continue }
-            [void]$tree.Add(@{ id = $cid; us = $sus; p = $cp })
-            try { $cp.Kill() } catch { }
-            try { [void]$cp.WaitForExit(5000) } catch { }
-        }
-    }
-    for ($j = 1; $j -lt $tree.Count; $j++) { try { $tree[$j].p.Dispose() } catch { } }
-}
 function Invoke-Tool([string]$Path, [string]$Arguments, [int]$TimeoutMs) {
-    # Runs a program with its output captured. If it overruns, ends it and every process it started
-    # (Stop-StartedTree), and nothing else. The same applies when the program itself ends in time but
-    # a process it started keeps its output open past the limit (a .cmd tool that leaves a background
-    # child): the output read so far is returned once that tree is ended.
     if (-not $Path) { return $null }
     try {
-        $psi = New-Object System.Diagnostics.ProcessStartInfo
-        $ext = [System.IO.Path]::GetExtension($Path).ToLowerInvariant()
-        if ($ext -eq '.cmd' -or $ext -eq '.bat') {
-            $psi.FileName = $env:ComSpec
-            $psi.Arguments = '/d /c ""' + $Path + '" ' + $Arguments + '"'
-        } else {
-            $psi.FileName = $Path
-            $psi.Arguments = $Arguments
+        Initialize-InventoryRuntime
+        $file=$Path; $command=$Arguments
+        if ([IO.Path]::GetExtension($Path).ToLowerInvariant() -in @('.cmd','.bat')) {
+            $file=$env:ComSpec; $command='/d /c ""'+$Path+'" '+$Arguments+'"'
         }
-        $psi.UseShellExecute = $false
-        $psi.RedirectStandardOutput = $true
-        $psi.RedirectStandardError = $true
-        $psi.CreateNoWindow = $true
-        $sw = [System.Diagnostics.Stopwatch]::StartNew()
-        $p = [System.Diagnostics.Process]::Start($psi)
-        $born = $null
-        try { $born = $p.StartTime.ToUniversalTime().Ticks } catch { }
-        $o = $p.StandardOutput.ReadToEndAsync()
-        $e = $p.StandardError.ReadToEndAsync()
-        if (-not $p.WaitForExit($TimeoutMs)) {
-            if ($null -ne $born) { Stop-StartedTree $p ([long]$born) } else { try { $p.Kill() } catch { } }
-            return $null
-        }
-        $p.WaitForExit()
-        # The output ends only when every process holding it has closed it; wait for that only as long
-        # as the time limit allows (at least half a second), then end what the program started.
-        $left = $TimeoutMs - [int]$sw.ElapsedMilliseconds
-        if ($left -lt 500) { $left = 500 }
-        $drained = $false
-        try { $drained = [System.Threading.Tasks.Task]::WaitAll([System.Threading.Tasks.Task[]]@($o, $e), [int]$left) } catch { $drained = $true }
-        if (-not $drained) {
-            if ($null -ne $born) { Stop-StartedTree $p ([long]$born) }
-            try { [void][System.Threading.Tasks.Task]::WaitAll([System.Threading.Tasks.Task[]]@($o, $e), 2000) } catch { }
-            if (-not ($o.IsCompleted -and $e.IsCompleted)) { return $null }
-        }
-        return @{ code = $p.ExitCode; out = [string]$o.Result; err = [string]$e.Result }
+        $result=[D32InventoryRuntime]::Run($file,$command,$TimeoutMs)
+        if($result.timedOut) { return $null }
+        return @{code=$result.code;out=$result.output;err=$result.error}
     } catch { return $null }
 }
 function Get-ToolVersion([string]$Name, [string[]]$Extra, [string]$Arguments) {
@@ -602,7 +779,7 @@ function Get-Facts {
         }
     } catch { }
     try {
-        foreach ($ld in @(Get-CimInstance -ClassName Win32_LogicalDisk -Filter 'DriveType=3' -ErrorAction Stop)) {
+        foreach ($ld in @(Get-CimInstance -ClassName Win32_LogicalDisk -Filter 'DriveType=3' -ErrorAction Stop | Sort-Object -Property @{Expression={[decimal]$_.Size};Descending=$true},DeviceID | Select-Object -First 6)) {
             $id = ([string]$ld.DeviceID).ToUpperInvariant()
             $ssd = $null
             if ($media.ContainsKey($id)) {
@@ -757,10 +934,28 @@ function Get-Facts {
     return @{ facts = $facts; notes = $notes }
 }
 
+function New-InventoryHttpRequest([string]$uri) { return [Net.WebRequest]::Create($uri) }
+function Start-InventoryHttpRequest($request) { Initialize-InventoryRuntime; return [D32InventoryRuntime]::HttpStatus($request) }
+function Stop-InventoryHttpRequest($request) { [D32InventoryRuntime]::CancelHttp($request) }
+function Get-InventoryHttp([string]$uri,[int]$timeoutMs) {
+    $clock=[Diagnostics.Stopwatch]::StartNew();$request=$null;$response=$null;$ok=$false;$code=$null
+    try {
+        $request=New-InventoryHttpRequest $uri
+        $request.Method='HEAD';$request.UserAgent=$UserAgent;$request.AllowAutoRedirect=$false
+        $request.Timeout=$timeoutMs;$request.ReadWriteTimeout=$timeoutMs
+        $pending=Start-InventoryHttpRequest $request
+        $left=[math]::Max(0,$timeoutMs-[int]$clock.ElapsedMilliseconds)
+        if($pending.Wait($left)) {
+            $ok=$true;$code=[int]$pending.Result
+        }
+    } catch { }
+    finally {
+        if($request){try{Stop-InventoryHttpRequest $request}catch{}}
+    }
+    return [ordered]@{ok=$ok;code=$code;ms=[int]$clock.ElapsedMilliseconds}
+}
 function Get-NetFacts {
-    # Any HTTP answer, error codes and redirects included, counts as reachable.
     $net = [ordered]@{}
-    $ProgressPreference = 'SilentlyContinue'
     try { [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12 } catch { }
     $sites = [ordered]@{
         github = 'https://github.com/'
@@ -769,18 +964,7 @@ function Get-NetFacts {
         nvidia = 'https://developer.download.nvidia.com/compute/cuda/repos/'
         tailscale = 'https://login.tailscale.com/'
     }
-    foreach ($k in $sites.Keys) {
-        $sw = [System.Diagnostics.Stopwatch]::StartNew()
-        $ok = $false; $code = $null
-        try {
-            $resp = Invoke-WebRequest -Uri $sites[$k] -Method Head -UseBasicParsing -UserAgent $UserAgent -TimeoutSec 8 -ErrorAction Stop
-            $ok = $true; $code = [int]$resp.StatusCode
-        } catch {
-            $wr = $_.Exception.Response
-            if ($null -ne $wr) { $ok = $true; try { $code = [int]$wr.StatusCode } catch { } }
-        }
-        $net[$k] = [ordered]@{ ok = $ok; code = $code; ms = [int]$sw.ElapsedMilliseconds }
-    }
+    foreach ($k in $sites.Keys) { $net[$k]=Get-InventoryHttp $sites[$k] 8000 }
     $signed = $null
     $gh = Find-Tool 'gh' @((Join-Path $env:ProgramFiles 'GitHub CLI\gh.exe'))
     if ($gh) {
@@ -1243,7 +1427,7 @@ function Invoke-Report {
     if ($null -ne $FactsPath) {
         if (-not (Test-Path -LiteralPath $FactsPath -PathType Leaf)) { Write-Err ('facts file not found: ' + $FactsPath); return 2 }
         $doc = $null
-        try { $doc = (Read-TextFile $FactsPath) | ConvertFrom-Json -ErrorAction Stop } catch { $doc = $null }
+        try { $doc = Read-InventoryJson (Read-TextFile $FactsPath) } catch { $doc = $null }
         # the same rule as the shell version: a JSON object whose member "facts" (exact case) is an object
         $fo = $null
         if ($doc -is [System.Management.Automation.PSCustomObject]) {
@@ -1374,8 +1558,328 @@ function Invoke-BenchQuick {
     return 0
 }
 
+# ---------------------------------------------------------------- read-only prerequisite checks (C10 v2)
+function Get-PrValue($obj,[string]$name) {
+    if ($null -eq $obj) { return $null }
+    foreach ($property in @($obj.PSObject.Properties)) { if ($property.Name -ceq $name) { return ,$property.Value } }
+    return $null
+}
+function Test-PrVersion($v) { return ($v -is [string] -and $v.Length -lt 40 -and $v -cmatch '\A[0-9]+\.[0-9]+(?:\.[0-9]+){0,2}\z') }
+function Compare-PrVersion([string]$a,[string]$b) {
+    $av=$a.Split('.'); $bv=$b.Split('.')
+    for($n=0;$n -lt 4;$n++) { $aa=0.0; $bb=0.0; if($n -lt $av.Length){$aa=[double]$av[$n]}; if($n -lt $bv.Length){$bb=[double]$bv[$n]}; if($aa -gt $bb){return $true}; if($aa -lt $bb){return $false} }
+    return $true
+}
+function Get-PrState($value,[string]$minimum) {
+    if($value -is [bool]) { if(-not $value){return 'missing'}; if($minimum){return 'unknown'}; return 'met' }
+    if($value -is [string]) { if($value -cin @('met','missing','unknown')) { if($value -ceq 'met' -and $minimum){return 'unknown'}; return $value }; return 'unknown' }
+    if(-not ($value -is [pscustomobject])) { return 'unknown' }
+    $state=Get-PrValue $value 'state'; if($state -cnotin @('met','missing','unknown')) { return 'unknown' }
+    if($state -ceq 'met' -and $minimum) {
+        $v=Get-PrValue $value 'version'; if(-not (Test-PrVersion $v)){return 'unknown'}
+        if(-not (Compare-PrVersion $v $minimum)){return 'missing'}
+    }
+    return $state
+}
+function Get-PrTool([string]$name,[string[]]$extra,[string]$arguments) {
+    $path=Find-Tool $name $extra
+    if(-not $path) { return $false }
+    $run=Invoke-Tool $path $arguments 4000
+    if($null -eq $run -or $run.code -ne 0) { return $null }
+    $v=Get-Ver ($run.out+"`n"+$run.err)
+    if(-not $v) { return $null }
+    return [ordered]@{state='met';version=$v}
+}
+function Get-PrMemoryState($plan) {
+    # A measured, operator-approved plan is required; no 16 GiB or VM-size shortcut.
+    if(-not ($plan -is [pscustomobject])) { return 'unknown' }
+    $values=@{}
+    foreach($name in @('total_bytes','available_bytes','vm_bytes','host_reserve_bytes')) {
+        $v=Get-PrValue $plan $name
+        if(-not (Test-Num $v) -or $v -lt 0 -or $v -gt 9007199254740991 -or [math]::Floor($v) -ne $v) { return 'unknown' }
+        $values[$name]=[double]$v
+    }
+    if($values.total_bytes -eq 0 -or $values.vm_bytes -eq 0 -or $values.host_reserve_bytes -eq 0 -or $values.available_bytes -gt $values.total_bytes) { return 'unknown' }
+    $needed=$values.vm_bytes+$values.host_reserve_bytes
+    if($needed -gt 9007199254740991) { return 'unknown' }
+    if($needed -gt $values.available_bytes) { return 'missing' }
+    return 'met'
+}
+function Get-PrDesktopLocations([string]$localAppData, [string]$programFiles) {
+    $roots=@()
+    if($localAppData){$roots+=Join-Path $localAppData 'Programs\DockerDesktop'}
+    if($programFiles){$roots+=Join-Path $programFiles 'Docker\Docker'}
+    $present=$false;$clients=@()
+    foreach($root in $roots) {
+        try {
+            $desktop=Join-Path $root 'Docker Desktop.exe'
+            if([IO.File]::Exists($desktop) -and -not ([IO.File]::GetAttributes($desktop) -band [IO.FileAttributes]::ReparsePoint)){$present=$true}
+            $client=Join-Path $root 'resources\bin\docker.exe'
+            if([IO.File]::Exists($client) -and -not ([IO.File]::GetAttributes($client) -band [IO.FileAttributes]::ReparsePoint)){$clients+=$client}
+        } catch { }
+    }
+    return @{present=$present;clients=$clients}
+}
+
+function Get-PrDesktopFacts($info) {
+    # Engine advertisements are read-only evidence, never a successful GPU workload
+    # or proof that unrelated distribution integration has been disabled.
+    if($null -eq $info -or $info.GetType() -ne [System.Management.Automation.PSCustomObject]) { return @{} }
+    $linux=([string]$info.OSType -ceq 'linux')
+    $wsl=($linux -and [string]$info.OperatingSystem -match 'Docker Desktop' -and [string]$info.KernelVersion -match '(?i)microsoft.*wsl2')
+    $runtime=($null -ne $info.Runtimes -and $null -ne $info.Runtimes.PSObject.Properties['nvidia'])
+    $gpu=$null; if(-not $wsl -or -not $runtime) { $gpu=$false }
+    return @{'windows.docker-wsl2'=$wsl;'windows.wsl-version'=$wsl;'docker.nvidia-runtime'=$runtime;'windows.docker-gpu'=$gpu;'windows.docker-isolation'=$null}
+}
+
+function Read-PrPrivateFile([string]$path, [string]$owner) {
+    $directory=[IO.Directory]::Exists($path)
+    if($PSVersionTable.PSEdition -eq 'Core') {
+        $item=if($directory){[IO.DirectoryInfo]::new($path)}else{[IO.FileInfo]::new($path)}
+        $acl=[IO.FileSystemAclExtensions]::GetAccessControl($item)
+    } elseif($directory) {$acl=[IO.Directory]::GetAccessControl($path)}
+    else {$acl=[IO.File]::GetAccessControl($path)}
+    $rules=@($acl.GetAccessRules($true,$true,[Security.Principal.SecurityIdentifier]))
+    $identities=@($rules | ForEach-Object {$_.IdentityReference.Value})
+    if(-not $acl.AreAccessRulesProtected -or $acl.GetOwner([Security.Principal.SecurityIdentifier]).Value -cne $owner -or
+            $rules.Count -ne 2 -or $identities -cnotcontains $owner -or $identities -cnotcontains 'S-1-5-18') {throw 'unexpected ACL'}
+    foreach($rule in $rules) {
+        if($rule.AccessControlType -ne [Security.AccessControl.AccessControlType]::Allow -or
+                $rule.FileSystemRights -ne [Security.AccessControl.FileSystemRights]::FullControl -or $rule.IsInherited) {throw 'unexpected ACL'}
+    }
+    if($directory){return}
+    $stream=[IO.File]::Open($path,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read)
+    try {
+        if($stream.Length -lt 1 -or $stream.Length -gt 65536){throw 'unexpected evidence size'}
+        $reader=[IO.StreamReader]::new($stream,[Text.Encoding]::UTF8,$false,1024,$true)
+        try {$raw=$reader.ReadToEnd()} finally {$reader.Dispose()}
+        if($raw -cmatch '[^\x00-\x7f]'){throw 'unexpected evidence encoding'}
+        return $raw
+    } finally {$stream.Dispose()}
+}
+
+function Get-PrSplitForgeEvidence([string]$path) {
+    if($path -cnotmatch '\A[A-Za-z]:[\\/]' -or $path.Substring(2).Contains(':') -or
+            $path -match '[\x00-\x1f\x7f]' -or @($path.Substring(3) -split '[\\/]' | Where-Object {$_ -match '[. ]$'}).Count) {throw 'unexpected evidence path'}
+    $file=[IO.FileInfo]::new($path)
+    $stage=$file.Directory
+    if($file.Name -cne 'forge-evidence.json' -or $stage.Name -cnotmatch '\A\.settings-[a-f0-9]{32}\z'){throw 'unexpected Forge evidence location'}
+    $plan=[IO.FileInfo]::new((Join-Path $stage.FullName 'plan.json'))
+    foreach($item in @($file,$plan)) {
+        if(-not $item.Exists -or ($item.Attributes -band [IO.FileAttributes]::ReparsePoint)){throw 'unexpected evidence file'}
+    }
+    for($dir=$stage;$dir;$dir=$dir.Parent) {
+        if(-not $dir.Exists -or ($dir.Attributes -band [IO.FileAttributes]::ReparsePoint)){throw 'unexpected evidence directory'}
+    }
+    $owner=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+    Read-PrPrivateFile $stage.FullName $owner
+    $consent=Read-InventoryJson (Read-PrPrivateFile $plan.FullName $owner)
+    $identity=Get-PrValue $consent 'identity'
+    if($consent.schema -cne 'deep32.install-plan.v1' -or $identity.journey -cne $Journey -or
+            $identity.form -cne 'docker' -or $identity.platform -cne 'windows' -or $identity.docker_role -cne 'forge' -or
+            $identity.desktop_isolation_confirmed -isnot [bool] -or -not $identity.desktop_isolation_confirmed -or
+            $identity.tailnet_sha256 -cnotmatch '\A[a-f0-9]{64}\z' -or @($identity.media_components).Count -ne 3 -or
+            $identity.docker_storage_path -cnotmatch '\A[A-Za-z]:[\\/]'){throw 'unexpected evidence plan'}
+    $proof=(Read-InventoryJson ('{"facts":'+(Read-PrPrivateFile $file.FullName $owner)+'}')).facts
+    # The preflight adds one optional member: the line to print when the matched recipe rests on an owner waiver.
+    $notice=Get-PrValue $proof 'notice'
+    $members=2;if($null -ne $notice){$members=3}
+    if($proof -isnot [pscustomobject] -or @($proof.PSObject.Properties).Count -ne $members -or
+            $proof.prerequisites -isnot [pscustomobject] -or $proof.storage_plan -isnot [array] -or
+            $proof.storage_plan.Count -notin (1..16) -or
+            ($null -ne $notice -and ($notice -isnot [string] -or $notice -cnotmatch '\A[ -~]{1,300}\z'))){throw 'unexpected Forge evidence shape'}
+    $allowed=@('platform.recipe','host.membership-confirmed','host.magicdns','host.https-certificates',
+        'windows.build','windows.docker-wsl2','windows.wsl-version','windows.docker-gpu','windows.docker-isolation',
+        'gpu.release-envelope','gpu.driver','gpu.capability','gpu.memory','gpu.ports',
+        'docker.local-context','docker.server','docker.compose','docker.nvidia-runtime','docker.storage','download.python')
+    foreach($property in $proof.prerequisites.PSObject.Properties) {
+        $value=$property.Value
+        $valid=($value -is [bool] -or ($value -is [string] -and $value -cin @('met','missing','unknown')) -or
+            ($value -is [pscustomobject] -and @($value.PSObject.Properties).Count -eq 2 -and
+             $value.state -cin @('met','missing','unknown') -and (Test-PrVersion $value.version)))
+        if($property.Name -cnotin $allowed -or -not $valid){throw 'unexpected Forge prerequisite evidence'}
+    }
+    return $proof
+}
+function Get-PrFacts {
+    # No WSL invocation, network probe, daemon start or account/credential file read.
+    $os=[ordered]@{family='windows';edition=$null;version=$null;build=$null;arch=$env:PROCESSOR_ARCHITECTURE}
+    $f=[ordered]@{}
+    try {
+        $cv=Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -ErrorAction Stop
+        $ed=[string]$cv.EditionID
+        if($ed -like 'Core*'){$os.edition='home'} elseif($ed -like 'Professional*'){$os.edition='pro'} elseif($ed -like 'Enterprise*'){$os.edition='enterprise'} elseif($ed -like 'Education*'){$os.edition='education'}
+        $os.version=[string]$cv.DisplayVersion; $os.build=[string]$cv.CurrentBuildNumber
+    } catch { }
+    $f['host.architecture']=($os.arch -in @('AMD64','x64'))
+    $reboot=$false
+    foreach($key in @('HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending','HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired')) { if(Test-Path -LiteralPath $key){$reboot=$true} }
+    try { $pending=Get-ItemProperty -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager' -Name PendingFileRenameOperations -ErrorAction Stop; if($pending.PendingFileRenameOperations){$reboot=$true} } catch { }
+    $f['host.reboot-clear']=(-not $reboot)
+    $f['download.git']=Get-PrTool 'git' @() '--version'
+    $f['download.python']=Get-PrTool 'python' @() '--version'
+    # Bounded native discovery, no recursive search and no GnuPG home/keyring access.
+    $gpg=$null
+    foreach($base in @($env:ProgramFiles,${env:ProgramFiles(x86)})) {
+        if(-not $base){continue}
+        foreach($rel in @('GnuPG\bin\gpg.exe','Gpg4win\bin\gpg.exe','Git\usr\bin\gpg.exe')) {
+            $candidate=Join-Path $base $rel
+            if(Test-Path -LiteralPath $candidate -PathType Leaf) { $item=Get-Item -LiteralPath $candidate; if(-not ($item.Attributes -band [IO.FileAttributes]::ReparsePoint)) {$gpg=$candidate;break} }
+        }
+        if($gpg){break}
+    }
+    if(-not $gpg){$gpg=Find-Tool 'gpg' @()}
+    if($gpg -and [IO.Path]::GetExtension($gpg) -ieq '.exe') { $run=Invoke-Tool $gpg '--version' 4000; if($run -and $run.code -eq 0){$v=Get-Ver $run.out; if($v){$f['download.gpg']=[ordered]@{state='met';version=$v}}} } else {$f['download.gpg']=$false}
+    if($Role -eq 'gpu-host' -or ($Role -eq 'all' -and $Journey -eq 'J1')) {if(-not (Find-Tool 'nvidia-smi' @())){$f['gpu.driver']=$false;$f['gpu.capability']=$false;$f['gpu.memory']=$false}}
+    $f['download.key']=Test-Path -LiteralPath (Join-Path $PSScriptRoot 'release-key.gpg') -PathType Leaf
+    $f['windows.edition']=($os.edition -in @('pro','enterprise','education'))
+    $f['windows.hyperv-module']=Test-Path -LiteralPath (Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\Modules\Hyper-V\Hyper-V.psd1') -PathType Leaf
+    try {$service=Get-Service vmms -ErrorAction Stop; $f['windows.hyperv-service']=($service.Status -eq 'Running')} catch {$f['windows.hyperv-service']=$false}
+    try {$services=@(Get-Service WslService,LxssManager -ErrorAction SilentlyContinue); $f['windows.wsl-service']=($services.Count -gt 0)} catch { }
+    $f['windows.image-mount']=($null -ne (Get-Command Mount-DiskImage -ErrorAction SilentlyContinue) -and $null -ne (Get-Command Dismount-DiskImage -ErrorAction SilentlyContinue))
+    $desktop=Get-PrDesktopLocations ([Environment]::GetFolderPath('LocalApplicationData')) $env:ProgramFiles
+    $f['windows.docker-desktop']=$desktop.present
+    # Desktop installation/engine discovery cannot establish integration isolation.
+    # Leave the manual gate unknown; never open private Desktop settings or start WSL.
+    $f['windows.docker-isolation']=$null
+    # An explicit local named pipe prevents a selected remote context from
+    # triggering a network connection. Queries do not start Desktop or a distro.
+    $docker=Find-Tool 'docker.exe' $desktop.clients
+    if($docker -and [IO.Path]::GetExtension($docker) -ieq '.exe') {
+        $endpoint='--host npipe:////./pipe/dockerDesktopLinuxEngine '
+        $run=Invoke-Tool $docker ($endpoint+'version --format "{{.Server.Version}}"') 4000
+        if($run -and $run.code -eq 0){$v=Get-Ver $run.out;if($v){$f['docker.server']=[ordered]@{state='met';version=$v};$f['docker.local-context']=$true}}
+        $run=Invoke-Tool $docker ($endpoint+'compose version --short') 4000
+        if($run -and $run.code -eq 0){$v=Get-Ver $run.out;if($v){$f['docker.compose']=[ordered]@{state='met';version=$v}}}
+        $run=Invoke-Tool $docker ($endpoint+'info --format "{{json .}}"') 4000
+        if($run -and $run.code -eq 0) {
+            try {
+                $info=$run.out | ConvertFrom-Json -ErrorAction Stop
+                $desktopFacts=Get-PrDesktopFacts $info
+                foreach($id in $desktopFacts.Keys) { $f[$id]=$desktopFacts[$id] }
+            } catch { }
+        }
+    } else {$f['docker.server']=$false;$f['docker.compose']=$false;$f['docker.local-context']=$false;$f['windows.docker-wsl2']=$false;$f['windows.docker-gpu']=$false}
+
+    try {
+        $cpus=@(Get-CimInstance -ClassName Win32_Processor -OperationTimeoutSec 3 -ErrorAction Stop)
+        if($cpus.Count -gt 0) {
+            $f['host.cpu-virtualisation']=(@($cpus | Where-Object {$_.VirtualizationFirmwareEnabled -ne $true}).Count -eq 0)
+            $f['host.slat']=(@($cpus | Where-Object {$_.SecondLevelAddressTranslationExtensions -ne $true}).Count -eq 0)
+        }
+    } catch { }
+    try {
+        $features=@(Get-CimInstance -ClassName Win32_OptionalFeature -Filter "Name='Microsoft-Hyper-V-All' OR Name='Microsoft-Windows-Subsystem-Linux' OR Name='VirtualMachinePlatform'" -OperationTimeoutSec 3 -ErrorAction Stop)
+        $hv=@($features | Where-Object {$_.Name -eq 'Microsoft-Hyper-V-All'}); if($hv.Count -eq 1){$f['windows.hyperv-feature']=($hv[0].InstallState -eq 1)}
+        $w=@($features | Where-Object {$_.Name -in @('Microsoft-Windows-Subsystem-Linux','VirtualMachinePlatform')}); if($w.Count -eq 2){$f['windows.wsl-feature']=(@($w | Where-Object {$_.InstallState -ne 1}).Count -eq 0)}
+    } catch { }
+    $tail=Find-Tool 'tailscale' @((Join-Path $env:ProgramFiles 'Tailscale\tailscale.exe'))
+    $f['host.tailscale-installed']=Get-PrTool 'tailscale' @((Join-Path $env:ProgramFiles 'Tailscale\tailscale.exe')) 'version'
+    if($tail) {
+        $run=Invoke-Tool $tail 'status --json' 4000
+        if($run -and $run.code -eq 0) {
+            try { $ts=$run.out | ConvertFrom-Json -ErrorAction Stop; $f['host.tailscale-daemon']=([string]$ts.BackendState -ne '' -and $ts.BackendState -ne 'NoState'); $f['host.tailscale-signed-in']=($ts.BackendState -eq 'Running' -and $ts.Self.Online -eq $true) } catch { }
+        }
+    } else {$f['host.tailscale-daemon']=$false; $f['host.tailscale-signed-in']=$false}
+    if((Find-Tool 'codex' @()) -or (Find-Tool 'claude' @())) {$f['agent.cli']=$null} else {$f['agent.cli']=$false}
+    return ([ordered]@{os=$os;prerequisites=$f} | ConvertTo-Json -Depth 10 -Compress | ConvertFrom-Json)
+}
+function Invoke-Prerequisites {
+    $resource=Join-Path $PSScriptRoot 'prerequisites.json'
+    try { $spec=(Read-TextFile $resource) | ConvertFrom-Json -ErrorAction Stop } catch {Write-Err 'prerequisite resource is missing or invalid';return 1}
+    if((Get-PrValue $spec 'schema') -cne 'deep32.prerequisites.v1' -or -not ((Get-PrValue $spec 'checks') -is [array])) {Write-Err 'prerequisite resource is invalid';return 1}
+    $forgeEvidence=$null
+    if($InternalForgeEvidencePath) {
+        try {$forgeEvidence=Get-PrSplitForgeEvidence $InternalForgeEvidencePath}
+        catch {Write-Err 'the protected split Windows Forge evidence could not be checked';return 10}
+    }
+    if($FactsPath) {
+        if(-not (Test-Path -LiteralPath $FactsPath -PathType Leaf)){Write-Err ('facts file not found: '+$FactsPath);return 2}
+        try {$doc=Read-InventoryJson (Read-TextFile $FactsPath); $fo=Get-PrValue $doc 'facts'} catch {$fo=$null}
+        if(-not ($fo -is [pscustomobject])) {Write-Err 'the facts are not a JSON object with a facts member';return 1}
+    } elseif($Journey -cnotmatch '\AJ[1-5]\z' -or $Role -cnotin @('workstation-host','gpu-host','agent','all') -or ($Journey -ceq 'J3' -and $Role -ceq 'workstation-host') -or ($Journey -ceq 'J5' -and $Role -ceq 'gpu-host')) {$fo=[pscustomobject]@{}} else {$fo=Get-PrFacts}
+    $os=Get-PrValue $fo 'os'; $family=Get-PrValue $os 'family'; $edition=Get-PrValue $os 'edition'; $platform=$family;if($platform -cnotin @('windows','linux','macos')){$platform='unknown'}
+    $ws=$false;$gpu=$false;$agent=$false;$selection=$true
+    if($Role -ceq 'agent'){$agent=$true}
+    elseif($Journey -ceq 'J3'){if($Role -cin @('all','gpu-host')){$gpu=$true}else{$selection=$false}}
+    elseif($Role -ceq 'workstation-host'){$ws=$true}
+    elseif($Role -ceq 'gpu-host'){if($Journey -ceq 'J5'){$selection=$false}else{$gpu=$true}}
+    elseif($Role -ceq 'all'){$agent=$true;if($Journey -ceq 'J2' -and $family -ceq 'linux'){$gpu=$true}else{$ws=$true;if($Journey -cin @('J1','J4')){$gpu=$true}}}
+    else {$selection=$false}
+    if($Journey -cnotmatch '\AJ[1-5]\z'){$selection=$false}
+    if($agent -and $family -cnotin @('windows','linux','macos')){$selection=$false}
+    if($ws -and (($Journey -cin @('J1','J2') -and $family -cne 'windows') -or ($Journey -ceq 'J4' -and $family -cne 'linux') -or ($Journey -ceq 'J5' -and $family -cnotin @('windows','linux')))){$selection=$false}
+    if($gpu -and $family -cnotin @('windows','linux')){$selection=$false}
+    if($ws -and $family -cne 'windows' -and -not ($family -ceq 'linux' -and $edition -ceq 'ubuntu' -and (Get-PrValue $os 'version') -ceq '24.04')){$selection=$false}
+    $scopes=@('base','publish','download');if($family -cne 'windows'){$scopes+='unix-download'}
+    if($ws -or $gpu){$scopes+='host'}
+    if($ws){$scopes+='vm';if($family -ceq 'windows'){$scopes+='windows-vm'}else{$scopes+='linux-vm'}}
+    if($gpu){$scopes+=@('gpu','docker');if($Journey -ceq 'J3'){$scopes+='full'};if($family -ceq 'windows'){$scopes+='windows-gpu'}}
+    if($agent){$scopes+='agent'}
+    $roles=@();if($ws){$roles+='workstation-host'};if($gpu){$roles+='gpu-host'};if($agent){$roles+='agent'}
+    $storage=@();$storageState='unknown';$storageDeclared=$false;$storageResourceUnavailable=$false;$groups=New-Object 'System.Collections.Generic.Dictionary[string,object]' ([System.StringComparer]::Ordinal);$order=@();$valid=$true
+    $plans=Get-PrValue $fo 'storage_plan'
+    if($forgeEvidence){$plans=$forgeEvidence.storage_plan}
+    if($plans -is [array] -and $plans.Count -gt 0) {
+        foreach($plan in $plans) {
+            $id=Get-PrValue $plan 'filesystem_id'
+            $needed=Get-InventoryInteger (Get-PrValue $plan 'needed_bytes')
+            $free=Get-InventoryInteger (Get-PrValue $plan 'free_bytes')
+            if(-not ($id -is [string]) -or $id -ceq '' -or $null -eq $needed -or $null -eq $free){$valid=$false;break}
+            # A declared budget is checked like a measured one and keeps its label.
+            $basis=$null;$labeled=$false
+            foreach($property in @($plan.PSObject.Properties)){if($property.Name -ceq 'basis'){$labeled=$true;$basis=$property.Value}}
+            if($labeled -and (-not ($basis -is [string]) -or $basis -cne 'declared-upper-bound')){$valid=$false;break}
+            if(-not $groups.ContainsKey($id)){$order+=$id;$groups[$id]=@{needed=[D32InventoryRuntime]::Integer('0');free=$free;declared=$false}}
+            if($labeled){$groups[$id].declared=$true}
+            $sum=[D32InventoryInteger]::Add($groups[$id].needed,$needed)
+            if($null -eq $sum){$storageResourceUnavailable=$true;$valid=$false;break}
+            $groups[$id].needed=$sum
+            if([D32InventoryInteger]::Compare($free,$groups[$id].free) -lt 0){$groups[$id].free=$free}
+        }
+        if($valid){$storageState='met';foreach($id in $order){$g=$groups[$id];$record=[ordered]@{filesystem=('filesystem-'+($storage.Count+1));needed_bytes=$g.needed;free_bytes=$g.free};if($g.declared){$record['basis']='declared-upper-bound';$storageDeclared=$true};$storage+=$record;if([D32InventoryInteger]::Compare($g.free,$g.needed) -lt 0){$storageState='missing'}}}
+    }
+    $journeyDisplay='unsupported';if($Journey -cmatch '\AJ[1-5]\z'){$journeyDisplay=$Journey};$roleDisplay='unsupported';if($Role -cin @('workstation-host','gpu-host','agent','all')){$roleDisplay=$Role}
+    $checks=@();$rc=0;$needsReboot=$false
+    if(-not $selection){$rc=10;$checks+= [ordered]@{id='selection.supported';required=$true;state='missing';code='PR_SELECTION_UNSUPPORTED';need='Choose a supported journey and local role';detected_version=$null;minimum_version=$null;action_id='selection.supported';fix='Run --help and choose the journey for this host; J3 all checks only the local full-container host.';requires_elevation=$false;requires_reboot=$false;recipe_maturity='unverified-offline'}}
+    $injected=Get-PrValue $fo 'prerequisites'
+    foreach($item in $spec.checks) {
+        $id=[string]$item.id;$required=$false
+        foreach($scope in $item.scopes){if($scope -cin $scopes){$required=$true}}
+        $minimum=[string]$item.minimum_version;$value=Get-PrValue $injected $id
+        if($forgeEvidence) {
+            $verified=Get-PrValue $forgeEvidence.prerequisites $id
+            if($null -ne $verified -and ((Get-PrState $value $minimum) -cne 'missing' -or $id -ceq 'download.python')) {$value=$verified}
+        }
+        $state=Get-PrState $value $minimum
+        if(-not $required){$state='unknown'}
+        if($required -and $id -ceq 'storage.plan'){$state=$storageState}
+        if($required -and $id -ceq 'workstation.memory' -and $fo.PSObject.Properties.Name -ccontains 'workstation_memory_plan'){$state=Get-PrMemoryState (Get-PrValue $fo 'workstation_memory_plan')}
+        if($required -and $id -ceq 'windows.edition' -and $edition -ceq 'home'){$state='missing'}
+        $v=Get-PrValue $value 'version';if(-not (Test-PrVersion $v)){$v=$null}
+        $code='PR_'+($id.ToUpperInvariant() -replace '[.-]','_');if(-not $required){$code+='_NOT_NEEDED'}else{$code+='_'+$state.ToUpperInvariant()}
+        if($required -and $id -ceq 'storage.plan' -and $storageResourceUnavailable){$code='PR_STORAGE_PLAN_RESOURCE_UNAVAILABLE'}
+        $fix=Get-PrValue $item.actions $platform;if(-not $fix){$fix=$item.actions.linux}
+        if($id -ceq 'windows.edition' -and $edition -ceq 'home'){$fix='Windows Home lacks Hyper-V management; use the tested Ubuntu/KVM route or an accepted Windows edition.'}
+        if(-not $required -or $state -ceq 'met'){$fix=''}
+        $restart=($required -and $state -cne 'met' -and $item.requires_reboot -eq $true);if($restart){$needsReboot=$true}
+        if($required -and $state -cne 'met'){$rc=10}
+        $need=[string]$item.need
+        if($required -and $id -ceq 'storage.plan' -and $storageDeclared){$need+=' (declared upper bound; no measurement yet)'}
+        $checks+= [ordered]@{id=$id;required=$required;state=$state;code=$code;need=$need;detected_version=$v;minimum_version=$(if($minimum){$minimum}else{$null});action_id=$id;fix=[string]$fix;requires_elevation=($item.requires_elevation -eq $true);requires_reboot=$restart;recipe_maturity='unverified-offline'}
+    }
+    $next='Next: bash install/deep32-inventory.sh --journey '+$journeyDisplay+' --role '+$roleDisplay+' --check-prereqs';if($platform -ceq 'windows'){$next='Next: powershell -NoProfile -ExecutionPolicy Bypass -File install\deep32-inventory.ps1 -Journey '+$journeyDisplay+' -Role '+$roleDisplay+' -CheckPrereqs'};if(-not $selection){$next='Next: bash install/deep32-inventory.sh --help'};if($rc -eq 0){$next='Prerequisites passed for '+$Role+'; review the selected installation plan before changes.'}
+    if($PrFormat -ceq 'json') {Out-Line (ConvertTo-AsciiJson ([ordered]@{schema='deep32.inventory.v2';tool=$ToolVersion;impl='ps1';mode='check-prereqs';journey=$journeyDisplay;role=$roleDisplay;platform=$platform;selected_roles=@($roles);recipe_maturity='unverified-offline';prerequisites=@($checks);storage_plan=@($storage);requires_reboot=$needsReboot;next_action=$next}) 16)}
+    else {foreach($check in $checks){if($check.required){Out-Line ($check.id+'='+$check.state+': '+$check.need);if($check.fix){Out-Line ('  Next: '+$check.fix)}}}
+        $notice=$null;if($forgeEvidence){$notice=Get-PrValue $forgeEvidence 'notice'}
+        if($notice -and @($checks | Where-Object {$_.id -ceq 'platform.recipe' -and $_.required -and $_.state -ceq 'met'}).Count){Out-Line $notice}
+        Out-Line $next}
+    return $rc
+}
+
 try {
-    if ($Mode -eq 'report') { $rc = Invoke-Report } else { $rc = Invoke-BenchQuick }
+    if($CheckPrereqs){$rc=Invoke-Prerequisites}
+    elseif ($Mode -eq 'report') { $rc = Invoke-Report } else { $rc = Invoke-BenchQuick }
     exit $rc
 } catch {
     Write-Err ('error: ' + $_.Exception.Message)

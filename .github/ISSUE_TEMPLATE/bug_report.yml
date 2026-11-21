@@ -1,0 +1,93 @@
+name: Bug report
+description: Something in an install, a release or the documentation does not work as described.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. Please check the known issues in [CHANGELOG.md](https://github.com/hellobpdu/deep32/blob/main/CHANGELOG.md) first.
+
+        For a security problem, follow [SECURITY.md](https://github.com/hellobpdu/deep32/blob/main/SECURITY.md) and do not open an issue. For a question, use [Discussions](https://github.com/hellobpdu/deep32/discussions).
+  - type: input
+    id: release
+    attributes:
+      label: Release
+      description: The release you installed, or the tag or commit of your clone.
+      placeholder: 0.1.0-alpha.2
+    validations:
+      required: true
+  - type: dropdown
+    id: layout
+    attributes:
+      label: Layout
+      description: The layout from section 1 of INSTALL.md.
+      options:
+        - J1, two Windows PCs (Workstation on Hyper-V, Forge on Docker Desktop)
+        - J2, a Windows PC and a Linux NVIDIA host
+        - J4, one Linux NVIDIA host with the Workstation in a KVM VM
+        - Workstation only, no Forge
+        - Another layout, described below
+    validations:
+      required: true
+  - type: dropdown
+    id: part
+    attributes:
+      label: Part
+      multiple: true
+      options:
+        - Workstation
+        - Forge
+        - Headend (Connect, skills)
+        - Ask relay
+        - Download and verification (deep32-get)
+        - Setup or inventory scripts
+        - Documentation
+    validations:
+      required: true
+  - type: textarea
+    id: host
+    attributes:
+      label: Host
+      description: >-
+        For each machine involved: the operating system and version, and the hypervisor for a Workstation VM. For a
+        Forge, add the graphics card, the NVIDIA driver version and the Docker version.
+      placeholder: |
+        Forge: Ubuntu 24.04, RTX 3080 12 GB, driver 580.65.06, Docker Engine 29.1
+        Workstation: VM on Hyper-V, Windows 11 Pro host
+    validations:
+      required: true
+  - type: textarea
+    id: setup
+    attributes:
+      label: Tagged lines from deep32-setup
+      description: >-
+        Run `bash install/deep32-setup.sh check` (on Windows,
+        `powershell -NoProfile -ExecutionPolicy Bypass -File install\deep32-setup.ps1 check`) on each machine where
+        you used the setup script (the Forge, the Workstation's host, the headend) and paste the lines that start with a
+        tag: `[ok]`, `[fix]`, `[you]`, `[fail]` or `[info]`. The check changes nothing. Leave this empty only for a
+        documentation problem.
+      render: text
+  - type: textarea
+    id: what
+    attributes:
+      label: What you did, what happened and what you expected
+      description: The exact commands help most.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: >-
+        The part of a log that shows the problem, for example the end of `/var/log/d32-import.log` on the Workstation,
+        or the JSON line the Forge prints for `--status`. Remove secrets first.
+      render: text
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I removed tokens, pairing codes, tailnet names, addresses and anything else I do not want public.
+          required: true
+        - label: I searched the open issues and the known issues in CHANGELOG.md.
+          required: true

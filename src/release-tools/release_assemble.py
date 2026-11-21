@@ -8,6 +8,7 @@ for the transport format and its relationship to the existing C2 publisher.
 
 import argparse
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -23,7 +24,10 @@ IDENTIFIER = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,31}\Z")
 CHECKSUM = re.compile(r"([0-9a-f]{64})  ([A-Za-z0-9][A-Za-z0-9._-]{0,199})\Z")
 USER_TOOLS = ("join_and_verify.sh", "join_and_verify.ps1",
               "verify-release.sh", "verify-release.ps1",
-              "deep32-get.sh", "deep32-get.ps1", "deep32_get_manifest.py")
+              "deep32-get.sh", "deep32-get.ps1", "deep32_get_manifest.py",
+              "deep32_get_whole.py", "deep32_download.py", "contract_validate.py",
+              "capabilities.py", "deep32_settings.py", "getter_kit.py",
+              "forge_preflight.py", "forge_requirements.py", "forge_ports.py")
 ROLES = (("disc1", "workstation"), ("disc2", "content"), ("disc3", "gpu-pack"))
 
 
@@ -37,6 +41,8 @@ def safe_name(name):
 
 def plain_path(path, *, directory=False):
     """Reject symlinks and Windows reparse points, including ancestors."""
+    if str(path).startswith(("\\\\", "//")):
+        raise Refusal("Network paths are refused")
     path = Path(os.path.abspath(path))
     for item in (path, *path.parents):
         info = item.lstat()
@@ -111,10 +117,23 @@ def make_parser():
     parser.add_argument("--version", default="0.1.0-alpha.1")
     parser.add_argument("--arch", default="amd64")
     parser.add_argument("--part-size-bytes", type=int, default=MAX_PART)
+    parser.add_argument("--format", choices=("whole", "legacy-split"),
+                        help="Whole images for alpha.2; legacy split assembly for old releases")
+    parser.add_argument("--mirrors-input", metavar="MIRRORS.json",
+                        help="Owner-supplied whole-image descriptors, checked against producer bytes")
+    parser.add_argument("--metadata-list", metavar="JSON",
+                        help="Explicit small-file sources and child checksum memberships")
+    parser.add_argument("--bundle-inputs", metavar="JSON",
+                        help="Explicit bundle ID, image and producer sums for mirrors version 2")
     return parser
 
 
 def assemble(args):
+    selected_format = getattr(args, "format", None)
+    if selected_format == "whole" or (selected_format is None and args.version != "0.1.0-alpha.1"):
+        return assemble_whole(args)
+    if args.version == "0.1.0-alpha.2":
+        raise Refusal("Alpha.2 requires whole-image assembly")
     for value in (args.version, args.arch):
         if not IDENTIFIER.fullmatch(value) or ".." in value:
             raise Refusal("Version and architecture must be safe identifiers")
@@ -138,7 +157,7 @@ def assemble(args):
              for role, label in ROLES if role not in pending]
     if len({os.path.normcase(str(d["source"])) for d in discs}) != len(discs):
         raise Refusal("Each disc must declare a distinct input image")
-    planned_assets = sum(d["count"] + 2 + int(d["split"]) for d in discs) + len(USER_TOOLS) + 4 + len(discs)
+    planned_assets = sum(d["count"] + 2 + int(d["split"]) for d in discs) + len(USER_TOOLS) + 5 + len(discs)
     if planned_assets > 1000:
         raise Refusal("The assembly exceeds the 1000-assets-per-release budget")
     out = Path(os.path.abspath(args.output))
@@ -156,6 +175,13 @@ def assemble(args):
         if not data or len(data) > 1024 * 1024 or b"\r" in data or not data.isascii():
             raise Refusal("A user tool must be non-empty ASCII with LF line endings")
         tool_sources.append((name, data))
+    # Loose legacy assets remain available; the signed archive preserves the
+    # complete schema/settings/inventory path closure for extracted getters.
+    kit_spec = importlib.util.spec_from_file_location(
+        '_deep32_getter_kit', Path(__file__).with_name('getter_kit.py'))
+    kit = importlib.util.module_from_spec(kit_spec)
+    kit_spec.loader.exec_module(kit)
+    tool_sources.append(('deep32-download-tools.zip', kit.archive_bytes()))
 
     created = []
     out.mkdir()  # exclusive; never replace or clean an existing release
@@ -272,6 +298,254 @@ def assemble(args):
             out.rmdir()
         except OSError:
             pass
+        raise
+
+
+def _identity(info):
+    return (info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns)
+
+
+def measure_whole(path):
+    """Hash whole and signed chunks from one held stream, without chunk files."""
+    path = plain_path(path)
+    whole = hashlib.sha256()
+    chunks, total, used = [], 0, 0
+    chunk = hashlib.sha256()
+    with path.open("rb") as stream:
+        before = os.fstat(stream.fileno())
+        if not 0 < before.st_size <= 512 * 1024**3:
+            raise Refusal("A whole image must contain between 1 byte and 512 GiB")
+        if _identity(before) != _identity(path.stat()):
+            raise Refusal("An image changed before opening")
+        while True:
+            block = stream.read(min(BUFFER, 67108864 - used))
+            if not block:
+                break
+            whole.update(block)
+            chunk.update(block)
+            total += len(block)
+            used += len(block)
+            if used == 67108864:
+                chunks.append(chunk.hexdigest())
+                chunk, used = hashlib.sha256(), 0
+        if used:
+            chunks.append(chunk.hexdigest())
+        if (_identity(before) != _identity(os.fstat(stream.fileno())) or
+                _identity(before) != _identity(plain_path(path).stat())):
+            raise Refusal("An image changed while hashing")
+    if total != before.st_size or not 0 < total <= 512 * 1024**3:
+        raise Refusal("A whole image must contain between 1 byte and 512 GiB")
+    return {"size": total, "sha256": whole.hexdigest(), "chunk_sha256": chunks}
+
+
+def assemble_whole(args):
+    """Create github metadata and same-volume image links; never copy payloads.
+
+    The metadata source list is local build input, never a published asset:
+    {format:'deep32-release-metadata-list',format_version:1,
+     assets:[{file:'flat-name',source:'explicit/path',discs:['disc1']}]}
+    Relative sources resolve beside the list. Every image and small input is
+    explicit. No producer directory or metadata directory is swept for inputs.
+    """
+    spec = importlib.util.spec_from_file_location(
+        "_deep32_assembly_contracts", Path(__file__).with_name("contract_validate.py"))
+    contracts = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(contracts)
+    canonical, load_contract = contracts.canonical, contracts.load_contract
+    safe_path, strict_load = contracts.safe_path, contracts.strict_load
+    validate_contract = contracts.validate_contract
+    if args.version != "0.1.0-alpha.2" or args.arch != "amd64":
+        raise Refusal("Whole assembly requires the frozen alpha.2 amd64 contract")
+    if args.pending or not args.mirrors_input or not args.metadata_list:
+        raise Refusal("Whole assembly needs all three producers, mirrors and a metadata list")
+    mirrors = load_contract("mirrors", plain_path(args.mirrors_input))
+    if mirrors["format_version"] != 2:
+        raise Refusal("New alpha.2 assembly requires mirrors version 2 and shared-core bundles")
+    if mirrors["release"] != "v" + args.version:
+        raise Refusal("Mirror release does not match assembly")
+    roles = ROLES if mirrors["format_version"] == 1 else ROLES[:2]
+    for role, _ in roles:
+        if not getattr(args, role) or not getattr(args, role + "_sums"):
+            raise Refusal("Whole assembly needs every declared image and producer checksum file")
+    if mirrors["format_version"] == 2 and (args.disc3 or args.disc3_sums):
+        raise Refusal("Mirrors version 2 requires explicit bundle inputs, not a monolithic disc3")
+    if mirrors["format_version"] == 1 and getattr(args, "bundle_inputs", None):
+        raise Refusal("Legacy mirrors cannot declare capability bundle inputs")
+    by_role = {d["role"]: d for d in mirrors["discs"]}
+    by_file = {d["file"]: d for d in contracts.mirror_transports(mirrors)}
+    discs = []
+    for role, label in roles:
+        source = plain_path(getattr(args, role))
+        if not 0 < source.stat().st_size <= 512 * 1024**3:
+            raise Refusal("A whole image must contain between 1 byte and 512 GiB")
+        disc = input_disc(getattr(args, role), getattr(args, role + "_sums"),
+                          role, label, args.version, args.arch, 512 * 1024**3)
+        measured = measure_whole(disc["source"])
+        if disc["file"] != by_role[role]["file"] or any(
+                measured[k] != by_role[role][k] for k in measured):
+            raise Refusal("Producer image disagrees with its whole-image descriptor")
+        discs.append(disc)
+    if mirrors["format_version"] == 2:
+        if not getattr(args, "bundle_inputs", None):
+            raise Refusal("Mirrors version 2 needs an explicit bundle input list")
+        bundle_list = plain_path(args.bundle_inputs)
+        rows = strict_load(bundle_list)
+        if (type(rows) is not dict or set(rows) != {"format", "format_version", "bundles"} or
+                rows["format"] != "deep32-release-bundle-inputs" or
+                type(rows["format_version"]) is not int or rows["format_version"] != 1 or
+                type(rows["bundles"]) is not list):
+            raise Refusal("Invalid explicit bundle input list")
+        supplied = {}
+        for row in rows["bundles"]:
+            if (type(row) is not dict or set(row) != {"bundle_id", "source", "sums"} or
+                    any(type(row[k]) is not str or not row[k] for k in row) or
+                    row["bundle_id"] in supplied):
+                raise Refusal("Invalid or duplicate bundle producer")
+            supplied[row["bundle_id"]] = row
+        if set(supplied) != {b["bundle_id"] for b in mirrors["bundles"]}:
+            raise Refusal("Bundle producer IDs must exactly match the mirror index")
+        for descriptor in mirrors["bundles"]:
+            row = supplied[descriptor["bundle_id"]]
+            disc = input_disc(bundle_list.parent / row["source"], bundle_list.parent / row["sums"],
+                              "disc3", "gpu-pack-" + row["bundle_id"], args.version, args.arch,
+                              512 * 1024**3)
+            measured = measure_whole(disc["source"])
+            if disc["file"] != descriptor["file"] or any(measured[k] != descriptor[k] for k in measured):
+                raise Refusal("Bundle producer disagrees with its exact transport descriptor")
+            discs.append(disc)
+    identities = [(d["source"].stat().st_dev, d["source"].stat().st_ino) for d in discs]
+    if len(set(identities)) != len(discs):
+        raise Refusal("Every transport needs a distinct producer image file")
+    list_path = plain_path(args.metadata_list)
+    manifest = strict_load(list_path)
+    if (type(manifest) is not dict or set(manifest) != {"format", "format_version", "assets"} or
+            manifest["format"] != "deep32-release-metadata-list" or
+            type(manifest["format_version"]) is not int or manifest["format_version"] != 1 or
+            type(manifest["assets"]) is not list or not 1 <= len(manifest["assets"]) <= 980):
+        raise Refusal("Invalid explicit metadata list")
+    children = contracts.mirror_child_names(mirrors)
+    reserved = {"SHA256SUMS", "ASSETS.txt", "MIRRORS.json", "ASSEMBLY.json",
+                *children.values(), *(d["file"] for d in discs)}
+    occupied = {n.casefold() for n in reserved}
+    assets = {}
+    memberships = {role: [] for role, _ in ROLES}
+    for row in manifest["assets"]:
+        if type(row) is not dict or set(row) != {"file", "source", "discs"}:
+            raise Refusal("A metadata row needs exactly file, source and discs")
+        name, source, roles = row["file"], row["source"], row["discs"]
+        safe_path(name, basename=True)
+        if (name.casefold() in occupied or name.lower().endswith((".sig", ".iso", ".img", ".parts.tsv")) or
+                re.search(r"\.part[0-9]+$", name, re.I)):
+            raise Refusal("Duplicate, reserved or payload metadata basename")
+        if (type(source) is not str or not source or type(roles) is not list or
+                any(type(r) is not str or r not in memberships for r in roles) or
+                len(set(roles)) != len(roles)):
+            raise Refusal("Invalid metadata source or child membership")
+        source_path = plain_path(list_path.parent / source)
+        before = source_path.stat()
+        limit = (8 if mirrors["format_version"] == 2 and
+                 name == mirrors["capability_manifest"]["file"] else 5) * 1024 * 1024
+        if not 0 < before.st_size <= limit:
+            raise Refusal("Metadata exceeds its explicit contract byte limit")
+        with source_path.open("rb") as stream:
+            if _identity(before) != _identity(os.fstat(stream.fileno())):
+                raise Refusal("A metadata input changed before opening")
+            data = stream.read(limit + 1)
+            if (len(data) != before.st_size or _identity(before) != _identity(os.fstat(stream.fileno())) or
+                    _identity(before) != _identity(plain_path(source_path).stat())):
+                raise Refusal("A metadata input changed during reading")
+        assets[name] = data
+        occupied.add(name.casefold())
+        for role in roles:
+            memberships[role].append(name)
+    if "ASSET-MAP.json" not in assets:
+        raise Refusal("The explicit metadata list must contain ASSET-MAP.json")
+    asset_map = contracts.strict_loads(assets["ASSET-MAP.json"])
+    validate_contract("asset-map", asset_map)
+    if "SBOM-INDEX.json" in assets:
+        documents = {"asset-map": asset_map, "mirrors": mirrors,
+                     "sbom-index": contracts.strict_loads(assets["SBOM-INDEX.json"])}
+        if "REPRODUCIBILITY.json" in assets:
+            documents["reproducibility"] = contracts.strict_loads(assets["REPRODUCIBILITY.json"])
+        contracts.validate_contract_set(documents)
+    if asset_map["release"] != mirrors["release"] or any(
+            e["asset"] not in assets for e in asset_map["entries"]):
+        raise Refusal("Asset map refers to absent or mismatched public metadata")
+    if mirrors["format_version"] == 2:
+        binding = mirrors["capability_manifest"]
+        if binding["file"] not in assets or hashlib.sha256(assets[binding["file"]]).hexdigest() != binding["sha256"]:
+            raise Refusal("Capability manifest bytes differ from the mirror binding")
+        capability = contracts.strict_loads(assets[binding["file"]], max_bytes=8 * 1024 * 1024)
+        contracts.validate_mirror_capabilities(mirrors, capability, capability_bytes=assets[binding["file"]])
+    for role, child in children.items():
+        readme = child.removesuffix("-SHA256SUMS") + "-README.md"
+        if readme not in memberships[role]:
+            raise Refusal("Each child needs its explicitly supplied disc README")
+        mapped = {e["asset"] for e in asset_map["entries"]}
+        if any(n != readme and n not in mapped for n in memberships[role]):
+            raise Refusal("Each child sidecar must be explicitly listed by ASSET-MAP")
+    out = Path(os.path.abspath(args.output))
+    parent = plain_path(out.parent, directory=True)
+    if os.path.lexists(out):
+        raise Refusal("The release output directory already exists")
+    for disc in discs:
+        for source_parent in (disc["source"].parent, disc["source_sums"].parent):
+            if out == source_parent or source_parent in out.parents:
+                raise Refusal("The release directory must be outside all producer directories")
+        if disc["source"].stat().st_dev != parent.stat().st_dev:
+            raise Refusal("Whole staging requires same-volume hard links; no implicit copy")
+    created, directories = [], []
+    try:
+        out.mkdir()
+        directories.append(out)
+        github, images = out / "github", out / "images"
+        github.mkdir()
+        directories.append(github)
+        images.mkdir()
+        directories.append(images)
+        for disc in discs:
+            target = images / disc["file"]
+            os.link(plain_path(disc["source"]), target)
+            created.append(target)
+            if measure_whole(target) != {k: by_file[disc["file"]][k]
+                                          for k in ("size", "sha256", "chunk_sha256")}:
+                raise Refusal("Independent staged image read-back failed")
+        assets["MIRRORS.json"] = canonical(mirrors)
+        if isinstance(assets["MIRRORS.json"], str):
+            assets["MIRRORS.json"] = assets["MIRRORS.json"].encode("ascii")
+        image_hashes = {d["file"]: d["sha256"] for d in discs}
+        def checksum(names):
+            return "".join("%s  %s\n" % (
+                image_hashes[n] if n in image_hashes else hashlib.sha256(assets[n]).hexdigest(), n)
+                for n in sorted(names)).encode("ascii")
+        for role, child in children.items():
+            assets[child] = checksum([*(d["file"] for d in discs if d["role"] == role), *memberships[role]])
+        signatures = ["SHA256SUMS.sig", *(n + ".sig" for n in children.values())]
+        names = sorted([*assets, "ASSETS.txt", "SHA256SUMS", *signatures])
+        if len(names) > 1000:
+            raise Refusal("The whole assembly exceeds the small-asset limit")
+        assets["ASSETS.txt"] = "".join(n + "\n" for n in names).encode("ascii")
+        assets["SHA256SUMS"] = checksum([*assets, *image_hashes])
+        for name in sorted(assets):
+            path = github / name
+            with path.open("xb") as stream:
+                created.append(path)
+                stream.write(assets[name])
+            if path.read_bytes() != assets[name]:
+                raise Refusal("Metadata read-back failed")
+        print("Assembled %d whole objects without payload copies; four owner signatures pending." % len(discs))
+        return 0
+    except BaseException:
+        for path in reversed(created):
+            try:
+                path.unlink()
+            except OSError:
+                pass
+        for directory in reversed(directories):
+            try:
+                directory.rmdir()
+            except OSError:
+                pass
         raise
 
 

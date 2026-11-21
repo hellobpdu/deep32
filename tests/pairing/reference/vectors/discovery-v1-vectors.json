@@ -1,0 +1,362 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "fixture": "status-mixed.json",
+      "want": "relay",
+      "expect": [
+        {
+          "peer_id": "n0000000001CNTRL",
+          "host_name": "deep32-forge",
+          "dns_name": "deep32-forge.tail0000.ts.net",
+          "os": "linux",
+          "ipv4": "100.64.0.101",
+          "port": 7452,
+          "online": true,
+          "path": "direct",
+          "probe": null
+        },
+        {
+          "peer_id": "n0000000004CNTRL",
+          "host_name": "Deep32-Forge2",
+          "dns_name": "deep32-forge2.tail0000.ts.net",
+          "os": "linux",
+          "ipv4": "100.64.0.104",
+          "port": 7452,
+          "online": true,
+          "path": "direct",
+          "probe": null
+        },
+        {
+          "peer_id": "n0000000003CNTRL",
+          "host_name": "deep32-headend",
+          "dns_name": "deep32-headend.tail0000.ts.net",
+          "os": "windows",
+          "ipv4": "100.64.0.103",
+          "port": 7452,
+          "online": true,
+          "path": "relayed",
+          "probe": null
+        },
+        {
+          "peer_id": "n0000000002CNTRL",
+          "host_name": "deep32-workstation",
+          "dns_name": "deep32-workstation.tail0000.ts.net",
+          "os": "openbsd",
+          "ipv4": "100.64.0.102",
+          "port": 7452,
+          "online": true,
+          "path": "unknown",
+          "probe": null
+        },
+        {
+          "peer_id": "n0000000005CNTRL",
+          "host_name": "localhost",
+          "dns_name": "deep32-forge-3.tail0000.ts.net",
+          "os": "linux",
+          "ipv4": "100.64.0.105",
+          "port": 7452,
+          "online": true,
+          "path": "unknown",
+          "probe": null
+        },
+        {
+          "peer_id": "n0000000009CNTRL",
+          "host_name": "deep32-offline",
+          "dns_name": "deep32-offline.tail0000.ts.net",
+          "os": "linux",
+          "ipv4": "100.64.0.109",
+          "port": 7452,
+          "online": false,
+          "path": "unknown",
+          "probe": null
+        }
+      ]
+    },
+    {
+      "fixture": "status-mixed.json",
+      "want": "forge",
+      "expect": [
+        {
+          "peer_id": "n0000000001CNTRL",
+          "host_name": "deep32-forge",
+          "dns_name": "deep32-forge.tail0000.ts.net",
+          "os": "linux",
+          "ipv4": "100.64.0.101",
+          "port": 7453,
+          "online": true,
+          "path": "direct",
+          "probe": null
+        },
+        {
+          "peer_id": "n0000000004CNTRL",
+          "host_name": "Deep32-Forge2",
+          "dns_name": "deep32-forge2.tail0000.ts.net",
+          "os": "linux",
+          "ipv4": "100.64.0.104",
+          "port": 7453,
+          "online": true,
+          "path": "direct",
+          "probe": null
+        },
+        {
+          "peer_id": "n0000000003CNTRL",
+          "host_name": "deep32-headend",
+          "dns_name": "deep32-headend.tail0000.ts.net",
+          "os": "windows",
+          "ipv4": "100.64.0.103",
+          "port": 7453,
+          "online": true,
+          "path": "relayed",
+          "probe": null
+        },
+        {
+          "peer_id": "n0000000002CNTRL",
+          "host_name": "deep32-workstation",
+          "dns_name": "deep32-workstation.tail0000.ts.net",
+          "os": "openbsd",
+          "ipv4": "100.64.0.102",
+          "port": 7453,
+          "online": true,
+          "path": "unknown",
+          "probe": null
+        },
+        {
+          "peer_id": "n0000000005CNTRL",
+          "host_name": "localhost",
+          "dns_name": "deep32-forge-3.tail0000.ts.net",
+          "os": "linux",
+          "ipv4": "100.64.0.105",
+          "port": 7453,
+          "online": true,
+          "path": "unknown",
+          "probe": null
+        },
+        {
+          "peer_id": "n0000000009CNTRL",
+          "host_name": "deep32-offline",
+          "dns_name": "deep32-offline.tail0000.ts.net",
+          "os": "linux",
+          "ipv4": "100.64.0.109",
+          "port": 7453,
+          "online": false,
+          "path": "unknown",
+          "probe": null
+        }
+      ]
+    },
+    {
+      "fixture": "status-mixed.json",
+      "want": "gateway",
+      "expect": [
+        {
+          "peer_id": "n0000000001CNTRL",
+          "host_name": "deep32-forge",
+          "dns_name": "deep32-forge.tail0000.ts.net",
+          "os": "linux",
+          "ipv4": "100.64.0.101",
+          "port": 7454,
+          "online": true,
+          "path": "direct",
+          "probe": null
+        },
+        {
+          "peer_id": "n0000000004CNTRL",
+          "host_name": "Deep32-Forge2",
+          "dns_name": "deep32-forge2.tail0000.ts.net",
+          "os": "linux",
+          "ipv4": "100.64.0.104",
+          "port": 7454,
+          "online": true,
+          "path": "direct",
+          "probe": null
+        },
+        {
+          "peer_id": "n0000000003CNTRL",
+          "host_name": "deep32-headend",
+          "dns_name": "deep32-headend.tail0000.ts.net",
+          "os": "windows",
+          "ipv4": "100.64.0.103",
+          "port": 7454,
+          "online": true,
+          "path": "relayed",
+          "probe": null
+        },
+        {
+          "peer_id": "n0000000002CNTRL",
+          "host_name": "deep32-workstation",
+          "dns_name": "deep32-workstation.tail0000.ts.net",
+          "os": "openbsd",
+          "ipv4": "100.64.0.102",
+          "port": 7454,
+          "online": true,
+          "path": "unknown",
+          "probe": null
+        },
+        {
+          "peer_id": "n0000000005CNTRL",
+          "host_name": "localhost",
+          "dns_name": "deep32-forge-3.tail0000.ts.net",
+          "os": "linux",
+          "ipv4": "100.64.0.105",
+          "port": 7454,
+          "online": true,
+          "path": "unknown",
+          "probe": null
+        },
+        {
+          "peer_id": "n0000000009CNTRL",
+          "host_name": "deep32-offline",
+          "dns_name": "deep32-offline.tail0000.ts.net",
+          "os": "linux",
+          "ipv4": "100.64.0.109",
+          "port": 7454,
+          "online": false,
+          "path": "unknown",
+          "probe": null
+        }
+      ]
+    },
+    {
+      "fixture": "status-nopeers.json",
+      "want": "relay",
+      "expect": []
+    },
+    {
+      "fixture": "status-nopeers.json",
+      "want": "forge",
+      "expect": []
+    },
+    {
+      "fixture": "status-nopeers.json",
+      "want": "gateway",
+      "expect": []
+    },
+    {
+      "fixture": "status-noipv4.json",
+      "want": "relay",
+      "expect": [
+        {
+          "peer_id": "n0000000010CNTRL",
+          "host_name": "deep32-forge",
+          "dns_name": "deep32-forge.tail0000.ts.net",
+          "os": "linux",
+          "ipv4": null,
+          "port": 7452,
+          "online": true,
+          "path": "relayed",
+          "probe": null
+        }
+      ]
+    },
+    {
+      "fixture": "status-noipv4.json",
+      "want": "forge",
+      "expect": [
+        {
+          "peer_id": "n0000000010CNTRL",
+          "host_name": "deep32-forge",
+          "dns_name": "deep32-forge.tail0000.ts.net",
+          "os": "linux",
+          "ipv4": null,
+          "port": 7453,
+          "online": true,
+          "path": "relayed",
+          "probe": null
+        }
+      ]
+    },
+    {
+      "fixture": "status-noipv4.json",
+      "want": "gateway",
+      "expect": [
+        {
+          "peer_id": "n0000000010CNTRL",
+          "host_name": "deep32-forge",
+          "dns_name": "deep32-forge.tail0000.ts.net",
+          "os": "linux",
+          "ipv4": null,
+          "port": 7454,
+          "online": true,
+          "path": "relayed",
+          "probe": null
+        }
+      ]
+    },
+    {
+      "fixture": "status-needslogin.json",
+      "want": "relay",
+      "expect": {
+        "exit": 9,
+        "reason": "not-signed-in",
+        "backend_state": "NeedsLogin"
+      }
+    },
+    {
+      "fixture": "status-needslogin.json",
+      "want": "forge",
+      "expect": {
+        "exit": 9,
+        "reason": "not-signed-in",
+        "backend_state": "NeedsLogin"
+      }
+    },
+    {
+      "fixture": "status-needslogin.json",
+      "want": "gateway",
+      "expect": {
+        "exit": 9,
+        "reason": "not-signed-in",
+        "backend_state": "NeedsLogin"
+      }
+    },
+    {
+      "fixture": "status-malformed.json",
+      "want": "relay",
+      "expect": {
+        "exit": 9,
+        "reason": "status-unreadable"
+      }
+    },
+    {
+      "fixture": "status-malformed.json",
+      "want": "forge",
+      "expect": {
+        "exit": 9,
+        "reason": "status-unreadable"
+      }
+    },
+    {
+      "fixture": "status-malformed.json",
+      "want": "gateway",
+      "expect": {
+        "exit": 9,
+        "reason": "status-unreadable"
+      }
+    },
+    {
+      "fixture": "status-notobject.json",
+      "want": "relay",
+      "expect": {
+        "exit": 9,
+        "reason": "status-unreadable"
+      }
+    },
+    {
+      "fixture": "status-notobject.json",
+      "want": "forge",
+      "expect": {
+        "exit": 9,
+        "reason": "status-unreadable"
+      }
+    },
+    {
+      "fixture": "status-notobject.json",
+      "want": "gateway",
+      "expect": {
+        "exit": 9,
+        "reason": "status-unreadable"
+      }
+    }
+  ]
+}

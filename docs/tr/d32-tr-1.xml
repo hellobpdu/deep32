@@ -1,0 +1,1664 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rfc xmlns:xi="http://www.w3.org/2001/XInclude" version="3" category="info" submissionType="independent"
+     docName="D32-TR-1" ipr="none" xml:lang="en" tocInclude="true" tocDepth="2" sortRefs="true" symRefs="true">
+  <front>
+    <title abbrev="Deep32 Design">Deep32: Design of a Local Retrieval System for Agentic Network Research</title>
+    <author fullname="Jeffrey A. Cummings" initials="J. A." surname="Cummings">
+      <organization>Deep32</organization>
+      <address>
+        <email>jacummings@acm.org</email>
+        <uri>https://github.com/hellobpdu/deep32</uri>
+      </address>
+    </author>
+    <date year="2026" month="November" day="20"/>
+    <workgroup>Deep32 Technical Report</workgroup>
+    <keyword>retrieval-augmented generation</keyword>
+    <keyword>Model Context Protocol</keyword>
+    <keyword>hybrid retrieval</keyword>
+    <keyword>OpenBSD</keyword>
+    <abstract>
+      <t>Deep32 lets an agentic language model working in a terminal, such as Claude Code or Codex, answer networking
+      questions from a local corpus of RFCs and vendor documentation, and check every quotation against the stored
+      text. Retrieval, verification and the index run on the user's own machines; the language model is the only
+      hosted part.</t>
+      <t>This report describes the design of release 0.1.0-alpha.2: the corpus and index format, the hybrid retrieval
+      pipeline, the eleven tools the agent calls, the three machines a deployment consists of, the protocols between
+      them, the signed release format, and the evaluation behind the numbers it quotes.</t>
+    </abstract>
+    <note removeInRFC="false">
+      <name>Status of This Document</name>
+      <t>This is Deep32 Technical Report 1 (D32-TR-1), the design reference for Deep32 release 0.1.0-alpha.2,
+      published by its author. It is not a product of the IETF or of any other standards body and has no standing
+      there.
+      It uses the RFC format because the system it describes is built around RFCs, and because the format is good
+      at stating behavior precisely.</t>
+      <t>Each Deep32 release that changes the design updates this report under a new version of its DOI. Errors can
+      be reported on the project's issue tracker.</t>
+      <t>This version: DOI 10.5281/zenodo.24326998.</t>
+    </note>
+    <note removeInRFC="false">
+      <name>Copyright Notice</name>
+      <t>Copyright (C) 2026 Jeffrey A.&#160;Cummings. This document is licensed under the Creative Commons Attribution
+      4.0 International License (CC BY 4.0). Text quoted from RFCs remains subject to the IETF Trust's Legal
+      Provisions Relating to IETF Documents.</t>
+    </note>
+  </front>
+
+  <middle>
+    <section anchor="intro">
+      <name>Introduction</name>
+      <t>Language models get networking specifics wrong in ways that are hard to spot without opening the source
+      document. Deep32 gives an agent a local corpus, a retrieval pipeline tuned on that corpus, and tools that check
+      what the agent quotes. The agent still writes the answer; Deep32 puts the evidence where the agent can find it
+      and read it in full, and checks quotations mechanically. The arrangement is the usual retrieval-augmented one
+      <xref target="RAG"/>, with two retrievers instead of one and the retrieval exposed to the agent as tools.</t>
+      <t>This report covers how the system is built. The reasons for each choice, with the alternatives I ruled out
+      and the measurements behind them, are in the Deep32 Decision Record <xref target="D32-DR"/>; this report cites
+      its entries as DR-nn. The software, images and this report are archived with the release
+      <xref target="DEEP32"/>.</t>
+      <t>Deep32's code is licensed under the Apache License, Version 2.0 <xref target="APACHE-2.0"/>, with a NOTICE
+      file that names its author and goes with every copy. The two parts that use MuPDF, the Forge's PDF converter
+      and the Workstation Library's renderer <tt>e26-render</tt>, are licensed under AGPL-3.0-or-later
+      <xref target="AGPL-3.0"/> (DR-110). This report and the other documentation are under CC BY 4.0.</t>
+
+      <section anchor="problem">
+        <name>Problem Statement</name>
+        <t>Most errors I see in model answers about networking fall into four groups:</t>
+        <dl newline="false" spacing="normal">
+          <dt>Vendor default given as the standard:</dt>
+          <dd>"The BGP hold time is 180 seconds." That is the Cisco default; <xref target="RFC4271"/> suggests 90
+          seconds.</dd>
+          <dt>Obsolete RFC cited as current:</dt>
+          <dd><xref target="RFC1771"/> quoted for BGP-4 after <xref target="RFC4271"/> replaced it.</dd>
+          <dt>Command from the wrong release:</dt>
+          <dd>Syntax from one software train given for another.</dd>
+          <dt>Invented quotation:</dt>
+          <dd>"The RFC states ..." followed by text that is not in the RFC.</dd>
+        </dl>
+        <t>Two of these can be checked mechanically: an RFC's status is a lookup, and a quotation either occurs in
+        the stored text or it doesn't. The other two depend on the agent noticing a difference that the corpus makes
+        visible. Deep32 returns RFC text and vendor text as separate sources, tags every passage with its platform
+        and release, and has the agent follow a fixed protocol (<xref target="protocol"/>) that compares them.</t>
+      </section>
+
+      <section anchor="scope">
+        <name>Scope</name>
+        <t>In scope: the corpus, the index and its build, retrieval, the verification tools, the deployment of the
+        three parts, the network protocols between them, the release format, and the retrieval evaluation.</t>
+        <t>Out of scope: the language model, which its provider hosts, and the quality of the answers it writes.
+        Retrieval quality is measured (<xref target="eval"/>); answer accuracy has not been measured yet, and this
+        report makes no claim about it.</t>
+      </section>
+
+      <section anchor="reqlang">
+        <name>Requirements Language</name>
+        <t>The key words "<bcp14>MUST</bcp14>", "<bcp14>MUST NOT</bcp14>", "<bcp14>REQUIRED</bcp14>",
+        "<bcp14>SHALL</bcp14>", "<bcp14>SHALL NOT</bcp14>", "<bcp14>SHOULD</bcp14>", "<bcp14>SHOULD NOT</bcp14>",
+        "<bcp14>RECOMMENDED</bcp14>", "<bcp14>NOT RECOMMENDED</bcp14>", "<bcp14>MAY</bcp14>", and
+        "<bcp14>OPTIONAL</bcp14>" in this document are to be interpreted as described in BCP 14
+        <xref target="RFC2119"/> <xref target="RFC8174"/> when, and only when, they appear in all capitals, as shown
+        here.</t>
+        <t>In this report they state the behavior of the released implementation. A reimplementation of one of the
+        protocols in Sections <xref target="pairing" format="counter"/>, <xref target="asklink" format="counter"/>
+        and <xref target="dist" format="counter"/> interoperates only if it follows the same rules.</t>
+      </section>
+    </section>
+
+    <section anchor="terms">
+      <name>Terminology</name>
+      <dl newline="false" spacing="normal">
+        <dt>Workstation:</dt>
+        <dd>The machine or virtual machine that holds the index and runs the search engine, the MCP gateway, the Ask
+        window and the Deep32 Library. It runs OpenBSD 8.0.</dd>
+        <dt>Forge:</dt>
+        <dd>The machine with the NVIDIA graphics card. It runs the embedding and reranking models in Docker, and
+        optionally the PDF converter and the index builder.</dd>
+        <dt>Headend:</dt>
+        <dd>The PC where the agent (Claude Code or Codex) runs, with the Deep32 research skill and, optionally, the
+        Ask relay.</dd>
+        <dt>Tailnet:</dt>
+        <dd>The user's Tailscale network. All three parts sign in to it with the user's own account.</dd>
+        <dt>Engine:</dt>
+        <dd>The search service: hybrid search, section reader, identifier lookup and quotation check.</dd>
+        <dt>Gateway:</dt>
+        <dd>The stateless MCP server in front of the engine.</dd>
+        <dt>Collection:</dt>
+        <dd>A group of documents of one kind, named by its <tt>doc_type</tt>: <tt>rfc</tt>, <tt>cisco</tt>,
+        <tt>powershell</tt> or <tt>system</tt>.</dd>
+        <dt>Opt-in collection:</dt>
+        <dd>A collection that searches, greps and listings skip unless the request names it.</dd>
+        <dt>Passage:</dt>
+        <dd>The unit of retrieval, also called a chunk: a span of one document within one section.</dd>
+        <dt>Hit:</dt>
+        <dd>One passage in a search result, with its citation and a text window.</dd>
+        <dt>Generation:</dt>
+        <dd>One complete, immutable build of the index. The engine serves exactly one at a time.</dd>
+        <dt>Pairing:</dt>
+        <dd>The one-time step that introduces two parts to each other and leaves each holding the other's
+        certificate pin.</dd>
+        <dt>Pin:</dt>
+        <dd>The SHA-256 digest <xref target="FIPS180-4"/> of a peer's DER-encoded certificate, stored at pairing and
+        used as the peer's only trust anchor.</dd>
+        <dt>Image:</dt>
+        <dd>One of the three release files (disc 1, 2 and 3).</dd>
+      </dl>
+    </section>
+
+    <section anchor="overview">
+      <name>System Overview</name>
+      <section anchor="parts">
+        <name>Parts</name>
+        <t>A deployment has three parts on one tailnet (<xref target="fig-topo"/>). They can share a machine or sit
+        on three; the protocols and the configuration are the same either way.</t>
+        <figure anchor="fig-topo">
+          <name>Deployment Topology</name>
+          <artwork type="ascii-art"><![CDATA[
+ +------------------+    MCP over HTTPS,     +--------------------+
+ | Headend          |    agent's own token   | Workstation        |
+ |  agent + skill   |----------------------->|  gateway, engine,  |
+ |  Ask relay       |<======================>|  index, Ask,       |
+ +------------------+    D32U/1, mutual TLS  |  Library           |
+                         (Workstation dials) +--------------------+
+                                                       |
+                                     embeddings and    | HTTPS,
+                                     reranking         | Forge token
+                                                       v
+                                             +--------------------+
+                                             | Forge              |
+                                             |  embedder,         |
+                                             |  reranker,         |
+                                             |  builder (option)  |
+                                             +--------------------+
+]]></artwork>
+        </figure>
+        <t>The Workstation holds a whole generation and runs the engine locally. It calls the Forge only to embed a
+        query and to rerank candidates, so it still answers keyword searches when the Forge is off (DR-50,
+        DR-58).</t>
+      </section>
+
+      <section anchor="images">
+        <name>Release Images</name>
+        <table>
+          <thead>
+            <tr><th>Image</th><th>Contents</th><th>Installs</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Disc 1</td><td>Bootable OpenBSD installer with the Deep32 system</td><td>Workstation</td></tr>
+            <tr><td>Disc 2</td><td>Corpus, a prebuilt generation, and the Deep32 Library</td><td>Content, imported by
+            the Workstation</td></tr>
+            <tr><td>Disc 3</td><td>GPU pack: a shared core, one embedder add-on per card class, and an ingestion
+            add-on (all three installed on a Forge in 0.1.0-alpha.2, DR-106)</td><td>Forge</td></tr>
+          </tbody>
+        </table>
+        <t>The release itself is a small set of signed metadata on GitHub that names the images and where to get
+        them (<xref target="dist"/>).</t>
+      </section>
+
+      <section anchor="twoways">
+        <name>Two Ways In</name>
+        <t>An agent reaches Deep32 in one of two ways.</t>
+        <dl newline="true" spacing="normal">
+          <dt>Direct MCP:</dt>
+          <dd>The agent calls the gateway's tools itself while it works, as it would any MCP server
+          <xref target="MCP"/>. The headend holds a token that the Workstation issued to it at pairing.</dd>
+          <dt>The Ask window:</dt>
+          <dd><t>A question typed on the Workstation travels over the Ask link to the relay on the headend:</t>
+          <ol spacing="compact">
+            <li>The Workstation sends the question on a research session of the D32U/1 link
+            (<xref target="asklink"/>).</li>
+            <li>The relay starts the agent in a box (<xref target="box"/>) with the research skill.</li>
+            <li>Each tool call the agent makes goes to a per-session proxy on the relay, which sends it back over the
+            same link to the Workstation's gateway.</li>
+            <li>The answer streams back to the window.</li>
+          </ol>
+          <t>An Ask session needs no MCP entry on the headend and never reaches the gateway over the tailnet.</t></dd>
+        </dl>
+      </section>
+
+      <section anchor="trust">
+        <name>Trust Boundaries</name>
+        <ul spacing="normal">
+          <li>The model provider receives the question, the passages the agent reads, and the agent's reasoning
+          about them. Once installed, a deployment talks to no other third party except Tailscale's coordination
+          service, time servers and Let's Encrypt, which Tailscale uses to issue the HTTPS certificate for a
+          published service.</li>
+          <li>Being on the tailnet grants nothing. Every service checks a credential that was created on its own
+          machine and handed over only inside an authenticated pairing (<xref target="pairing"/>).</li>
+          <li>Documents are untrusted input. Tool output is document text, never instructions
+          (<xref target="sec-injection"/>).</li>
+          <li>Mirrors are untrusted transport. An image is trusted only when it matches the signed release metadata
+          (<xref target="dist"/>).</li>
+        </ul>
+      </section>
+    </section>
+
+    <section anchor="corpus">
+      <name>Corpus</name>
+      <section anchor="collections">
+        <name>Collections</name>
+        <table anchor="tab-collections">
+          <name>Collections in the Public Release</name>
+          <thead>
+            <tr><th>doc_type</th><th align="right">Documents</th><th align="right">Passages</th><th>Contents</th>
+            <th>Default</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>rfc</td><td align="right">365</td><td align="right">12,041</td><td>IETF RFCs</td><td>Yes</td></tr>
+            <tr><td>cisco</td><td align="right">489</td><td align="right">49,923</td><td>Configuration guides, command references, TechNotes,
+            validated designs and other Cisco documentation</td><td>Yes</td></tr>
+            <tr><td>powershell</td><td align="right">241</td><td align="right">5,149</td><td>Windows PowerShell 5.1 help, 7.x differences,
+            networking modules</td><td>No</td></tr>
+            <tr><td>system</td><td align="right">85</td><td align="right">695</td><td>Deep32's own code, configuration and design
+            notes</td>
+            <td>No</td></tr>
+            <tr><td>Total</td><td align="right">1,180</td><td align="right">67,808</td><td/><td/></tr>
+          </tbody>
+        </table>
+        <t>Restricted and non-redistributable collections from my own deployment are not in the public release.
+        Every derived table (lookups, outlines, catalog) in the release was rebuilt from the kept collections, and
+        every row in it cites a kept document (DR-17). The Cisco documentation remains Cisco's copyright; RFCs fall
+        under the IETF Trust's provisions.</t>
+        <t>The opt-in collections have their own FTS5 table, so a default search ranks exactly as it would if they
+        didn't exist (<xref target="lexical"/>, DR-14). A request reaches them only by naming them with
+        <tt>doc_type</tt> or <tt>docs</tt>.</t>
+      </section>
+
+      <section anchor="manifest">
+        <name>Document Manifest</name>
+        <t>Each document has a manifest entry with its key, type, title, path, source and page URLs, platform,
+        release, SHA-256, size, license, terms URL, a redistribution flag and its near-duplicates
+        (<xref target="fig-manifest"/>). The platform and release drive release-aware search
+        (<xref target="release-sel"/>); the license and redistribution flag decide what may ship.</t>
+        <figure anchor="fig-manifest">
+          <name>A Manifest Entry (Abridged)</name>
+          <sourcecode type="json"><![CDATA[
+{
+  "doc_key": "rfc4271",
+  "title": "A Border Gateway Protocol 4 (BGP-4)",
+  "doc_type": "rfc",
+  "path": "rfc/rfc4271.txt",
+  "source_url": "https://www.rfc-editor.org/rfc/rfc4271.txt",
+  "sha256": "98b851146abcd56ecbb398dd1a818bcd
+             e2dcac6fde3d901c423d988f86eaab76",
+  "bytes": 222702,
+  "redistribute": true
+}
+]]></sourcecode>
+        </figure>
+        <t>The digest is shown wrapped to fit; it is one string.</t>
+      </section>
+
+      <section anchor="acquire">
+        <name>Acquisition and Conversion</name>
+        <t>Documents come from their publishers' own sites. The fetcher sends an honest User-Agent and keeps a daily
+        byte budget with a 24-hour cool-off after a refusal (DR-09). HTML and PDF are converted to plain text in a
+        sandbox with no network access. Every new document then passes quality checks and a scan for lines that
+        read as instructions, invisible characters and control bytes; a person reviews each flagged line before the
+        document is admitted (DR-11).</t>
+      </section>
+
+      <section anchor="lookups">
+        <name>Lookup Tables</name>
+        <t>Some questions are lookups: whether an RFC is current, what an IANA code point means, or the exact syntax
+        of a command. A ranked search can return a close but wrong passage for those, so each build also produces
+        tables that the identifier tools read directly (DR-16):</t>
+        <ul spacing="compact">
+          <li>9,842 RFCs with status and relations (obsoletes, obsoleted-by, updates), and 1,217 errata records;</li>
+          <li>2,366 IANA registry entries;</li>
+          <li>about 150,000 CLI command entries with mode, platform and release, with IOS abbreviation expansion;</li>
+          <li>2,578 feature-history entries, and a glossary.</li>
+        </ul>
+        <t>The RFC index covers the whole RFC series, not only the 365 RFCs whose text is in the corpus, so
+        <tt>lookup_rfc</tt> can report the status of any RFC an answer cites.</t>
+      </section>
+    </section>
+
+    <section anchor="generations">
+      <name>Index Generations</name>
+      <section anchor="ids">
+        <name>Identifiers</name>
+        <table>
+          <thead><tr><th>Identifier</th><th>Form</th><th>Derivation</th></tr></thead>
+          <tbody>
+            <tr><td>Document</td><td><tt>doc_</tt> + 64 hex digits</td><td>SHA-256 of the source file</td></tr>
+            <tr><td>Passage</td><td><tt>chk_</tt> + 64 hex digits</td><td>SHA-256 over the document hash, the
+            passage's position and its text</td></tr>
+            <tr><td>Vector point</td><td>UUID</td><td>UUID version 5 <xref target="RFC9562"/> in the URL namespace,
+            of a fixed prefix and the passage ID</td></tr>
+          </tbody>
+        </table>
+        <t>Because the identifiers derive from content, a passage whose text and embedding input did not change
+        keeps its ID and reuses its vector in the next generation (DR-42). One update embedded 904 new passages and
+        reused 62,617. The content image reuses all 67,808 vectors of the generation it was cut from.</t>
+      </section>
+
+      <section anchor="layout">
+        <name>Bundle Layout</name>
+        <t>A generation ships as a knowledge-base bundle (contract C3 in the repository), shown in
+        <xref target="fig-bundle"/>.</t>
+        <figure anchor="fig-bundle">
+          <name>Knowledge-Base Bundle</name>
+          <artwork type="ascii-art"><![CDATA[
+<generation>/
+  BUNDLE.json          compatibility record (Table 3)
+  MANIFEST.json        every other file with size and SHA-256
+  root/
+    sqlite/rag.db      documents, sections, passages; FTS5 tables
+    kb/kb.sqlite       RFC index, errata, IANA, CLI, glossary,
+                       feature history
+    sources/           the corpus the generation was built from
+    config/            serving settings for this generation
+    BUILD_REPORT.json
+  dense/
+    vectors.f32        N x D float32, little-endian, point order
+    points.bin         N records of 96 bytes: point, passage and
+                       document IDs, flags
+    EXPORT.json        collection settings, counts, digests
+]]></artwork>
+        </figure>
+        <table anchor="tab-bundle">
+          <name>BUNDLE.json Fields</name>
+          <thead><tr><th>Field</th><th>Value</th></tr></thead>
+          <tbody>
+            <tr><td>format, format_version</td><td>"deep32-kb-bundle", 1; readers refuse any other</td></tr>
+            <tr><td>generation, fingerprint</td><td>The generation name; the corpus fingerprint (16 hex
+            digits)</td></tr>
+            <tr><td>created</td><td>A UTC time given to the builder, never read from the clock, so the same inputs
+            give the same bytes</td></tr>
+            <tr><td>engine</td><td>The range of engine versions that may serve the bundle</td></tr>
+            <tr><td>embedding</td><td>Model ID, revision, dimension (1024), number format (float32-le), distance
+            (cosine), pooling (last-token), and the query and document prompts</td></tr>
+            <tr><td>reranker</td><td>Model ID and revision used by the build's checks</td></tr>
+            <tr><td>blocks, counts, opt_in</td><td>The corpus blocks, per-collection counts, and the opt-in
+            collections</td></tr>
+            <tr><td>manifest_sha256, signer</td><td>Digest of MANIFEST.json, and the key that signed the
+            bundle</td></tr>
+          </tbody>
+        </table>
+        <t>An importer accepts a bundle only when its signature holds, every file matches MANIFEST.json, both formats
+        are known, the installed engine lies in the <tt>engine</tt> range, and the embedding model ID, revision and
+        dimension equal what the paired Forge serves. On that last mismatch, meaning search stays off and the
+        importer says why. Disc 2's bundle is trusted through the release signature; a bundle a user's own Forge
+        builds is signed with that Forge's key, which the Workstation enrolled at pairing.</t>
+      </section>
+
+      <section anchor="build">
+        <name>Building</name>
+        <t>Passages are cut by heading scope: text merges within one top-level section and never across it, and a
+        table that has to be split repeats its caption and header row in every piece (DR-36). Each passage is
+        embedded with its document title and heading path (<xref target="dense"/>). The build writes the FTS5
+        tables, the section index, the vectors and the lookup tables, then a build report.</t>
+        <t>On a Forge, a new generation starts from a clone of the previous generation's vector snapshot and adds to
+        it. Two approximate-index builds from identical vectors differ by a question or two at rank 1, which would
+        make a zero-slack gate a coin flip; a clone changed no top-50 list in 500 test queries (DR-45).</t>
+      </section>
+
+      <section anchor="gate">
+        <name>Validation Gate</name>
+        <t>A generation is served only after the labeled question set (<xref target="testset"/>) runs against it and
+        against the generation in service, question by question. It passes when all of the following hold
+        (DR-44):</t>
+        <ul spacing="compact">
+          <li>no net loss at hit@1 or at hit@8 overall;</li>
+          <li>no net loss at hit@8 within any topic;</li>
+          <li>delivery@8 (<xref target="metrics"/>) no lower;</li>
+          <li>no opt-in document in a default result, no hit on an out-of-scope question, no degraded response, and
+          no query that only succeeded on retry;</li>
+          <li>the SQLite FTS5 integrity check passes (DR-47).</li>
+        </ul>
+        <t>Wins and losses are counted per question, with a sign test and a paired bootstrap interval. A change made
+        only for speed must leave every ranked list identical instead (DR-06).</t>
+      </section>
+
+      <section anchor="switch">
+        <name>Switching and Rollback</name>
+        <t>The engine never edits the index it serves. Switching to a new generation is one setting and a service
+        restart, with a smoke test before and after; if the test after the switch fails, the engine returns to the
+        previous generation by itself (DR-41).</t>
+      </section>
+    </section>
+
+    <section anchor="retrieval">
+      <name>Retrieval Pipeline</name>
+      <t>Every search runs a keyword leg and a dense leg in parallel, fuses their rankings, reranks the best
+      candidates with a cross-encoder, folds duplicates, and delivers the result in three tiers
+      (<xref target="fig-pipeline"/>).</t>
+      <figure anchor="fig-pipeline">
+        <name>One Search</name>
+        <artwork type="ascii-art"><![CDATA[
+ queries --+--> BM25 (FTS5) ---- 50 --+
+           |                          +--> RRF, k=60 --> top 30
+           +--> dense (exact) -- 50 --+          |
+                                                 v
+                          cross-encoder over top 15, 1,600-char
+                          window centered on best-matching text
+                                                 |
+                                                 v
+                          fold identical passages (also_in)
+                                                 |
+                                                 v
+                          32 hits: 8 full, 8 trimmed, 16 pointers
+]]></artwork>
+      </figure>
+
+      <section anchor="planning">
+        <name>Query Planning</name>
+        <t>A <tt>search_many</tt> call carries one to eight queries; the research skill sends identifiers as
+        keyword-only queries and paraphrases as dense queries. When a query contains identifiers, the engine also
+        forms a keyword variant from them and sends it to the BM25 leg only, where it improves ranking and costs no
+        embedding (DR-23).</t>
+      </section>
+
+      <section anchor="lexical">
+        <name>Keyword Leg</name>
+        <t>The keyword leg uses SQLite FTS5 <xref target="FTS5"/> with the <tt>unicode61</tt> tokenizer and
+        diacritics removed. BM25 <xref target="BM25"/> scores two columns, the passage text at weight 1.0 and the
+        heading path at weight 2.0. Ranking happens inside FTS5 and only the top 50 rows are read. Query terms that
+        occur in at least half of all passages are dropped before the search; a request can turn this off
+        (DR-22).</t>
+        <t>Opt-in collections live in a second FTS5 table with the same definition. BM25 statistics count every row
+        of the table a query runs on, including rows a filter later excludes, so separate tables are what keep
+        default rankings unaffected by opt-in documents (DR-14).</t>
+      </section>
+
+      <section anchor="dense">
+        <name>Dense Leg</name>
+        <t>Embeddings come from <tt>jina-embeddings-v5-text-small</tt> <xref target="JINA-EMB"/>, served by Text
+        Embeddings Inference 1.9 <xref target="TEI"/> on the Forge: 1024 dimensions, float32, last-token pooling,
+        cosine distance, with the model revision pinned. The input forms are fixed:</t>
+        <sourcecode type="text"><![CDATA[
+query:     "Query: {text}"
+passage:   "Document: {title}\nSection: {section path}\n\n{text}"
+]]></sourcecode>
+        <t>The Workstation searches the vectors with an exact scan (<xref target="kernel"/>). A Linux engine loads
+        the same vectors into Qdrant <xref target="QDRANT"/> with an HNSW index <xref target="HNSW"/>. My
+        production deployment keeps HNSW, where exact search changed 17 of 726 final answers with one loss and no
+        wins (DR-46).</t>
+      </section>
+
+      <section anchor="fusion">
+        <name>Fusion</name>
+        <t>BM25 scores and cosine similarities are on different scales, so the legs are combined by reciprocal rank
+        fusion <xref target="RRF"/>, which uses ranks only. With r_i(p) the 1-based rank of passage p in leg i, and
+        w_i the leg's weight:</t>
+        <artwork type="ascii-art"><![CDATA[
+   score(p) = sum over legs i that returned p of  w_i / (60 + r_i(p))
+]]></artwork>
+        <t>Both legs have weight 1.0. Each leg contributes 50 candidates and the top 30 fused passages are kept
+        (DR-21). On the test set, hit@1 is 0.710 for BM25 alone, 0.783 for dense alone and 0.822 fused.</t>
+      </section>
+
+      <section anchor="rerank">
+        <name>Reranking</name>
+        <t>A cross-encoder, <tt>jina-reranker-v3.5</tt> <xref target="JINA-RR"/>, reads the question together with
+        each of the top 15 fused candidates (10 per query inside <tt>search_many</tt>) and scores how well the
+        passage answers it. It reads a window of 1,600 characters centered on the candidate's best-matching lines,
+        not the passage head (DR-28). The reranked order replaces the fused order for those candidates.</t>
+        <t>Reranking is the largest single gain (hit@1 from 0.822 to 0.955) and most of a search's time: about
+        400 ms of a 540 ms median (DR-26).</t>
+      </section>
+
+      <section anchor="fold">
+        <name>Folding</name>
+        <t>Vendor documentation repeats itself across releases. Passages with identical normalized text and an
+        identical delivered window fold into one hit, which lists the other locations in <tt>also_in</tt>. A passage
+        half-covered by a better-ranked hit from the same file is dropped (DR-29). Folding happens after reranking.</t>
+      </section>
+
+      <section anchor="release-sel">
+        <name>Release Selection</name>
+        <t><tt>release_max</tt> skips documents from a newer release on the same major line. <tt>prefer_release</tt>
+        chooses which copy of a folded passage is shown, without changing rank or text. A hit from a release other
+        than the preferred one is marked (DR-30).</t>
+      </section>
+
+      <section anchor="delivery">
+        <name>Delivery</name>
+        <t>By default a search returns 32 hits in three tiers: ranks 1 to 8 with up to 2,400 characters each, ranks
+        9 to 16 with 800, and ranks 17 to 32 as 250-character pointers (DR-31). Each window is centered on the hit's
+        best-matching line. A request with <tt>limit</tt> gets exactly that many hits instead. The agent reads whole
+        sections through <tt>get_outline</tt> and <tt>get_section</tt>; the windows exist to locate text, not to be
+        quoted from blindly (DR-35).</t>
+      </section>
+
+      <section anchor="degraded">
+        <name>Degraded Operation and Admission</name>
+        <t>The Forge is often a desktop PC, so the engine treats it as unreliable (DR-32). After three consecutive
+        failed calls to a model service, a circuit breaker skips that service for 30 seconds and then lets one trial
+        call through. BM25 always answers. Every response carries a <tt>degraded</tt> list:</t>
+        <table>
+          <thead><tr><th>Failure</th><th>Search behavior</th><th>degraded</th></tr></thead>
+          <tbody>
+            <tr><td>Embedding service or vectors</td><td>BM25 alone</td><td>dense</td></tr>
+            <tr><td>Reranker</td><td>Fused order, not reranked</td><td>reranker</td></tr>
+            <tr><td>Lookup tables</td><td>Hits without RFC status</td><td>kb</td></tr>
+            <tr><td>Section index</td><td>Hits without section references</td><td>structure</td></tr>
+          </tbody>
+        </table>
+        <t>Admission is bounded (DR-33). The Workstation runs two searches at once and queues sixteen; any further
+        request receives HTTP 503 with Retry-After. Connections to the model services stay open for 300 seconds,
+        because a new TLS handshake across the tailnet cost 61 to 73 ms against 4 to 5 ms on a reused connection
+        (DR-34).</t>
+      </section>
+    </section>
+
+    <section anchor="tools">
+      <name>Agent Interface</name>
+      <section anchor="mcp">
+        <name>Transport</name>
+        <t>The gateway is an MCP server using the Streamable HTTP transport with JSON responses <xref target="MCP"/>.
+        It is stateless and holds no documents: it checks the bearer token in constant time and passes the call to
+        the engine. On the Workstation it listens on loopback and is published to the tailnet by Tailscale Serve at
+        <tt>https://&lt;node&gt;.&lt;tailnet&gt;.ts.net/mcp</tt> (<xref target="tailnet"/>).</t>
+      </section>
+
+      <section anchor="toollist">
+        <name>Tools</name>
+        <t>All eleven tools only read (DR-73).</t>
+        <table anchor="tab-tools">
+          <name>Gateway Tools</name>
+          <thead><tr><th>Tool</th><th>Returns</th></tr></thead>
+          <tbody>
+            <tr><td>search_rag</td><td>Ranked hits for one query, each with citation, section path, RFC status and a
+            text window</td></tr>
+            <tr><td>search_many</td><td>One to eight queries fused into one ranked list</td></tr>
+            <tr><td>get_outline</td><td>A document's section tree, to a depth or under one chapter</td></tr>
+            <tr><td>get_section</td><td>A section's full text with its neighbors, paged up to 100,000 characters per
+            call</td></tr>
+            <tr><td>grep_corpus</td><td>Matching lines with document, line and section; literal by default, bounded
+            regular expressions optional</td></tr>
+            <tr><td>find_command</td><td>CLI index rows: command, mode, platform, release</td></tr>
+            <tr><td>lookup_id</td><td>What an identifier is and where it is defined</td></tr>
+            <tr><td>lookup_rfc</td><td>Status, obsoletes, obsoleted-by, updates and errata of an RFC</td></tr>
+            <tr><td>verify_quote</td><td>exact, normalized or not_found, with the location</td></tr>
+            <tr><td>list_documents</td><td>The catalog: key, type, release, RFC status, size, title</td></tr>
+            <tr><td>rag_status</td><td>Generation, fingerprint, counts, backend and breaker state</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section anchor="verify">
+        <name>Quotation Check</name>
+        <t><tt>verify_quote</tt> takes a quotation and a document, optionally a section, and returns one of three
+        results (DR-37):</t>
+        <dl newline="false" spacing="normal">
+          <dt>exact:</dt>
+          <dd>The quotation occurs verbatim.</dd>
+          <dt>normalized:</dt>
+          <dd>It occurs after whitespace runs are collapsed, RFC page headers and footers are removed, and words
+          hyphenated across a line break are joined.</dd>
+          <dt>not_found:</dt>
+          <dd>Neither.</dd>
+        </dl>
+        <t>The check is a string match with no model involved, so it gives the same result every time. It shows that
+        the words are in the source; it says nothing about whether the reasoning built on them is right.</t>
+      </section>
+
+      <section anchor="protocol">
+        <name>Answer Protocol</name>
+        <t>Given tools, a model will often still answer from memory. The research skill that ships for Claude Code
+        and Codex therefore has the agent follow a fixed procedure (DR-40):</t>
+        <ol spacing="normal">
+          <li>Look up every identifier (RFC number, LSA type, path attribute, CLI command) before using it.</li>
+          <li>Run one <tt>search_many</tt> call with three to six queries, restricted to one collection where the
+          question allows.</li>
+          <li>Read the whole section, and any Restrictions or Defaults section next to it.</li>
+          <li>Run <tt>lookup_rfc</tt> on every RFC cited.</li>
+          <li>Run <tt>verify_quote</tt> on every quotation; drop any that returns <tt>not_found</tt> and reread the
+          section.</li>
+          <li>Compare the RFC's text with the vendor's documented behavior and defaults, and report any
+          difference.</li>
+          <li>If the corpus does not cover the question, say so. Before saying so, open the outline of the likeliest
+          document and read the matching section (DR-80).</li>
+        </ol>
+        <t>The default depth runs at most three bounded search rounds and one batch of quotation checks. Deeper modes
+        are available on request (DR-79).</t>
+      </section>
+    </section>
+
+    <section anchor="workstation">
+      <name>Workstation</name>
+      <section anchor="platform">
+        <name>Platform</name>
+        <t>The Workstation is OpenBSD 8.0 on amd64 with a CDE desktop in the HP-UX style (DR-51). It installs on a
+        physical machine or as a virtual machine: Hyper-V Generation 1, or KVM with BIOS firmware, IDE disks, a VGA
+        display and an e1000 network adapter. Native code and Python packages are built for the plain amd64
+        baseline, with no processor-specific flags (DR-53).</t>
+        <t>The engine and gateway are the same Python programs as my production deployment, so their results are
+        identical by construction (DR-52). They run as separate users under pledge(2) <xref target="PLEDGE"/> and
+        unveil(2) <xref target="UNVEIL"/>; the engine listens on a UNIX socket and the gateway on loopback.</t>
+      </section>
+
+      <section anchor="hardening">
+        <name>Hardening</name>
+        <ul spacing="normal">
+          <li>pf denies by default. Outbound traffic is allowed only to Tailscale's infrastructure, to time servers
+          and to Let's Encrypt, where the Workstation's Tailscale client gets the HTTPS certificate for the
+          published gateway; there is no route to package mirrors (DR-56).</li>
+          <li>The system runs at securelevel 1 with system files immutable. Updates install only from signed update
+          sets, in the boot window or in single-user mode, with hash checks and rollback.</li>
+          <li>Nothing administrative can be changed remotely (DR-54). Only pairing and publication open
+          listeners.</li>
+          <li>Features that would contact anything else ship off (DR-96).</li>
+        </ul>
+        <t>Securelevel 2 was tested and rejected: it broke encrypted USB media, disk formatting and connection
+        handling.</t>
+      </section>
+
+      <section anchor="kernel">
+        <name>Exact Vector Search</name>
+        <t>Qdrant does not run on OpenBSD without Docker, so the Workstation scans <tt>vectors.f32</tt> exactly with a
+        small C kernel (DR-55). The kernel uses SSE with four 128-bit accumulators and one fixed order of operations
+        on any amd64 processor, and refuses to be built with FMA or AVX code, so a given query produces the same
+        scores on every machine.</t>
+        <t>On a 78,275-vector index the exact scan took 12.7 ms against Qdrant's 19.8 ms. Its scores matched
+        production's exact mode with no mismatch over 154,392 compared pairs. Qdrant's own kernel takes an AVX path
+        when the processor has both AVX and FMA, so on such hosts the two can differ in the last bits; release
+        acceptance therefore compares ranked hits and allows score differences below a stated tolerance. The cost of
+        an exact scan grows linearly with the corpus.</t>
+      </section>
+
+      <section anchor="ask-library">
+        <name>Ask Window and Library</name>
+        <t>The Ask window is the Workstation's client for the Ask link (<xref target="asklink"/>), and
+        <tt>d32-ask</tt> sends the same requests from a terminal. The Deep32 Library
+        is a separate reference collection (an encyclopedia subset with media, papers and an RFC shelf) with its own
+        storage and indexes. The gateway's tools never search it; a document enters the corpus only when the user
+        sends it there and a new generation is built (DR-19). The encyclopedia's article text is from Wikipedia under
+        CC BY-SA 4.0, and each picture keeps its author's license. It ships as a Kiwix archive whose SHA-256 matches
+        the one Kiwix publishes for it.</t>
+      </section>
+
+      <section anchor="console">
+        <name>Install Status</name>
+        <t>The installer and first boot report progress as single-line records on the serial console (contract C6),
+        so a host can follow an unattended install without screen scraping.</t>
+        <t>At first start the Workstation waits for its Tailscale sign-in. It shows the sign-in address on the text
+        console, in a C6 record on the serial line, and in the First Start window on the desktop. Once it is signed
+        in and has its tailnet address, it looks for disc 2 in its CD drives and imports it without further input;
+        First Start and the console follow the import. The importer checks the signature first, then reads the disc
+        once, in two parts, checking each file against the signed manifest as it reads it (<xref target="layout"/>).
+        The first part is the knowledge base: it is copied, checked, installed and switched on by itself, so search,
+        Ask, publication and pairing work from then on. The Library follows in the same run, at a lower priority, and
+        switches on when all of it has checked out.</t>
+        <t>On 20 November 2026, on a KVM virtual machine reading disc 2 from a virtual CD drive, the knowledge base was
+        in use about 8 minutes after the import started, and a complete import took about 2 hours.</t>
+      </section>
+    </section>
+
+    <section anchor="forge">
+      <name>Forge</name>
+      <section anchor="forge-services">
+        <name>Services</name>
+        <t>The Forge runs the embedding and reranking models in Docker. Both listen on loopback behind one door that
+        checks the Forge token, and the door is published to the tailnet with Tailscale Serve (DR-63). The token is
+        made on the Forge and handed to the Workstation at pairing. One Linux Docker form with Compose and restart
+        policies runs on every host (DR-60). On Windows it runs in Docker Desktop or in an Ubuntu 24.04 WSL 2
+        distro with Docker Engine. Release 0.1.0-alpha.2 needs Docker's classic image store (<tt>overlay2</tt>):
+        its images do not load into the containerd store, which Docker Engine 29 and Docker Desktop use by
+        default.</t>
+      </section>
+
+      <section anchor="gpupack">
+        <name>GPU Pack</name>
+        <t>Text Embeddings Inference builds are specific to a GPU generation, and a pack carrying every build was
+        mostly bytes a given user would never run. The GPU pack is therefore split (DR-61):</t>
+        <dl newline="false" spacing="normal">
+          <dt>Shared core:</dt>
+          <dd>The door and the reranker as container images, the files of both models (embedding and reranking),
+          and the runtime: the loader, the Compose files and the pairing program. Every Forge needs it.</dd>
+          <dt>Embedder add-on:</dt>
+          <dd>One small add-on per card class, holding only that class's Text Embeddings Inference build as a
+          container image. The embedding model itself is in the shared core. A Forge downloads the one for
+          its card.</dd>
+          <dt>Ingestion add-on:</dt>
+          <dd>The PDF converter, the index builder and Qdrant as container images, with the converter's models
+          and source. In 0.1.0-alpha.2 a Forge installs it too, because the Forge loader always loads the
+          converter image (DR-106).</dd>
+        </dl>
+        <t>Supported cards are NVIDIA compute capability 7.5 and newer, which is the RTX 20 series onward, in seven
+        classes: 7.5, 8.0, 8.6, 8.9, 9.0, 10.0 and 12.0 (DR-62). <tt>deep32-inventory</tt> names the class before
+        anything is downloaded. Older cards and other vendors' graphics get a keyword-only Workstation.</t>
+        <t>In 0.1.0-alpha.2 the shared core is 18.6 GB, each embedder add-on 3.1 to 3.3 GB and the ingestion add-on
+        15.3 GB, so a Forge downloads about 37.1 GB. The images are stored uncompressed in this release.</t>
+      </section>
+
+      <section anchor="convert">
+        <name>PDF Conversion</name>
+        <t>A PDF conversion job takes the whole card: it pauses the embedding and reranking services and runs one
+        job at a time. The MinerU <xref target="MINERU"/> stage needs AVX2; on older processors the converter uses
+        PyMuPDF only (DR-64).</t>
+      </section>
+
+      <section anchor="crosscard">
+        <name>Agreement Across Cards</name>
+        <t>Users run different GPU generations and vectors differ in the last bits. The two measured cards agree
+        within 1e-4, and a release ships vectors computed on one card (DR-65). The Workstation's check of a paired Forge
+        allows a cosine of at least 0.999 for an embedding and 0.005 for each rerank score, so any supported card
+        generation passes while a wrong or damaged model fails (DR-107). Measured on an
+        RTX 3080 and an RTX 2080 Ti over 19 known-answer queries: minimum cosine similarity between the two cards'
+        vectors 0.999999854, 14 of 19 vectors bit-identical, largest component difference 5.9e-5.</t>
+      </section>
+    </section>
+
+    <section anchor="network">
+      <name>Network and Pairing</name>
+      <section anchor="tailnet">
+        <name>Tailnet and Publication</name>
+        <t>Every part signs in to the user's tailnet with the user's own account, during install or, on the
+        Workstation, at first start (<xref target="console"/>); no image carries an auth key (DR-66). Services
+        listen on loopback and are published with Tailscale Serve <xref target="TAILSCALE"/> over HTTPS, on the
+        tailnet only. The installer adds the routes it owns, refuses to touch routes it did not
+        add, refuses Funnel, and never changes tailnet settings itself (DR-67).</t>
+        <t>Serve's HTTPS certificates put machine names in the public Certificate Transparency logs
+        <xref target="RFC9162"/>. Default machine names carry nothing personal, and publication asks for explicit
+        agreement once.</t>
+        <t>Parts should reach each other directly. A relayed path measured 70 to 157 ms against 1 to 2 ms direct, and
+        <tt>deep32 doctor</tt> reports a relayed path as a warning (DR-70).</t>
+      </section>
+
+      <section anchor="tokens">
+        <name>Tokens and Keys</name>
+        <t>Every token is 32 random bytes written as 64 hexadecimal digits. Each is made on the machine whose service
+        checks it, at first boot or at pairing, and kept where only that service can read it. No token appears on an
+        image, in a log or in a status line (DR-68).</t>
+        <table>
+          <thead><tr><th>Credential</th><th>Made on</th><th>Used for</th></tr></thead>
+          <tbody>
+            <tr><td>Engine token</td><td>Workstation</td><td>Gateway to engine</td></tr>
+            <tr><td>MCP token, one per paired agent</td><td>Workstation</td><td>Agent to gateway</td></tr>
+            <tr><td>Forge token</td><td>Forge</td><td>Engine to the Forge's door</td></tr>
+            <tr><td>Forge bundle key</td><td>Forge</td><td>Signs bundles the Forge builds</td></tr>
+            <tr><td>Link certificates and pins</td><td>Each end of a link</td><td>Mutual TLS</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section anchor="pairing">
+        <name>Pairing by Short Code</name>
+        <t>The Workstation pairs with a Forge, and an agent pairs with the Workstation's gateway, by the same
+        procedure (DR-69). The side being joined is the responder; the other side is the joiner.</t>
+        <ol spacing="normal">
+          <li>The responder opens a pairing window and shows a one-time code of ten symbols from the RFC 4648 base32
+          alphabet, <tt>[A-Z2-7]{10}</tt>, normally in two groups of five. The window lasts five minutes and allows
+          one attempt.</li>
+          <li>The person types the code on the joiner.</li>
+          <li>Both sides run SPAKE2 <xref target="RFC9382"/> over the P-256 group <xref target="SP800-186"/> with
+          the code as the password and each side's TLS certificate pin as its identity, inside a TLS 1.3 connection
+          <xref target="RFC8446"/>.</li>
+          <li>On success each side stores the other's pin. Inside the authenticated channel the responder hands over
+          what the joiner needs: a Forge gives its token and its bundle public key; the Workstation gives the agent a
+          new MCP token of its own.</li>
+        </ol>
+        <t>Three failed windows within 30 minutes lock pairing for 15 minutes. The window deadline uses a monotonic
+        clock; the lockout uses wall-clock timestamps that survive a restart. Removing a pairing on either side
+        revokes what that side gave.</t>
+      </section>
+
+      <section anchor="transport-switch">
+        <name>Transport Switch</name>
+        <t>With <tt>transport=loopback</tt>, every service is reached on 127.0.0.1 and sign-in, Serve and discovery
+        are skipped. Tokens and pairing still apply, so every test runs on one machine with no tailnet (DR-71).</t>
+      </section>
+    </section>
+
+    <section anchor="asklink">
+      <name>The Ask Link (D32U/1)</name>
+      <t>The Ask link carries research sessions between the Workstation and the relay. The Workstation's side of
+      the protocol is the C link client that has shipped on the Workstation since before this release; the portable
+      relay implements the other side. This section states the protocol as that client implements it.</t>
+
+      <section anchor="link-transport">
+        <name>Transport and Identity</name>
+        <t>The Workstation (role <tt>node</tt>) dials a TCP connection to the relay (role <tt>relay</tt>). The relay
+        binds loopback and is reached across the tailnet through a TCP forwarder that its installer creates.</t>
+        <t>Both ends use mutual TLS 1.3 <xref target="RFC8446"/>; TLS 1.2 is allowed only by explicit local
+        configuration, and there is no plaintext form. Each end has a self-signed X.509 v3 certificate
+        <xref target="RFC5280"/> with an ECDSA P-256 key, valid for ten years. The trust anchor is the pin: the
+        SHA-256 of the peer's whole DER certificate. Chain, host name and validity-period checks are not used. A
+        peer whose certificate does not match the stored pin <bcp14>MUST</bcp14> be refused, except during an armed
+        pairing window (<xref target="sas"/>).</t>
+      </section>
+
+      <section anchor="framing">
+        <name>Framing</name>
+        <t>Every frame has a 12-byte header (<xref target="fig-frame"/>). All integers are unsigned and
+        big-endian.</t>
+        <figure anchor="fig-frame">
+          <name>D32U/1 Frame</name>
+          <artwork type="ascii-art"><![CDATA[
+  0                   1                   2                   3
+  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+ +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ |                        Payload Length                         |
+ +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ |                           Stream ID                           |
+ +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ |     Type      |    Channel    |             Flags             |
+ +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ |                       Payload (variable)                    ...
+ +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+]]></artwork>
+        </figure>
+        <ul spacing="normal">
+          <li>Payload Length excludes the header and <bcp14>MUST NOT</bcp14> exceed 1,048,576.</li>
+          <li>Control frames (HELLO, HELLO_ACK, PING, PONG, ERROR, PAIR_CONFIRM, PAIR_COMMIT) carry Stream ID 0 and
+          Channel 0; every other frame carries non-zero values in both.</li>
+          <li>Only DATA frames may set flags, and the only flag is 0x0001, END_MESSAGE. Any other flag is a protocol
+          error.</li>
+        </ul>
+        <table anchor="tab-frames">
+          <name>Frame Types</name>
+          <thead><tr><th align="right">Type</th><th>Name</th><th>Payload</th></tr></thead>
+          <tbody>
+            <tr><td align="right">1</td><td>HELLO</td><td>JSON, at most 16,384 bytes</td></tr>
+            <tr><td align="right">2</td><td>HELLO_ACK</td><td>JSON, at most 16,384 bytes</td></tr>
+            <tr><td align="right">3</td><td>OPEN</td><td>JSON, at most 16,384 bytes</td></tr>
+            <tr><td align="right">4</td><td>OPEN_ACK</td><td>Empty</td></tr>
+            <tr><td align="right">5</td><td>DATA</td><td>Non-empty</td></tr>
+            <tr><td align="right">6</td><td>WINDOW_UPDATE</td><td>4-byte credit</td></tr>
+            <tr><td align="right">7</td><td>CLOSE</td><td>Empty</td></tr>
+            <tr><td align="right">8</td><td>RESET</td><td>4-byte error code</td></tr>
+            <tr><td align="right">9</td><td>PING</td><td>8 opaque bytes</td></tr>
+            <tr><td align="right">10</td><td>PONG</td><td>The 8 bytes of the PING it answers</td></tr>
+            <tr><td align="right">11</td><td>ERROR</td><td>4-byte error code</td></tr>
+            <tr><td align="right">12</td><td>PAIR_CONFIRM</td><td>Empty</td></tr>
+            <tr><td align="right">13</td><td>PAIR_COMMIT</td><td>Empty</td></tr>
+          </tbody>
+        </table>
+        <t>Type 0 and types above 13 are protocol errors.</t>
+      </section>
+
+      <section anchor="hello">
+        <name>Handshake</name>
+        <t>After TLS completes, the node sends HELLO with a fresh 32-byte nonce. The relay answers with its own HELLO
+        and then, after the node's HELLO_ACK, its HELLO_ACK. The node's HELLO is:</t>
+        <sourcecode type="json"><![CDATA[
+{"proto":"D32U/1","id":"workstation","version":1,"versions":[1],
+ "role":"node","features":["research-v1"],
+ "nonce":"<64 lower-case hex digits>","sessions":[]}
+]]></sourcecode>
+        <t>The relay's HELLO has the same members with role <tt>relay</tt>, and may add <tt>profiles</tt>: a list of
+        at most one entry, named <tt>research</tt>, that lists the models and the strengths (<tt>efforts</tt>) the
+        relay offers. Each entry in those lists is a string of at most 64 bytes, and the node keeps at most 16 of
+        each. HELLO_ACK is
+        <tt>{"version":1,"features":["research-v1"],"paired":true}</tt>, or <tt>false</tt> for
+        <tt>paired</tt>. When both acknowledgements say paired, the link is active. Messages are strict UTF-8 JSON
+        <xref target="RFC8259"/>: no byte order mark, no duplicate keys, no unknown keys, nesting at most 32 deep.
+        Reconnecting does not resume sessions; the <tt>sessions</tt> array is always empty.</t>
+      </section>
+
+      <section anchor="channels">
+        <name>Channels and Flow Control</name>
+        <table>
+          <thead><tr><th align="right">Channel</th><th>Opened by</th><th>Carries</th></tr></thead>
+          <tbody>
+            <tr><td align="right">1</td><td>Node</td><td>Research sessions: questions, streamed answers</td></tr>
+            <tr><td align="right">2</td><td>Relay</td><td>Reverse MCP: the agent's tool calls to the Workstation's
+            gateway</td></tr>
+            <tr><td align="right">4</td><td>Relay</td><td>Relay status</td></tr>
+          </tbody>
+        </table>
+        <t>An OPEN on any other channel receives RESET. The node allocates odd stream IDs from 1 and the relay even
+        ones, each increasing and never reused on a connection.</t>
+        <t>A research session starts with a <tt>session.open</tt> message, the first DATA on a new channel 1 stream.
+        It names the model and the strength chosen for the conversation, from the lists in the relay's HELLO; the
+        relay turns away a model or a strength it did not offer.</t>
+        <t>Each stream starts with 256 KiB of credit, replenished by WINDOW_UPDATE. Each side sends PING every 15
+        seconds while active and drops the link after 45 seconds without a valid complete frame; a sender waits at
+        most 180 seconds for credit. A side sends at most 256 frames per second, counting control frames. The node
+        reconnects with backoff of 1, 2, 4, 8, 16 and 30 seconds, each multiplied by a random factor between 0.8 and
+        1.2, and only to a pinned peer.</t>
+      </section>
+
+      <section anchor="sas">
+        <name>Pairing by Short Authentication String</name>
+        <t>The Ask link does not use the short code of <xref target="pairing"/>. It keeps the comparison that its
+        Workstation client already implements; replacing it would have meant a Workstation protocol change for no
+        security gain (DR-69).</t>
+        <ol spacing="normal">
+          <li>A person arms a pairing window on each side's console. A window lasts 300 seconds and allows one
+          connection from an unpinned peer. Only while it is armed <bcp14>MAY</bcp14> a side complete TLS with an
+          unknown certificate.</li>
+          <li>Each side computes the string from the two pins and the two HELLO nonces. Let P_lo and P_hi be the two
+          32-byte pins in unsigned lexicographic order (equal pins fail), N_node and N_relay the nonces, and</li>
+        </ol>
+        <artwork type="ascii-art"><![CDATA[
+   D = SHA-256(P_lo || P_hi || N_node || N_relay)
+]]></artwork>
+        <ol spacing="normal" start="3">
+          <li>The first 110 bits of D, most significant bit first, are split into ten 11-bit indices into the
+          2,048-word English list of <xref target="BIP39"/>. The ten words are shown on both consoles. They are a
+          display only, not a seed, and carry no checksum.</li>
+          <li>The person types, on each side, the words the other side shows. A side whose typed words match its own
+          string sends an empty PAIR_CONFIRM; a mismatch ends the attempt.</li>
+          <li>After both confirmations, each side writes the peer's pin and ID to protected storage and only then
+          sends PAIR_COMMIT. The link becomes active when both sides have committed.</li>
+        </ol>
+        <t>A stored pin is replaced only by removing the pairing first. Removing it deletes the pin, ends the link and
+        ends every session on it.</t>
+      </section>
+
+      <section anchor="reverse-mcp">
+        <name>Reverse MCP</name>
+        <t>The agent in an Ask session reaches the gateway through the link. The relay runs a loopback proxy for each
+        session with its own random bearer, and forwards a call only while a verified turn is running. Each call
+        travels on channel 2 to the Workstation, which passes it to its gateway on loopback. The headend never
+        dials the Workstation's published gateway for an Ask session.</t>
+      </section>
+
+      <section anchor="box">
+        <name>The Agent Box</name>
+        <t>An agent started by the relay can call the eleven tools of <xref target="tab-tools"/> and nothing else
+        (DR-76): no shell, no file reads or writes outside an empty per-session folder, no web access, no other MCP
+        server, and none of the user's own configuration, skills or MCP entries.</t>
+        <ul spacing="normal">
+          <li>Claude Code runs with its built-in tools disabled, only the eleven tools allowed, one MCP server under
+          strict MCP configuration, no settings layers, its own configuration folder, a cleared environment and no
+          session persistence. The relay offers the models and strengths that Claude Code lists, and each
+          conversation can choose among them. The relay checks the session's initialization event for exactly the
+          chosen model, the folder, the tool list and the server, and ends the session otherwise.</li>
+          <li>Codex runs with a read-only sandbox, approvals set to never, web search, history and other features
+          (shell, patching, plugins, hooks, apps, multi-agent, memories, image viewing) off, and strict configuration.
+          Before the first turn the relay checks the effective configuration and that exactly one MCP server is
+          enabled.</li>
+        </ul>
+        <t>During a turn the relay reads the agent's output as a stream of typed events and keeps only the answer
+        text, the final result and the turn's token counts. A call to any tool outside the eleven, or an event of a
+        kind the relay does not know, ends the turn with an error. Claude Code's report of its usage window between
+        messages (<tt>rate_limit_event</tt>) is a known kind: it carries no answer text and does not end the turn.
+        A turn whose final result is an error still fails. When Claude Code's profile has no usable sign-in at the
+        start of a session, or the model provider refuses the sign-in during a turn, the relay stops with the reason
+        <tt>agent-sign-in-required</tt> and does not pass the agent's error line on as an answer.</t>
+        <t>At install and after each sign-in, the relay runs an install check that uses no model. It starts the agent
+        as far as its initialization report, records the agent's version, the model and strength it starts with and
+        the models and strengths it lists, and stops it before any question. The record is bound to the SHA-256 of
+        the agent program, so after an agent upgrade the relay refuses Ask sessions until the check has run again.</t>
+        <t>A live self-test goes further: scripted attempts to escape the box (run a command, write outside the
+        session folder, fetch a web page, reach another MCP server, read the user's agent configuration) must all
+        fail, and one allowed tool call must succeed. Each attempt uses the user's model allowance, so it runs only
+        when the user asks for it.</t>
+      </section>
+    </section>
+
+    <section anchor="dist">
+      <name>Distribution and Verification</name>
+      <section anchor="hosting">
+        <name>Hosting</name>
+        <t>The images are whole files hosted on the Internet Archive <xref target="IA"/>, which also serves an
+        official torrent of each. The GitHub release holds the signed metadata: a root checksum list and its
+        detached signature, a mirror list, an asset map, one child checksum list per image, each image's README and
+        its software bill of materials (DR-90). A mirror is untrusted transport; trust comes only from the root
+        list's signature.</t>
+      </section>
+
+      <section anchor="sigcheck">
+        <name>Signature Check</name>
+        <t>Release metadata is signed with one long-lived OpenPGP key <xref target="RFC9580"/> (Ed25519) as a
+        detached, armored, binary-mode signature (DR-86). The key's fingerprint is pinned in the repository and
+        printed in the README. Each verifier runs GnuPG with a new, empty home directory and only the release key
+        shipped with it, so the user's own keyring is never used. There are two verifiers:</t>
+        <dl newline="true" spacing="normal">
+          <dt>On the host that downloads the images:</dt>
+          <dd><t><tt>deep32-get</tt> and <tt>verify-release</tt> in <tt>src/release-tools</tt>, in their shell
+          and PowerShell forms, share one Python helper that runs <tt>gpg</tt>. The helper refuses a key file that
+          holds a secret key or does not hold exactly one primary key with the pinned fingerprint, imports that key
+          alone, and runs
+          <tt>gpg --verify</tt> on the root checksum list; <tt>verify-release</tt> also verifies each image's child
+          list the same way. A signature is good only when all of the following hold:</t>
+          <ul spacing="compact">
+            <li><tt>gpg</tt> exits 0;</li>
+            <li>its status output has exactly one VALIDSIG;</li>
+            <li>the signature class in VALIDSIG is 00 (a binary signature over the exact bytes; a text-mode
+            signature would also match other line endings);</li>
+            <li>the primary-key fingerprint in VALIDSIG equals the pinned fingerprint.</li>
+          </ul></dd>
+          <dt>On the Workstation:</dt>
+          <dd><t>The disc 2 importer runs <tt>gpgv</tt> with a keyring holding only the release key installed with
+          the system. A signature is good only when <tt>gpgv</tt> exits 0, its status output has exactly one GOODSIG
+          and one VALIDSIG and none of BADSIG, ERRSIG, EXPSIG, EXPKEYSIG, REVKEYSIG or NO_PUBKEY, the signature class
+          in VALIDSIG is 00, and its primary-key fingerprint equals the pinned fingerprint.</t></dd>
+        </dl>
+        <t>Nothing in the metadata is parsed before the signature is good. The verifier then parses the same bytes
+        it verified, never a re-serialized copy.</t>
+      </section>
+
+      <section anchor="getter">
+        <name>Download</name>
+        <t><tt>deep32-get</tt> downloads an image as follows:</t>
+        <ol spacing="normal">
+          <li>Authenticate the root list (<xref target="sigcheck"/>), then the mirror list and the image's child list
+          against it.</li>
+          <li>Check that the destination file system has room for the remaining signed bytes plus a 16 MiB
+          reserve.</li>
+          <li>Try the mirrors in their signed order, at most sixteen. Each mirror gets one request and at most five
+          redirects, a 30-second connect timeout and a 60-second stalled-read timeout. No proxy, cookie or
+          credential is sent.</li>
+          <li>Check each 64 MiB chunk against its signed digest as it arrives. After an interruption, keep only the
+          complete chunks that verified and resume from there. A corrupt mirror cannot poison a later one.</li>
+          <li>Check the SHA-256 of the whole image before publishing the file under its final name.</li>
+        </ol>
+        <t>If every mirror fails, the getter prints the torrent URL from the signed metadata as a manual
+        alternative; it contains no torrent client.</t>
+      </section>
+
+      <section anchor="sbom">
+        <name>Bills of Materials and Reproducibility</name>
+        <t>Each image has an SPDX 2.3 <xref target="SPDX"/> document beside it, covered by the root list. Keeping the
+        bills of materials outside the images left disc 2 byte for byte the image that had already passed the
+        release gates (DR-95).</t>
+        <t>The release notes state only the reproducibility that was demonstrated: which artifacts were built twice
+        and compared byte for byte. <xref target="status"/> gives the state for this release.</t>
+      </section>
+
+      <section anchor="doctor">
+        <name>Doctor and Self-Test</name>
+        <t><tt>deep32 doctor</tt> checks every link of an installation without changing anything, prints one row per
+        check with OK, WARN or FAIL, and prints a suggested fix next to each failure (DR-94).</t>
+        <t><tt>deep32 selftest</tt> runs a public question set through the installation and compares retrieval with
+        the release's reference values. The set has 63 RFC-only questions, nine in each of seven topics (BGP, BGP
+        extensions, OSPF, IP, MPLS, segment routing, and other protocols), balanced across natural-language, keyword
+        and identifier styles. Its 107 labels each name a document and an exact span of that document's shipped
+        text. A question counts as found at the rank of the first of its first ten hits whose document matches a
+        label and whose text contains that label's span. The tool reports hit@1, hit@3, hit@8 and MRR@10. The
+        reference values come from three identical runs on the release host.</t>
+      </section>
+    </section>
+
+    <section anchor="eval">
+      <name>Evaluation</name>
+      <section anchor="testset">
+        <name>Test Set</name>
+        <t>The test set has 726 questions: 696 whose answer is in the corpus and 30 whose answer is not (DR-98). They
+        cover enterprise routing, switching, VPN, SD-WAN, network services and access control, with at least three
+        answerable questions per topic.</t>
+        <t>Questions and first labels were written per topic by an LLM pipeline with an author and an adversarial
+        verifier. After each corpus change, newly retrieved passages are judged in pools and audited blind; the last
+        two audits agreed on 22 of 27 and 15 of 16 items. Labels are copied to identical passages in sibling
+        documents (DR-99). There are 9,209 labeled spans across 463 documents. Evaluation data is never ingested
+        into the corpus (DR-103).</t>
+      </section>
+
+      <section anchor="metrics">
+        <name>Metrics</name>
+        <dl newline="false" spacing="normal">
+          <dt>hit@k:</dt>
+          <dd>The share of answerable questions with a relevant passage in the top k. A passage is relevant when it
+          comes from a labeled document and contains a labeled span.</dd>
+          <dt>MRR@10:</dt>
+          <dd>The mean over answerable questions of 1/r, where r is the rank of the first relevant passage within
+          the top 10, or 0 if there is none.</dd>
+          <dt>delivery@8:</dt>
+          <dd>The share of labeled spans of the top 8 hits that arrive intact in the delivered text windows. It
+          measures whether the agent can see the evidence, not only whether it was ranked (DR-102).</dd>
+        </dl>
+        <t>Every comparison is paired by question: wins, ties and losses, a sign test, a paired bootstrap interval
+        and a per-topic breakdown (DR-101). Three runs over one week returned identical metrics.</t>
+      </section>
+
+      <section anchor="results">
+        <name>Results</name>
+        <t>All 696 answerable questions, through the gateway, on 2 November 2026:</t>
+        <table anchor="tab-stages">
+          <name>Retrieval by Pipeline Stage</name>
+          <thead>
+            <tr><th>Stage</th><th align="right">hit@1</th><th align="right">hit@8</th>
+            <th align="right">Median ms</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>BM25 only</td><td align="right">0.710</td><td align="right">0.928</td>
+            <td align="right">125</td></tr>
+            <tr><td>Dense only</td><td align="right">0.783</td><td align="right">0.970</td>
+            <td align="right">122</td></tr>
+            <tr><td>Fused</td><td align="right">0.822</td><td align="right">0.983</td>
+            <td align="right">140</td></tr>
+            <tr><td>Fused and reranked</td><td align="right">0.955</td><td align="right">0.991</td>
+            <td align="right">542</td></tr>
+          </tbody>
+        </table>
+        <table anchor="tab-metrics">
+          <name>Full Metrics</name>
+          <thead>
+            <tr><th>Metric</th><th align="right">Fused and reranked</th><th align="right">Fused only</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>hit@1</td><td align="right">0.955 (665)</td><td align="right">0.822 (572)</td></tr>
+            <tr><td>hit@3</td><td align="right">0.983</td><td align="right">0.934</td></tr>
+            <tr><td>hit@8</td><td align="right">0.991 (690)</td><td align="right">0.983 (684)</td></tr>
+            <tr><td>MRR@10</td><td align="right">0.970</td><td align="right">0.882</td></tr>
+            <tr><td>delivery@8</td><td align="right">0.909</td><td align="right">0.904</td></tr>
+          </tbody>
+        </table>
+        <t>Paired over the 696 questions, reranking wins 102 and loses 9 at hit@1, and wins 6 and loses none at
+        hit@8.</t>
+        <t>Each of the 31 questions missed at rank 1 was judged afterwards. In 7, the rank-1 passage did answer the
+        question but had no label. In 21, the reranker placed another passage above a relevant one. In 3, fusion
+        left the relevant passage outside the reranker's top 15. With the 7 label gaps corrected, hit@1 would be
+        0.966 (672 of 696). I report 0.955 until the label set is frozen again (DR-100).</t>
+      </section>
+
+      <section anchor="eval-limits">
+        <name>Limitations</name>
+        <ul spacing="normal">
+          <li>The questions were written by a language model and checked by another pass of one. They may be easier
+          or more uniform than questions people ask.</li>
+          <li>Labels come from pooled judgment, so a relevant passage that no system retrieved stays unlabeled.</li>
+          <li>The figures measure retrieval only. A claim-level evaluation of answers is designed, with held-out
+          questions, negative probes and blind grading against the saved evidence, and pass marks fixed in advance:
+          at most 2% fabricated claims, every negative probe passed, every citation exact. It has not been run, and
+          the beta release waits for it (DR-104).</li>
+        </ul>
+      </section>
+    </section>
+
+    <section anchor="security">
+      <name>Security Considerations</name>
+      <section anchor="sec-provider">
+        <name>Hosted Model</name>
+        <t>The model provider sees each question, the passages the agent reads and the agent's reasoning. A user who
+        cannot send those to a provider cannot use Deep32 as released. A slot for a locally served,
+        OpenAI-compatible model exists in the adapter interface with no adapter behind it yet (DR-77).</t>
+      </section>
+
+      <section anchor="sec-cred">
+        <name>Credentials</name>
+        <t>Tokens are generated on the machine that checks them and never leave it except inside an authenticated
+        pairing. Agent credentials are held by the operating system's protected store (DPAPI for the current user on
+        Windows; a mode 0600 file in a mode 0700 directory on Linux) and loaded into the agent's process only. They
+        never appear in an MCP configuration file, an argument list or output (DR-78). The gateway compares bearer
+        tokens in constant time.</t>
+      </section>
+
+      <section anchor="sec-pairing">
+        <name>Pairing</name>
+        <t>A pairing code has 50 bits of entropy and is never sent. SPAKE2 gives an attacker who observes or
+        intercepts an exchange no way to test guesses offline, so each guess has to be made online and costs a whole
+        pairing window. Only a person at the responder's console can open a window, each allows one attempt, and
+        three failed windows in 30 minutes lock pairing for 15 minutes. The person sees every failed window.</t>
+        <t>The Ask link's string has 110 bits and depends on both certificates and both nonces. An attacker in the
+        middle would have to make both sides display the same ten words for two different certificate pairs. Typing
+        the other side's words, rather than glancing at both, keeps a person from approving a mismatch by habit.
+        Unknown certificates are accepted only while a window armed on that side's own console is open.</t>
+      </section>
+
+      <section anchor="sec-network">
+        <name>Network Exposure</name>
+        <t>Services listen on loopback. The only routes into a part are the Serve routes its installer owns and, on
+        the headend, the relay's forwarder. Funnel is refused, so nothing is published to the public Internet. The
+        Workstation's pf permits outbound traffic only to Tailscale's infrastructure, to time servers and to
+        Let's Encrypt, which Tailscale uses to issue the HTTPS certificate for a published service. Machine
+        names appear in Certificate Transparency logs once HTTPS certificates are issued.</t>
+      </section>
+
+      <section anchor="sec-injection">
+        <name>Prompt Injection</name>
+        <t>Documents can carry text written to steer a model. Ingest flags instruction-like lines for review, and the
+        gateway's server instructions tell the agent that tool output is document text, never instructions
+        (DR-11, DR-74). Both are mitigations; a model can still follow injected text. The agent box limits what an
+        Ask session can do if it does: it can only search and read the corpus.</t>
+      </section>
+
+      <section anchor="sec-supply">
+        <name>Supply Chain</name>
+        <t>Every image is checked against signed metadata before use, and a mirror cannot substitute content
+        (<xref target="dist"/>). Model files and container images in the GPU pack are pinned by digest, and the SPDX
+        documents list what each image contains. The release is built from pinned sources through an allowlist,
+        then rebuilt and scanned as its own product, because built files can carry strings from material that was
+        cut (DR-82, DR-83). Whoever holds the release signing key can sign a malicious release; the key is held by
+        the author alone.</t>
+      </section>
+
+      <section anchor="sec-hosts">
+        <name>Host Considerations</name>
+        <t>On the Forge, membership in the <tt>docker</tt> group is equivalent to root, as on any Docker host. On
+        the Workstation, system files are immutable at securelevel 1, so a
+        compromised service cannot replace them without a reboot into the boot window. Admission control
+        (<xref target="degraded"/>) keeps a burst of searches from exhausting the engine's worker threads.</t>
+        <t>In this release Ask has no password of its own (DR-111). Root and every account in the Workstation's
+        <tt>_d32users</tt> group can open the Ask broker's socket, from the Ask window or a terminal, and ask
+        questions on the plan of the agent signed in on the relay. The pairing (<xref target="sas"/>) and the
+        tailnet protect the link to the relay; who can ask on the Workstation itself is decided by its accounts,
+        its login and its screen lock.</t>
+      </section>
+    </section>
+
+    <section anchor="iana">
+      <name>IANA Considerations</name>
+      <t>This document has no IANA actions.</t>
+    </section>
+  </middle>
+
+  <back>
+    <references>
+      <name>References</name>
+      <references>
+        <name>Normative References</name>
+        <reference anchor="RFC2119" target="https://www.rfc-editor.org/info/rfc2119">
+          <front>
+            <title>Key words for use in RFCs to Indicate Requirement Levels</title>
+            <author initials="S." surname="Bradner" fullname="S. Bradner"/>
+            <date year="1997" month="March"/>
+          </front>
+          <seriesInfo name="BCP" value="14"/>
+          <seriesInfo name="RFC" value="2119"/>
+          <seriesInfo name="DOI" value="10.17487/RFC2119"/>
+        </reference>
+        <reference anchor="RFC8174" target="https://www.rfc-editor.org/info/rfc8174">
+          <front>
+            <title>Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words</title>
+            <author initials="B." surname="Leiba" fullname="B. Leiba"/>
+            <date year="2017" month="May"/>
+          </front>
+          <seriesInfo name="BCP" value="14"/>
+          <seriesInfo name="RFC" value="8174"/>
+          <seriesInfo name="DOI" value="10.17487/RFC8174"/>
+        </reference>
+        <reference anchor="RFC5280" target="https://www.rfc-editor.org/info/rfc5280">
+          <front>
+            <title>Internet X.509 Public Key Infrastructure Certificate and Certificate Revocation List (CRL)
+            Profile</title>
+            <author initials="D." surname="Cooper" fullname="D. Cooper"/>
+            <author initials="S." surname="Santesson" fullname="S. Santesson"/>
+            <author initials="S." surname="Farrell" fullname="S. Farrell"/>
+            <author initials="S." surname="Boeyen" fullname="S. Boeyen"/>
+            <author initials="R." surname="Housley" fullname="R. Housley"/>
+            <author initials="W." surname="Polk" fullname="W. Polk"/>
+            <date year="2008" month="May"/>
+          </front>
+          <seriesInfo name="RFC" value="5280"/>
+          <seriesInfo name="DOI" value="10.17487/RFC5280"/>
+        </reference>
+        <reference anchor="RFC8259" target="https://www.rfc-editor.org/info/rfc8259">
+          <front>
+            <title>The JavaScript Object Notation (JSON) Data Interchange Format</title>
+            <author initials="T." surname="Bray" fullname="T. Bray" role="editor"/>
+            <date year="2017" month="December"/>
+          </front>
+          <seriesInfo name="STD" value="90"/>
+          <seriesInfo name="RFC" value="8259"/>
+          <seriesInfo name="DOI" value="10.17487/RFC8259"/>
+        </reference>
+        <reference anchor="RFC8446" target="https://www.rfc-editor.org/info/rfc8446">
+          <front>
+            <title>The Transport Layer Security (TLS) Protocol Version 1.3</title>
+            <author initials="E." surname="Rescorla" fullname="E. Rescorla"/>
+            <date year="2018" month="August"/>
+          </front>
+          <seriesInfo name="RFC" value="8446"/>
+          <seriesInfo name="DOI" value="10.17487/RFC8446"/>
+        </reference>
+        <reference anchor="RFC9382" target="https://www.rfc-editor.org/info/rfc9382">
+          <front>
+            <title>SPAKE2, a Password-Authenticated Key Exchange</title>
+            <author initials="W." surname="Ladd" fullname="W. Ladd"/>
+            <date year="2023" month="September"/>
+          </front>
+          <seriesInfo name="RFC" value="9382"/>
+          <seriesInfo name="DOI" value="10.17487/RFC9382"/>
+        </reference>
+        <reference anchor="RFC9562" target="https://www.rfc-editor.org/info/rfc9562">
+          <front>
+            <title>Universally Unique IDentifiers (UUIDs)</title>
+            <author initials="K." surname="Davis" fullname="K. Davis"/>
+            <author initials="B." surname="Peabody" fullname="B. Peabody"/>
+            <author initials="P." surname="Leach" fullname="P. Leach"/>
+            <date year="2024" month="May"/>
+          </front>
+          <seriesInfo name="RFC" value="9562"/>
+          <seriesInfo name="DOI" value="10.17487/RFC9562"/>
+        </reference>
+        <reference anchor="RFC9580" target="https://www.rfc-editor.org/info/rfc9580">
+          <front>
+            <title>OpenPGP</title>
+            <author initials="P." surname="Wouters" fullname="P. Wouters" role="editor"/>
+            <author initials="D." surname="Huigens" fullname="D. Huigens"/>
+            <author initials="J." surname="Winter" fullname="J. Winter"/>
+            <author initials="Y." surname="Niibe" fullname="Y. Niibe"/>
+            <date year="2024" month="July"/>
+          </front>
+          <seriesInfo name="RFC" value="9580"/>
+          <seriesInfo name="DOI" value="10.17487/RFC9580"/>
+        </reference>
+        <reference anchor="FIPS180-4" target="https://doi.org/10.6028/NIST.FIPS.180-4">
+          <front>
+            <title>Secure Hash Standard (SHS)</title>
+            <author><organization>National Institute of Standards and Technology</organization></author>
+            <date year="2015" month="August"/>
+          </front>
+          <seriesInfo name="FIPS PUB" value="180-4"/>
+          <seriesInfo name="DOI" value="10.6028/NIST.FIPS.180-4"/>
+        </reference>
+        <reference anchor="SP800-186" target="https://doi.org/10.6028/NIST.SP.800-186">
+          <front>
+            <title>Recommendations for Discrete Logarithm-based Cryptography: Elliptic Curve Domain
+            Parameters</title>
+            <author><organization>National Institute of Standards and Technology</organization></author>
+            <date year="2023" month="February"/>
+          </front>
+          <seriesInfo name="NIST SP" value="800-186"/>
+          <seriesInfo name="DOI" value="10.6028/NIST.SP.800-186"/>
+        </reference>
+      </references>
+
+      <references>
+        <name>Informative References</name>
+        <reference anchor="D32-DR" target="https://github.com/hellobpdu/deep32/blob/main/docs/DECISIONS.md">
+          <front>
+            <title>Deep32 Decision Record (D32-DR)</title>
+            <author initials="J. A." surname="Cummings" fullname="Jeffrey A. Cummings"/>
+            <date year="2026" month="November"/>
+          </front>
+        </reference>
+        <reference anchor="DEEP32" target="https://doi.org/10.5281/zenodo.24371692">
+          <front>
+            <title>Deep32: Retrieval-augmented question answering for network and security engineering</title>
+            <author initials="J. A." surname="Cummings" fullname="Jeffrey A. Cummings"/>
+            <date year="2026"/>
+          </front>
+          <refcontent>Version 0.1.0-alpha.2</refcontent>
+          <seriesInfo name="DOI" value="10.5281/zenodo.24371692"/>
+        </reference>
+        <reference anchor="RFC1771" target="https://www.rfc-editor.org/info/rfc1771">
+          <front>
+            <title>A Border Gateway Protocol 4 (BGP-4)</title>
+            <author initials="Y." surname="Rekhter" fullname="Y. Rekhter"/>
+            <author initials="T." surname="Li" fullname="T. Li"/>
+            <date year="1995" month="March"/>
+          </front>
+          <seriesInfo name="RFC" value="1771"/>
+          <seriesInfo name="DOI" value="10.17487/RFC1771"/>
+        </reference>
+        <reference anchor="RFC4271" target="https://www.rfc-editor.org/info/rfc4271">
+          <front>
+            <title>A Border Gateway Protocol 4 (BGP-4)</title>
+            <author initials="Y." surname="Rekhter" fullname="Y. Rekhter" role="editor"/>
+            <author initials="T." surname="Li" fullname="T. Li" role="editor"/>
+            <author initials="S." surname="Hares" fullname="S. Hares" role="editor"/>
+            <date year="2006" month="January"/>
+          </front>
+          <seriesInfo name="RFC" value="4271"/>
+          <seriesInfo name="DOI" value="10.17487/RFC4271"/>
+        </reference>
+        <reference anchor="RFC9162" target="https://www.rfc-editor.org/info/rfc9162">
+          <front>
+            <title>Certificate Transparency Version 2.0</title>
+            <author initials="B." surname="Laurie" fullname="B. Laurie"/>
+            <author initials="E." surname="Messeri" fullname="E. Messeri"/>
+            <author initials="R." surname="Stradling" fullname="R. Stradling"/>
+            <date year="2021" month="December"/>
+          </front>
+          <seriesInfo name="RFC" value="9162"/>
+          <seriesInfo name="DOI" value="10.17487/RFC9162"/>
+        </reference>
+        <reference anchor="MCP" target="https://modelcontextprotocol.io/specification">
+          <front>
+            <title>Model Context Protocol Specification</title>
+            <author><organization>Model Context Protocol</organization></author>
+            <date/>
+          </front>
+        </reference>
+        <reference anchor="RAG" target="https://arxiv.org/abs/2005.11401">
+          <front>
+            <title>Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks</title>
+            <author initials="P." surname="Lewis" fullname="Patrick Lewis"/>
+            <author initials="E." surname="Perez" fullname="Ethan Perez"/>
+            <author initials="A." surname="Piktus" fullname="Aleksandra Piktus"/>
+            <author initials="F." surname="Petroni" fullname="Fabio Petroni"/>
+            <author initials="V." surname="Karpukhin" fullname="Vladimir Karpukhin"/>
+            <author initials="N." surname="Goyal" fullname="Naman Goyal"/>
+            <author initials="H." surname="Kuttler" fullname="Heinrich Kuttler"/>
+            <author initials="M." surname="Lewis" fullname="Mike Lewis"/>
+            <author initials="W." surname="Yih" fullname="Wen-tau Yih"/>
+            <author initials="T." surname="Rocktaschel" fullname="Tim Rocktaschel"/>
+            <author initials="S." surname="Riedel" fullname="Sebastian Riedel"/>
+            <author initials="D." surname="Kiela" fullname="Douwe Kiela"/>
+            <date year="2020"/>
+          </front>
+          <refcontent>Advances in Neural Information Processing Systems 33 (NeurIPS 2020)</refcontent>
+        </reference>
+        <reference anchor="BM25" target="https://doi.org/10.1561/1500000019">
+          <front>
+            <title>The Probabilistic Relevance Framework: BM25 and Beyond</title>
+            <author initials="S." surname="Robertson" fullname="Stephen Robertson"/>
+            <author initials="H." surname="Zaragoza" fullname="Hugo Zaragoza"/>
+            <date year="2009"/>
+          </front>
+          <refcontent>Foundations and Trends in Information Retrieval, Vol. 3, No. 4, pp. 333-389</refcontent>
+          <seriesInfo name="DOI" value="10.1561/1500000019"/>
+        </reference>
+        <reference anchor="RRF" target="https://doi.org/10.1145/1571941.1572114">
+          <front>
+            <title>Reciprocal Rank Fusion Outperforms Condorcet and Individual Rank Learning Methods</title>
+            <author initials="G. V." surname="Cormack" fullname="Gordon V. Cormack"/>
+            <author initials="C. L. A." surname="Clarke" fullname="Charles L. A. Clarke"/>
+            <author initials="S." surname="Buettcher" fullname="Stefan Buettcher"/>
+            <date year="2009"/>
+          </front>
+          <refcontent>Proceedings of the 32nd International ACM SIGIR Conference on Research and Development in
+          Information Retrieval, pp. 758-759</refcontent>
+          <seriesInfo name="DOI" value="10.1145/1571941.1572114"/>
+        </reference>
+        <reference anchor="HNSW" target="https://doi.org/10.1109/TPAMI.2018.2889473">
+          <front>
+            <title>Efficient and Robust Approximate Nearest Neighbor Search Using Hierarchical Navigable Small World
+            Graphs</title>
+            <author initials="Y. A." surname="Malkov" fullname="Yu. A. Malkov"/>
+            <author initials="D. A." surname="Yashunin" fullname="D. A. Yashunin"/>
+            <date year="2020"/>
+          </front>
+          <refcontent>IEEE Transactions on Pattern Analysis and Machine Intelligence, Vol. 42, No. 4,
+          pp. 824-836</refcontent>
+          <seriesInfo name="DOI" value="10.1109/TPAMI.2018.2889473"/>
+        </reference>
+        <reference anchor="FTS5" target="https://www.sqlite.org/fts5.html">
+          <front>
+            <title>SQLite FTS5 Extension</title>
+            <author><organization>SQLite</organization></author>
+            <date/>
+          </front>
+        </reference>
+        <reference anchor="QDRANT" target="https://qdrant.tech/documentation/">
+          <front>
+            <title>Qdrant Documentation</title>
+            <author><organization>Qdrant</organization></author>
+            <date/>
+          </front>
+        </reference>
+        <reference anchor="TEI" target="https://github.com/huggingface/text-embeddings-inference">
+          <front>
+            <title>Text Embeddings Inference</title>
+            <author><organization>Hugging Face</organization></author>
+            <date/>
+          </front>
+        </reference>
+        <reference anchor="JINA-EMB">
+          <front>
+            <title>jina-embeddings-v5-text-small</title>
+            <author><organization>Jina AI</organization></author>
+            <date/>
+          </front>
+          <refcontent>Model card and weights; licensed CC BY-NC 4.0</refcontent>
+        </reference>
+        <reference anchor="JINA-RR">
+          <front>
+            <title>jina-reranker-v3.5</title>
+            <author><organization>Jina AI</organization></author>
+            <date/>
+          </front>
+          <refcontent>Model card and weights</refcontent>
+        </reference>
+        <reference anchor="MINERU" target="https://github.com/opendatalab/MinerU">
+          <front>
+            <title>MinerU</title>
+            <author><organization>OpenDataLab</organization></author>
+            <date/>
+          </front>
+          <refcontent>Version 4.0.7 in the PDF converter; MinerU Open Source License, the Apache License 2.0 with
+          additional terms</refcontent>
+        </reference>
+        <reference anchor="APACHE-2.0" target="https://www.apache.org/licenses/LICENSE-2.0">
+          <front>
+            <title>Apache License, Version 2.0</title>
+            <author><organization>The Apache Software Foundation</organization></author>
+            <date year="2004" month="January"/>
+          </front>
+        </reference>
+        <reference anchor="AGPL-3.0" target="https://www.gnu.org/licenses/agpl-3.0.html">
+          <front>
+            <title>GNU Affero General Public License, Version 3</title>
+            <author><organization>Free Software Foundation</organization></author>
+            <date year="2007" month="November"/>
+          </front>
+        </reference>
+        <reference anchor="PLEDGE" target="https://man.openbsd.org/pledge.2">
+          <front>
+            <title>pledge(2): restrict system operations</title>
+            <author><organization>The OpenBSD Project</organization></author>
+            <date/>
+          </front>
+        </reference>
+        <reference anchor="UNVEIL" target="https://man.openbsd.org/unveil.2">
+          <front>
+            <title>unveil(2): unveil parts of a restricted filesystem view</title>
+            <author><organization>The OpenBSD Project</organization></author>
+            <date/>
+          </front>
+        </reference>
+        <reference anchor="TAILSCALE" target="https://tailscale.com/kb">
+          <front>
+            <title>Tailscale Documentation</title>
+            <author><organization>Tailscale Inc.</organization></author>
+            <date/>
+          </front>
+        </reference>
+        <reference anchor="BIP39" target="https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki">
+          <front>
+            <title>Mnemonic code for generating deterministic keys (BIP 39)</title>
+            <author initials="M." surname="Palatinus" fullname="Marek Palatinus"/>
+            <author initials="P." surname="Rusnak" fullname="Pavol Rusnak"/>
+            <author initials="A." surname="Voisine" fullname="Aaron Voisine"/>
+            <author initials="S." surname="Bowe" fullname="Sean Bowe"/>
+            <date year="2013"/>
+          </front>
+        </reference>
+        <reference anchor="SPDX" target="https://spdx.github.io/spdx-spec/v2.3/">
+          <front>
+            <title>The Software Package Data Exchange (SPDX) Specification, Version 2.3</title>
+            <author><organization>The Linux Foundation</organization></author>
+            <date year="2022"/>
+          </front>
+        </reference>
+        <reference anchor="IA" target="https://archive.org">
+          <front>
+            <title>Internet Archive</title>
+            <author><organization>Internet Archive</organization></author>
+            <date/>
+          </front>
+        </reference>
+      </references>
+    </references>
+
+    <section anchor="dr-map" numbered="true">
+      <name>Sections and Decisions</name>
+      <t>Where to find the reasons behind each part of this report in the Decision Record <xref target="D32-DR"/>.</t>
+      <table>
+        <thead><tr><th>Section</th><th>Decisions</th></tr></thead>
+        <tbody>
+          <tr><td><xref target="intro" format="counter"/>, Introduction</td><td>DR-01 to DR-08, DR-110</td></tr>
+          <tr><td><xref target="corpus" format="counter"/>, Corpus</td><td>DR-09 to DR-19</td></tr>
+          <tr><td><xref target="generations" format="counter"/>, Index Generations</td><td>DR-36, DR-41 to
+          DR-49</td></tr>
+          <tr><td><xref target="retrieval" format="counter"/>, Retrieval Pipeline</td><td>DR-20 to DR-35</td></tr>
+          <tr><td><xref target="tools" format="counter"/>, Agent Interface</td><td>DR-37 to DR-40, DR-73, DR-74,
+          DR-79, DR-80</td></tr>
+          <tr><td><xref target="workstation" format="counter"/>, Workstation</td><td>DR-50 to DR-57</td></tr>
+          <tr><td><xref target="forge" format="counter"/>, Forge</td><td>DR-58 to DR-65, DR-106 to
+          DR-108</td></tr>
+          <tr><td><xref target="network" format="counter"/>, Network and Pairing</td><td>DR-66 to DR-72</td></tr>
+          <tr><td><xref target="asklink" format="counter"/>, The Ask Link</td><td>DR-69, DR-75, DR-76, DR-111</td></tr>
+          <tr><td><xref target="dist" format="counter"/>, Distribution</td><td>DR-81 to DR-97</td></tr>
+          <tr><td><xref target="eval" format="counter"/>, Evaluation</td><td>DR-98 to DR-105</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section anchor="changes" numbered="true">
+      <name>Changes from 0.1.0-alpha.1</name>
+      <ul spacing="normal">
+        <li>Whole images on the Internet Archive with signed metadata and mirror failover replace images split into
+        parts on GitHub (DR-90).</li>
+        <li>The GPU pack is a shared core with one embedder add-on per card class and an ingestion add-on (DR-61); in
+        0.1.0-alpha.2 a Forge installs all three (DR-106).</li>
+        <li>New: <tt>deep32 doctor</tt>, <tt>deep32 selftest</tt>, SPDX documents beside each image (DR-94,
+        DR-95).</li>
+        <li>New: a portable Ask relay for Windows, Linux and macOS (DR-75). With Claude Code it offers the models and
+        strengths Claude Code lists, and each conversation can choose among them.</li>
+        <li>The Workstation image includes the Tailscale package, which alpha.1 lacked; the alpha.1 images were
+        withdrawn for that and other install defects (DR-89).</li>
+        <li>Deep32's code moved from AGPL-3.0-or-later to the Apache License 2.0 with a NOTICE file. The PDF
+        converter and <tt>e26-render</tt>, which use MuPDF, stay under AGPL-3.0-or-later (DR-110).</li>
+        <li>New: the Forge installs from the signed disc 3 images. Before it writes anything, the installer checks
+        the host against a signed host recipe, the driver and graphics memory floors and a signed storage budget.
+        The recipes for Ubuntu 24.04 with Docker Engine and for Windows 11 build 26100 or later with Docker Desktop
+        4.99.0 or later on WSL 2 are accepted by my waiver as release owner, ahead of their full end-to-end runs
+        (<xref target="status"/>).</li>
+      </ul>
+    </section>
+
+    <section anchor="status" numbered="true">
+      <name>Implementation Status in 0.1.0-alpha.2</name>
+      <t>The table compares what this report specifies with what release 0.1.0-alpha.2 does, in the places where
+      the two differ or where the release has not been tested in full.</t>
+      <table>
+        <thead><tr><th>Section</th><th>Specified</th><th>In this release</th></tr></thead>
+        <tbody>
+          <tr><td><xref target="tailnet" format="counter"/>, <xref target="doctor" format="counter"/></td>
+          <td><tt>deep32 doctor</tt> checks every link of an installation and reports a relayed path as a
+          warning</td><td>On the images, but not working yet: it does not read an installation's record, so it
+          always reports the installation check as failed</td></tr>
+          <tr><td><xref target="doctor" format="counter"/></td><td><tt>deep32 selftest</tt> compares retrieval
+          with the release's reference values</td><td>The reference values are not shipped</td></tr>
+          <tr><td><xref target="pairing" format="counter"/></td><td>Removing a pairing on either side revokes what
+          that side gave</td><td>Revoking a pairing on the Forge leaves the Forge unable to restart; revoke by
+          reinstalling the Forge into a new data folder</td></tr>
+          <tr><td><xref target="asklink" format="counter"/></td><td>The Ask link carries research sessions between
+          the Workstation and the relay</td><td>Works end to end with Claude Code on the relay: a question asked on a
+          Workstation, in the Ask window or with <tt>d32-ask</tt> in a terminal, is answered through the relay. The
+          Ask window has no password of its own in this release, so every account in the Workstation's
+          <tt>_d32users</tt> group can ask (DR-111, <xref target="sec-hosts"/>)</td></tr>
+          <tr><td><xref target="parts" format="counter"/>, <xref target="platform" format="counter"/>,
+          <xref target="forge-services" format="counter"/></td><td>The three parts share a machine or sit on
+          three; the Workstation runs on a physical machine, in Hyper-V or in KVM; the Forge runs on Linux or on
+          Windows</td><td>A Workstation in a KVM virtual machine with a Forge on Linux is the tested layout; the
+          all-in-Docker layout, which runs the engine and gateway in containers on the GPU host with no
+          Workstation, is not in this release's images; a Hyper-V Workstation and a Docker Desktop Forge have not
+          been run end to end</td></tr>
+          <tr><td><xref target="sbom" format="counter"/></td><td>The release notes state which artifacts were built
+          twice and compared byte for byte</td><td>The disc 2 build writes its image twice and stops unless the
+          two copies are identical. The GPU pack's producer stages and writes the shared core image twice from the
+          same inputs and stops unless the two images are byte-identical. Disc 1, the embedder add-ons and the
+          ingestion add-on were each built once, and no byte comparison of them is published</td></tr>
+          <tr><td><xref target="forge-services" format="counter"/></td><td>One Docker form runs on every Forge
+          host: Linux, an Ubuntu 24.04 WSL 2 distro and Docker Desktop</td><td>Forge host acceptance has not been
+          run in full; the install is opened by my waiver as release owner, and full runs on Linux, WSL 2 and
+          Docker Desktop follow in a signed revision</td></tr>
+          <tr><td><xref target="gpupack" format="counter"/></td><td>The capability manifest in the signed metadata
+          gives a storage budget for each GPU pack component</td><td>The budgets are declared upper bounds until
+          they are measured</td></tr>
+          <tr><td><xref target="convert" format="counter"/></td><td>The Forge converts a PDF with MinerU, or
+          with PyMuPDF alone on a processor without AVX2</td><td>On 19 November 2026 this release's ingestion image
+          converted a one-page test PDF with <tt>--tier standard</tt> on an RTX 2080 Ti in about 2 minutes 22
+          seconds, with Docker Engine 29.1.3 in an Ubuntu 24.04 WSL 2 distro. A conversion with the default
+          <tt>--tier advanced</tt>, or in Docker Desktop, has not been run</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section anchor="ack" numbered="false">
+      <name>Acknowledgments</name>
+      <t>Deep32 is built on the work of others: OpenBSD, SQLite, Qdrant, Text Embeddings Inference, the Jina AI
+      embedding and reranking models, MinerU, MuPDF, PyMuPDF, Tailscale, and the RFC Editor's archive of the RFC
+      series. Their licenses are listed in the repository's notices.</t>
+    </section>
+  </back>
+</rfc>

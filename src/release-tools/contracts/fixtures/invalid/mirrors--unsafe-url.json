@@ -1,0 +1,83 @@
+{
+  "architecture": "amd64",
+  "archive": {
+    "details_url": "https://archive.org/details/deep32-0.1.0-alpha.2",
+    "item": "deep32-0.1.0-alpha.2",
+    "torrent_url": "https://archive.org/download/deep32-0.1.0-alpha.2/deep32-0.1.0-alpha.2_archive.torrent"
+  },
+  "citation": {
+    "concept_doi": "https://doi.org/10.5281/zenodo.24272647",
+    "release_doi": "https://doi.org/10.0000/invented-release"
+  },
+  "discs": [
+    {
+      "chunk_bytes": 67108864,
+      "chunk_sha256": [
+        "cd389f69edebba3b206857c8baf77bc2b248d5c102123aa39ab64ec2e66583dc"
+      ],
+      "file": "deep32-0.1.0-alpha.2-disc1-workstation-amd64.img",
+      "kind": "workstation",
+      "mirrors": [
+        {
+          "id": "internet-archive",
+          "url": "https://user:secret@archive.org/download/file"
+        },
+        {
+          "id": "example-mirror",
+          "url": "https://mirror.example.org/deep32-0.1.0-alpha.2/deep32-0.1.0-alpha.2-disc1-workstation-amd64.img"
+        }
+      ],
+      "role": "disc1",
+      "sha256": "cd389f69edebba3b206857c8baf77bc2b248d5c102123aa39ab64ec2e66583dc",
+      "size": 26
+    },
+    {
+      "chunk_bytes": 67108864,
+      "chunk_sha256": [
+        "1fe5fabf26b93afbd0a9d2a4cba3651380b397046b075296c1f1096c74f795a3"
+      ],
+      "file": "deep32-0.1.0-alpha.2-disc2-content.iso",
+      "kind": "content",
+      "mirrors": [
+        {
+          "id": "internet-archive",
+          "url": "https://archive.org/download/deep32-0.1.0-alpha.2/deep32-0.1.0-alpha.2-disc2-content.iso"
+        },
+        {
+          "id": "example-mirror",
+          "url": "https://mirror.example.org/deep32-0.1.0-alpha.2/deep32-0.1.0-alpha.2-disc2-content.iso"
+        }
+      ],
+      "role": "disc2",
+      "sha256": "1fe5fabf26b93afbd0a9d2a4cba3651380b397046b075296c1f1096c74f795a3",
+      "size": 26
+    },
+    {
+      "chunk_bytes": 67108864,
+      "chunk_sha256": [
+        "ef20d2113f484125ec6f95fc2c2c2cb95e6036341c44bc27c30674b0624a93f1"
+      ],
+      "file": "deep32-0.1.0-alpha.2-disc3-gpu-pack.iso",
+      "kind": "gpu-pack",
+      "mirrors": [
+        {
+          "id": "internet-archive",
+          "url": "https://archive.org/download/deep32-0.1.0-alpha.2/deep32-0.1.0-alpha.2-disc3-gpu-pack.iso"
+        },
+        {
+          "id": "example-mirror",
+          "url": "https://mirror.example.org/deep32-0.1.0-alpha.2/deep32-0.1.0-alpha.2-disc3-gpu-pack.iso"
+        }
+      ],
+      "role": "disc3",
+      "sha256": "ef20d2113f484125ec6f95fc2c2c2cb95e6036341c44bc27c30674b0624a93f1",
+      "size": 26
+    }
+  ],
+  "format": "deep32-mirrors",
+  "format_version": 1,
+  "published_at": "2000-01-01T00:00:00Z",
+  "release": "v0.1.0-alpha.2",
+  "revision": 1,
+  "source_commit": "0000000000000000000000000000000000000000"
+}

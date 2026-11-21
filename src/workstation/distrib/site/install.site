@@ -80,7 +80,7 @@ for h in $hooks; do
 done
 if [ $rc -eq 0 ]; then
 	print -r -- "D32: done site set" | tee -a $log
-	c6i done "msg=installed; the machine restarts"
+	c6i done "msg=installed; turn the machine off and remove the install medium"
 	rm -f /install.site
 fi
 exit $rc

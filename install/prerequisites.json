@@ -1,0 +1,772 @@
+{
+  "schema": "deep32.prerequisites.v1",
+  "contract": "C10",
+  "contract_version": 4,
+  "recipe_maturity": "unverified-offline",
+  "evidence_date": null,
+  "about": "Candidate corrective commands are printed only. Official catalogue/version and clean-host evidence remains a release gate.",
+  "sources": [
+    "https://learn.microsoft.com/windows/wsl/install",
+    "https://learn.microsoft.com/virtualization/hyper-v-on-windows/quick-start/enable-hyper-v",
+    "https://www.gpg4win.org/",
+    "https://docs.docker.com/engine/install/ubuntu/",
+    "https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html",
+    "https://tailscale.com/kb/installation",
+    "https://docs.docker.com/desktop/setup/install/windows-install/",
+    "https://docs.docker.com/desktop/features/gpu/"
+  ],
+  "checks": [
+    {
+      "id": "download.git",
+      "scopes": [
+        "download"
+      ],
+      "need": "Git",
+      "minimum_version": null,
+      "actions": {
+        "windows": "winget install --exact --id Git.Git --source winget",
+        "linux": "sudo apt-get install --yes git",
+        "macos": "Complete the named vendor prerequisite and rerun this check."
+      },
+      "requires_reboot": false,
+      "requires_elevation": false
+    },
+    {
+      "id": "download.gpg",
+      "scopes": [
+        "download"
+      ],
+      "need": "GnuPG (gpg, not gpgv)",
+      "minimum_version": null,
+      "actions": {
+        "windows": "Install GnuPG using this host's package manager or the vendor download; reopen the terminal and rerun this check.",
+        "linux": "Install GnuPG using this host's package manager or the vendor download; reopen the terminal and rerun this check.",
+        "macos": "Install GnuPG using this host's package manager or the vendor download; reopen the terminal and rerun this check."
+      },
+      "requires_reboot": false,
+      "requires_elevation": false
+    },
+    {
+      "id": "download.python",
+      "scopes": [
+        "download"
+      ],
+      "need": "Python 3.10 or newer",
+      "minimum_version": "3.10.0",
+      "actions": {
+        "windows": "Install Python 3.10 or later using this host's package manager or the Python vendor download; reopen the terminal and rerun this check.",
+        "linux": "Install Python 3.10 or later using this host's package manager or the Python vendor download; reopen the terminal and rerun this check.",
+        "macos": "Install Python 3.10 or later using this host's package manager or the Python vendor download; reopen the terminal and rerun this check."
+      },
+      "requires_reboot": false,
+      "requires_elevation": false
+    },
+    {
+      "id": "download.curl",
+      "scopes": [
+        "unix-download"
+      ],
+      "need": "curl",
+      "minimum_version": null,
+      "actions": {
+        "windows": "curl.exe --version",
+        "linux": "sudo apt-get install --yes curl",
+        "macos": "Complete the named vendor prerequisite and rerun this check."
+      },
+      "requires_reboot": false,
+      "requires_elevation": false
+    },
+    {
+      "id": "download.bash",
+      "scopes": [
+        "unix-download"
+      ],
+      "need": "Bash",
+      "minimum_version": null,
+      "actions": {
+        "windows": "winget install --exact --id Git.Git --source winget",
+        "linux": "sudo apt-get install --yes bash",
+        "macos": "Complete the named vendor prerequisite and rerun this check."
+      },
+      "requires_reboot": false,
+      "requires_elevation": false
+    },
+    {
+      "id": "download.key",
+      "scopes": [
+        "download"
+      ],
+      "need": "The shipped release public key is readable",
+      "minimum_version": null,
+      "actions": {
+        "windows": "Get-Item -LiteralPath install\\release-key.gpg",
+        "linux": "test -r install/release-key.gpg",
+        "macos": "Complete the named vendor prerequisite and rerun this check."
+      },
+      "requires_reboot": false,
+      "requires_elevation": false
+    },
+    {
+      "id": "platform.recipe",
+      "scopes": [
+        "base"
+      ],
+      "need": "A dated, tested host preparation recipe for this OS and journey",
+      "minimum_version": null,
+      "actions": {
+        "windows": "Obtain the approved Windows host recipe and its clean-machine acceptance record.",
+        "linux": "Obtain the approved Ubuntu 24.04 host recipe and its clean-machine acceptance record.",
+        "macos": "Complete the named vendor prerequisite and rerun this check."
+      },
+      "requires_reboot": false,
+      "requires_elevation": false
+    },
+    {
+      "id": "host.reboot-clear",
+      "scopes": [
+        "host"
+      ],
+      "need": "No required host restart remains",
+      "minimum_version": null,
+      "actions": {
+        "windows": "Save your work, restart Windows, then rerun this check.",
+        "linux": "Save your work, restart the host, then rerun this check.",
+        "macos": "Complete the named vendor prerequisite and rerun this check."
+      },
+      "requires_reboot": true,
+      "requires_elevation": false
+    },
+    {
+      "id": "host.tailscale-installed",
+      "scopes": [
+        "base"
+      ],
+      "need": "Tailscale on this owning host",
+      "minimum_version": null,
+      "actions": {
+        "windows": "winget install --exact --id Tailscale.Tailscale --source winget",
+        "linux": "Install Tailscale using the approved signed Ubuntu 24.04 package recipe.",
+        "macos": "Complete the named vendor prerequisite and rerun this check."
+      },
+      "requires_reboot": false,
+      "requires_elevation": false
+    },
+    {
+      "id": "host.tailscale-daemon",
+      "scopes": [
+        "base"
+      ],
+      "need": "The owning host Tailscale daemon is running",
+      "minimum_version": null,
+      "actions": {
+        "windows": "Start-Service Tailscale",
+        "linux": "sudo systemctl start tailscaled",
+        "macos": "Complete the named vendor prerequisite and rerun this check."
+      },
+      "requires_reboot": false,
+      "requires_elevation": true
+    },
+    {
+      "id": "host.tailscale-signed-in",
+      "scopes": [
+        "base"
+      ],
+      "need": "The owning host is signed into Tailscale",
+      "minimum_version": null,
+      "actions": {
+        "windows": "tailscale up",
+        "linux": "sudo tailscale up",
+        "macos": "Complete the named vendor prerequisite and rerun this check."
+      },
+      "requires_reboot": false,
+      "requires_elevation": false
+    },
+    {
+      "id": "host.membership-confirmed",
+      "scopes": [
+        "base"
+      ],
+      "need": "The person confirmed the intended Tailscale account on this host",
+      "minimum_version": null,
+      "actions": {
+        "windows": "tailscale status",
+        "linux": "tailscale status",
+        "macos": "Complete the named vendor prerequisite and rerun this check."
+      },
+      "requires_reboot": false,
+      "requires_elevation": false
+    },
+    {
+      "id": "host.magicdns",
+      "scopes": [
+        "publish"
+      ],
+      "need": "MagicDNS enabled on the intended tailnet",
+      "minimum_version": null,
+      "actions": {
+        "windows": "Enable MagicDNS on the Tailscale DNS administration page.",
+        "linux": "Enable MagicDNS on the Tailscale DNS administration page.",
+        "macos": "Complete the named vendor prerequisite and rerun this check."
+      },
+      "requires_reboot": false,
+      "requires_elevation": false
+    },
+    {
+      "id": "host.https-certificates",
+      "scopes": [
+        "publish"
+      ],
+      "need": "HTTPS Certificates enabled; approve public certificate node-name disclosure",
+      "minimum_version": null,
+      "actions": {
+        "windows": "Enable HTTPS Certificates on the Tailscale DNS administration page after reviewing certificate transparency.",
+        "linux": "Enable HTTPS Certificates on the Tailscale DNS administration page after reviewing certificate transparency.",
+        "macos": "Complete the named vendor prerequisite and rerun this check."
+      },
+      "requires_reboot": false,
+      "requires_elevation": false
+    },
+    {
+      "id": "host.architecture",
+      "scopes": [
+        "host"
+      ],
+      "need": "An amd64/x64 host",
+      "minimum_version": null,
+      "actions": {
+        "windows": "Use an amd64/x64 host for this journey.",
+        "linux": "Use an amd64/x64 host for this journey.",
+        "macos": "Complete the named vendor prerequisite and rerun this check."
+      },
+      "requires_reboot": false,
+      "requires_elevation": false
+    },
+    {
+      "id": "host.cpu-virtualisation",
+      "scopes": [
+        "vm",
+        "windows-gpu"
+      ],
+      "need": "Firmware virtualisation enabled",
+      "minimum_version": null,
+      "actions": {
+        "windows": "Enable virtualisation in the firmware settings, restart Windows, then rerun this check.",
+        "linux": "Enable virtualisation in the firmware settings, restart the host, then rerun this check.",
+        "macos": "Complete the named vendor prerequisite and rerun this check."
+      },
+      "requires_reboot": true,
+      "requires_elevation": false
+    },
+    {
+      "id": "host.slat",
+      "scopes": [
+        "vm",
+        "windows-gpu"
+      ],
+      "need": "Second-level address translation available",
+      "minimum_version": null,
+      "actions": {
+        "windows": "Use a host with SLAT support.",
+        "linux": "Use a host with SLAT support.",
+        "macos": "Complete the named vendor prerequisite and rerun this check."
+      },
+      "requires_reboot": false,
+      "requires_elevation": false
+    },
+    {
+      "id": "workstation.memory",
+      "scopes": [
+        "vm"
+      ],
+      "need": "RAM for the Workstation and retained host budget",
+      "minimum_version": null,
+      "actions": {
+        "windows": "Measure currently available RAM before VM start, then budget the approved VM allocation plus retained Windows/production headroom. Neither 16 GiB installed nor a 10 GiB fallback proves capacity. Stop if the approved budget does not fit; do not take production memory.",
+        "linux": "Measure currently available RAM before VM start, then budget the approved VM allocation plus retained host/model/other-workload headroom. Stop if the approved KVM recipe does not fit; do not assume the Hyper-V reduced-memory exception applies.",
+        "macos": "Complete the named vendor prerequisite and rerun this check."
+      },
+      "requires_reboot": false,
+      "requires_elevation": false
+    },
+    {
+      "id": "workstation.dhcp",
+      "scopes": [
+        "vm"
+      ],
+      "need": "A wired virtual NIC and a DHCP-capable switch/network selected",
+      "minimum_version": null,
+      "actions": {
+        "windows": "Review Get-VMSwitch and select the approved existing DHCP-capable switch with the VM off. A listed switch is not proof of DHCP: qualify the wired VM NIC, address and route inside the guest. Do not invent static addresses or alter host production routes.",
+        "linux": "Review the approved local KVM network and wired NIC mapping, then qualify the guest DHCP address and route. A network list alone is not proof of DHCP. Preserve the reviewed recipe; do not copy Hyper-V switch names or invent static addresses.",
+        "macos": "Complete the named vendor prerequisite and rerun this check."
+      },
+      "requires_reboot": false,
+      "requires_elevation": false
+    },
+    {
+      "id": "workstation.recipe",
+      "scopes": [
+        "vm"
+      ],
+      "need": "The exact VM NIC/display/firmware/media recipe passed its host test",
+      "minimum_version": null,
+      "actions": {
+        "windows": "Obtain the tested Generation-1 Hyper-V recipe; verify VM-name ownership, wired NIC, distinct verified installer and empty target disk, then install-to-target reboot before applying an overlay. Never overwrite an existing target or unrelated VM.",
+        "linux": "Obtain the reviewed KVM BIOS/IDE/e1000 recipe and equivalent local host mapping; verify distinct installer, empty persistent target and install-to-target reboot. Do not use the Hyper-V disk or guess UEFI/virtio conversions.",
+        "macos": "Complete the named vendor prerequisite and rerun this check."
+      },
+      "requires_reboot": false,
+      "requires_elevation": false
+    },
+    {
+      "id": "windows.edition",
+      "scopes": [
+        "windows-vm"
+      ],
+      "need": "Windows Pro, Enterprise or Education for Hyper-V",
+      "minimum_version": null,
+      "actions": {
+        "windows": "Use Windows Pro, Enterprise or Education, or a separately tested Linux/KVM host.",
+        "linux": "Use a supported Workstation host.",
+        "macos": "Complete the named vendor prerequisite and rerun this check."
+      },
+      "requires_reboot": false,
+      "requires_elevation": false
+    },
+    {
+      "id": "windows.hyperv-feature",
+      "scopes": [
+        "windows-vm"
+      ],
+      "need": "Hyper-V feature enabled",
+      "minimum_version": null,
+      "actions": {
+        "windows": "Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V-All -All",
+        "linux": "Use a Windows host for this feature.",
+        "macos": "Complete the named vendor prerequisite and rerun this check."
+      },
+      "requires_reboot": true,
+      "requires_elevation": true
+    },
+    {
+      "id": "windows.hyperv-module",
+      "scopes": [
+        "windows-vm"
+      ],
+      "need": "Hyper-V management module available",
+      "minimum_version": null,
+      "actions": {
+        "windows": "Get-Module -ListAvailable Hyper-V",
+        "linux": "Use a Windows host for this feature.",
+        "macos": "Complete the named vendor prerequisite and rerun this check."
+      },
+      "requires_reboot": false,
+      "requires_elevation": false
+    },
+    {
+      "id": "windows.hyperv-service",
+      "scopes": [
+        "windows-vm"
+      ],
+      "need": "Hyper-V VMMS service running",
+      "minimum_version": null,
+      "actions": {
+        "windows": "Start-Service vmms",
+        "linux": "Use a Windows host for this feature.",
+        "macos": "Complete the named vendor prerequisite and rerun this check."
+      },
+      "requires_reboot": false,
+      "requires_elevation": true
+    },
+    {
+      "id": "linux.kvm-device",
+      "scopes": [
+        "linux-vm"
+      ],
+      "need": "Read/write access to /dev/kvm",
+      "minimum_version": null,
+      "actions": {
+        "windows": "Use a Linux/KVM host.",
+        "linux": "test -r /dev/kvm && test -w /dev/kvm",
+        "macos": "Complete the named vendor prerequisite and rerun this check."
+      },
+      "requires_reboot": false,
+      "requires_elevation": false
+    },
+    {
+      "id": "linux.qemu",
+      "scopes": [
+        "linux-vm"
+      ],
+      "need": "QEMU system and image tools",
+      "minimum_version": null,
+      "actions": {
+        "windows": "Use a Linux/KVM host.",
+        "linux": "sudo apt-get install --yes qemu-system-x86 qemu-utils",
+        "macos": "Complete the named vendor prerequisite and rerun this check."
+      },
+      "requires_reboot": false,
+      "requires_elevation": true
+    },
+    {
+      "id": "linux.libvirt",
+      "scopes": [
+        "linux-vm"
+      ],
+      "need": "libvirt and virt-install available and local connection usable",
+      "minimum_version": null,
+      "actions": {
+        "windows": "Use a Linux/KVM host.",
+        "linux": "sudo apt-get install --yes libvirt-daemon-system libvirt-clients virtinst",
+        "macos": "Complete the named vendor prerequisite and rerun this check."
+      },
+      "requires_reboot": false,
+      "requires_elevation": true
+    },
+    {
+      "id": "windows.build",
+      "scopes": [
+        "windows-gpu"
+      ],
+      "need": "Windows build accepted by the Docker Desktop WSL2 engine recipe",
+      "minimum_version": null,
+      "actions": {
+        "windows": "winver",
+        "linux": "Use a supported Windows host.",
+        "macos": "Complete the named vendor prerequisite and rerun this check."
+      },
+      "requires_reboot": false,
+      "requires_elevation": false
+    },
+    {
+      "id": "windows.wsl-feature",
+      "scopes": [
+        "windows-gpu"
+      ],
+      "need": "WSL and Virtual Machine Platform enabled",
+      "minimum_version": null,
+      "actions": {
+        "windows": "Enable Windows Subsystem for Linux and Virtual Machine Platform, restart, then enable Docker Desktop Use the WSL 2 based engine.",
+        "linux": "Use a Windows host.",
+        "macos": "Complete the named vendor prerequisite and rerun this check."
+      },
+      "requires_reboot": true,
+      "requires_elevation": true
+    },
+    {
+      "id": "windows.wsl-service",
+      "scopes": [
+        "windows-gpu"
+      ],
+      "need": "WSL service available without starting a distribution",
+      "minimum_version": null,
+      "actions": {
+        "windows": "Get-Service WslService,LxssManager -ErrorAction SilentlyContinue",
+        "linux": "Use a Windows host.",
+        "macos": "Complete the named vendor prerequisite and rerun this check."
+      },
+      "requires_reboot": false,
+      "requires_elevation": false
+    },
+    {
+      "id": "windows.wsl-version",
+      "scopes": [
+        "windows-gpu"
+      ],
+      "need": "WSL2 version accepted by Docker Desktop; no separate distribution import",
+      "minimum_version": null,
+      "actions": {
+        "windows": "Update WSL through Windows Update, then enable Docker Desktop Settings > General > Use the WSL 2 based engine.",
+        "linux": "Use a Windows host.",
+        "macos": "Complete the named vendor prerequisite and rerun this check."
+      },
+      "requires_reboot": false,
+      "requires_elevation": false
+    },
+    {
+      "id": "windows.image-mount",
+      "scopes": [
+        "windows-gpu"
+      ],
+      "need": "Native ISO mounting commands available",
+      "minimum_version": null,
+      "actions": {
+        "windows": "Get-Command Mount-DiskImage,Dismount-DiskImage",
+        "linux": "Use a Windows host.",
+        "macos": "Complete the named vendor prerequisite and rerun this check."
+      },
+      "requires_reboot": false,
+      "requires_elevation": false
+    },
+    {
+      "id": "gpu.release-envelope",
+      "scopes": [
+        "gpu"
+      ],
+      "need": "Authenticated release driver/model/toolkit/resource minima resolved",
+      "minimum_version": null,
+      "actions": {
+        "windows": "Obtain the complete signed release prerequisite envelope; TO-PIN values cannot pass.",
+        "linux": "Obtain the complete signed release prerequisite envelope; TO-PIN values cannot pass.",
+        "macos": "Complete the named vendor prerequisite and rerun this check."
+      },
+      "requires_reboot": false,
+      "requires_elevation": false
+    },
+    {
+      "id": "gpu.driver",
+      "scopes": [
+        "gpu"
+      ],
+      "need": "Every selected NVIDIA GPU driver meets the release maximum of minima",
+      "minimum_version": null,
+      "actions": {
+        "windows": "Compare every selected GPU driver against the maximum of all resolved signed release minima; record actual compute class and VRAM. An installed tool or advertised runtime is insufficient. Obtain approved driver preparation and restart only in the authorised maintenance window; no guessed floor or test-image pull.",
+        "linux": "Compare every selected GPU driver against the maximum of all resolved signed release minima; record actual compute class, VRAM and runtime/CDI provenance. Obtain approved host preparation in the authorised GPU window; no guessed floor, CPU fallback or test-image pull.",
+        "macos": "Complete the named vendor prerequisite and rerun this check."
+      },
+      "requires_reboot": true,
+      "requires_elevation": false
+    },
+    {
+      "id": "gpu.capability",
+      "scopes": [
+        "gpu"
+      ],
+      "need": "Every selected GPU has a supported capability and compatible model-image class",
+      "minimum_version": null,
+      "actions": {
+        "windows": "nvidia-smi --query-gpu=compute_cap --format=csv,noheader",
+        "linux": "nvidia-smi --query-gpu=compute_cap --format=csv,noheader",
+        "macos": "Complete the named vendor prerequisite and rerun this check."
+      },
+      "requires_reboot": false,
+      "requires_elevation": false
+    },
+    {
+      "id": "gpu.memory",
+      "scopes": [
+        "gpu"
+      ],
+      "need": "Selected GPU memory meets the signed role/model plan",
+      "minimum_version": null,
+      "actions": {
+        "windows": "nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits",
+        "linux": "nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits",
+        "macos": "Complete the named vendor prerequisite and rerun this check."
+      },
+      "requires_reboot": false,
+      "requires_elevation": false
+    },
+    {
+      "id": "gpu.ports",
+      "scopes": [
+        "gpu"
+      ],
+      "need": "Required loopback model/publication ports are free or installation-owned",
+      "minimum_version": null,
+      "actions": {
+        "windows": "Get-NetTCPConnection -State Listen",
+        "linux": "ss -ltn",
+        "macos": "Complete the named vendor prerequisite and rerun this check."
+      },
+      "requires_reboot": false,
+      "requires_elevation": false
+    },
+    {
+      "id": "docker.local-context",
+      "scopes": [
+        "docker"
+      ],
+      "need": "The selected Docker daemon is this host; no remote context",
+      "minimum_version": null,
+      "actions": {
+        "windows": "Use the local Docker Desktop Linux engine named pipe; remote Docker contexts are refused.",
+        "linux": "docker context show",
+        "macos": "Complete the named vendor prerequisite and rerun this check."
+      },
+      "requires_reboot": false,
+      "requires_elevation": false
+    },
+    {
+      "id": "docker.server",
+      "scopes": [
+        "docker"
+      ],
+      "need": "Accessible Docker server meets release minimum",
+      "minimum_version": "19.03.0",
+      "actions": {
+        "windows": "Install and start Docker Desktop, switch to Linux containers, and enable Settings > General > Use the WSL 2 based engine.",
+        "linux": "Install Docker Engine and the Docker Compose v2 plugin using this host's package manager or the Docker vendor download; rerun this check.",
+        "macos": "Complete the named vendor prerequisite and rerun this check."
+      },
+      "requires_reboot": false,
+      "requires_elevation": false
+    },
+    {
+      "id": "docker.compose",
+      "scopes": [
+        "docker"
+      ],
+      "need": "Docker Compose meets release minimum",
+      "minimum_version": "2.30.0",
+      "actions": {
+        "windows": "Install the Docker Compose v2 plugin at version 2.30.0 or later using this host's package manager or the Docker vendor download; rerun this check.",
+        "linux": "Install the Docker Compose v2 plugin at version 2.30.0 or later using this host's package manager or the Docker vendor download; rerun this check.",
+        "macos": "Install the Docker Compose v2 plugin at version 2.30.0 or later using this host's package manager or the Docker vendor download; rerun this check."
+      },
+      "requires_reboot": false,
+      "requires_elevation": false
+    },
+    {
+      "id": "docker.nvidia-runtime",
+      "scopes": [
+        "docker"
+      ],
+      "need": "NVIDIA runtime or discovered GPU CDI device available to Docker",
+      "minimum_version": null,
+      "actions": {
+        "windows": "Use Docker Desktop Linux containers with its WSL2 backend and NVIDIA GPU support; install the release-qualified NVIDIA Windows driver.",
+        "linux": "sudo nvidia-ctk runtime configure --runtime=docker",
+        "macos": "Complete the named vendor prerequisite and rerun this check."
+      },
+      "requires_reboot": false,
+      "requires_elevation": true
+    },
+    {
+      "id": "docker.storage",
+      "scopes": [
+        "docker"
+      ],
+      "need": "Docker data-root backing filesystem and role expansion budget known",
+      "minimum_version": null,
+      "actions": {
+        "windows": "Record Docker Desktop's actual disk-image backing filesystem, private bind ACL behaviour and signed role expansion budget. Include retained media, loaded images, model binds and rollback space; verify free bytes before load and after restart. Desktop installation alone cannot pass this check.",
+        "linux": "Record the actual local Docker data-root backing filesystem, private persistent Forge/media paths and signed expansion budget. Include retained images/models and rollback generations, verify free bytes before load and qualify private permissions and restart persistence. Do not delete shared or production data to fit.",
+        "macos": "Complete the named vendor prerequisite and rerun this check."
+      },
+      "requires_reboot": false,
+      "requires_elevation": false
+    },
+    {
+      "id": "full.payload",
+      "scopes": [
+        "full"
+      ],
+      "need": "Released engine, gateway and signed content importer images present",
+      "minimum_version": null,
+      "actions": {
+        "windows": "Obtain Phase B full-role media.",
+        "linux": "Obtain Phase B full-role media.",
+        "macos": "Complete the named vendor prerequisite and rerun this check."
+      },
+      "requires_reboot": false,
+      "requires_elevation": false
+    },
+    {
+      "id": "agent.cli",
+      "scopes": [
+        "agent"
+      ],
+      "need": "Claude Code or Codex CLI installed and version-readable",
+      "minimum_version": null,
+      "actions": {
+        "windows": "Install the selected agent from its official installation instructions.",
+        "linux": "Install the selected agent from its official installation instructions.",
+        "macos": "Complete the named vendor prerequisite and rerun this check."
+      },
+      "requires_reboot": false,
+      "requires_elevation": false
+    },
+    {
+      "id": "agent.login",
+      "scopes": [
+        "agent"
+      ],
+      "need": "The person completed the selected agent native sign-in",
+      "minimum_version": null,
+      "actions": {
+        "windows": "Run the selected agent and complete its native sign-in.",
+        "linux": "Run the selected agent and complete its native sign-in.",
+        "macos": "Complete the named vendor prerequisite and rerun this check."
+      },
+      "requires_reboot": false,
+      "requires_elevation": false
+    },
+    {
+      "id": "storage.plan",
+      "scopes": [
+        "host"
+      ],
+      "need": "Selected paths have a per-filesystem authenticated download/target/install budget",
+      "minimum_version": null,
+      "actions": {
+        "windows": "Use a measured signed peak budget per backing filesystem for downloads, joined images, retained payload, Docker store, VM target, imported content/index and rollback generations. Sum shared-volume requirements and recheck free bytes before download, image load and import; disc sizes alone are insufficient. Preserve previous generations and private state on failure.",
+        "linux": "Use a measured signed peak budget per backing filesystem for downloads, joined images, retained payload, Docker store, VM target, imported content/index and rollback generations. Sum shared-volume requirements and recheck free bytes before download, image load and import; disc sizes alone are insufficient. Preserve previous generations and private state on failure.",
+        "macos": "Complete the named vendor prerequisite and rerun this check."
+      },
+      "requires_reboot": false,
+      "requires_elevation": false
+    },
+    {
+      "id": "windows.docker-desktop",
+      "scopes": [
+        "windows-gpu"
+      ],
+      "need": "Docker Desktop installed for Linux containers",
+      "minimum_version": null,
+      "actions": {
+        "windows": "Install Docker Desktop from its official Windows installer.",
+        "linux": "Use the native Linux Docker form.",
+        "macos": "Use a supported GPU host."
+      },
+      "requires_reboot": false,
+      "requires_elevation": false
+    },
+    {
+      "id": "windows.docker-wsl2",
+      "scopes": [
+        "windows-gpu"
+      ],
+      "need": "Docker Desktop Linux containers use the WSL2 backend",
+      "minimum_version": null,
+      "actions": {
+        "windows": "Switch Docker Desktop to Linux containers and enable Settings > General > Use the WSL 2 based engine.",
+        "linux": "Use the native Linux Docker form.",
+        "macos": "Use a supported GPU host."
+      },
+      "requires_reboot": false,
+      "requires_elevation": false
+    },
+    {
+      "id": "windows.docker-gpu",
+      "scopes": [
+        "windows-gpu"
+      ],
+      "need": "Docker Desktop NVIDIA GPU support available through its WSL2 backend",
+      "minimum_version": null,
+      "actions": {
+        "windows": "Qualify the approved Docker Desktop Linux/WSL2 engine, release-qualified NVIDIA Windows driver, actual GPU class/VRAM and private offline model binds in an authorised GPU window. Runtime advertisement alone does not prove model execution; do not pull a sample image or integrate an unrelated distribution.",
+        "linux": "Use the native Linux Docker form.",
+        "macos": "Use a supported GPU host."
+      },
+      "requires_reboot": false,
+      "requires_elevation": false
+    },
+    {
+      "id": "windows.docker-isolation",
+      "scopes": [
+        "windows-gpu"
+      ],
+      "need": "Operator confirmed Docker Desktop integration is disabled for unrelated distributions",
+      "minimum_version": null,
+      "actions": {
+        "windows": "Before Desktop preparation or restart, confirm the authorised maintenance/GPU window and keep WSL integration disabled for every unrelated distribution, including automatic default-distribution integration. Stop if isolation cannot be preserved. Never launch, convert, import into, reset or unregister an unrelated distribution, or use global WSL shutdown. This manual gate cannot pass from engine discovery.",
+        "linux": "Use the native Linux Docker form; Desktop distribution integration is not part of this role.",
+        "macos": "Use a supported GPU host."
+      },
+      "requires_reboot": false,
+      "requires_elevation": false
+    }
+  ]
+}

@@ -13,6 +13,7 @@ py3-cryptography
 py3-cffi
 py3-rpds-py
 age
+tailscale
 abseil-cpp
 libb2
 bzip2

@@ -1,0 +1,30 @@
+{
+  "bundle_id": "fixture-beacons-v1",
+  "fixture_only": true,
+  "questions": [
+    {
+      "collection": "fixture",
+      "id": "fixture-beacon",
+      "labels": [
+        {
+          "doc_key": "fixture-beacon-manual",
+          "exact_span": "The sample beacon is amber."
+        }
+      ],
+      "text": "What colour is the sample beacon?"
+    },
+    {
+      "collection": "fixture",
+      "id": "fixture-kite",
+      "labels": [
+        {
+          "doc_key": "fixture-kite-manual",
+          "exact_span": "The paper kite is a diamond."
+        }
+      ],
+      "text": "What shape is the paper kite?"
+    }
+  ],
+  "release": "v0.1.0-alpha.2",
+  "schema_version": 1
+}

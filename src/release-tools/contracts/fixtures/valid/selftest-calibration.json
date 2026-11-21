@@ -1,0 +1,59 @@
+{
+  "bundle_id": "fixture-beacons-v1",
+  "candidate_inputs": [
+    {
+      "path": "candidate-inputs.json",
+      "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+    }
+  ],
+  "corpus_fingerprint": "0000000000000000000000000000000000000000000000000000000000000000",
+  "fixture_only": true,
+  "format": "deep32-selftest-calibration",
+  "format_version": 1,
+  "generation": "sample-generation",
+  "models": {
+    "embedding": {
+      "model": "fixture-embedding",
+      "revision": "1111111111111111111111111111111111111111"
+    },
+    "reranker": {
+      "model": "fixture-reranker",
+      "revision": "2222222222222222222222222222222222222222"
+    }
+  },
+  "question_count": 2,
+  "questions_sha256": "36242b28c6bdd31cd94f0e525b5c602918368a3754ddb8ff751512ba2869f47a",
+  "release": "v0.1.0-alpha.2",
+  "request_sha256": "ffde4013457220bdb86543d818915bab58c4ab5e7856ac5c2efc14913639dd3b",
+  "runs": [
+    {
+      "complete": true,
+      "id": "synthetic-run-1",
+      "ranks_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "receipt": {
+        "path": "calibration-run-1.json",
+        "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      }
+    },
+    {
+      "complete": true,
+      "id": "synthetic-run-2",
+      "ranks_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "receipt": {
+        "path": "calibration-run-2.json",
+        "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      }
+    },
+    {
+      "complete": true,
+      "id": "synthetic-run-3",
+      "ranks_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "receipt": {
+        "path": "calibration-run-3.json",
+        "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      }
+    }
+  ],
+  "settings_sha256": "d83fc3a8397bc266cfcd8ed2daa09f0281a5e45ab7cb4e6c22e371d830020d1e",
+  "signer_fingerprint": "B205B406548627AABF5250D8A078C5F25D025DD6"
+}

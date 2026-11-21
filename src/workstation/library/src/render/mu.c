@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 Jeffrey A. Cummings */
 /* mu.c: e26-render's MuPDF context (mu.h). */
 #include "mu.h"
 #ifdef HAVE_MUPDF

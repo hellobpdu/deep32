@@ -1,0 +1,6 @@
+interface:
+  display_name: "deep32-install"
+  short_description: "Install Deep32 with you, one machine and one wizard screen at a time"
+  default_prompt: "Install Deep32 with me"
+policy:
+  allow_implicit_invocation: true

@@ -5,8 +5,11 @@ Dependency packages, model weights, container images and third-party media are n
 The dependency references below describe what the build and runtime code use; they do not
 claim that those dependencies or their corresponding sources are distributed here.
 
-Project code and documentation terms are in licenses/LICENSING.md. The converter source is under
-AGPL-3.0-or-later in src/gpu-pack/containers/converter-agpl, with its full licence and source.
+Project code and documentation terms are in licenses/LICENSING.md. The project code is under the
+Apache License 2.0, and NOTICE at the repository root carries its attribution notices. The
+parts that use MuPDF are AGPL-3.0-or-later because MuPDF is AGPL: the converter source in
+src/gpu-pack/containers/converter-agpl, which imports PyMuPDF, with its full license and source, and
+the Library renderer e26-render in src/workstation/library/src/render, which links libmupdf.
 
 The names are the trademarks of their owners, used only to describe compatibility, and Deep32 is not affiliated with or endorsed by them.
 
@@ -15,7 +18,8 @@ The names are the trademarks of their owners, used only to describe compatibilit
 | Component | Version | Licence | Notes |
 |---|---|---|---|
 | CDE calculator message catalogue source | 2.5.4pre0 | LGPL-2.1-or-later | src/workstation/ship/u10/src/desktop-res/dtcalc: original LGPL-2.0-or-later grant retained; adjacent full LGPL 2.1 terms preserved. Generated catalogue and CDE runtime are not included. |
-| Deep32 PDF converter source | 1.0.0 | AGPL-3.0-or-later | Complete project converter source in src/gpu-pack/containers/converter-agpl; upstream dependencies are referenced separately. |
+| Deep32 PDF converter source | 1.0.0 | AGPL-3.0-or-later | Complete project converter source in src/gpu-pack/containers/converter-agpl; AGPL-3.0-or-later because it imports PyMuPDF (AGPL); upstream dependencies are referenced separately. |
+| Deep32 Library renderer e26-render source | 0.1.0-alpha.2 | AGPL-3.0-or-later | Source in src/workstation/library/src/render, built by src/workstation/library/Makefile; AGPL-3.0-or-later because it links libmupdf (MuPDF, AGPL). MuPDF itself is referenced separately. |
 
 ## Referenced dependencies and models
 
@@ -70,7 +74,7 @@ The names are the trademarks of their owners, used only to describe compatibilit
 | hyperframe | 6.1.0 | https://pypi.org/project/hyperframe/ | Not included. The selected upstream package licence applies; no dependency files are distributed here. | engine dependency closure record for public source snapshot |
 | idna | 3.20 | https://pypi.org/project/idna/ | Not included. The selected upstream package licence applies; no dependency files are distributed here. | engine dependency closure record for public source snapshot |
 | importlib_metadata | 8.7.1 | https://pypi.org/project/importlib_metadata/ | Not included. Not distributed here; upstream licence confirmation belongs to binary/package assembly. | src/gpu-pack/containers/builder/requirements-engine.in:34 |
-| Installer importer support modules | canonical 902 slot source snapshot | https://github.com/hellobpdu/deep32 | Not included. project code licence; original source headers retained. | Twenty source payloads were decoded from the canonical slot. The release includes readable files and validated payload hashes. VENDOR.txt records original source payload hashes; projection.json and the canonical slot SHA256 table record exported bytes. |
+| Installer importer support modules | canonical 902 slot source snapshot | https://github.com/hellobpdu/deep32 | Not included. Apache-2.0, the project code license; original source headers retained. | Twenty source payloads were decoded from the canonical slot. The release includes readable files and validated payload hashes. VENDOR.txt records original source payload hashes; projection.json and the canonical slot SHA256 table record exported bytes. |
 | jaraco.text | 4.0.0 | https://pypi.org/project/jaraco.text/ | Not included. Not distributed here; upstream licence confirmation belongs to binary/package assembly. | src/gpu-pack/containers/builder/requirements-engine.in:35 |
 | jaraco_context | 6.1.0 | https://pypi.org/project/jaraco_context/ | Not included. Not distributed here; upstream licence confirmation belongs to binary/package assembly. | src/gpu-pack/containers/builder/requirements-engine.in:36 |
 | jaraco_functools | 4.4.0 | https://pypi.org/project/jaraco_functools/ | Not included. Not distributed here; upstream licence confirmation belongs to binary/package assembly. | src/gpu-pack/containers/builder/requirements-engine.in:37 |
@@ -91,7 +95,7 @@ The names are the trademarks of their owners, used only to describe compatibilit
 | mcp-types | 2.2.0 | https://pypi.org/project/mcp-types/ | Not included. The selected upstream package licence applies; no dependency files are distributed here. | src/gateway/rag_edge.py:31 |
 | mcp_types | 2.2.0 | https://pypi.org/project/mcp_types/ | Not included. Not distributed here; upstream licence confirmation belongs to binary/package assembly. | src/kb-tools/linux-line/compose/requirements-gateway.in:19 |
 | mdurl | 0.1.2 | https://pypi.org/project/mdurl/ | Not included. Not distributed here; upstream licence confirmation belongs to binary/package assembly. | src/gpu-pack/containers/builder/requirements-engine.in:43 |
-| mineru | 4.0.7 | https://pypi.org/project/mineru/ | Not included. The selected upstream package licence applies; no dependency files are distributed here. | src/gpu-pack/containers/converter-agpl/requirements-direct.txt:1 |
+| mineru | 4.0.7 | https://pypi.org/project/mineru/ | MinerU Open Source License: Apache-2.0 with additional terms (a separate commercial license above 100 million monthly active users or USD 20 million monthly revenue; an online service for third parties built on MinerU must say clearly that it uses MinerU). The package is not included here; its license text is src/gpu-pack/licenses/MinerU-4.0.7-LICENSE.md. | src/gpu-pack/containers/converter-agpl/requirements-direct.txt:1 |
 | mineru-llama-cpp | 0.1.2 | https://pypi.org/project/mineru-llama-cpp/ | Not included. The selected upstream package licence applies; no dependency files are distributed here. | src/gpu-pack/containers/converter-agpl/requirements-direct.txt:6 |
 | more_itertools | 10.8.0 | https://pypi.org/project/more_itertools/ | Not included. Not distributed here; upstream licence confirmation belongs to binary/package assembly. | src/gpu-pack/containers/builder/requirements-engine.in:44 |
 | Motif | external build input | https://motif.ics.com/ | Not included. The selected upstream package licence applies; no dependency files are distributed here. | src/workstation: Motif headers and link flags |
@@ -203,8 +207,15 @@ Models with CC BY-NC 4.0 terms require noncommercial use and attribution to Jina
 Commercial model use requires a licence from its publisher. Licence and disclaimer:
 https://creativecommons.org/licenses/by-nc/4.0/legalcode
 
-MinerU is used by the optional PDF converter. Its upstream licence applies to MinerU;
-the project licence does not replace any dependency terms.
+MinerU 4.0.7 is used by the optional PDF converter. It is under the MinerU Open Source
+License, which is Apache-2.0 with additional terms. A separate commercial license from
+the MinerU team is required when you and your affiliates exceed 100 million monthly
+active users or USD 20 million in monthly revenue. If you provide an online service to
+third parties based on MinerU, you must say clearly and prominently that MinerU is used.
+The license ends automatically if either term is breached. The full text is in
+src/gpu-pack/licenses/MinerU-4.0.7-LICENSE.md, and the GPU pack runtime kit carries the
+same file as licenses/MinerU-4.0.7-LICENSE.md. The project licence does not replace any
+dependency terms.
 
 ## Distribution artwork notices
 

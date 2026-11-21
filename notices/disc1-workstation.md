@@ -181,7 +181,7 @@ https://mupdf.com/downloads/archive/mupdf-1.28.5-source.tar.gz
 
 The component manifest records the OpenBSD 8.0 port as `textproc/mupdf`; use that port together with its upstream distfiles as described above.
 
-Deep32's PDF renderer `e26-render` links `libmupdf`. The renderer's own source is in this repository at `src/workstation/library/src/render/`, with its build rules in `src/workstation/library/Makefile`, under AGPL-3.0-or-later.
+Deep32's PDF renderer `e26-render` links `libmupdf`, so its own source, in this repository at `src/workstation/library/src/render/`, is under AGPL-3.0-or-later. Its build rules are in `src/workstation/library/Makefile`.
 
 ## xv 5.2.0
 
@@ -372,7 +372,7 @@ For `uvloop` 0.22.1, `License` declares "MIT License"; its classifiers also name
 
 ## Deep32 code and documentation
 
-Deep32's own code is licensed under AGPL-3.0-or-later. Deep32's documentation is licensed under Creative Commons Attribution 4.0 International (CC BY 4.0). See `LICENSE` and `LICENSE-DOCS` at the repository root. Third-party material keeps its own terms.
+Deep32's own code is licensed under the Apache License 2.0; its attribution notices are in `NOTICE` at the repository root. The parts that use MuPDF, which is AGPL, are under AGPL-3.0-or-later: on this disc, the PDF renderer `e26-render` described above; in the GPU pack, the PDF converter in `src/gpu-pack/containers/converter-agpl`. Deep32's documentation is licensed under Creative Commons Attribution 4.0 International (CC BY 4.0). See `LICENSE` and `LICENSE-DOCS` at the repository root, and `licenses/LICENSING.md`. Third-party material keeps its own terms.
 
 ## Trademarks and affiliation
 

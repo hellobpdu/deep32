@@ -14,7 +14,7 @@ from pathlib import Path
 import re
 import stat
 
-from imp_fs import ImportFailure, atomic_write, crash, signal_point
+from imp_fs import ImportFailure, atomic_write, crash, open_regular, signal_point
 from imp_paths import hooks, test_mode
 
 
@@ -75,7 +75,20 @@ def group_pointer(entry):
         return entry['pointer'].rsplit('/', 1)[-1]
     match = re.fullmatch(r'\.([a-z][a-z0-9]{0,31})-[a-z0-9][a-z0-9._-]*',
                          entry['install_prefix'].rsplit('/', 1)[-1])
-    return match.group(1) if match else None
+    derived = match.group(1) if match else None
+    return None if derived in ('kb', 'cisco') else derived
+
+
+def _compatible_versions(path):
+    try:
+        with open_regular(path) as stream:
+            raw = stream.read(4097)
+        versions = raw.decode('ascii').splitlines()
+    except (OSError, UnicodeError):
+        return set()
+    if len(raw) > 4096 or not versions or not all(safe_version(x) for x in versions):
+        return set()
+    return set(versions)
 
 
 def validate_manifest(raw, fingerprint, source=None):
@@ -351,13 +364,18 @@ def run_signature(ctx):
         raise ImportFailure('IMPORT_MANIFEST', stage='signature') from exc
     m = ctx.manifest
     if p.node == 'workstation':
+        system_valid = False
         try:
             system = p.release_file.read_text(encoding='ascii').splitlines()[0].split()[0]
-            if not safe_version(system):
+            system_valid = safe_version(system)
+            if not system_valid:
                 system = 'unknown'
         except (OSError, UnicodeError, IndexError):
             system = 'unknown'
-        if system not in m['accepts_system']:
+        versions = {system}
+        if system_valid:
+            versions.update(_compatible_versions(p.content_compatible_versions))
+        if not versions.intersection(m['accepts_system']):
             wanted = ':'.join(m['accepts_system'])
             if len(wanted) > 128:
                 selected = []

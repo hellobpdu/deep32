@@ -57,9 +57,12 @@ def _stage(ctx, name):
     return next(x for x in ctx.report.data['stages'] if x['id'] == name)
 
 
-def _active_key(ctx, pointer):
+def _active_key(ctx, pointer, target=None):
     active = ctx.registry.data.get('active') or {}
-    value = active.get('pointers', {}).get(pointer)
+    if pointer is None:
+        value = target if target in active.get('targets', []) else None
+    else:
+        value = active.get('pointers', {}).get(pointer)
     if not value:
         return None
     target = value.split('/')[0]
@@ -70,7 +73,7 @@ def initialise_progress(ctx):
     """Freeze the signed total, including only units this node must install."""
     total = ctx.manifest['counts']['bytes']
     for desired in ctx.desired:
-        if _active_key(ctx, desired['pointer']) != desired['content_key']:
+        if _active_key(ctx, desired['pointer'], desired['target']) != desired['content_key']:
             total += desired['bytes']
     ctx.report.data['progress']['total_bytes'] = total
     if ctx.journal.data.get('stages', {}).get('files', {}).get('state') == 'done':

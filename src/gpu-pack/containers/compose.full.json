@@ -1,0 +1,530 @@
+{
+  "name": "deep32-full",
+  "services": {
+    "embeddings": {
+      "pull_policy": "never",
+      "restart": "unless-stopped",
+      "security_opt": [
+        "no-new-privileges:true"
+      ],
+      "cap_drop": [
+        "ALL"
+      ],
+      "image": "${TEI_IMAGE}",
+      "command": [
+        "--model-id",
+        "jinaai/jina-embeddings-v5-text-small-retrieval",
+        "--revision",
+        "${TEI_REVISION}",
+        "--served-model-name",
+        "jina-embeddings-v5-text-small",
+        "--dtype",
+        "float32",
+        "--pooling",
+        "last-token",
+        "--max-batch-tokens",
+        "4096",
+        "--max-client-batch-size",
+        "8"
+      ],
+      "environment": {
+        "HF_HUB_OFFLINE": "1",
+        "USE_FLASH_ATTENTION": "False"
+      },
+      "volumes": [
+        {
+          "type": "bind",
+          "source": "${PAYLOAD}/models/tei",
+          "target": "/data",
+          "read_only": true,
+          "bind": {
+            "create_host_path": false
+          }
+        }
+      ],
+      "networks": [
+        "models"
+      ],
+      "gpus": "all",
+      "mem_limit": "8g"
+    },
+    "reranker": {
+      "pull_policy": "never",
+      "restart": "unless-stopped",
+      "security_opt": [
+        "no-new-privileges:true"
+      ],
+      "cap_drop": [
+        "ALL"
+      ],
+      "image": "${RERANKER_IMAGE}",
+      "environment": {
+        "HF_HOME": "/models",
+        "HF_HUB_OFFLINE": "1",
+        "TRANSFORMERS_OFFLINE": "1",
+        "RERANKER_DTYPE": "${RERANKER_DTYPE}",
+        "RERANKER_DEVICE": "cuda"
+      },
+      "volumes": [
+        {
+          "type": "bind",
+          "source": "${PAYLOAD}/models/reranker",
+          "target": "/models/hub",
+          "read_only": true,
+          "bind": {
+            "create_host_path": false
+          }
+        }
+      ],
+      "networks": [
+        "models"
+      ],
+      "gpus": "all",
+      "mem_limit": "9g",
+      "shm_size": "1g"
+    },
+    "door": {
+      "pull_policy": "never",
+      "restart": "unless-stopped",
+      "security_opt": [
+        "no-new-privileges:true"
+      ],
+      "cap_drop": [
+        "ALL"
+      ],
+      "image": "${DOOR_IMAGE}",
+      "command": [
+        "python",
+        "/app/door.py"
+      ],
+      "secrets": [
+        "forge-token"
+      ],
+      "volumes": [
+        {
+          "type": "bind",
+          "source": "${KIT}/containers/full/health.py",
+          "target": "/opt/deep32/full/health.py",
+          "read_only": true,
+          "bind": {
+            "create_host_path": false
+          }
+        }
+      ],
+      "networks": [
+        "models",
+        "bridge"
+      ],
+      "read_only": true,
+      "depends_on": {
+        "embeddings": {
+          "condition": "service_started"
+        },
+        "reranker": {
+          "condition": "service_started"
+        }
+      },
+      "healthcheck": {
+        "test": [
+          "CMD",
+          "python",
+          "-I",
+          "-B",
+          "/opt/deep32/full/health.py",
+          "door"
+        ],
+        "interval": "10s",
+        "timeout": "12s",
+        "retries": 12,
+        "start_period": "30s"
+      },
+      "ports": [
+        "127.0.0.1:8081:8081",
+        "127.0.0.1:8082:8082"
+      ]
+    },
+    "qdrant": {
+      "pull_policy": "never",
+      "restart": "unless-stopped",
+      "security_opt": [
+        "no-new-privileges:true"
+      ],
+      "cap_drop": [
+        "ALL"
+      ],
+      "image": "${QDRANT_IMAGE}",
+      "environment": {
+        "QDRANT__TELEMETRY_DISABLED": "true",
+        "QDRANT__STORAGE__SNAPSHOTS_PATH": "/qdrant/storage/snapshots"
+      },
+      "volumes": [
+        {
+          "type": "bind",
+          "source": "${DATA_ROOT}/qdrant",
+          "target": "/qdrant/storage",
+          "read_only": false,
+          "bind": {
+            "create_host_path": false
+          }
+        }
+      ],
+      "networks": [
+        "application"
+      ],
+      "user": "0:0"
+    },
+    "index-health": {
+      "pull_policy": "never",
+      "restart": "unless-stopped",
+      "security_opt": [
+        "no-new-privileges:true"
+      ],
+      "cap_drop": [
+        "ALL"
+      ],
+      "image": "${FULL_IMAGE}",
+      "entrypoint": [
+        "python",
+        "-I",
+        "-B",
+        "-c",
+        "import time; time.sleep(2147483647)"
+      ],
+      "read_only": true,
+      "networks": [
+        "application"
+      ],
+      "depends_on": {
+        "qdrant": {
+          "condition": "service_started"
+        }
+      },
+      "healthcheck": {
+        "test": [
+          "CMD",
+          "python",
+          "-I",
+          "-B",
+          "/opt/deep32/full/health.py",
+          "qdrant"
+        ],
+        "interval": "10s",
+        "timeout": "12s",
+        "retries": 12,
+        "start_period": "30s"
+      }
+    },
+    "model-bridge": {
+      "pull_policy": "never",
+      "restart": "unless-stopped",
+      "security_opt": [
+        "no-new-privileges:true"
+      ],
+      "cap_drop": [
+        "ALL"
+      ],
+      "image": "${MODEL_BRIDGE_IMAGE}",
+      "entrypoint": [
+        "python",
+        "-I",
+        "-B",
+        "/opt/deep32/model-bridge/linux_bridge.py"
+      ],
+      "volumes": [
+        {
+          "type": "bind",
+          "source": "${DATA_ROOT}/config/model-bridge.json",
+          "target": "/etc/deep32/model-bridge.json",
+          "read_only": true,
+          "bind": {
+            "create_host_path": false
+          }
+        }
+      ],
+      "secrets": [
+        "forge-token"
+      ],
+      "networks": [
+        "bridge",
+        "application"
+      ],
+      "read_only": true,
+      "tmpfs": [
+        "/tmp:rw,noexec,nosuid,size=16m"
+      ],
+      "depends_on": {
+        "door": {
+          "condition": "service_healthy"
+        }
+      },
+      "healthcheck": {
+        "test": [
+          "CMD",
+          "python",
+          "-I",
+          "-B",
+          "/opt/deep32/model-bridge/linux_bridge.py",
+          "--check"
+        ],
+        "interval": "10s",
+        "timeout": "12s",
+        "retries": 12,
+        "start_period": "30s"
+      },
+      "user": "0:0"
+    },
+    "engine": {
+      "pull_policy": "never",
+      "restart": "unless-stopped",
+      "security_opt": [
+        "no-new-privileges:true"
+      ],
+      "cap_drop": [
+        "ALL"
+      ],
+      "image": "${FULL_IMAGE}",
+      "read_only": true,
+      "tmpfs": [
+        "/tmp:rw,noexec,nosuid,size=256m"
+      ],
+      "networks": [
+        "application"
+      ],
+      "entrypoint": [
+        "python",
+        "-I",
+        "-B",
+        "/opt/deep32/model-bridge/linux_runtime.py"
+      ],
+      "command": [
+        "engine"
+      ],
+      "environment": {
+        "RAG_ROOT": "/var/lib/deep32/content/kb/root",
+        "RAG_QDRANT_URL": "http://qdrant:6333",
+        "RAG_EMBEDDING_URL": "http://model-bridge:9081/v1/embeddings",
+        "RAG_EMBEDDING_MODEL": "jina-embeddings-v5-text-small",
+        "RAG_EMBEDDING_REVISION": "${TEI_REVISION}",
+        "RAG_RERANK_URL": "http://model-bridge:9082/v1/rerank",
+        "HF_HUB_OFFLINE": "1",
+        "TRANSFORMERS_OFFLINE": "1",
+        "RAG_TRACE": "off"
+      },
+      "volumes": [
+        {
+          "type": "bind",
+          "source": "${DATA_ROOT}/content",
+          "target": "/var/lib/deep32/content",
+          "read_only": true,
+          "bind": {
+            "create_host_path": false
+          }
+        },
+        {
+          "type": "bind",
+          "source": "${DATA_ROOT}/config/model-bridge.json",
+          "target": "/etc/deep32/model-bridge.json",
+          "read_only": true,
+          "bind": {
+            "create_host_path": false
+          }
+        }
+      ],
+      "secrets": [
+        "core-token"
+      ],
+      "depends_on": {
+        "model-bridge": {
+          "condition": "service_healthy"
+        },
+        "index-health": {
+          "condition": "service_healthy"
+        }
+      },
+      "healthcheck": {
+        "test": [
+          "CMD",
+          "python",
+          "-I",
+          "-B",
+          "/opt/deep32/full/health.py",
+          "engine"
+        ],
+        "interval": "10s",
+        "timeout": "12s",
+        "retries": 12,
+        "start_period": "30s"
+      }
+    },
+    "gateway": {
+      "pull_policy": "never",
+      "restart": "unless-stopped",
+      "security_opt": [
+        "no-new-privileges:true"
+      ],
+      "cap_drop": [
+        "ALL"
+      ],
+      "image": "${FULL_IMAGE}",
+      "read_only": true,
+      "tmpfs": [
+        "/tmp:rw,noexec,nosuid,size=256m"
+      ],
+      "networks": [
+        "application"
+      ],
+      "entrypoint": [
+        "python",
+        "-I",
+        "-B",
+        "/opt/deep32/model-bridge/linux_runtime.py"
+      ],
+      "command": [
+        "gateway"
+      ],
+      "environment": {
+        "RAG_CORE_URL": "http://engine:8765",
+        "TAILSCALE_DNS_NAME": "${TAILSCALE_DNS_NAME}"
+      },
+      "secrets": [
+        "core-token",
+        "mcp-tokens"
+      ],
+      "ports": [
+        "127.0.0.1:8766:8766"
+      ],
+      "depends_on": {
+        "engine": {
+          "condition": "service_healthy"
+        }
+      },
+      "healthcheck": {
+        "test": [
+          "CMD",
+          "python",
+          "-I",
+          "-B",
+          "/opt/deep32/model-bridge/linux_runtime.py",
+          "--check",
+          "gateway"
+        ],
+        "interval": "10s",
+        "timeout": "12s",
+        "retries": 12,
+        "start_period": "30s"
+      }
+    },
+    "importer": {
+      "pull_policy": "never",
+      "restart": "no",
+      "security_opt": [
+        "no-new-privileges:true"
+      ],
+      "cap_drop": [
+        "ALL"
+      ],
+      "image": "${FULL_IMAGE}",
+      "entrypoint": [
+        "python",
+        "-I",
+        "-B",
+        "/opt/deep32/full/launch.py"
+      ],
+      "command": [
+        "import",
+        "--disc",
+        "/media/content"
+      ],
+      "profiles": [
+        "import"
+      ],
+      "network_mode": "service:qdrant",
+      "volumes": [
+        {
+          "type": "bind",
+          "source": "${CONTENT}",
+          "target": "/media/content",
+          "read_only": true,
+          "bind": {
+            "create_host_path": false
+          }
+        },
+        {
+          "type": "bind",
+          "source": "${DATA_ROOT}/content",
+          "target": "/var/lib/deep32/content",
+          "read_only": false,
+          "bind": {
+            "create_host_path": false
+          }
+        },
+        {
+          "type": "bind",
+          "source": "${DATA_ROOT}/import",
+          "target": "/var/lib/deep32/import",
+          "read_only": false,
+          "bind": {
+            "create_host_path": false
+          }
+        },
+        {
+          "type": "bind",
+          "source": "${DATA_ROOT}/status",
+          "target": "/run/deep32-forge",
+          "read_only": false,
+          "bind": {
+            "create_host_path": false
+          }
+        },
+        {
+          "type": "bind",
+          "source": "${DATA_ROOT}/logs",
+          "target": "/var/log",
+          "read_only": false,
+          "bind": {
+            "create_host_path": false
+          }
+        },
+        {
+          "type": "bind",
+          "source": "${KIT}/release",
+          "target": "/opt/deep32-forge/release",
+          "read_only": true,
+          "bind": {
+            "create_host_path": false
+          }
+        }
+      ],
+      "depends_on": {
+        "index-health": {
+          "condition": "service_healthy"
+        }
+      },
+      "tmpfs": [
+        "/tmp:rw,noexec,nosuid,size=256m"
+      ]
+    }
+  },
+  "secrets": {
+    "forge-token": {
+      "file": "${DATA_ROOT}/private/forge-token"
+    },
+    "core-token": {
+      "file": "${DATA_ROOT}/private/core-token"
+    },
+    "mcp-tokens": {
+      "file": "${DATA_ROOT}/private/mcp-tokens"
+    }
+  },
+  "networks": {
+    "models": {
+      "internal": true
+    },
+    "bridge": {
+      "internal": true
+    },
+    "application": {
+      "internal": true
+    }
+  }
+}

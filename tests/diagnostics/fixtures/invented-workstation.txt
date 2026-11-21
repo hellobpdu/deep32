@@ -1,0 +1,29 @@
+Deep32 doctor  workstation  workstation-demo  2026-11-17T12:00:00Z
+CHECK                     STATE  DETAIL
+installation              OK     Workstation release receipt agrees with verified media
+tailscale-installed       OK     approved executable present; 1.92.1
+tailscale-running         OK     status answered
+tailscale-signin          OK     Running; online; key valid
+magicdns                  OK     enrolled peer name resolves
+https-available           OK     paired peer TLS certificate valid
+serve-routes              OK     2 owned routes match the retained journal
+pairing                   OK     committed enrolment and protected identity agree
+peer-reachability         OK     enrolled peer HTTPS answered
+tailnet-path.forge        OK     forge path direct
+peer-clock                OK     peer offset interval -0.1 to 0.1 s
+first-start               OK     READY; ready; 0.1.0-alpha.2
+engine                    OK     running; local status passed
+gateway                   OK     running; local status passed
+index-generation          OK     invented-generation; committed import agrees
+index-fingerprint         OK     3333333333333333333333333333333333333333333333333333333333333333; committed import agrees
+forge-auth                OK     enrolled Forge credential accepted
+model-attestation.embed   OK     revision 1111111111111111111111111111111111111111; match; age 2 s
+model-attestation.rerank  OK     revision 2222222222222222222222222222222222222222; match; age 2 s
+dense                     WARN   enabled; open breaker; probe unavailable or failed
+reranker                  OK     enabled; closed breaker; probe passed
+index-health              OK     BM25, KB and structure ready
+disk.content              OK     100000000000 free; 20000000000 required
+disk.state                OK     10000000000 free; 1000000000 required
+
+FIX 1 [dense]: Restore Forge embeddings and the Workstation's enrolled endpoint, then allow the dense breaker to recover and run deep32 doctor again.
+23 OK, 1 WARN, 0 FAIL

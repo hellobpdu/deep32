@@ -21,7 +21,7 @@ from types import SimpleNamespace
 import imp_paths
 import imp_fs
 from imp_fs import ImportFailure, Interrupted, log
-from imp_journal import Journal, Registry, Lock, LockBusy
+from imp_journal import Journal, Registry, Lock, LockBusy, prepare
 from imp_report import Report
 from imp_c6 import Strings, C6Workstation, C6Forge
 import imp_disc
@@ -274,11 +274,13 @@ def _run_stage(ctx, stage, function):
 def _carry_units(ctx, stage, old):
     kinds = {'kb': ('kb',), 'library': ('library', 'cisco'), 'blocks': ('block',)}
     wanted = [row for row in ctx.desired if row['unit_kind'] in kinds[stage]]
-    active = (ctx.registry.active or {}).get('pointers', {})
+    active = ctx.registry.active or {}
     amount = 0
     count = 0
     for desired in wanted:
-        active_target = active.get(desired['pointer'], '').split('/')[0]
+        active_target = (desired['target'] if desired['pointer'] is None and
+                         desired['target'] in active.get('targets', []) else
+                         active.get('pointers', {}).get(desired['pointer'], '').split('/')[0])
         active_row = ctx.registry.generation(active_target)
         current = active_row is not None and active_row['content_key'] == desired['content_key']
         for unit in desired['units']:
@@ -451,6 +453,14 @@ def _run(ctx):
 
 def _failure(ctx, exc):
     stage = exc.stage or ctx.current_stage
+    if ctx.report is None or ctx.journal is None or ctx.journal.data is None:
+        # preserve the original failure before durable reporting exists.
+        sys.stderr.buffer.write(('d32-content-import: ' + exc.code + '\n').encode('ascii'))
+        try:
+            imp_disc.unmount(ctx)
+        except Exception:
+            pass
+        return 2
     args = getattr(exc, 'arguments', {})
     if not (ctx.report.data['errors'] and (getattr(exc, 'recorded', False) or
             ctx.report.data['errors'][-1]['code'] == exc.code and ctx.report.data['errors'][-1]['stage'] == stage)):
@@ -518,21 +528,30 @@ def main(argv=None):
     except LockBusy:
         _stderr('busy')
         return 3
+    except (ImportFailure, OSError) as exc:
+        try:
+            lock.release()
+        except (ImportFailure, OSError):
+            pass
+        failure = exc if isinstance(exc, ImportFailure) else ImportFailure('IMPORT_WRITE', stage='disc')
+        return _failure(ctx, failure)
     try:
-        paths.tmp.mkdir(parents=True, exist_ok=True)
-        paths.mount.mkdir(parents=True, exist_ok=True)
-        paths.history.mkdir(parents=True, exist_ok=True)
-        if paths.node == 'forge':
-            paths.cr.mkdir(parents=True, exist_ok=True)
-            paths.status_file.parent.mkdir(parents=True, exist_ok=True)
-        for folder, group, mode in ((paths.state, paths.state_group, paths.state_mode),
-                                    (paths.journal, 'wheel' if paths.node == 'workstation' else 'root', 0o700),
-                                    (paths.tmp, 'wheel' if paths.node == 'workstation' else 'root', 0o700),
-                                    (paths.mount, 'wheel' if paths.node == 'workstation' else 'root', 0o700),
-                                    (paths.history, paths.state_group, paths.state_mode)):
-            imp_fs.set_owner_mode(folder, 'root', group, mode)
-        ctx.c6 = (C6Workstation if paths.node == 'workstation' else C6Forge)(ctx, strings=strings)
-        imp_fs.install_signal_handlers()
+        try:
+            prepare(paths)
+            if paths.history.is_symlink():
+                raise ImportFailure('IMPORT_WRITE')
+            paths.history.mkdir(parents=True, exist_ok=True)
+            if not paths.history.is_mount():
+                imp_fs.set_owner_mode(paths.history, 'root', paths.state_group, paths.state_mode)
+            if paths.node == 'forge':
+                paths.cr.mkdir(parents=True, exist_ok=True)
+                paths.status_file.parent.mkdir(parents=True, exist_ok=True)
+            ctx.c6 = (C6Workstation if paths.node == 'workstation' else C6Forge)(ctx, strings=strings)
+            imp_fs.install_signal_handlers()
+        except ImportFailure as exc:
+            return _failure(ctx, exc)
+        except OSError:
+            return _failure(ctx, ImportFailure('IMPORT_WRITE', stage='disc'))
         try:
             if load_error is not None:
                 ctx.import_id = imp_paths.new_import_id()

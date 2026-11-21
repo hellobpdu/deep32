@@ -28,6 +28,7 @@ for role in reranker converter door; do
     cp -- "$stage_dir/payload/locks/$role.lock" "$context/requirements.lock"
   fi
   if [[ "$role" == converter ]]; then
+    python3 "$kit_dir/build/images.py" converter-debs "$stage_dir" "$context"
     python3 "$kit_dir/build/images.py" backend-lock "$context"
     cp -- "$stage_dir/payload/licences/AGPL-3.0.txt" "$context/AGPL-3.0.txt"
     cp -a -- "$stage_dir/payload/source/production-converter" "$context/production-converter"
@@ -35,10 +36,11 @@ for role in reranker converter door; do
   find "$context" -type f -exec chmod 0644 {} +
   find "$context" -type d -exec chmod 0755 {} +
   find "$context" -exec touch -h -d "@$SOURCE_DATE_EPOCH" {} +
-  docker build --network none --pull=false --build-arg BASE_IMAGE=deep32-runtime-base:locked \
+  # Requires the local BuildKit frontend; no frontend image is fetched.
+  DOCKER_BUILDKIT=1 docker build --network none --pull=false --build-arg BASE_IMAGE=deep32-runtime-base:locked \
     --build-arg "SOURCE_DATE_EPOCH=$SOURCE_DATE_EPOCH" --tag "deep32-local/$role:locked" "$context"
   docker image save --output "$out_dir/images/$role.tar" "deep32-local/$role:locked"
 done
 python3 "$kit_dir/build/images.py" index "$stage_dir" "$out_dir"
 bash "$kit_dir/build/build-builder.sh" --stage "$stage_dir" --out "$out_dir/builder-build"
-echo 'Copy the three application archives into payload/images and merge their index first; builder_inputs.py merge adds builder/Qdrant and their pins. Reseal PAYLOAD.json, then run validate.py.'
+echo 'Copy the three application archives into payload/images and merge their index first; builder_inputs.py merge adds builder/Qdrant and their pins. For the full role, stage the sealed gateway lock/wheels and model configuration, then run build-full.sh and full_images.py merge. Reseal PAYLOAD.json, then run validate.py.'

@@ -45,10 +45,36 @@ async def lifespan(app):
 app = FastAPI(title='Deep32 Forge reranker', version='1.0', lifespan=lifespan)
 
 
+@app.get('/info')
 @app.get('/health')
 def health():
     return {'status': 'ok', 'model': MODEL_ID, 'revision': REVISION, 'dtype': DTYPE,
-            'gpu': torch.cuda.get_device_name(0) if DEVICE == 'cuda' else 'cpu'}
+            'gpu': torch.cuda.get_device_name(0) if DEVICE == 'cuda' else 'cpu',
+            **diagnostic_identity(model)}
+
+
+def diagnostic_identity(loaded):
+    """Passive loaded-parameter device and resolved configuration revision pin.
+
+    No tensor hashing, model call or device synchronisation. The resolved config
+    pin is supporting evidence, not verified weight/file closure. No positive
+    measurement is asserted until the owning startup verifier supplies it.
+    No model path, device UUID/serial or arbitrary configuration is returned.
+    """
+    if loaded is None:
+        return {'device_kind': 'unknown'}
+    try:
+        kinds = {parameter.device.type for parameter in loaded.parameters()}
+        device = 'gpu' if kinds == {'cuda'} else 'cpu' if 'cpu' in kinds else 'unknown'
+        commit = getattr(getattr(loaded, 'config', None), '_commit_hash', None)
+        result = {'device_kind': device}
+        if type(commit) is str and commit:
+            result['revision_pin_verified'] = commit == REVISION
+            if commit != REVISION:
+                result['measurement_verified'] = False
+        return result
+    except (AttributeError, TypeError, RuntimeError):
+        return {'device_kind': 'unknown'}
 
 
 @app.post('/v1/rerank')

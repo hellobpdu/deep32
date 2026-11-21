@@ -12,6 +12,7 @@ btn.help	Help
 btn.import	Import Report
 btn.pairing	Pairing
 btn.again	Try Again
+btn.fetch	Get Disc 2 over the Network
 peer.forge	Forge
 peer.relay	relay
 peer.headend	headend
@@ -40,16 +41,19 @@ setup.signin.after	This window moves on by itself once you have signed in.
 setup.signin.net	Waiting for a network connection. Plug in a network cable, or check the network adapter of the virtual machine.
 setup.signin.noaddr	Waiting for Tailscale to give a sign-in address. This can take a minute.
 setup.signin.approve	Signed in. Approve this machine in your Tailscale admin console to finish.
-setup.signin.off	The network link is switched off. Turn it on in a Terminal with: doas d32-link enable
+setup.signin.off	The network link is switched off. Turn it on in a Terminal with: doas /usr/local/d32/sbin/d32-link enable
 setup.signin.noip	Signed in. Waiting for the tailnet address.
 setup.signin.state	Tailscale reports the state {state}. Waiting.
 setup.loopback	This Workstation runs without a network link (loopback), so there is no Tailscale sign-in.
 setup.tailnet.done	Signed in. This Workstation is on your tailnet as {name}.
-setup.content.attach	Attach disc 2 (content) to this machine.
-setup.content.how	In a virtual machine, add the disc 2 image as a second optical drive. The import starts by itself once the disc is found.
+setup.content.attach	Attach disc 2 (content) to this machine: a disc in an optical drive, or a USB stick with the disc 2 image written to it.
+setup.content.how	To make the USB stick, write the disc 2 image to a stick of 32 GB or larger with balenaEtcher or dd. In a virtual machine, add the disc 2 image as a second optical drive. The import starts by itself once disc 2 is found.
 setup.content.many	More than one disc 2 is attached. Leave one attached and remove the others.
 setup.content.found	Disc 2 is attached. The import starts in a moment.
-setup.import.run	Importing disc 2. Its signature and every file are checked before anything is installed.
+setup.content.net	No optical drive or USB stick? Choose Get Disc 2 over the Network to download disc 2 from a PC on your tailnet or from the release mirror.
+setup.content.net.stopped	The download of disc 2 stopped. Choose Get Disc 2 over the Network to carry on from where it stopped.
+setup.content.fetch	Downloading disc 2. The import starts by itself once it is downloaded.
+setup.import.run	Importing disc 2. Its signature is checked first, then the knowledge base, which search uses as soon as it is ready, then the Library. Each file is checked before it is used.
 setup.import.see	Import Report shows each step and each pack as it goes.
 setup.import.fail	The import of disc 2 stopped.
 setup.import.done	Disc 2 is imported.
@@ -98,6 +102,7 @@ why.IMPORT_SWITCH	the switch to the new content failed; the old content is still
 why.IMPORT_CHECK	the new content failed its check ({what}) and the old content is back in use
 why.IMPORT_INTERNAL	something unexpected went wrong
 why.unknown	an error this version does not know
+why.IMPORT_FETCH	the download of disc 2 stopped: {reason}
 hint.IMPORT_FILE_HASH	Copy disc 2 again from the release and attach the new copy.
 hint.IMPORT_FILE_SIZE	Copy disc 2 again from the release and attach the new copy.
 hint.IMPORT_FILE_MISSING	Copy disc 2 again from the release and attach the new copy.
@@ -107,6 +112,8 @@ hint.IMPORT_SPACE	Free some space on the system disk, or give the virtual machin
 hint.IMPORT_WRONG_SYSTEM	Use the disc 2 of the same release as this Workstation.
 hint.default	Choose Try Again. If it stops at the same place, keep this report for a bug report.
 hint.noagain	The previous content stays in use. Keep this report for a bug report.
+hint.fetch	Choose Get Disc 2 over the Network in First Start to carry on. What is already downloaded is kept.
+hint.fetch.space	The download needs this space on the spare update area of the system disk. Give the virtual machine a larger disk, or attach disc 2 as a CD or a USB stick.
 report.frame.disc	Disc 2
 report.frame.steps	Steps
 report.frame.units	What is installed
@@ -122,6 +129,9 @@ report.state.imported	Imported. The new knowledge base and Library are in use.
 report.state.current	Already in use: this disc 2 was imported before. Nothing was changed.
 report.state.failed	Stopped during: {step}.
 report.state.rolled	Stopped during: {step}. The previous knowledge base and Library are back in use.
+report.state.fetching	Downloading disc 2 over the network.
+report.state.fetch.stopped	The download of disc 2 stopped. What is downloaded is kept.
+report.state.fetched	Disc 2 is downloaded. The import starts in a moment.
 report.times	Started {started}, last update {written}
 report.progress	{done} of {total} ({pct} %)
 report.progress.rate	{done} of {total} ({pct} %), about {left} left
@@ -133,15 +143,16 @@ report.none	No problems.
 report.attempt	Attempt {attempt}, carrying on from an earlier import
 report.unreadable	The import report cannot be read. The import may still be starting; this window tries again every two seconds.
 report.noimport	No import has run on this machine yet.
+report.stage.fetch	Download disc 2
 report.stage.disc	Find and open disc 2
 report.stage.signature	Check the signature
-report.stage.files	Check every file
+report.stage.files	Copy and check the knowledge base
 report.stage.space	Check free space
-report.stage.kb	Install the knowledge base
-report.stage.library	Install the Library packs
+report.stage.kb	Install and switch on the knowledge base
+report.stage.library	Copy, check and install the Library
 report.stage.blocks	Keep the corpus blocks
-report.stage.switch	Switch to the new content
-report.stage.check	Check the new content
+report.stage.switch	Switch to the new Library
+report.stage.check	Check the new Library
 report.stage.finish	Finish
 report.unit.kb	Knowledge base
 report.unit.lib-e26	Deep32 Encyclopedia: articles and pictures
@@ -167,14 +178,86 @@ report.warn.IMPORT_RESUMED	Carried on from an earlier import that stopped.
 report.warn.IMPORT_MEANING_WAIT	Meaning search starts once a Forge is paired. Keyword search works now.
 report.warn.IMPORT_MEANING_MISMATCH	The paired Forge serves another embedding model, so meaning search stays off. Keyword search works.
 report.warn.IMPORT_OLD_KEPT	The previous knowledge base and Library are kept for going back ({bytes}).
+report.warn.IMPORT_KB_ONLY	The new knowledge base is in use, so search and Ask work. The new Library is not: the Library in use before, if any, stays in use.
 report.problem	{id}  {step}: {why}
 report.help.title	Deep32 Import Report Help
-report.help	Disc 2 holds the knowledge base and the Deep32 Encyclopedia. The import checks the signature of the disc and every file on it before it installs anything, then installs the new content beside the old and switches to it in one step.{nl}{nl}If the import stops, nothing you use has changed until the switch, and Try Again carries on where it stopped. Try Again asks for your password in a small Terminal.{nl}{nl}The report itself is kept in /var/db/d32/import.
+report.help	Disc 2 holds the knowledge base and the Deep32 Encyclopedia. The import checks the signature of the disc first. Then it copies and checks the files of the knowledge base, installs it beside the one in use, switches to it and checks it, so search and Ask use it while the rest of the disc is imported. Then it copies and checks every other file, installs the Library packs beside the ones in use and switches to them in one step.{nl}{nl}If the import stops, nothing you use changes until a switch, and Try Again carries on where it stopped. If the Library cannot be imported, the new knowledge base stays in use. Try Again asks for your password in a small Terminal.{nl}{nl}The report itself is kept in /var/db/d32/import.
 again.title	Deep32 Import
 again.head	Carrying on with the import of disc 2.
 again.done	The import has finished. The report window shows the result.
 again.fail	The import stopped again. The report window shows where and why.
 again.busy	An import is already running. The report window shows its progress.
+get.title	Deep32: Get Disc 2
+get.root	Getting disc 2 over the network needs your password: it writes to the system disk.
+fetch.head	Deep32/UX: disc 2 {version} over the network
+fetch.about	The download goes to the spare update area of the system disk. The import then checks its signature and every file, as for a disc.
+fetch.kept.part	A download of disc 2 is kept: {done} of {total}. Choose its source again to carry on from there.
+fetch.kept.done	Disc 2 is downloaded ({total}). It is kept until its import has finished.
+fetch.menu.peer	From a PC on your tailnet (it shows a code)
+fetch.menu.mirror	From the internet (the release mirror)
+fetch.menu.status	What is downloaded
+fetch.menu.delete	Delete the downloaded disc 2
+fetch.menu.quit	Close
+fetch.choose	Choose an action:
+fetch.choose.again	Choose T, M, S, D or Q.
+fetch.peers.look	Looking for PCs on your tailnet...
+fetch.peers.none	No other PC on your tailnet is online. On the PC that has disc 2, open the Deep32 wizard and choose Send disc 2 to a Workstation.
+fetch.peers.signin	This Workstation is not signed in to Tailscale yet. Finish the sign-in first (First Start shows how).
+fetch.peers.status	The tailnet status could not be read. Try again in a minute.
+fetch.peers.row	{n}  {name}
+fetch.peers.pick	Choose the PC that sends disc 2 (1 to {n}), or Q to go back:
+fetch.peer.unknown	No online PC on your tailnet is called {name}.
+fetch.peer.many	More than one PC on your tailnet is called {name}. Use its full tailnet name.
+fetch.code.ask	Type the 10-character code the PC shows. Spaces and dashes are fine.
+fetch.code.prompt	Code:
+fetch.code.bad	That is not a code: it has 10 characters, the letters A to Z and the digits 2 to 7. Type it again, or Q to go back.
+fetch.from.peer	Downloading disc 2 from {name}. Ctrl+C stops; what is downloaded is kept.
+fetch.from.mirror	Downloading disc 2 from the release mirror ({name}). Ctrl+C stops; what is downloaded is kept.
+fetch.resume	Carrying on from {done}.
+fetch.progress	{done} of {total} ({pct} %), {rate}/s, about {left} left
+fetch.progress.start	{done} of {total} ({pct} %)
+fetch.downloaded	Disc 2 is downloaded, and its size and format are right.
+fetch.attached	It is attached to this Workstation as {unit}.
+fetch.wait	The import starts by itself in a moment. First Start and Import Report show how it goes. You can close this window.
+fetch.import.run	Importing disc 2. Import Report shows each step.
+fetch.import.done	Disc 2 is imported. The download is deleted and the update area is free again.
+fetch.import.fail	The import stopped. Import Report shows where and why, and its Try Again carries on.
+fetch.deleted	The downloaded disc 2 is deleted and the update area is free again.
+fetch.nothing	No disc 2 is downloaded on this Workstation.
+fetch.delete.ask	Delete the downloaded disc 2? Y or N:
+fetch.close	Press Return to close.
+fetch.stopped	The download stopped: {why}.
+fetch.stopped.kept	What is downloaded is kept. Choose the same source again to carry on.
+fetch.why.unreachable	the source could not be reached
+fetch.why.refused	the source refused the download
+fetch.why.not-found	the source has no disc 2 for this Workstation at that address (check the PC and its code)
+fetch.why.server	the source gave an answer this Workstation cannot use
+fetch.why.dropped	the connection dropped again and again
+fetch.why.size	the downloaded file has the wrong size
+fetch.why.not-disc	the downloaded file is not a disc image
+fetch.why.tls	the certificate of the source did not check out
+fetch.why.stopped	it was stopped on this Workstation
+fetch.why.write	writing to the system disk failed
+fetch.why.attach	the downloaded disc could not be attached
+fetch.attach.fail	The downloaded disc 2 could not be attached. Choose Get Disc 2 over the Network again, or restart this Workstation.
+fetch.detach.fail	The downloaded disc 2 is in use and could not be detached. Close what uses it, or restart, and try again.
+fetch.refuse.version	The release of this Workstation cannot be read, so the disc 2 it needs is not known.
+fetch.refuse.staged	An update waits for the next start of this Workstation, and the download would use its area. Restart first, then get disc 2.
+fetch.refuse.running	An update is running. Wait until it has finished, then try again.
+fetch.refuse.busy	Another download, or an import of disc 2, is running. Wait until it has finished.
+fetch.refuse.space	There is not enough free space on the update area: {needed} needed, {free} free. Attach disc 2 as a CD or a USB stick, or give the virtual machine a larger disk.
+fetch.refuse.slot	The update area of the system disk cannot hold the download: {why}. Attach disc 2 as a CD or a USB stick.
+fetch.refuse.other	A download of disc 2 {version} is kept. Delete it first (D), then get this one.
+fetch.refuse.state	The record of the download cannot be read. Delete the download (D) and start again.
+fetch.slot.unknown	this Workstation does not say which system slot is in use
+fetch.slot.mount	the spare system slot is not a file system of its own
+fetch.slot.path	a file in its place is not one this program made
+fetch.slot.rw	the spare system slot could not be made writable
+fetch.slot.ro	the spare system slot could not be made read-only again
+fetch.c6.progress	downloading disc 2: {done} of {total} ({pct} %)
+fetch.c6.progress.eta	downloading disc 2: {done} of {total} ({pct} %), about {left} left
+fetch.c6.done	disc 2 is downloaded and attached; the import starts in a moment
+fetch.c6.stopped	the download of disc 2 stopped: get it over the network again in First Start, or attach disc 2
 pair.head	Deep32/UX {rel}: pairing
 pair.menu.forge	Pair with a Forge (type the code the Forge shows)
 pair.menu.relay	Pair with a relay (type the code the relay shows)
@@ -294,8 +377,8 @@ say.ready	Deep32: this Workstation is ready.
 say.tailnet	Deep32: on your tailnet as {name} ({msg})
 c6.import.disc	looking at disc 2
 c6.import.signature	checking the signature of disc 2
-c6.import.files	checking every file of disc 2
-c6.import.files.n	checking every file of disc 2: {done} of {total} MB
+c6.import.files	copying and checking every file of disc 2
+c6.import.files.n	copying and checking every file of disc 2: {done} of {total} MB
 c6.import.space	checking free space
 c6.import.kb	installing the knowledge base
 c6.import.kb.n	installing the knowledge base: {done} of {total} MB

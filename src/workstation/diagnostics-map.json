@@ -1,0 +1,38 @@
+{
+  "schema": "deep32.workstation-diagnostics-map.v1",
+  "role": "workstation",
+  "python": "/usr/local/bin/python3.14",
+  "python_flags": ["-I", "-B"],
+  "tree_root": "diagnostics",
+  "installed_root": "/usr/local/d32/diagnostics",
+  "launcher_source": "src/workstation/distrib/site/usr/local/bin/deep32",
+  "launcher_tree": "distrib/site/usr/local/bin/deep32",
+  "launcher_installed": "/usr/local/bin/deep32",
+  "launcher_mode": "0555",
+  "directory_mode": "0755",
+  "file_mode": "0444",
+  "owner": "root",
+  "group": "wheel",
+  "source_rules": [
+    {"source": "src/diagnostics/deep32_doctor.py", "tree": "diagnostics/deep32_doctor.py", "kind": "file"},
+    {"source": "src/diagnostics/deep32_diag", "tree": "diagnostics/deep32_diag", "kind": "python-package"},
+    {"source": "src/diagnostics/schemas", "tree": "diagnostics/schemas", "kind": "json-schemas"}
+  ],
+  "required_members": [
+    "deep32_doctor.py",
+    "deep32_diag/__init__.py",
+    "deep32_diag/__main__.py",
+    "deep32_diag/cli.py",
+    "deep32_diag/doctor.py",
+    "schemas/doctor-output.schema.json"
+  ],
+  "selftest_required_members": [
+    "deep32_diag/selftest.py",
+    "deep32_diag/selftest_cli.py",
+    "deep32_diag/selftest_contract.py",
+    "deep32_diag/selftest_trust.py",
+    "schemas/selftest-questions.schema.json",
+    "schemas/selftest-reference.schema.json",
+    "schemas/selftest-result.schema.json"
+  ]
+}

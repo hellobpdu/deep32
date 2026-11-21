@@ -1,0 +1,295 @@
+# The copyright holders and the license of every file in this repository, in the REUSE 3.3 format
+# (https://reuse.software/spec-3.3/).
+#
+# Most files carry no header of their own, so I record their copyright holder and license here. When more than one
+# entry matches a file, the last one wins, so the list runs from the general rule to the exceptions. With
+# precedence "closest", a header inside a file (for example the SPDX lines in the PDF converter and in e26-render)
+# comes first and this file fills in only what the header leaves out. With "override", this file alone applies. I use
+# it for copies of license texts and for files whose text the REUSE tool would misread as a notice, such as a pattern
+# that removes a publisher's footer.
+#
+# licenses/LICENSING.md explains which license covers what, and notices/THIRD-PARTY-NOTICES.md lists the third-party
+# components. LicenseRef-HPE-Permission and LicenseRef-Microsoft-Permission mark material from Hewlett Packard
+# Enterprise and from Microsoft that I use with their permission; it is not covered by this project's licenses.
+
+version = 1
+
+# Deep32's own code, configuration, data and tests.
+[[annotations]]
+path = "**"
+precedence = "closest"
+SPDX-FileCopyrightText = "2026 Jeffrey A. Cummings"
+SPDX-License-Identifier = "Apache-2.0"
+
+# The two parts that use MuPDF: the Forge's PDF converter and the Library renderer e26-render.
+[[annotations]]
+path = [
+    "src/gpu-pack/containers/converter-agpl/**",
+    "src/workstation/library/src/render/**",
+]
+precedence = "closest"
+SPDX-FileCopyrightText = "2026 Jeffrey A. Cummings"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+
+# Documentation, including the Markdown files inside the converter folder (its NOTICE says so), the design document,
+# the README figures and the documents installed on the Workstation.
+[[annotations]]
+path = [
+    "**/*.md",
+    "docs/**",
+    "src/gpu-pack/README.txt",
+    "src/workstation/**/share/doc/**",
+]
+precedence = "closest"
+SPDX-FileCopyrightText = "2026 Jeffrey A. Cummings"
+SPDX-License-Identifier = "CC-BY-4.0"
+
+# Deep32's own art and sounds, drawn and synthesized from code. These folders and modules hold the drawings and the
+# sound designs. I mark each folder whole, so the few helper modules inside them (for example the category drawings'
+# kit.js and strips.js) carry the same license. The shared drawing, encoding and build code elsewhere, such as
+# art/lib/canvas.js, art/lib/xpm.js and the sound engine, is Apache-2.0.
+[[annotations]]
+path = [
+    "src/workstation/art/src/**",
+    "src/workstation/art/library-categories/src/**",
+    "src/workstation/art/lib/font.js",
+    "src/workstation/theme/tools/gen/art.js",
+    "src/workstation/sound/src/catalogue.js",
+    "src/workstation/sound/src/v3.js",
+]
+precedence = "closest"
+SPDX-FileCopyrightText = "2026 Jeffrey A. Cummings"
+SPDX-License-Identifier = "CC-BY-NC-4.0"
+
+# The Code of Conduct, adapted from the Contributor Covenant 2.1 (CC BY 4.0).
+[[annotations]]
+path = "CODE_OF_CONDUCT.md"
+precedence = "closest"
+SPDX-FileCopyrightText = [
+    "Contributor Covenant contributors <https://www.contributor-covenant.org>",
+    "2026 Jeffrey A. Cummings",
+]
+SPDX-License-Identifier = "CC-BY-4.0"
+
+# The BIP-39 English word list (bitcoin/bips, bip-0039/english.txt), unchanged. BIP-39 states "License: MIT".
+[[annotations]]
+path = "src/workstation/node/asklink/vendor/bip39-english.txt"
+precedence = "closest"
+SPDX-FileCopyrightText = "2013 Marek Palatinus, Pavol Rusnak, Aaron Voisine, Sean Bowe (BIP-39 authors)"
+SPDX-License-Identifier = "MIT"
+
+# The relay's pairing code carries the same BIP-39 word list as a string.
+[[annotations]]
+path = "adapters/relay/deep32_relay/pairing.py"
+precedence = "closest"
+SPDX-FileCopyrightText = [
+    "2026 Jeffrey A. Cummings",
+    "2013 Marek Palatinus, Pavol Rusnak, Aaron Voisine, Sean Bowe (BIP-39 authors)",
+]
+SPDX-License-Identifier = "Apache-2.0 AND MIT"
+
+# The CDE calculator message catalog from CDE 2.5.4pre0, with two changes of mine: the Cos, Sin and Tan keys have
+# distinct control bytes again (set 3, messages 506 to 508), and the two set 99 identification records are left out.
+# CDE is under the GNU LGPL version 2.0 or any later version.
+[[annotations]]
+path = "src/workstation/ship/u10/src/desktop-res/dtcalc/dtcalc.msg"
+precedence = "override"
+SPDX-FileCopyrightText = [
+    "1993-2012 The Open Group",
+    "2012-2022 CDE Project contributors",
+    "2026 Jeffrey A. Cummings",
+]
+SPDX-License-Identifier = "LGPL-2.0-or-later"
+
+# COPYING beside the catalog is CDE's license notice, unchanged: CDE's grant followed by the full text of the LGPL 2.1.
+[[annotations]]
+path = "src/workstation/ship/u10/src/desktop-res/dtcalc/COPYING"
+precedence = "override"
+SPDX-FileCopyrightText = [
+    "1993-2012 The Open Group",
+    "2012-2022 CDE Project contributors",
+    "1991, 1999 Free Software Foundation, Inc.",
+]
+SPDX-License-Identifier = "LGPL-2.0-or-later"
+
+# The 41 stock CDE palettes, converted to JSON with their computed shadow colors.
+[[annotations]]
+path = "src/workstation/theme/src/palettes/cde-palettes.json"
+precedence = "closest"
+SPDX-FileCopyrightText = [
+    "1993-2012 The Open Group",
+    "2012-2022 CDE Project contributors",
+    "2026 Jeffrey A. Cummings",
+]
+SPDX-License-Identifier = "LGPL-2.0-or-later"
+
+# The CDE configuration generator reproduces the C-locale text of CDE 2.5.3's sys.dtwmrc with my additions marked.
+[[annotations]]
+path = "src/workstation/theme/tools/gen/cde.js"
+precedence = "override"
+SPDX-FileCopyrightText = [
+    "2026 Jeffrey A. Cummings",
+    "1993-2012 The Open Group",
+    "2012-2022 CDE Project contributors",
+]
+SPDX-License-Identifier = "Apache-2.0 AND LGPL-2.0-or-later"
+
+# A test-only shim that repeats glibc 2.43's struct log_data declaration from sysdeps/ieee754/dbl-64/math_config.h.
+[[annotations]]
+path = "src/workstation/pyrag/d32log/glibc-shim/math_config.h"
+precedence = "closest"
+SPDX-FileCopyrightText = [
+    "2026 Jeffrey A. Cummings",
+    "Free Software Foundation, Inc.",
+]
+SPDX-License-Identifier = "Apache-2.0 AND LGPL-2.1-or-later"
+
+# Arm's license for optimized-routines, kept beside d32log, which compiles Arm's math/log.c from the pinned release.
+[[annotations]]
+path = "src/workstation/pyrag/d32log/LICENSE.optimized-routines"
+precedence = "override"
+SPDX-FileCopyrightText = "1999-2022 Arm Limited"
+SPDX-License-Identifier = "MIT OR Apache-2.0 WITH LLVM-exception"
+
+# HP VUE 3.0's default workspace backdrop, redrawn from a model fitted to HP's own screens, for the HP VUE (Classic)
+# look.
+[[annotations]]
+path = "src/workstation/theme/tools/gen/vuedeep.js"
+precedence = "closest"
+SPDX-FileCopyrightText = [
+    "2026 Jeffrey A. Cummings",
+    "Hewlett Packard Enterprise",
+]
+SPDX-License-Identifier = "Apache-2.0 AND LicenseRef-HPE-Permission"
+
+# The Library's screen definitions reproduce the screens and layouts of Microsoft Encarta 95, used with permission.
+[[annotations]]
+path = "src/workstation/library/screens/*.scr"
+precedence = "override"
+SPDX-FileCopyrightText = [
+    "2026 Jeffrey A. Cummings",
+    "Microsoft Corporation",
+]
+SPDX-License-Identifier = "Apache-2.0 AND LicenseRef-Microsoft-Permission"
+
+# Screenshots. They show third-party material under its own terms: the HP-UX CDE desktop artwork (Hewlett Packard
+# Enterprise, used with permission), CDE icons (The Open Group, CC BY-SA 3.0), the Library's Encarta 95 look
+# (Microsoft, used with permission) and Wikipedia article text (CC BY-SA 4.0).
+[[annotations]]
+path = "docs/screenshots/workstation-desktop.png"
+precedence = "override"
+SPDX-FileCopyrightText = [
+    "2026 Jeffrey A. Cummings",
+    "Hewlett Packard Enterprise",
+    "The Open Group",
+]
+SPDX-License-Identifier = "CC-BY-4.0 AND LicenseRef-HPE-Permission AND CC-BY-SA-3.0"
+
+[[annotations]]
+path = "docs/screenshots/ask-bgp-timers.png"
+precedence = "override"
+SPDX-FileCopyrightText = [
+    "2026 Jeffrey A. Cummings",
+    "Hewlett Packard Enterprise",
+]
+SPDX-License-Identifier = "CC-BY-4.0 AND LicenseRef-HPE-Permission"
+
+[[annotations]]
+path = [
+    "docs/screenshots/library-article.png",
+    "docs/screenshots/library-search.png",
+]
+precedence = "override"
+SPDX-FileCopyrightText = [
+    "2026 Jeffrey A. Cummings",
+    "Microsoft Corporation",
+    "Wikipedia contributors",
+]
+SPDX-License-Identifier = "CC-BY-4.0 AND LicenseRef-Microsoft-Permission AND CC-BY-SA-4.0"
+
+# Copies of license texts. Each is marked with the license it contains; its steward's terms for copying the text apply.
+[[annotations]]
+path = [
+    "LICENSE",
+    "licenses/Apache-2.0.txt",
+    "src/gpu-pack/LICENSE",
+    "src/gpu-pack/containers/builder/LICENSE",
+    "src/gpu-pack/containers/door/LICENSE",
+    "src/gpu-pack/containers/reranker/LICENSE",
+]
+precedence = "override"
+SPDX-FileCopyrightText = "2004 The Apache Software Foundation"
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = [
+    "licenses/AGPL-3.0-or-later.txt",
+    "src/gpu-pack/containers/converter-agpl/AGPL-3.0.txt",
+    "src/gpu-pack/containers/converter-agpl/LICENSE",
+]
+precedence = "override"
+SPDX-FileCopyrightText = "2007 Free Software Foundation, Inc. <https://fsf.org/>"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+
+[[annotations]]
+path = [
+    "LICENSE-DOCS",
+    "licenses/CC-BY-4.0.txt",
+]
+precedence = "override"
+SPDX-FileCopyrightText = "Creative Commons Corporation"
+SPDX-License-Identifier = "CC-BY-4.0"
+
+# The license texts of the components the images carry: the AGPL 3.0 and the LGPL 2.1 with CDE's notice.
+[[annotations]]
+path = "**/THIRD-PARTY-LICENSES"
+precedence = "override"
+SPDX-FileCopyrightText = [
+    "2007 Free Software Foundation, Inc. <https://fsf.org/>",
+    "1991, 1999 Free Software Foundation, Inc.",
+]
+SPDX-License-Identifier = "AGPL-3.0-or-later AND LGPL-2.1-or-later"
+
+# MinerU's license (Apache-2.0 with additional terms), kept with the GPU pack source.
+[[annotations]]
+path = "src/gpu-pack/licenses/MinerU-4.0.7-LICENSE.md"
+precedence = "override"
+SPDX-FileCopyrightText = "2026 MinerU Team"
+SPDX-License-Identifier = "LicenseRef-MinerU-Open-Source-License"
+
+# Files whose text the REUSE tool would misread as a notice: patterns that remove publishers' footers, notices the
+# tools write into what they build, fuzz seeds whose bytes include a copyright sign, figure metadata, and the design
+# document, whose PDF holds compressed bytes and whose other forms quote their notice in prose. This file alone
+# states their copyright and license.
+[[annotations]]
+path = [
+    "src/engine/src/rag_core/chunker.py",
+    "src/engine/src/rag_core/text_adapter.py",
+    "src/gpu-pack/containers/builder/engine/rag/core/src/rag_core/text_adapter.py",
+    "src/release-tools/release-authorship.json",
+    "src/workstation/art/lib/xpm.js",
+    "src/workstation/distrib/site/usr/local/d32/libexec/d32-import/vendor/mkindex.py",
+    "src/workstation/ship/tools/mkindex.py",
+    "src/workstation/ship/tools/mkpacks.sh",
+    "tests/fuzz/corpus/**",
+]
+precedence = "override"
+SPDX-FileCopyrightText = "2026 Jeffrey A. Cummings"
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = "src/gpu-pack/containers/converter-agpl/production-converter/chain/pilot/vendor-add/postclean_v21.py"
+precedence = "override"
+SPDX-FileCopyrightText = "2026 Jeffrey A. Cummings"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+
+[[annotations]]
+path = [
+    "docs/figures/**",
+    "docs/tr/**",
+    "notices/README.md",
+    "notices/disc1-workstation.md",
+]
+precedence = "override"
+SPDX-FileCopyrightText = "2026 Jeffrey A. Cummings"
+SPDX-License-Identifier = "CC-BY-4.0"

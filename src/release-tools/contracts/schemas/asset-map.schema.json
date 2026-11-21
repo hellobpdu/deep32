@@ -1,0 +1,104 @@
+{
+  "$defs": {
+    "path": {
+      "maxLength": 240,
+      "minLength": 1,
+      "pattern": "^(selftest|sbom)/[A-Za-z0-9][A-Za-z0-9._/-]*$",
+      "type": "string"
+    }
+  },
+  "$id": "urn:deep32:asset-map:v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "entries": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "asset": {
+            "maxLength": 200,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+            "type": "string"
+          },
+          "install": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "path": {
+                  "$ref": "#/$defs/path"
+                },
+                "role": {
+                  "enum": [
+                    "workstation",
+                    "forge",
+                    "headend"
+                  ]
+                }
+              },
+              "required": [
+                "role",
+                "path"
+              ],
+              "type": "object"
+            },
+            "maxItems": 3,
+            "type": "array",
+            "uniqueItems": true
+          },
+          "media_paths": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "disc": {
+                  "enum": [
+                    "disc1",
+                    "disc2",
+                    "disc3"
+                  ]
+                },
+                "path": {
+                  "$ref": "#/$defs/path"
+                }
+              },
+              "required": [
+                "disc",
+                "path"
+              ],
+              "type": "object"
+            },
+            "maxItems": 3,
+            "type": "array",
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "asset",
+          "media_paths",
+          "install"
+        ],
+        "type": "object"
+      },
+      "maxItems": 1024,
+      "minItems": 1,
+      "type": "array"
+    },
+    "format": {
+      "const": "deep32-asset-map"
+    },
+    "format_version": {
+      "const": 1
+    },
+    "release": {
+      "const": "v0.1.0-alpha.2"
+    }
+  },
+  "required": [
+    "format",
+    "format_version",
+    "release",
+    "entries"
+  ],
+  "title": "Deep32 asset-map version 1",
+  "type": "object"
+}

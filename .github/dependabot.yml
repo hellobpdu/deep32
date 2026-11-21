@@ -1,0 +1,9 @@
+# Weekly updates for the GitHub Actions the workflows use, kept pinned by commit with the version in a comment.
+# Python packages are left out on purpose: the image builds pin their inputs, and those pins change only with a
+# release. The lint tools in .github/requirements-lint.txt are updated by hand with their hashes.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

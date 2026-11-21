@@ -1,0 +1,59 @@
+name: Change proposal
+description: Propose a feature or a larger change before writing it.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please open a proposal before you write anything large, so we can agree on the approach first. [CONTRIBUTING.md](https://github.com/hellobpdu/deep32/blob/main/CONTRIBUTING.md) says what a change needs and what is out of scope.
+
+        For a question, use [Discussions](https://github.com/hellobpdu/deep32/discussions).
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What you are trying to do, and what stops you today.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you propose
+      description: The behavior you would like. A sketch of the approach is welcome if you have one.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered
+  - type: dropdown
+    id: part
+    attributes:
+      label: Part
+      multiple: true
+      options:
+        - Workstation
+        - Forge
+        - Headend (Connect, skills)
+        - Ask relay
+        - Download and verification (deep32-get)
+        - Setup or inventory scripts
+        - Search engine or gateway
+        - Corpus or knowledge base tools
+        - Documentation
+    validations:
+      required: true
+  - type: dropdown
+    id: who
+    attributes:
+      label: Who would write it
+      options:
+        - I would like to send a pull request
+        - I can test a change
+        - I am only proposing it
+    validations:
+      required: true
+  - type: markdown
+    attributes:
+      value: |
+        The paths the published images are built from change only with a release rebuild (CONTRIBUTING.md section 4.3 lists them). A proposal that needs changes there is scheduled with the next release.

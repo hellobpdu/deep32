@@ -5,10 +5,12 @@ Wants=network-online.target docker.service
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/python3 /opt/deep32-forge/firstboot/firstboot.py
+ExecStart=/usr/bin/python3 -B /opt/deep32-forge/firstboot/firstboot.py
 UMask=0077
-Restart=on-failure
-RestartSec=10
+# An expired pairing window needs an explicit resume, never an automatic renewal.
+Restart=no
+TimeoutStopSec=15
+KillMode=control-group
 StandardOutput=null
 StandardError=null
 

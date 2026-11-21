@@ -1,0 +1,3040 @@
+{
+  "bundles": [
+    {
+      "corresponds_to": null,
+      "hardware_class": null,
+      "id": "core",
+      "images": [
+        {
+          "archive_format": "classic",
+          "config_digest": "sha256:49678b8b8e4da48f06ebc36e5e03f103b5219421f7624df820ca4d8ce64c60df",
+          "image_id": "sha256:49678b8b8e4da48f06ebc36e5e03f103b5219421f7624df820ca4d8ce64c60df",
+          "index_digest": null,
+          "manifest_digest": null,
+          "path": "images/reranker.tar",
+          "role": "reranker",
+          "source_digest": null
+        },
+        {
+          "archive_format": "classic",
+          "config_digest": "sha256:580cb56965f337567aa94c5349f9437c74ef7cd84b93beea17ab3a60e0d21a80",
+          "image_id": "sha256:580cb56965f337567aa94c5349f9437c74ef7cd84b93beea17ab3a60e0d21a80",
+          "index_digest": null,
+          "manifest_digest": null,
+          "path": "images/door.tar",
+          "role": "door",
+          "source_digest": null
+        }
+      ],
+      "kind": "core",
+      "members": [
+        {
+          "category": "provenance",
+          "path": "evidence/storage.json",
+          "sha256": "af4b0a153a9936fdfce42d82e238beccc2f18b767b4d2129fbd5486f57ed1a71",
+          "size": 36
+        },
+        {
+          "category": "image",
+          "path": "images/door.tar",
+          "sha256": "493992e9cc9fa56c21500e2c7c5f2b83a030ea9e16e3ace3c1c8c35172230c9e",
+          "size": 10240
+        },
+        {
+          "category": "image",
+          "path": "images/reranker.tar",
+          "sha256": "1e290ca0101e3831409e6462992988c4037e4f75c5090f4be67df23906c08c6f",
+          "size": 10240
+        },
+        {
+          "category": "runtime",
+          "path": "kit/runtime.py",
+          "sha256": "87940490e3c921b91d051ee0968788fbf0ccbbbdc32b5781fe8cfd23d6b48e23",
+          "size": 20
+        },
+        {
+          "category": "licence",
+          "path": "licences/test.txt",
+          "sha256": "3adbe6acd5387f8435c2b9a03c3dced365ec0418407f70fe4af09d0f5b807ee3",
+          "size": 36
+        },
+        {
+          "category": "model",
+          "path": "models/reranker/c0e2184184b4aeca56ea2128e95f5c99d141e5fd/LICENSE",
+          "sha256": "c349ce12c820107008f787439823cac15a09f478febbbfbcc1a56d1288ae6757",
+          "size": 27
+        },
+        {
+          "category": "model",
+          "path": "models/reranker/c0e2184184b4aeca56ea2128e95f5c99d141e5fd/config.json",
+          "sha256": "26579f5a3fe003981e2fbec916c75a5efdbf3d63189c4a29ba2374e1cc314a78",
+          "size": 31
+        },
+        {
+          "category": "model",
+          "path": "models/reranker/c0e2184184b4aeca56ea2128e95f5c99d141e5fd/model.safetensors",
+          "sha256": "8ca79aa0112e0261ad96fc5d460dbc4cfeaf418379a1294143c7f30c253a9e00",
+          "size": 37
+        },
+        {
+          "category": "model",
+          "path": "models/reranker/c0e2184184b4aeca56ea2128e95f5c99d141e5fd/model_code.py",
+          "sha256": "1d6880f64b485d8179c7758945654ff1984744e00d8d6db226efab2705390c73",
+          "size": 33
+        },
+        {
+          "category": "model",
+          "path": "models/tei/7c8a03386612a1bdcf932773d684a3316146224e/LICENSE",
+          "sha256": "dd801b6990ec891511e8853324637a02bc1265f5ad6947bc58a119d3173e90db",
+          "size": 22
+        },
+        {
+          "category": "model",
+          "path": "models/tei/7c8a03386612a1bdcf932773d684a3316146224e/config.json",
+          "sha256": "6606998a9a37d32208ebb587d53406d4bf6715e74af36a0ea157e2cf057cc95d",
+          "size": 26
+        },
+        {
+          "category": "model",
+          "path": "models/tei/7c8a03386612a1bdcf932773d684a3316146224e/model.safetensors",
+          "sha256": "df9b28a08e2817cf673821b60fbd901078263247e5ea2b01f051cf8c0454d4a2",
+          "size": 32
+        },
+        {
+          "category": "model",
+          "path": "models/tei/7c8a03386612a1bdcf932773d684a3316146224e/model_code.py",
+          "sha256": "9e3a005568fef721630a09fa13c1ab31d088fe04d8a4b07b6190eed40302ff47",
+          "size": 28
+        }
+      ],
+      "models": [
+        {
+          "files": [
+            "models/reranker/c0e2184184b4aeca56ea2128e95f5c99d141e5fd/config.json",
+            "models/reranker/c0e2184184b4aeca56ea2128e95f5c99d141e5fd/model.safetensors",
+            "models/reranker/c0e2184184b4aeca56ea2128e95f5c99d141e5fd/LICENSE",
+            "models/reranker/c0e2184184b4aeca56ea2128e95f5c99d141e5fd/model_code.py"
+          ],
+          "licence_path": "models/reranker/c0e2184184b4aeca56ea2128e95f5c99d141e5fd/LICENSE",
+          "repository": "synthetic/reranker",
+          "revision": "c0e2184184b4aeca56ea2128e95f5c99d141e5fd",
+          "role": "reranker",
+          "root": "models/reranker/c0e2184184b4aeca56ea2128e95f5c99d141e5fd"
+        },
+        {
+          "files": [
+            "models/tei/7c8a03386612a1bdcf932773d684a3316146224e/config.json",
+            "models/tei/7c8a03386612a1bdcf932773d684a3316146224e/model.safetensors",
+            "models/tei/7c8a03386612a1bdcf932773d684a3316146224e/LICENSE",
+            "models/tei/7c8a03386612a1bdcf932773d684a3316146224e/model_code.py"
+          ],
+          "licence_path": "models/tei/7c8a03386612a1bdcf932773d684a3316146224e/LICENSE",
+          "repository": "synthetic/tei",
+          "revision": "7c8a03386612a1bdcf932773d684a3316146224e",
+          "role": "tei",
+          "root": "models/tei/7c8a03386612a1bdcf932773d684a3316146224e"
+        }
+      ],
+      "requires": [],
+      "storage_budgets": [
+        {
+          "backend": "docker-engine",
+          "domains": [
+            {
+              "domain": "download",
+              "download_bytes": 20808,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 20828,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "data",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 348,
+              "retained_bytes": 328,
+              "rollback_bytes": 0,
+              "steady_bytes": 328,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "docker",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 20480,
+              "peak_bytes": 45076,
+              "retained_bytes": 0,
+              "rollback_bytes": 20480,
+              "steady_bytes": 40960,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            }
+          ],
+          "evidence": "evidence/storage.json"
+        },
+        {
+          "backend": "docker-desktop",
+          "domains": [
+            {
+              "domain": "download",
+              "download_bytes": 20808,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 20828,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "data",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 348,
+              "retained_bytes": 328,
+              "rollback_bytes": 0,
+              "steady_bytes": 328,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "docker",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 20480,
+              "peak_bytes": 45076,
+              "retained_bytes": 0,
+              "rollback_bytes": 20480,
+              "steady_bytes": 40960,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "desktop-backing",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 20480,
+              "peak_bytes": 45076,
+              "retained_bytes": 0,
+              "rollback_bytes": 20480,
+              "steady_bytes": 40960,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            }
+          ],
+          "evidence": "evidence/storage.json"
+        }
+      ]
+    },
+    {
+      "corresponds_to": "core",
+      "hardware_class": null,
+      "id": "source-build-core",
+      "images": [],
+      "kind": "corresponding-source-build",
+      "members": [
+        {
+          "category": "build",
+          "path": "build/recipe.txt",
+          "sha256": "57d9ab8730ea4534ba81740a5350f164a85da652dc87892d6cadc309ce3d8f94",
+          "size": 39
+        },
+        {
+          "category": "provenance",
+          "path": "evidence/storage.json",
+          "sha256": "af4b0a153a9936fdfce42d82e238beccc2f18b767b4d2129fbd5486f57ed1a71",
+          "size": 36
+        },
+        {
+          "category": "licence",
+          "path": "licences/test.txt",
+          "sha256": "3adbe6acd5387f8435c2b9a03c3dced365ec0418407f70fe4af09d0f5b807ee3",
+          "size": 36
+        },
+        {
+          "category": "lock",
+          "path": "locks/test.lock",
+          "sha256": "876ac8e8abb9275de1237c241168352d9833f2dd47b398916c881b291afa83b0",
+          "size": 92
+        },
+        {
+          "category": "source",
+          "path": "source/test.py",
+          "sha256": "a7f5ae972bcb2def31ecfe148591b646a71904d62213b89227581367858e444c",
+          "size": 19
+        }
+      ],
+      "models": [],
+      "requires": [],
+      "storage_budgets": [
+        {
+          "backend": "docker-engine",
+          "domains": [
+            {
+              "domain": "download",
+              "download_bytes": 222,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 242,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "data",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 242,
+              "retained_bytes": 222,
+              "rollback_bytes": 0,
+              "steady_bytes": 222,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "docker",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 4116,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            }
+          ],
+          "evidence": "evidence/storage.json"
+        },
+        {
+          "backend": "docker-desktop",
+          "domains": [
+            {
+              "domain": "download",
+              "download_bytes": 222,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 242,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "data",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 242,
+              "retained_bytes": 222,
+              "rollback_bytes": 0,
+              "steady_bytes": 222,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "docker",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 4116,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "desktop-backing",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 4116,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            }
+          ],
+          "evidence": "evidence/storage.json"
+        }
+      ]
+    },
+    {
+      "corresponds_to": null,
+      "hardware_class": "ada",
+      "id": "embedder-ada",
+      "images": [
+        {
+          "archive_format": "classic",
+          "config_digest": "sha256:1b23f623b2a777998ba49e620cca8f224846d830fca06f9746d810db39a50620",
+          "image_id": "sha256:1b23f623b2a777998ba49e620cca8f224846d830fca06f9746d810db39a50620",
+          "index_digest": "sha256:7afae1c54143bb78d6dfb18b5c1a2ef0440d710a89e988f5cb6e84fc11a6e1e0",
+          "manifest_digest": null,
+          "path": "images/tei-ada.tar",
+          "role": "tei-ada",
+          "source_digest": "sha256:7afae1c54143bb78d6dfb18b5c1a2ef0440d710a89e988f5cb6e84fc11a6e1e0"
+        }
+      ],
+      "kind": "embedder",
+      "members": [
+        {
+          "category": "provenance",
+          "path": "evidence/storage.json",
+          "sha256": "af4b0a153a9936fdfce42d82e238beccc2f18b767b4d2129fbd5486f57ed1a71",
+          "size": 36
+        },
+        {
+          "category": "image",
+          "path": "images/tei-ada.tar",
+          "sha256": "aa88dd59f1c269e3b1dde8f971729a3864dad58b1d065b700f8e8054072a58c6",
+          "size": 10240
+        },
+        {
+          "category": "licence",
+          "path": "licences/test.txt",
+          "sha256": "3adbe6acd5387f8435c2b9a03c3dced365ec0418407f70fe4af09d0f5b807ee3",
+          "size": 36
+        }
+      ],
+      "models": [],
+      "requires": [
+        "core"
+      ],
+      "storage_budgets": [
+        {
+          "backend": "docker-engine",
+          "domains": [
+            {
+              "domain": "download",
+              "download_bytes": 10312,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 10332,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "data",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 92,
+              "retained_bytes": 72,
+              "rollback_bytes": 0,
+              "steady_bytes": 72,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "docker",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 10240,
+              "peak_bytes": 24596,
+              "retained_bytes": 0,
+              "rollback_bytes": 10240,
+              "steady_bytes": 20480,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            }
+          ],
+          "evidence": "evidence/storage.json"
+        },
+        {
+          "backend": "docker-desktop",
+          "domains": [
+            {
+              "domain": "download",
+              "download_bytes": 10312,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 10332,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "data",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 92,
+              "retained_bytes": 72,
+              "rollback_bytes": 0,
+              "steady_bytes": 72,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "docker",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 10240,
+              "peak_bytes": 24596,
+              "retained_bytes": 0,
+              "rollback_bytes": 10240,
+              "steady_bytes": 20480,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "desktop-backing",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 10240,
+              "peak_bytes": 24596,
+              "retained_bytes": 0,
+              "rollback_bytes": 10240,
+              "steady_bytes": 20480,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            }
+          ],
+          "evidence": "evidence/storage.json"
+        }
+      ]
+    },
+    {
+      "corresponds_to": "embedder-ada",
+      "hardware_class": null,
+      "id": "source-build-embedder-ada",
+      "images": [],
+      "kind": "corresponding-source-build",
+      "members": [
+        {
+          "category": "build",
+          "path": "build/recipe.txt",
+          "sha256": "57d9ab8730ea4534ba81740a5350f164a85da652dc87892d6cadc309ce3d8f94",
+          "size": 39
+        },
+        {
+          "category": "provenance",
+          "path": "evidence/storage.json",
+          "sha256": "af4b0a153a9936fdfce42d82e238beccc2f18b767b4d2129fbd5486f57ed1a71",
+          "size": 36
+        },
+        {
+          "category": "licence",
+          "path": "licences/test.txt",
+          "sha256": "3adbe6acd5387f8435c2b9a03c3dced365ec0418407f70fe4af09d0f5b807ee3",
+          "size": 36
+        },
+        {
+          "category": "lock",
+          "path": "locks/test.lock",
+          "sha256": "876ac8e8abb9275de1237c241168352d9833f2dd47b398916c881b291afa83b0",
+          "size": 92
+        },
+        {
+          "category": "source",
+          "path": "source/test.py",
+          "sha256": "a7f5ae972bcb2def31ecfe148591b646a71904d62213b89227581367858e444c",
+          "size": 19
+        }
+      ],
+      "models": [],
+      "requires": [],
+      "storage_budgets": [
+        {
+          "backend": "docker-engine",
+          "domains": [
+            {
+              "domain": "download",
+              "download_bytes": 222,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 242,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "data",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 242,
+              "retained_bytes": 222,
+              "rollback_bytes": 0,
+              "steady_bytes": 222,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "docker",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 4116,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            }
+          ],
+          "evidence": "evidence/storage.json"
+        },
+        {
+          "backend": "docker-desktop",
+          "domains": [
+            {
+              "domain": "download",
+              "download_bytes": 222,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 242,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "data",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 242,
+              "retained_bytes": 222,
+              "rollback_bytes": 0,
+              "steady_bytes": 222,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "docker",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 4116,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "desktop-backing",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 4116,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            }
+          ],
+          "evidence": "evidence/storage.json"
+        }
+      ]
+    },
+    {
+      "corresponds_to": null,
+      "hardware_class": "ampere80",
+      "id": "embedder-ampere80",
+      "images": [
+        {
+          "archive_format": "classic",
+          "config_digest": "sha256:375f041ecd6dbadfc3daf47f256627c089b1c8def27f0967325eadb559ca1d81",
+          "image_id": "sha256:375f041ecd6dbadfc3daf47f256627c089b1c8def27f0967325eadb559ca1d81",
+          "index_digest": "sha256:6dfeccbb0d5bcfb941677d074863aa28c631b337540a1f5c3250f6977dc39c46",
+          "manifest_digest": null,
+          "path": "images/tei-ampere80.tar",
+          "role": "tei-ampere80",
+          "source_digest": "sha256:6dfeccbb0d5bcfb941677d074863aa28c631b337540a1f5c3250f6977dc39c46"
+        }
+      ],
+      "kind": "embedder",
+      "members": [
+        {
+          "category": "provenance",
+          "path": "evidence/storage.json",
+          "sha256": "af4b0a153a9936fdfce42d82e238beccc2f18b767b4d2129fbd5486f57ed1a71",
+          "size": 36
+        },
+        {
+          "category": "image",
+          "path": "images/tei-ampere80.tar",
+          "sha256": "9006bef26c418941db001028667a3bf6d6c430008aee53b50fbc839253819ced",
+          "size": 10240
+        },
+        {
+          "category": "licence",
+          "path": "licences/test.txt",
+          "sha256": "3adbe6acd5387f8435c2b9a03c3dced365ec0418407f70fe4af09d0f5b807ee3",
+          "size": 36
+        }
+      ],
+      "models": [],
+      "requires": [
+        "core"
+      ],
+      "storage_budgets": [
+        {
+          "backend": "docker-engine",
+          "domains": [
+            {
+              "domain": "download",
+              "download_bytes": 10312,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 10332,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "data",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 92,
+              "retained_bytes": 72,
+              "rollback_bytes": 0,
+              "steady_bytes": 72,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "docker",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 10240,
+              "peak_bytes": 24596,
+              "retained_bytes": 0,
+              "rollback_bytes": 10240,
+              "steady_bytes": 20480,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            }
+          ],
+          "evidence": "evidence/storage.json"
+        },
+        {
+          "backend": "docker-desktop",
+          "domains": [
+            {
+              "domain": "download",
+              "download_bytes": 10312,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 10332,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "data",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 92,
+              "retained_bytes": 72,
+              "rollback_bytes": 0,
+              "steady_bytes": 72,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "docker",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 10240,
+              "peak_bytes": 24596,
+              "retained_bytes": 0,
+              "rollback_bytes": 10240,
+              "steady_bytes": 20480,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "desktop-backing",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 10240,
+              "peak_bytes": 24596,
+              "retained_bytes": 0,
+              "rollback_bytes": 10240,
+              "steady_bytes": 20480,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            }
+          ],
+          "evidence": "evidence/storage.json"
+        }
+      ]
+    },
+    {
+      "corresponds_to": "embedder-ampere80",
+      "hardware_class": null,
+      "id": "source-build-embedder-ampere80",
+      "images": [],
+      "kind": "corresponding-source-build",
+      "members": [
+        {
+          "category": "build",
+          "path": "build/recipe.txt",
+          "sha256": "57d9ab8730ea4534ba81740a5350f164a85da652dc87892d6cadc309ce3d8f94",
+          "size": 39
+        },
+        {
+          "category": "provenance",
+          "path": "evidence/storage.json",
+          "sha256": "af4b0a153a9936fdfce42d82e238beccc2f18b767b4d2129fbd5486f57ed1a71",
+          "size": 36
+        },
+        {
+          "category": "licence",
+          "path": "licences/test.txt",
+          "sha256": "3adbe6acd5387f8435c2b9a03c3dced365ec0418407f70fe4af09d0f5b807ee3",
+          "size": 36
+        },
+        {
+          "category": "lock",
+          "path": "locks/test.lock",
+          "sha256": "876ac8e8abb9275de1237c241168352d9833f2dd47b398916c881b291afa83b0",
+          "size": 92
+        },
+        {
+          "category": "source",
+          "path": "source/test.py",
+          "sha256": "a7f5ae972bcb2def31ecfe148591b646a71904d62213b89227581367858e444c",
+          "size": 19
+        }
+      ],
+      "models": [],
+      "requires": [],
+      "storage_budgets": [
+        {
+          "backend": "docker-engine",
+          "domains": [
+            {
+              "domain": "download",
+              "download_bytes": 222,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 242,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "data",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 242,
+              "retained_bytes": 222,
+              "rollback_bytes": 0,
+              "steady_bytes": 222,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "docker",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 4116,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            }
+          ],
+          "evidence": "evidence/storage.json"
+        },
+        {
+          "backend": "docker-desktop",
+          "domains": [
+            {
+              "domain": "download",
+              "download_bytes": 222,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 242,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "data",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 242,
+              "retained_bytes": 222,
+              "rollback_bytes": 0,
+              "steady_bytes": 222,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "docker",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 4116,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "desktop-backing",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 4116,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            }
+          ],
+          "evidence": "evidence/storage.json"
+        }
+      ]
+    },
+    {
+      "corresponds_to": null,
+      "hardware_class": "ampere86",
+      "id": "embedder-ampere86",
+      "images": [
+        {
+          "archive_format": "classic",
+          "config_digest": "sha256:5ab93ba1b367312e3de1b1557f57e396a4fe969dff90d62f565ab77f6dee3b67",
+          "image_id": "sha256:5ab93ba1b367312e3de1b1557f57e396a4fe969dff90d62f565ab77f6dee3b67",
+          "index_digest": "sha256:28267e3030f2c5e645e1a88c15ad42088cddf0ee9247f4183e4f9074bb0ec052",
+          "manifest_digest": null,
+          "path": "images/tei-ampere86.tar",
+          "role": "tei-ampere86",
+          "source_digest": "sha256:28267e3030f2c5e645e1a88c15ad42088cddf0ee9247f4183e4f9074bb0ec052"
+        }
+      ],
+      "kind": "embedder",
+      "members": [
+        {
+          "category": "provenance",
+          "path": "evidence/storage.json",
+          "sha256": "af4b0a153a9936fdfce42d82e238beccc2f18b767b4d2129fbd5486f57ed1a71",
+          "size": 36
+        },
+        {
+          "category": "image",
+          "path": "images/tei-ampere86.tar",
+          "sha256": "80c0837f06f17f39109d5314785d64784fb123a932bcab3dbd502078507086a4",
+          "size": 10240
+        },
+        {
+          "category": "licence",
+          "path": "licences/test.txt",
+          "sha256": "3adbe6acd5387f8435c2b9a03c3dced365ec0418407f70fe4af09d0f5b807ee3",
+          "size": 36
+        }
+      ],
+      "models": [],
+      "requires": [
+        "core"
+      ],
+      "storage_budgets": [
+        {
+          "backend": "docker-engine",
+          "domains": [
+            {
+              "domain": "download",
+              "download_bytes": 10312,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 10332,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "data",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 92,
+              "retained_bytes": 72,
+              "rollback_bytes": 0,
+              "steady_bytes": 72,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "docker",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 10240,
+              "peak_bytes": 24596,
+              "retained_bytes": 0,
+              "rollback_bytes": 10240,
+              "steady_bytes": 20480,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            }
+          ],
+          "evidence": "evidence/storage.json"
+        },
+        {
+          "backend": "docker-desktop",
+          "domains": [
+            {
+              "domain": "download",
+              "download_bytes": 10312,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 10332,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "data",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 92,
+              "retained_bytes": 72,
+              "rollback_bytes": 0,
+              "steady_bytes": 72,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "docker",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 10240,
+              "peak_bytes": 24596,
+              "retained_bytes": 0,
+              "rollback_bytes": 10240,
+              "steady_bytes": 20480,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "desktop-backing",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 10240,
+              "peak_bytes": 24596,
+              "retained_bytes": 0,
+              "rollback_bytes": 10240,
+              "steady_bytes": 20480,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            }
+          ],
+          "evidence": "evidence/storage.json"
+        }
+      ]
+    },
+    {
+      "corresponds_to": "embedder-ampere86",
+      "hardware_class": null,
+      "id": "source-build-embedder-ampere86",
+      "images": [],
+      "kind": "corresponding-source-build",
+      "members": [
+        {
+          "category": "build",
+          "path": "build/recipe.txt",
+          "sha256": "57d9ab8730ea4534ba81740a5350f164a85da652dc87892d6cadc309ce3d8f94",
+          "size": 39
+        },
+        {
+          "category": "provenance",
+          "path": "evidence/storage.json",
+          "sha256": "af4b0a153a9936fdfce42d82e238beccc2f18b767b4d2129fbd5486f57ed1a71",
+          "size": 36
+        },
+        {
+          "category": "licence",
+          "path": "licences/test.txt",
+          "sha256": "3adbe6acd5387f8435c2b9a03c3dced365ec0418407f70fe4af09d0f5b807ee3",
+          "size": 36
+        },
+        {
+          "category": "lock",
+          "path": "locks/test.lock",
+          "sha256": "876ac8e8abb9275de1237c241168352d9833f2dd47b398916c881b291afa83b0",
+          "size": 92
+        },
+        {
+          "category": "source",
+          "path": "source/test.py",
+          "sha256": "a7f5ae972bcb2def31ecfe148591b646a71904d62213b89227581367858e444c",
+          "size": 19
+        }
+      ],
+      "models": [],
+      "requires": [],
+      "storage_budgets": [
+        {
+          "backend": "docker-engine",
+          "domains": [
+            {
+              "domain": "download",
+              "download_bytes": 222,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 242,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "data",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 242,
+              "retained_bytes": 222,
+              "rollback_bytes": 0,
+              "steady_bytes": 222,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "docker",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 4116,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            }
+          ],
+          "evidence": "evidence/storage.json"
+        },
+        {
+          "backend": "docker-desktop",
+          "domains": [
+            {
+              "domain": "download",
+              "download_bytes": 222,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 242,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "data",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 242,
+              "retained_bytes": 222,
+              "rollback_bytes": 0,
+              "steady_bytes": 222,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "docker",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 4116,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "desktop-backing",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 4116,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            }
+          ],
+          "evidence": "evidence/storage.json"
+        }
+      ]
+    },
+    {
+      "corresponds_to": null,
+      "hardware_class": "blackwell100",
+      "id": "embedder-blackwell100",
+      "images": [
+        {
+          "archive_format": "classic",
+          "config_digest": "sha256:b26cab19e44a13c4f60746266f3372d9a802dce073e03eddd43251d03d4a2ec4",
+          "image_id": "sha256:b26cab19e44a13c4f60746266f3372d9a802dce073e03eddd43251d03d4a2ec4",
+          "index_digest": "sha256:9ca1a850358d101cdf085427b88d797efa7d7b9d4e6ed646feaf54a3f5173e06",
+          "manifest_digest": null,
+          "path": "images/tei-blackwell100.tar",
+          "role": "tei-blackwell100",
+          "source_digest": "sha256:9ca1a850358d101cdf085427b88d797efa7d7b9d4e6ed646feaf54a3f5173e06"
+        }
+      ],
+      "kind": "embedder",
+      "members": [
+        {
+          "category": "provenance",
+          "path": "evidence/storage.json",
+          "sha256": "af4b0a153a9936fdfce42d82e238beccc2f18b767b4d2129fbd5486f57ed1a71",
+          "size": 36
+        },
+        {
+          "category": "image",
+          "path": "images/tei-blackwell100.tar",
+          "sha256": "b3b6df21bb453cee2cecb622192a0954cb8eedb86027f55eac6f1deb0442a434",
+          "size": 10240
+        },
+        {
+          "category": "licence",
+          "path": "licences/test.txt",
+          "sha256": "3adbe6acd5387f8435c2b9a03c3dced365ec0418407f70fe4af09d0f5b807ee3",
+          "size": 36
+        }
+      ],
+      "models": [],
+      "requires": [
+        "core"
+      ],
+      "storage_budgets": [
+        {
+          "backend": "docker-engine",
+          "domains": [
+            {
+              "domain": "download",
+              "download_bytes": 10312,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 10332,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "data",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 92,
+              "retained_bytes": 72,
+              "rollback_bytes": 0,
+              "steady_bytes": 72,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "docker",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 10240,
+              "peak_bytes": 24596,
+              "retained_bytes": 0,
+              "rollback_bytes": 10240,
+              "steady_bytes": 20480,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            }
+          ],
+          "evidence": "evidence/storage.json"
+        },
+        {
+          "backend": "docker-desktop",
+          "domains": [
+            {
+              "domain": "download",
+              "download_bytes": 10312,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 10332,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "data",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 92,
+              "retained_bytes": 72,
+              "rollback_bytes": 0,
+              "steady_bytes": 72,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "docker",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 10240,
+              "peak_bytes": 24596,
+              "retained_bytes": 0,
+              "rollback_bytes": 10240,
+              "steady_bytes": 20480,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "desktop-backing",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 10240,
+              "peak_bytes": 24596,
+              "retained_bytes": 0,
+              "rollback_bytes": 10240,
+              "steady_bytes": 20480,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            }
+          ],
+          "evidence": "evidence/storage.json"
+        }
+      ]
+    },
+    {
+      "corresponds_to": "embedder-blackwell100",
+      "hardware_class": null,
+      "id": "source-build-embedder-blackwell100",
+      "images": [],
+      "kind": "corresponding-source-build",
+      "members": [
+        {
+          "category": "build",
+          "path": "build/recipe.txt",
+          "sha256": "57d9ab8730ea4534ba81740a5350f164a85da652dc87892d6cadc309ce3d8f94",
+          "size": 39
+        },
+        {
+          "category": "provenance",
+          "path": "evidence/storage.json",
+          "sha256": "af4b0a153a9936fdfce42d82e238beccc2f18b767b4d2129fbd5486f57ed1a71",
+          "size": 36
+        },
+        {
+          "category": "licence",
+          "path": "licences/test.txt",
+          "sha256": "3adbe6acd5387f8435c2b9a03c3dced365ec0418407f70fe4af09d0f5b807ee3",
+          "size": 36
+        },
+        {
+          "category": "lock",
+          "path": "locks/test.lock",
+          "sha256": "876ac8e8abb9275de1237c241168352d9833f2dd47b398916c881b291afa83b0",
+          "size": 92
+        },
+        {
+          "category": "source",
+          "path": "source/test.py",
+          "sha256": "a7f5ae972bcb2def31ecfe148591b646a71904d62213b89227581367858e444c",
+          "size": 19
+        }
+      ],
+      "models": [],
+      "requires": [],
+      "storage_budgets": [
+        {
+          "backend": "docker-engine",
+          "domains": [
+            {
+              "domain": "download",
+              "download_bytes": 222,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 242,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "data",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 242,
+              "retained_bytes": 222,
+              "rollback_bytes": 0,
+              "steady_bytes": 222,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "docker",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 4116,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            }
+          ],
+          "evidence": "evidence/storage.json"
+        },
+        {
+          "backend": "docker-desktop",
+          "domains": [
+            {
+              "domain": "download",
+              "download_bytes": 222,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 242,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "data",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 242,
+              "retained_bytes": 222,
+              "rollback_bytes": 0,
+              "steady_bytes": 222,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "docker",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 4116,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "desktop-backing",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 4116,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            }
+          ],
+          "evidence": "evidence/storage.json"
+        }
+      ]
+    },
+    {
+      "corresponds_to": null,
+      "hardware_class": "blackwell120",
+      "id": "embedder-blackwell120",
+      "images": [
+        {
+          "archive_format": "classic",
+          "config_digest": "sha256:a839c0f55db2387f9c0f55a7a894ca81c83d92d0527ccb9f10a3bc551787d2ed",
+          "image_id": "sha256:a839c0f55db2387f9c0f55a7a894ca81c83d92d0527ccb9f10a3bc551787d2ed",
+          "index_digest": "sha256:6cd47f76b5b678f3b0f125e06ca998f2f597743178d7c335334dc428da16a234",
+          "manifest_digest": null,
+          "path": "images/tei-blackwell120.tar",
+          "role": "tei-blackwell120",
+          "source_digest": "sha256:6cd47f76b5b678f3b0f125e06ca998f2f597743178d7c335334dc428da16a234"
+        }
+      ],
+      "kind": "embedder",
+      "members": [
+        {
+          "category": "provenance",
+          "path": "evidence/storage.json",
+          "sha256": "af4b0a153a9936fdfce42d82e238beccc2f18b767b4d2129fbd5486f57ed1a71",
+          "size": 36
+        },
+        {
+          "category": "image",
+          "path": "images/tei-blackwell120.tar",
+          "sha256": "6c9dd523d09d07d5c04c7332c05bc72f6be2061db46c2667791cab86c3434fc4",
+          "size": 10240
+        },
+        {
+          "category": "licence",
+          "path": "licences/test.txt",
+          "sha256": "3adbe6acd5387f8435c2b9a03c3dced365ec0418407f70fe4af09d0f5b807ee3",
+          "size": 36
+        }
+      ],
+      "models": [],
+      "requires": [
+        "core"
+      ],
+      "storage_budgets": [
+        {
+          "backend": "docker-engine",
+          "domains": [
+            {
+              "domain": "download",
+              "download_bytes": 10312,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 10332,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "data",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 92,
+              "retained_bytes": 72,
+              "rollback_bytes": 0,
+              "steady_bytes": 72,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "docker",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 10240,
+              "peak_bytes": 24596,
+              "retained_bytes": 0,
+              "rollback_bytes": 10240,
+              "steady_bytes": 20480,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            }
+          ],
+          "evidence": "evidence/storage.json"
+        },
+        {
+          "backend": "docker-desktop",
+          "domains": [
+            {
+              "domain": "download",
+              "download_bytes": 10312,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 10332,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "data",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 92,
+              "retained_bytes": 72,
+              "rollback_bytes": 0,
+              "steady_bytes": 72,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "docker",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 10240,
+              "peak_bytes": 24596,
+              "retained_bytes": 0,
+              "rollback_bytes": 10240,
+              "steady_bytes": 20480,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "desktop-backing",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 10240,
+              "peak_bytes": 24596,
+              "retained_bytes": 0,
+              "rollback_bytes": 10240,
+              "steady_bytes": 20480,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            }
+          ],
+          "evidence": "evidence/storage.json"
+        }
+      ]
+    },
+    {
+      "corresponds_to": "embedder-blackwell120",
+      "hardware_class": null,
+      "id": "source-build-embedder-blackwell120",
+      "images": [],
+      "kind": "corresponding-source-build",
+      "members": [
+        {
+          "category": "build",
+          "path": "build/recipe.txt",
+          "sha256": "57d9ab8730ea4534ba81740a5350f164a85da652dc87892d6cadc309ce3d8f94",
+          "size": 39
+        },
+        {
+          "category": "provenance",
+          "path": "evidence/storage.json",
+          "sha256": "af4b0a153a9936fdfce42d82e238beccc2f18b767b4d2129fbd5486f57ed1a71",
+          "size": 36
+        },
+        {
+          "category": "licence",
+          "path": "licences/test.txt",
+          "sha256": "3adbe6acd5387f8435c2b9a03c3dced365ec0418407f70fe4af09d0f5b807ee3",
+          "size": 36
+        },
+        {
+          "category": "lock",
+          "path": "locks/test.lock",
+          "sha256": "876ac8e8abb9275de1237c241168352d9833f2dd47b398916c881b291afa83b0",
+          "size": 92
+        },
+        {
+          "category": "source",
+          "path": "source/test.py",
+          "sha256": "a7f5ae972bcb2def31ecfe148591b646a71904d62213b89227581367858e444c",
+          "size": 19
+        }
+      ],
+      "models": [],
+      "requires": [],
+      "storage_budgets": [
+        {
+          "backend": "docker-engine",
+          "domains": [
+            {
+              "domain": "download",
+              "download_bytes": 222,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 242,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "data",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 242,
+              "retained_bytes": 222,
+              "rollback_bytes": 0,
+              "steady_bytes": 222,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "docker",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 4116,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            }
+          ],
+          "evidence": "evidence/storage.json"
+        },
+        {
+          "backend": "docker-desktop",
+          "domains": [
+            {
+              "domain": "download",
+              "download_bytes": 222,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 242,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "data",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 242,
+              "retained_bytes": 222,
+              "rollback_bytes": 0,
+              "steady_bytes": 222,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "docker",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 4116,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "desktop-backing",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 4116,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            }
+          ],
+          "evidence": "evidence/storage.json"
+        }
+      ]
+    },
+    {
+      "corresponds_to": null,
+      "hardware_class": "hopper",
+      "id": "embedder-hopper",
+      "images": [
+        {
+          "archive_format": "classic",
+          "config_digest": "sha256:74b2baa07e77640ca00cdad06c8f15412c0e08ff62664f8ba711cd12d05c5a5e",
+          "image_id": "sha256:74b2baa07e77640ca00cdad06c8f15412c0e08ff62664f8ba711cd12d05c5a5e",
+          "index_digest": "sha256:4e2b708688f8cbac7b7e9bc19ad69ea4e8e4a17f3ea616605f7e69da460f817c",
+          "manifest_digest": null,
+          "path": "images/tei-hopper.tar",
+          "role": "tei-hopper",
+          "source_digest": "sha256:4e2b708688f8cbac7b7e9bc19ad69ea4e8e4a17f3ea616605f7e69da460f817c"
+        }
+      ],
+      "kind": "embedder",
+      "members": [
+        {
+          "category": "provenance",
+          "path": "evidence/storage.json",
+          "sha256": "af4b0a153a9936fdfce42d82e238beccc2f18b767b4d2129fbd5486f57ed1a71",
+          "size": 36
+        },
+        {
+          "category": "image",
+          "path": "images/tei-hopper.tar",
+          "sha256": "775f7a45c05694eb7cea7eab9739fa3e8cbec6e27781eff471a29101aca96a7d",
+          "size": 10240
+        },
+        {
+          "category": "licence",
+          "path": "licences/test.txt",
+          "sha256": "3adbe6acd5387f8435c2b9a03c3dced365ec0418407f70fe4af09d0f5b807ee3",
+          "size": 36
+        }
+      ],
+      "models": [],
+      "requires": [
+        "core"
+      ],
+      "storage_budgets": [
+        {
+          "backend": "docker-engine",
+          "domains": [
+            {
+              "domain": "download",
+              "download_bytes": 10312,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 10332,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "data",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 92,
+              "retained_bytes": 72,
+              "rollback_bytes": 0,
+              "steady_bytes": 72,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "docker",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 10240,
+              "peak_bytes": 24596,
+              "retained_bytes": 0,
+              "rollback_bytes": 10240,
+              "steady_bytes": 20480,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            }
+          ],
+          "evidence": "evidence/storage.json"
+        },
+        {
+          "backend": "docker-desktop",
+          "domains": [
+            {
+              "domain": "download",
+              "download_bytes": 10312,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 10332,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "data",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 92,
+              "retained_bytes": 72,
+              "rollback_bytes": 0,
+              "steady_bytes": 72,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "docker",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 10240,
+              "peak_bytes": 24596,
+              "retained_bytes": 0,
+              "rollback_bytes": 10240,
+              "steady_bytes": 20480,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "desktop-backing",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 10240,
+              "peak_bytes": 24596,
+              "retained_bytes": 0,
+              "rollback_bytes": 10240,
+              "steady_bytes": 20480,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            }
+          ],
+          "evidence": "evidence/storage.json"
+        }
+      ]
+    },
+    {
+      "corresponds_to": "embedder-hopper",
+      "hardware_class": null,
+      "id": "source-build-embedder-hopper",
+      "images": [],
+      "kind": "corresponding-source-build",
+      "members": [
+        {
+          "category": "build",
+          "path": "build/recipe.txt",
+          "sha256": "57d9ab8730ea4534ba81740a5350f164a85da652dc87892d6cadc309ce3d8f94",
+          "size": 39
+        },
+        {
+          "category": "provenance",
+          "path": "evidence/storage.json",
+          "sha256": "af4b0a153a9936fdfce42d82e238beccc2f18b767b4d2129fbd5486f57ed1a71",
+          "size": 36
+        },
+        {
+          "category": "licence",
+          "path": "licences/test.txt",
+          "sha256": "3adbe6acd5387f8435c2b9a03c3dced365ec0418407f70fe4af09d0f5b807ee3",
+          "size": 36
+        },
+        {
+          "category": "lock",
+          "path": "locks/test.lock",
+          "sha256": "876ac8e8abb9275de1237c241168352d9833f2dd47b398916c881b291afa83b0",
+          "size": 92
+        },
+        {
+          "category": "source",
+          "path": "source/test.py",
+          "sha256": "a7f5ae972bcb2def31ecfe148591b646a71904d62213b89227581367858e444c",
+          "size": 19
+        }
+      ],
+      "models": [],
+      "requires": [],
+      "storage_budgets": [
+        {
+          "backend": "docker-engine",
+          "domains": [
+            {
+              "domain": "download",
+              "download_bytes": 222,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 242,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "data",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 242,
+              "retained_bytes": 222,
+              "rollback_bytes": 0,
+              "steady_bytes": 222,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "docker",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 4116,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            }
+          ],
+          "evidence": "evidence/storage.json"
+        },
+        {
+          "backend": "docker-desktop",
+          "domains": [
+            {
+              "domain": "download",
+              "download_bytes": 222,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 242,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "data",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 242,
+              "retained_bytes": 222,
+              "rollback_bytes": 0,
+              "steady_bytes": 222,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "docker",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 4116,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "desktop-backing",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 4116,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            }
+          ],
+          "evidence": "evidence/storage.json"
+        }
+      ]
+    },
+    {
+      "corresponds_to": null,
+      "hardware_class": "turing",
+      "id": "embedder-turing",
+      "images": [
+        {
+          "archive_format": "classic",
+          "config_digest": "sha256:4f5eadd14c0ab2d94aefa38cfaa3da8c1a84529e1e581c534cba8c639bc5626a",
+          "image_id": "sha256:4f5eadd14c0ab2d94aefa38cfaa3da8c1a84529e1e581c534cba8c639bc5626a",
+          "index_digest": "sha256:dcbfda0fb0b1d2b7b0dc4407b0842eecf045c453225c04f7b6a1b81ce2b0fe36",
+          "manifest_digest": null,
+          "path": "images/tei-turing.tar",
+          "role": "tei-turing",
+          "source_digest": "sha256:dcbfda0fb0b1d2b7b0dc4407b0842eecf045c453225c04f7b6a1b81ce2b0fe36"
+        }
+      ],
+      "kind": "embedder",
+      "members": [
+        {
+          "category": "provenance",
+          "path": "evidence/storage.json",
+          "sha256": "af4b0a153a9936fdfce42d82e238beccc2f18b767b4d2129fbd5486f57ed1a71",
+          "size": 36
+        },
+        {
+          "category": "image",
+          "path": "images/tei-turing.tar",
+          "sha256": "8c91ca0c83c0e7423a882c256d433009419ce9aff75df01e552798e373a07752",
+          "size": 10240
+        },
+        {
+          "category": "licence",
+          "path": "licences/test.txt",
+          "sha256": "3adbe6acd5387f8435c2b9a03c3dced365ec0418407f70fe4af09d0f5b807ee3",
+          "size": 36
+        }
+      ],
+      "models": [],
+      "requires": [
+        "core"
+      ],
+      "storage_budgets": [
+        {
+          "backend": "docker-engine",
+          "domains": [
+            {
+              "domain": "download",
+              "download_bytes": 10312,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 10332,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "data",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 92,
+              "retained_bytes": 72,
+              "rollback_bytes": 0,
+              "steady_bytes": 72,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "docker",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 10240,
+              "peak_bytes": 24596,
+              "retained_bytes": 0,
+              "rollback_bytes": 10240,
+              "steady_bytes": 20480,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            }
+          ],
+          "evidence": "evidence/storage.json"
+        },
+        {
+          "backend": "docker-desktop",
+          "domains": [
+            {
+              "domain": "download",
+              "download_bytes": 10312,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 10332,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "data",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 92,
+              "retained_bytes": 72,
+              "rollback_bytes": 0,
+              "steady_bytes": 72,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "docker",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 10240,
+              "peak_bytes": 24596,
+              "retained_bytes": 0,
+              "rollback_bytes": 10240,
+              "steady_bytes": 20480,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "desktop-backing",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 10240,
+              "peak_bytes": 24596,
+              "retained_bytes": 0,
+              "rollback_bytes": 10240,
+              "steady_bytes": 20480,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            }
+          ],
+          "evidence": "evidence/storage.json"
+        }
+      ]
+    },
+    {
+      "corresponds_to": "embedder-turing",
+      "hardware_class": null,
+      "id": "source-build-embedder-turing",
+      "images": [],
+      "kind": "corresponding-source-build",
+      "members": [
+        {
+          "category": "build",
+          "path": "build/recipe.txt",
+          "sha256": "57d9ab8730ea4534ba81740a5350f164a85da652dc87892d6cadc309ce3d8f94",
+          "size": 39
+        },
+        {
+          "category": "provenance",
+          "path": "evidence/storage.json",
+          "sha256": "af4b0a153a9936fdfce42d82e238beccc2f18b767b4d2129fbd5486f57ed1a71",
+          "size": 36
+        },
+        {
+          "category": "licence",
+          "path": "licences/test.txt",
+          "sha256": "3adbe6acd5387f8435c2b9a03c3dced365ec0418407f70fe4af09d0f5b807ee3",
+          "size": 36
+        },
+        {
+          "category": "lock",
+          "path": "locks/test.lock",
+          "sha256": "876ac8e8abb9275de1237c241168352d9833f2dd47b398916c881b291afa83b0",
+          "size": 92
+        },
+        {
+          "category": "source",
+          "path": "source/test.py",
+          "sha256": "a7f5ae972bcb2def31ecfe148591b646a71904d62213b89227581367858e444c",
+          "size": 19
+        }
+      ],
+      "models": [],
+      "requires": [],
+      "storage_budgets": [
+        {
+          "backend": "docker-engine",
+          "domains": [
+            {
+              "domain": "download",
+              "download_bytes": 222,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 242,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "data",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 242,
+              "retained_bytes": 222,
+              "rollback_bytes": 0,
+              "steady_bytes": 222,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "docker",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 4116,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            }
+          ],
+          "evidence": "evidence/storage.json"
+        },
+        {
+          "backend": "docker-desktop",
+          "domains": [
+            {
+              "domain": "download",
+              "download_bytes": 222,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 242,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "data",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 242,
+              "retained_bytes": 222,
+              "rollback_bytes": 0,
+              "steady_bytes": 222,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "docker",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 4116,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "desktop-backing",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 4116,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            }
+          ],
+          "evidence": "evidence/storage.json"
+        }
+      ]
+    },
+    {
+      "corresponds_to": null,
+      "hardware_class": null,
+      "id": "ingestion",
+      "images": [
+        {
+          "archive_format": "classic",
+          "config_digest": "sha256:447d148ff11af8c321b35fe25d6b2df787eb0b6142508d132e57c4721ddf9c2a",
+          "image_id": "sha256:447d148ff11af8c321b35fe25d6b2df787eb0b6142508d132e57c4721ddf9c2a",
+          "index_digest": null,
+          "manifest_digest": null,
+          "path": "images/converter.tar",
+          "role": "converter",
+          "source_digest": null
+        },
+        {
+          "archive_format": "classic",
+          "config_digest": "sha256:1206b9bb212e4aebca799225ca1e514caacd5c058b057863622967db60164f2f",
+          "image_id": "sha256:1206b9bb212e4aebca799225ca1e514caacd5c058b057863622967db60164f2f",
+          "index_digest": null,
+          "manifest_digest": null,
+          "path": "images/builder.tar",
+          "role": "builder",
+          "source_digest": null
+        },
+        {
+          "archive_format": "classic",
+          "config_digest": "sha256:3619d47ec756acc1fe8a857eecb120ff6d69fb59c2d38f6df6b9bb31bb682be9",
+          "image_id": "sha256:3619d47ec756acc1fe8a857eecb120ff6d69fb59c2d38f6df6b9bb31bb682be9",
+          "index_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "manifest_digest": null,
+          "path": "images/qdrant.tar",
+          "role": "qdrant",
+          "source_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        }
+      ],
+      "kind": "ingestion",
+      "members": [
+        {
+          "category": "provenance",
+          "path": "evidence/storage.json",
+          "sha256": "af4b0a153a9936fdfce42d82e238beccc2f18b767b4d2129fbd5486f57ed1a71",
+          "size": 36
+        },
+        {
+          "category": "image",
+          "path": "images/builder.tar",
+          "sha256": "35b7a9d1afe80892bb05e0b8b946abca27713a490d870f5887e2effab616ba7d",
+          "size": 10240
+        },
+        {
+          "category": "image",
+          "path": "images/converter.tar",
+          "sha256": "7474de2553bb148066070da442d77bd84832dc50f8718fa685fbc8470f27c8d5",
+          "size": 10240
+        },
+        {
+          "category": "image",
+          "path": "images/qdrant.tar",
+          "sha256": "3898901864651cba15f1b05b6e839ed7fb7587705e5b4ee01b05be20a11fe037",
+          "size": 10240
+        },
+        {
+          "category": "runtime",
+          "path": "kit/runtime.py",
+          "sha256": "87940490e3c921b91d051ee0968788fbf0ccbbbdc32b5781fe8cfd23d6b48e23",
+          "size": 20
+        },
+        {
+          "category": "licence",
+          "path": "licences/test.txt",
+          "sha256": "3adbe6acd5387f8435c2b9a03c3dced365ec0418407f70fe4af09d0f5b807ee3",
+          "size": 36
+        },
+        {
+          "category": "model",
+          "path": "models/mineru_small/f6cabd30fcb4a7a8c04f78eceffd5aed2cb2335b/LICENSE",
+          "sha256": "098ef5c2b7dfeb810e2c4a9237c36bd6df3b72fdb59fd3d64fb7f42d9fa64c6c",
+          "size": 31
+        },
+        {
+          "category": "model",
+          "path": "models/mineru_small/f6cabd30fcb4a7a8c04f78eceffd5aed2cb2335b/config.json",
+          "sha256": "1835a5d17ed2f9e1bd74849a98ba5cb6d3a09de58c3d099d4316e08922411817",
+          "size": 35
+        },
+        {
+          "category": "model",
+          "path": "models/mineru_small/f6cabd30fcb4a7a8c04f78eceffd5aed2cb2335b/model.safetensors",
+          "sha256": "359400c272bdbcfe19b4611272d95a57c9e7bde295f1335308732ff93aab98a3",
+          "size": 41
+        },
+        {
+          "category": "model",
+          "path": "models/mineru_small/f6cabd30fcb4a7a8c04f78eceffd5aed2cb2335b/model_code.py",
+          "sha256": "ec10fd8bf8ef7a47cfecc86794c303aaa22d240390e52e45678210c4db5f8a44",
+          "size": 37
+        },
+        {
+          "category": "model",
+          "path": "models/mineru_vlm/fd7882e7c64d76493728c81c0f0456c66d3884b2/LICENSE",
+          "sha256": "9d984271d0a9ad8bd357b4f92b90a9112d1df35e5a97a37809e3e03161640def",
+          "size": 29
+        },
+        {
+          "category": "model",
+          "path": "models/mineru_vlm/fd7882e7c64d76493728c81c0f0456c66d3884b2/config.json",
+          "sha256": "f7ab2a05f50ade0e6f3de4cee55ce7cb6561fe5abda0cb98b2ffaf42af3b4365",
+          "size": 33
+        },
+        {
+          "category": "model",
+          "path": "models/mineru_vlm/fd7882e7c64d76493728c81c0f0456c66d3884b2/model.safetensors",
+          "sha256": "712d8547a5dd5aa8bdcb10fd1056b7cd9cf9b2510ee5adb694e8fae88a63a1fb",
+          "size": 39
+        },
+        {
+          "category": "model",
+          "path": "models/mineru_vlm/fd7882e7c64d76493728c81c0f0456c66d3884b2/model_code.py",
+          "sha256": "992f3fe4d9822cfbdf5c6def53a452374372ad302c61ec890ee6c2a492d3fa3b",
+          "size": 35
+        }
+      ],
+      "models": [
+        {
+          "files": [
+            "models/mineru_small/f6cabd30fcb4a7a8c04f78eceffd5aed2cb2335b/config.json",
+            "models/mineru_small/f6cabd30fcb4a7a8c04f78eceffd5aed2cb2335b/model.safetensors",
+            "models/mineru_small/f6cabd30fcb4a7a8c04f78eceffd5aed2cb2335b/LICENSE",
+            "models/mineru_small/f6cabd30fcb4a7a8c04f78eceffd5aed2cb2335b/model_code.py"
+          ],
+          "licence_path": "models/mineru_small/f6cabd30fcb4a7a8c04f78eceffd5aed2cb2335b/LICENSE",
+          "repository": "synthetic/mineru_small",
+          "revision": "f6cabd30fcb4a7a8c04f78eceffd5aed2cb2335b",
+          "role": "mineru_small",
+          "root": "models/mineru_small/f6cabd30fcb4a7a8c04f78eceffd5aed2cb2335b"
+        },
+        {
+          "files": [
+            "models/mineru_vlm/fd7882e7c64d76493728c81c0f0456c66d3884b2/config.json",
+            "models/mineru_vlm/fd7882e7c64d76493728c81c0f0456c66d3884b2/model.safetensors",
+            "models/mineru_vlm/fd7882e7c64d76493728c81c0f0456c66d3884b2/LICENSE",
+            "models/mineru_vlm/fd7882e7c64d76493728c81c0f0456c66d3884b2/model_code.py"
+          ],
+          "licence_path": "models/mineru_vlm/fd7882e7c64d76493728c81c0f0456c66d3884b2/LICENSE",
+          "repository": "synthetic/mineru_vlm",
+          "revision": "fd7882e7c64d76493728c81c0f0456c66d3884b2",
+          "role": "mineru_vlm",
+          "root": "models/mineru_vlm/fd7882e7c64d76493728c81c0f0456c66d3884b2"
+        }
+      ],
+      "requires": [
+        "core"
+      ],
+      "storage_budgets": [
+        {
+          "backend": "docker-engine",
+          "domains": [
+            {
+              "domain": "download",
+              "download_bytes": 31092,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 31112,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "data",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 392,
+              "retained_bytes": 372,
+              "rollback_bytes": 0,
+              "steady_bytes": 372,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "docker",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 30720,
+              "peak_bytes": 65556,
+              "retained_bytes": 0,
+              "rollback_bytes": 30720,
+              "steady_bytes": 61440,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            }
+          ],
+          "evidence": "evidence/storage.json"
+        },
+        {
+          "backend": "docker-desktop",
+          "domains": [
+            {
+              "domain": "download",
+              "download_bytes": 31092,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 31112,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "data",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 392,
+              "retained_bytes": 372,
+              "rollback_bytes": 0,
+              "steady_bytes": 372,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "docker",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 30720,
+              "peak_bytes": 65556,
+              "retained_bytes": 0,
+              "rollback_bytes": 30720,
+              "steady_bytes": 61440,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "desktop-backing",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 30720,
+              "peak_bytes": 65556,
+              "retained_bytes": 0,
+              "rollback_bytes": 30720,
+              "steady_bytes": 61440,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            }
+          ],
+          "evidence": "evidence/storage.json"
+        }
+      ]
+    },
+    {
+      "corresponds_to": "ingestion",
+      "hardware_class": null,
+      "id": "source-build-ingestion",
+      "images": [],
+      "kind": "corresponding-source-build",
+      "members": [
+        {
+          "category": "build",
+          "path": "build/recipe.txt",
+          "sha256": "57d9ab8730ea4534ba81740a5350f164a85da652dc87892d6cadc309ce3d8f94",
+          "size": 39
+        },
+        {
+          "category": "provenance",
+          "path": "evidence/storage.json",
+          "sha256": "af4b0a153a9936fdfce42d82e238beccc2f18b767b4d2129fbd5486f57ed1a71",
+          "size": 36
+        },
+        {
+          "category": "licence",
+          "path": "licences/test.txt",
+          "sha256": "3adbe6acd5387f8435c2b9a03c3dced365ec0418407f70fe4af09d0f5b807ee3",
+          "size": 36
+        },
+        {
+          "category": "lock",
+          "path": "locks/test.lock",
+          "sha256": "876ac8e8abb9275de1237c241168352d9833f2dd47b398916c881b291afa83b0",
+          "size": 92
+        },
+        {
+          "category": "source",
+          "path": "source/test.py",
+          "sha256": "a7f5ae972bcb2def31ecfe148591b646a71904d62213b89227581367858e444c",
+          "size": 19
+        }
+      ],
+      "models": [],
+      "requires": [],
+      "storage_budgets": [
+        {
+          "backend": "docker-engine",
+          "domains": [
+            {
+              "domain": "download",
+              "download_bytes": 222,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 242,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "data",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 242,
+              "retained_bytes": 222,
+              "rollback_bytes": 0,
+              "steady_bytes": 222,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "docker",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 4116,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            }
+          ],
+          "evidence": "evidence/storage.json"
+        },
+        {
+          "backend": "docker-desktop",
+          "domains": [
+            {
+              "domain": "download",
+              "download_bytes": 222,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 242,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "data",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 242,
+              "retained_bytes": 222,
+              "rollback_bytes": 0,
+              "steady_bytes": 222,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "docker",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 4116,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "desktop-backing",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 4116,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            }
+          ],
+          "evidence": "evidence/storage.json"
+        }
+      ]
+    },
+    {
+      "corresponds_to": null,
+      "hardware_class": null,
+      "id": "full",
+      "images": [
+        {
+          "archive_format": "classic",
+          "config_digest": "sha256:2fc5357dcfc83a797ed6dbd7df215c3e455458848dbf0bcb17d573a5b9f16137",
+          "image_id": "sha256:2fc5357dcfc83a797ed6dbd7df215c3e455458848dbf0bcb17d573a5b9f16137",
+          "index_digest": null,
+          "manifest_digest": null,
+          "path": "images/full.tar",
+          "role": "full",
+          "source_digest": null
+        },
+        {
+          "archive_format": "classic",
+          "config_digest": "sha256:2fc5357dcfc83a797ed6dbd7df215c3e455458848dbf0bcb17d573a5b9f16137",
+          "image_id": "sha256:2fc5357dcfc83a797ed6dbd7df215c3e455458848dbf0bcb17d573a5b9f16137",
+          "index_digest": null,
+          "manifest_digest": null,
+          "path": "images/full.tar",
+          "role": "model_bridge",
+          "source_digest": null
+        }
+      ],
+      "kind": "full",
+      "members": [
+        {
+          "category": "provenance",
+          "path": "evidence/storage.json",
+          "sha256": "af4b0a153a9936fdfce42d82e238beccc2f18b767b4d2129fbd5486f57ed1a71",
+          "size": 36
+        },
+        {
+          "category": "image",
+          "path": "images/full.tar",
+          "sha256": "ff7391471b9f64d0680713b50f454710a954beac976848e0bb094c944c06d24c",
+          "size": 10240
+        },
+        {
+          "category": "runtime",
+          "path": "kit/runtime.py",
+          "sha256": "87940490e3c921b91d051ee0968788fbf0ccbbbdc32b5781fe8cfd23d6b48e23",
+          "size": 20
+        },
+        {
+          "category": "licence",
+          "path": "licences/test.txt",
+          "sha256": "3adbe6acd5387f8435c2b9a03c3dced365ec0418407f70fe4af09d0f5b807ee3",
+          "size": 36
+        }
+      ],
+      "models": [],
+      "requires": [
+        "core",
+        "ingestion"
+      ],
+      "storage_budgets": [
+        {
+          "backend": "docker-engine",
+          "domains": [
+            {
+              "domain": "download",
+              "download_bytes": 10332,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 10352,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "data",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 112,
+              "retained_bytes": 92,
+              "rollback_bytes": 0,
+              "steady_bytes": 92,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "docker",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 10240,
+              "peak_bytes": 24596,
+              "retained_bytes": 0,
+              "rollback_bytes": 10240,
+              "steady_bytes": 20480,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            }
+          ],
+          "evidence": "evidence/storage.json"
+        },
+        {
+          "backend": "docker-desktop",
+          "domains": [
+            {
+              "domain": "download",
+              "download_bytes": 10332,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 10352,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "data",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 112,
+              "retained_bytes": 92,
+              "rollback_bytes": 0,
+              "steady_bytes": 92,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "docker",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 10240,
+              "peak_bytes": 24596,
+              "retained_bytes": 0,
+              "rollback_bytes": 10240,
+              "steady_bytes": 20480,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "desktop-backing",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 10240,
+              "peak_bytes": 24596,
+              "retained_bytes": 0,
+              "rollback_bytes": 10240,
+              "steady_bytes": 20480,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            }
+          ],
+          "evidence": "evidence/storage.json"
+        }
+      ]
+    },
+    {
+      "corresponds_to": "full",
+      "hardware_class": null,
+      "id": "source-build-full",
+      "images": [],
+      "kind": "corresponding-source-build",
+      "members": [
+        {
+          "category": "build",
+          "path": "build/recipe.txt",
+          "sha256": "57d9ab8730ea4534ba81740a5350f164a85da652dc87892d6cadc309ce3d8f94",
+          "size": 39
+        },
+        {
+          "category": "provenance",
+          "path": "evidence/storage.json",
+          "sha256": "af4b0a153a9936fdfce42d82e238beccc2f18b767b4d2129fbd5486f57ed1a71",
+          "size": 36
+        },
+        {
+          "category": "licence",
+          "path": "licences/test.txt",
+          "sha256": "3adbe6acd5387f8435c2b9a03c3dced365ec0418407f70fe4af09d0f5b807ee3",
+          "size": 36
+        },
+        {
+          "category": "lock",
+          "path": "locks/test.lock",
+          "sha256": "876ac8e8abb9275de1237c241168352d9833f2dd47b398916c881b291afa83b0",
+          "size": 92
+        },
+        {
+          "category": "source",
+          "path": "source/test.py",
+          "sha256": "a7f5ae972bcb2def31ecfe148591b646a71904d62213b89227581367858e444c",
+          "size": 19
+        }
+      ],
+      "models": [],
+      "requires": [],
+      "storage_budgets": [
+        {
+          "backend": "docker-engine",
+          "domains": [
+            {
+              "domain": "download",
+              "download_bytes": 222,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 242,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "data",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 242,
+              "retained_bytes": 222,
+              "rollback_bytes": 0,
+              "steady_bytes": 222,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "docker",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 4116,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            }
+          ],
+          "evidence": "evidence/storage.json"
+        },
+        {
+          "backend": "docker-desktop",
+          "domains": [
+            {
+              "domain": "download",
+              "download_bytes": 222,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 242,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "data",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 242,
+              "retained_bytes": 222,
+              "rollback_bytes": 0,
+              "steady_bytes": 222,
+              "transient_bytes": 0,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "docker",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 4116,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            },
+            {
+              "domain": "desktop-backing",
+              "download_bytes": 0,
+              "headroom_bytes": 20,
+              "image_bytes": 0,
+              "peak_bytes": 4116,
+              "retained_bytes": 0,
+              "rollback_bytes": 0,
+              "steady_bytes": 0,
+              "transient_bytes": 4096,
+              "workspace_bytes": 0
+            }
+          ],
+          "evidence": "evidence/storage.json"
+        }
+      ]
+    }
+  ],
+  "code_licence": "Apache-2.0",
+  "concept_doi": "10.5281/zenodo.24272647",
+  "documentation_licence": "CC-BY-4.0",
+  "format": "deep32-capability-manifest",
+  "format_version": 2,
+  "hardware_classes": [
+    "ada",
+    "ampere80",
+    "ampere86",
+    "blackwell100",
+    "blackwell120",
+    "hopper",
+    "turing"
+  ],
+  "image_index_sha256": "7f597ffa001f4f6a051eff347c255873251afa93e0dbd44a793d80076f179879",
+  "jina_model_licence": "CC-BY-NC-4.0",
+  "legacy_policy": "refuse-unsupported-version",
+  "pins_sha256": "96fc4d6e49e9e0b80f7e1c19389a265c9fa74192cfd3a67c8898d7f8f06f853d",
+  "previous_images": "retain-until-user-removes",
+  "release": "0.1.0-alpha.2",
+  "source_commit": "cccccccccccccccccccccccccccccccccccccccc"
+}

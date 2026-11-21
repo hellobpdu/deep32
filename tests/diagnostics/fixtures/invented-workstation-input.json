@@ -1,0 +1,222 @@
+{
+  "fixture_kind": "invented diagnostic observations; not host evidence",
+  "platform": "openbsd",
+  "public_identities": [
+    "1111111111111111111111111111111111111111",
+    "2222222222222222222222222222222222222222",
+    "3333333333333333333333333333333333333333333333333333333333333333",
+    "invented-generation",
+    "invented/embeddings",
+    "invented/reranker"
+  ],
+  "rows": [
+    {
+      "id": "installation",
+      "state": "OK",
+      "observed": {
+        "matched": true,
+        "present": true,
+        "version": "0.1.0-alpha.2"
+      }
+    },
+    {
+      "id": "tailscale-installed",
+      "state": "OK",
+      "observed": {
+        "present": true,
+        "version": "1.92.1"
+      }
+    },
+    {
+      "id": "tailscale-running",
+      "state": "OK",
+      "observed": {
+        "present": true,
+        "state": "Running"
+      }
+    },
+    {
+      "id": "tailscale-signin",
+      "state": "OK",
+      "observed": {
+        "online": true,
+        "expired": false,
+        "state": "Running"
+      }
+    },
+    {
+      "id": "magicdns",
+      "state": "OK",
+      "observed": {
+        "matched": true,
+        "present": true
+      }
+    },
+    {
+      "id": "https-available",
+      "state": "OK",
+      "observed": {
+        "matched": true,
+        "present": true,
+        "http_status": 200
+      }
+    },
+    {
+      "id": "serve-routes",
+      "state": "OK",
+      "observed": {
+        "routes": 2,
+        "matched": true,
+        "owner_verified": true,
+        "state": "committed"
+      }
+    },
+    {
+      "id": "pairing",
+      "state": "OK",
+      "observed": {
+        "matched": true,
+        "present": true,
+        "state": "committed",
+        "peer_role": "forge"
+      }
+    },
+    {
+      "id": "peer-reachability",
+      "state": "OK",
+      "observed": {
+        "online": true,
+        "http_status": 200,
+        "peer_role": "forge"
+      }
+    },
+    {
+      "id": "tailnet-path.forge",
+      "state": "OK",
+      "observed": {
+        "peer_role": "forge",
+        "state": "direct"
+      }
+    },
+    {
+      "id": "peer-clock",
+      "state": "OK",
+      "observed": {
+        "peer_role": "forge",
+        "offset_lower_ms": -100,
+        "offset_upper_ms": 100,
+        "rtt_ms": 200
+      }
+    },
+    {
+      "id": "first-start",
+      "state": "OK",
+      "observed": {
+        "stage": "READY",
+        "state": "ready",
+        "version": "0.1.0-alpha.2"
+      }
+    },
+    {
+      "id": "engine",
+      "state": "OK",
+      "observed": {
+        "healthy": true,
+        "present": true
+      }
+    },
+    {
+      "id": "gateway",
+      "state": "OK",
+      "observed": {
+        "healthy": true,
+        "present": true
+      }
+    },
+    {
+      "id": "index-generation",
+      "state": "OK",
+      "observed": {
+        "generation": "invented-generation",
+        "matched": true
+      }
+    },
+    {
+      "id": "index-fingerprint",
+      "state": "OK",
+      "observed": {
+        "fingerprint": "3333333333333333333333333333333333333333333333333333333333333333",
+        "matched": true
+      }
+    },
+    {
+      "id": "forge-auth",
+      "state": "OK",
+      "observed": {
+        "http_status": 200,
+        "matched": true
+      }
+    },
+    {
+      "id": "model-attestation.embed",
+      "state": "OK",
+      "observed": {
+        "revision": "1111111111111111111111111111111111111111",
+        "matched": true,
+        "age_seconds": 2
+      }
+    },
+    {
+      "id": "model-attestation.rerank",
+      "state": "OK",
+      "observed": {
+        "revision": "2222222222222222222222222222222222222222",
+        "matched": true,
+        "age_seconds": 2
+      }
+    },
+    {
+      "id": "dense",
+      "state": "WARN",
+      "observed": {
+        "enabled": true,
+        "healthy": false,
+        "breaker": "open"
+      }
+    },
+    {
+      "id": "reranker",
+      "state": "OK",
+      "observed": {
+        "enabled": true,
+        "healthy": true,
+        "breaker": "closed"
+      }
+    },
+    {
+      "id": "index-health",
+      "state": "OK",
+      "observed": {
+        "n_docs": 1200,
+        "n_chunks": 24000,
+        "healthy": true
+      }
+    },
+    {
+      "id": "disk.content",
+      "state": "OK",
+      "observed": {
+        "free_bytes": 100000000000,
+        "required_bytes": 20000000000
+      }
+    },
+    {
+      "id": "disk.state",
+      "state": "OK",
+      "observed": {
+        "free_bytes": 10000000000,
+        "required_bytes": 1000000000
+      }
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "TCP": {
+    "443": {
+      "HTTPS": true
+    },
+    "7454": {
+      "TCPForward": "127.0.0.1:7454"
+    }
+  },
+  "Web": {
+    "workstation.fixture.ts.net:443": {
+      "Handlers": {
+        "/mcp": {
+          "Proxy": "http://127.0.0.1:8766/mcp"
+        }
+      }
+    }
+  }
+}

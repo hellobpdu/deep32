@@ -32,3 +32,6 @@ src/workstation/library/** -text
 src/workstation/pyrag/locks/requirements-buildenv312.lock -text
 src/workstation/pyrag/locks/requirements-buildenv314.lock -text
 src/workstation/pyrag/locks/requirements-test.lock -text
+
+# Fuzz seeds keep their bytes exactly, including the CRLF seed.
+tests/fuzz/corpus/** -text

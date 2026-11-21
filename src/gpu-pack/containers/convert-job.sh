@@ -11,6 +11,21 @@ if [[ $# == 1 && "${1:-}" == --dry-run ]]; then
   print_dry_run
   exit 0
 fi
+# Retained portable kits use their recorded project and private data root.
+# Other kit paths keep the legacy ISO/WSL entry point below.
+portable_root=
+if [[ "${1:-}" == --data-root ]]; then
+  [[ $# -ge 2 && -n "$2" ]] || exit 2
+  portable_root=$2
+  shift 2
+fi
+kit_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
+if [[ -z "$portable_root" && "$kit_dir" =~ ^(.+)/releases/[0-9a-f]{64}/kit$ ]]; then
+  portable_root=${BASH_REMATCH[1]}
+fi
+if [[ -n "$portable_root" ]]; then
+  exec python3 -I -B "$kit_dir/forms/forge_jobs.py" --data-root "$portable_root" convert "$@"
+fi
 [[ $# -ge 2 && "$1" =~ ^[a-z0-9][a-z0-9_-]{0,39}$ ]] || exit 2
 job_id=$1
 backend=$2

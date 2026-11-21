@@ -1,0 +1,1 @@
+{"proto":"D32U/1","id":"relay-1","version":1,"versions":[1],"role":"relay","features":["research-v1"],"nonce":"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef","sessions":[],"codex_version":"0.160.0","signed_in":true,"profiles":[{"name":"research","models":["model-a"],"efforts":["low","high"]}]}

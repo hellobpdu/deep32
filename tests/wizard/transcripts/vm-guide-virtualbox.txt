@@ -1,0 +1,169 @@
+Deep32 Workstation VM guide (demo: no hypervisor is asked and nothing changes)
+The wizard only reads: it never creates, changes, starts or stops a VM.
+
+Which hypervisor runs the Workstation VM?
+  1) Proxmox VE, boot-tested
+  2) VMware ESXi, not boot-tested yet
+  3) VMware Workstation, not boot-tested yet
+  4) VirtualBox, not boot-tested yet, found on this PC
+  5) Hyper-V, not boot-tested yet
+  6) KVM / libvirt, not boot-tested yet, found on this PC
+  7) Other hypervisor or bare metal, not boot-tested yet
+Number [4]: 4
+Oracle VirtualBox on this PC or another one. The wizard makes a VirtualBox copy of the installer.
+Where does the VM run?
+  1) On this PC
+  2) On another machine
+Number [1]: 1
+
+The network, read on this PC:
+  This PC                192.168.1.20/24 on enp3s0, from DHCP
+  Gateway                192.168.1.1
+  DNS                    192.168.1.1
+  VirtualBox bridged     enp3s0
+  VirtualBox host-only   vboxnet0
+  libvirt networks       default
+  Tailscale here         signed in to example.com, MagicDNS suffix tail4c2e.ts.net, HTTPS certificates on
+How the Workstation VM connects:
+  1) Bridged: Bridged networking, to a host network adapter you name next
+  2) NAT: NAT networking
+     Bridged: the Workstation gets an address on your LAN from the router's DHCP, like any other machine there. Tailscale usually connects directly between machines on the same LAN, which is the fastest path. Recommended.
+     NAT: also works; the Workstation only needs outbound internet. Tailscale may relay through its DERP servers when it cannot connect directly, which is slower for Ask, the Library and the Forge.
+Number [1]: 1
+  Host-only, internal and private networks do not work: the Workstation has no internet there, so its Tailscale sign-in cannot finish.
+
+Tailscale, here and across sites:
+  - Deep32 machines talk over your tailnet, so the Workstation, the Forge and the agent PC can be in different places. At home on one LAN the connections are direct. Across sites they still work; the speed depends on whether Tailscale gets a direct path or relays.
+  - The Workstation signs in to Tailscale at its first boot. It shows the sign-in address on its console.
+  - Publication (d32-publish publish --accept-ct) gives the gateway an HTTPS name on your tailnet. That name appears in public certificate-transparency logs. Only the name: the gateway is still reachable only inside your tailnet.
+  - Tailscale access rules (ACLs) must let the agent PC and the Forge reach the Workstation. If your tailnet has custom rules, allow them; the default policy allows everything.
+
+The VM's settings (Enter keeps the value in brackets):
+  The system host name you give the Workstation installer. The wizard waits for this name to join your tailnet.
+Workstation name [deep32]: 
+  The name of the VM in VirtualBox.
+VM name [Deep32Workstation]: 
+  The host network adapter the VM bridges to. VBoxManage list bridgedifs lists them.
+Bridged adapter [enp3s0]: 
+
+VirtualBox, not boot-tested yet: 7 steps. The steps file is steps-virtualbox.txt in the kit folder (the demo writes no file).
+
+Step 1 of 7: The verified disc 1 image
+Where: This PC
+  1) deep32-get checked this image against the signed release:
+         /home/you/deep32-downloads/deep32-0.1.0-alpha.2-disc1-workstation-amd64.img
+  2) Its SHA-256 is 5c1b0e47d9a2f8c3604e8b1d7f2a9c5e3b08d4f61a7c2e9b5d3f0a8c6e4b1d97 and its size 1876951040 bytes. Every copy you make must keep both.
+Enter checks this step; s skips it, b goes back, q stops: 
+Result: OK
+  ok     Disc 1 image: /home/you/deep32-downloads/deep32-0.1.0-alpha.2-disc1-workstation-amd64.img, 1876951040 bytes
+  ok     SHA-256: 5c1b0e47d9a2f8c3604e8b1d7f2a9c5e3b08d4f61a7c2e9b5d3f0a8c6e4b1d97 (checked by deep32-get)
+
+Step 2 of 7: The VirtualBox copy of disc 1
+Where: This PC
+  1) Enter runs this, which reads the signed image and writes a converted copy into deep32-get's folder:
+         VBoxManage convertfromraw "/home/you/deep32-downloads/deep32-0.1.0-alpha.2-disc1-workstation-amd64.img" "/home/you/deep32-downloads/deep32-0.1.0-alpha.2-disc1-workstation-amd64-kvm/installer.vdi" --format=VDI --variant=Fixed
+  2) The wizard then checks the copy holds the whole image.
+Enter checks this step; s skips it, b goes back, q stops: 
+VBoxManage convertfromraw is writing the copy.
+Result: OK
+  ok     VirtualBox copy: /home/you/deep32-downloads/deep32-0.1.0-alpha.2-disc1-workstation-amd64-kvm/installer.vdi, 1879048192 bytes (the image is 1876951040)
+
+Step 3 of 7: Create the VM
+Where: A terminal on the VirtualBox PC
+  1)
+         VBoxManage createvm --name=Deep32Workstation --register
+  2)
+         VBoxManage modifyvm Deep32Workstation --firmware=bios --chipset=piix3 --memory=12288 --cpus=6 --graphicscontroller=vboxvga --nic1=bridged --bridge-adapter1="enp3s0" --nic-type1=82540EM
+  3)
+         VBoxManage storagectl Deep32Workstation --name=SATA --add=sata --controller=IntelAhci
+  4) The installer copy on port 0:
+         VBoxManage storageattach Deep32Workstation --storagectl=SATA --port=0 --device=0 --type=hdd --medium="/home/you/deep32-downloads/deep32-0.1.0-alpha.2-disc1-workstation-amd64-kvm/installer.vdi"
+  5) The empty 200 GB disk on port 1:
+         VBoxManage createmedium disk --filename="/home/you/deep32-downloads/deep32-0.1.0-alpha.2-disc1-workstation-amd64-kvm/target.vdi" --size=204800 --format=VDI
+         VBoxManage storageattach Deep32Workstation --storagectl=SATA --port=1 --device=0 --type=hdd --medium="/home/you/deep32-downloads/deep32-0.1.0-alpha.2-disc1-workstation-amd64-kvm/target.vdi"
+Enter checks this step; s skips it, b goes back, q stops: 
+Result: ERROR VM_FIRMWARE_UEFI
+  ERROR  Firmware: firmware=EFI (VM_FIRMWARE_UEFI)
+  ok     Display: graphicscontroller=vboxvga
+  ok     vCPUs: cpus=6
+  ok     Memory (MiB): memory=12288
+  ok     Target disk: SATA-1-0, 214.7 GB (214748364800 bytes)
+  ok     Installer disk: SATA-0-0, 1.9 GB
+  ok     Boots from: first boot device SATA-0-0
+  ok     Network: nic1=bridged
+  ok     Network card: nictype1=82540EM
+  ok     Chipset: chipset=piix3
+What it means: The VM boots with UEFI. The Workstation installs and boots with BIOS (legacy) firmware.
+What to do:
+  1) With the VM shut down:
+         VBoxManage modifyvm Deep32Workstation --firmware=bios
+  2) Check the step again
+Enter checks this step; s skips it, b goes back, q stops: 
+Result: OK
+  ok     Firmware: firmware=BIOS
+  ok     Display: graphicscontroller=vboxvga
+  ok     vCPUs: cpus=6
+  ok     Memory (MiB): memory=12288
+  ok     Target disk: SATA-1-0, 214.7 GB (214748364800 bytes)
+  ok     Installer disk: SATA-0-0, 1.9 GB
+  ok     Boots from: first boot device SATA-0-0
+  ok     Network: nic1=bridged
+  ok     Network card: nictype1=82540EM
+  ok     Chipset: chipset=piix3
+
+Step 4 of 7: Install the Workstation
+Where: VirtualBox: the VM's window
+  1) Start Deep32Workstation in VirtualBox. The guided installer starts.
+  2) Install to the empty 200 GB disk, never to the installer disk. When it asks for the system host name, type deep32.
+  3) When the install has finished, the installer halts the VM.
+Enter checks this step; s skips it, b goes back, q stops: s
+Result: SKIPPED
+
+Step 5 of 7: Boot the installed disk; attach disc 2
+Where: A terminal on the VirtualBox PC
+  1) Detach the installer copy:
+         VBoxManage storageattach Deep32Workstation --storagectl=SATA --port=0 --device=0 --type=hdd --medium=none
+  2) Attach disc 2 as a DVD:
+         VBoxManage storageattach Deep32Workstation --storagectl=SATA --port=2 --device=0 --type=dvddrive --medium="/home/you/deep32-downloads/deep32-0.1.0-alpha.2-disc2-content.iso"
+Enter checks this step; s skips it, b goes back, q stops: 
+Result: OK
+  ok     Boots from: first boot device SATA-1-0
+  ok     CD/DVD: deep32-0.1.0-alpha.2-disc2-content.iso
+  ok     Network: nic1=bridged
+
+Step 6 of 7: First boot and Tailscale
+Where: The VM's window, then this PC
+  1) Start Deep32Workstation in VirtualBox.
+  2) On its console, set the passwords the first boot asks for.
+  3) It then shows a Tailscale sign-in address. Open it on any device and sign in to your tailnet.
+  4) If the sign-in stalls: The Workstation checks DNSSEC through the DNS server DHCP gives it. A few routers' DNS breaks that and the sign-in stalls. Then give the VM's network another DNS server.
+Enter checks this step; s skips it, b goes back, q stops: 
+Waiting for deep32 to join your tailnet (this PC looks every 1 s, for up to 10 minutes).
+Result: OK
+  ok     Tailscale: deep32 is on your tailnet (example.com) and online
+
+Step 7 of 7: The disc 2 import
+Where: The Workstation
+  1) The import starts by itself. Search works once the knowledge base is in; the Library carries on in the background.
+  2) Import Report shows how far it is. From a terminal:
+         /usr/local/d32/libexec/d32-import-report
+  3) If it stopped, resume it:
+         doas /usr/local/d32/sbin/d32-import-resume
+Enter checks this step; s skips it, b goes back, q stops: 
+Look for: Import Report shows the knowledge base in use
+Did you see it? [y/N] y
+Result: YOU CONFIRMED
+  note   You saw: Import Report shows the knowledge base in use
+
+Where it stands:
+  1. The verified disc 1 image                    OK
+  2. The VirtualBox copy of disc 1                OK
+  3. Create the VM                                OK
+  4. Install the Workstation                      SKIPPED
+  5. Boot the installed disk; attach disc 2       OK
+  6. First boot and Tailscale                     OK
+  7. The disc 2 import                            YOU CONFIRMED
+Skipped, still to do:
+  4. Install the Workstation
+
+Next: pair the Forge and the agent PC with the Workstation (the wizard's What's next, or INSTALL.md).

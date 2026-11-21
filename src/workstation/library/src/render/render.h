@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 Jeffrey A. Cummings */
 /* render.h: what e26-render's operations share (W1-IMAGE). LIB-PROTOCOL.md "e26-render named operations".
  *
  * e26-render serves E26P frames on descriptor 3 (spawn.h) like e26-lib, with one difference that is the whole point

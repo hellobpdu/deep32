@@ -57,6 +57,7 @@ class Suite:
         self.home.mkdir()
         self.key = self.root / "synthetic-public.gpg"
         self.env.update(GNUPGHOME=str(self.home), TEMP=str(self.root), TMP=str(self.root),
+                        DEEP32_PYTHON=sys.executable,
                         RELEASE_TEST_ROOT=str(self.root), RELEASE_TEST_GPG=str(args.gpg),
                         RELEASE_TEST_PYTHON=sys.executable, RELEASE_TEST_NATIVE_GPG=str(args.keygen_gpg))
         self.shim = self.root / "shim"
@@ -88,16 +89,12 @@ if re.match(r"^/[A-Za-z]/", home):
 resolved = pathlib.Path(home).resolve()
 if not resolved.is_relative_to(root):
     raise SystemExit("Refused GPG home outside synthetic scratch")
-def posix(value):
-    value = value.replace("\\", "/")
-    return "/" + value[0].lower() + value[2:] if re.match(r"^[A-Za-z]:/", value) else value
-convert = str if native else posix
 binary = os.environ["RELEASE_TEST_NATIVE_GPG"] if native else os.environ["RELEASE_TEST_GPG"]
-command = [binary, "--no-options", "--homedir", convert(str(resolved))] + [convert(a) for a in args]
+command = [binary, "--no-options", "--homedir", str(resolved)] + args
 with (root / "gpg-audit.jsonl").open("a", encoding="ascii") as stream:
     stream.write(json.dumps(command) + "\n")
 environment = os.environ.copy()
-environment["GNUPGHOME"] = convert(str(resolved))
+environment["GNUPGHOME"] = str(resolved)
 raise SystemExit(subprocess.call(command, env=environment))
 ''')
         guard = str(self.root / "gpg_guard.py")
@@ -117,7 +114,7 @@ raise SystemExit(subprocess.call(command, env=environment))
 
     def run(self, name, argv, expected=0):
         print(name, flush=True)
-        completed = subprocess.run([str(a) for a in argv], cwd=self.root, env=self.env,
+        completed = subprocess.run([str(a) for a in argv], cwd=getattr(self, 'command_cwd', self.root), env=self.env,
                                    capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120)
         record = {"id": name, "argv": [str(a) for a in argv], "exit": completed.returncode,
                   "stdout": completed.stdout, "stderr": completed.stderr}
@@ -155,9 +152,9 @@ raise SystemExit(subprocess.call(command, env=environment))
             text(self.inputs / ("disc%d.sums" % number), "%s  %s\n" % (digest(image), image.name))
         self.source_hashes = {name: digest(self.tools / name) for name in TOOLS}
 
-    def assemble_args(self, out, pending=False, version="1.0"):
+    def assemble_args(self, out, pending=False, version=VERSION):
         pending = ("disc2",) if pending is True else tuple(pending or ())
-        result = ["--output", out, "--part-size-bytes", "4096", "--version", version]
+        result = ["--format", "legacy-split", "--output", out, "--part-size-bytes", "4096", "--version", version]
         for number, extension in ((1, ".img"), (2, ".iso"), (3, ".iso")):
             if "disc%d" % number in pending:
                 continue
@@ -167,7 +164,7 @@ raise SystemExit(subprocess.call(command, env=environment))
             result += ["--pending", role]
         return result
 
-    def assemble(self, name, pending=False, version="1.0"):
+    def assemble(self, name, pending=False, version=VERSION):
         out = self.root / name
         self.py(name + "-assemble", self.tools / "release_assemble.py", self.assemble_args(out, pending, version))
         metadata = json.loads((out / "ASSEMBLY.json").read_text(encoding="ascii"))
@@ -175,6 +172,11 @@ raise SystemExit(subprocess.call(command, env=environment))
                         "disc2": "Disc 2 is the Deep32 content image. ",
                         "disc3": "Disc 3 is the Deep32 GPU pack image. "}
         for disc in metadata["discs"]:
+            # A mounted/local source supplies a complete image. Split transport
+            # remains in the fixture for the explicit legacy verifier tests.
+            image = out / disc['file']
+            if not image.exists():
+                shutil.copyfile(self.inputs / (disc['role'] + image.suffix), image)
             expected = ("# %s\n\nImage: %s\n\nBytes: %d\n\nSHA256: %s\n\n" % (
                 disc["kind"], disc["file"], disc["size"], disc["sha256"]) +
                 descriptions[disc["role"]] +
@@ -192,15 +194,15 @@ raise SystemExit(subprocess.call(command, env=environment))
     def verify(self, name, release, expected=0, fingerprint=None):
         result = []
         fingerprint = fingerprint or self.fingerprint
-        result.append(self.shell(name + "-sh", self.tools / "verify-release.sh", [release, fingerprint], expected))
-        result.append(self.ps(name + "-ps1", self.tools / "verify-release.ps1", ["-ReleaseDirectory", release, "-Fingerprint", fingerprint], expected))
+        result.append(self.shell(name + "-sh", self.tools / "verify-release.sh", [release, fingerprint, "--legacy-split"], expected))
+        result.append(self.ps(name + "-ps1", self.tools / "verify-release.ps1", ["-ReleaseDirectory", release, "-Fingerprint", fingerprint, "-LegacySplit"], expected))
         return result
 
-    def download(self, name, release, role, version="1.0", expected=0):
+    def download(self, name, release, role, version=VERSION, expected=0):
         results = []
         for kind in ("sh", "ps1"):
             out = self.root / (name + "-" + kind + "-download")
-            args = [role, "--to", out, "--source", release, "--release", "v" + version, "--key", self.key]
+            args = [role, "--from", release, "--release", "v" + version, "--key", self.key]
             # Some previously shipped helpers also require the explicit test pin.
             script_text = (self.tools / ("deep32-get." + kind)).read_text(encoding="ascii")
             if re.search(r"--fingerprint(?:\)|'\s*\{)", script_text):
@@ -211,7 +213,7 @@ raise SystemExit(subprocess.call(command, env=environment))
             if expected == 0:
                 metadata = json.loads((release / "ASSEMBLY.json").read_text(encoding="ascii"))
                 disc = next(item for item in metadata["discs"] if item["role"] == role)
-                image = out / disc["file"]
+                image = release / disc["file"]
                 self.check(name + "-" + kind + "-image", image.is_file() and digest(image) == disc["sha256"])
             elif expected == 3:
                 combined = (completed.stdout + completed.stderr).strip()
@@ -231,8 +233,19 @@ raise SystemExit(subprocess.call(command, env=environment))
         for kind in ("sh", "ps1"):
             out = self.root / (name + "-" + kind + "-download")
             marker = self.root / (name + "-" + kind + "-install-called")
-            args = ["disc3", "--install", "--to", out, "--source", release,
+            args = ["disc3", "--install", "--from", release,
                     "--release", "v" + VERSION, "--key", self.key]
+            entrypoint = self.tools / ("deep32-get." + kind)
+            if '--journey' in entrypoint.read_text(encoding='ascii'):
+                # The new install contract validates its mandatory selection
+                # before any download/host write. Download-only fixtures below
+                # continue to authenticate pending discs and require exit 3.
+                method = self.shell if kind == 'sh' else self.ps
+                completed = method(name + '-' + kind + '-missing-journey', entrypoint, args, 1)
+                self.check(name + '-' + kind + '-missing-journey-message',
+                           'journey' in (completed.stdout + completed.stderr).lower())
+                self.check(name + '-' + kind + '-no-install-target-write', not out.exists())
+                continue
             if kind == "sh":
                 guard = self.root / (name + "-install-guard.sh")
                 text(guard, '''#!/usr/bin/env bash
@@ -439,6 +452,7 @@ exit $LASTEXITCODE
         missing = self.root / "partial-missing-present"
         shutil.copytree(release, missing)
         (missing / data["discs"][1]["payloads"][0]["name"]).unlink()
+        (missing / data["discs"][1]["file"]).unlink(missing_ok=True)
         self.verify("partial-missing-present-refused", missing, None)
         self.download("partial-missing-present-get-refused", missing, "disc3", VERSION, None)
 
@@ -576,7 +590,7 @@ exit $LASTEXITCODE
         for home in homes:
             if not home.resolve().is_relative_to(self.root):
                 raise RuntimeError("Unsafe cleanup target")
-            subprocess.run([str(self.args.gpgconf), "--homedir", msys(home), "--kill", "all"], env=self.env,
+            subprocess.run([str(self.args.gpgconf), "--homedir", str(home), "--kill", "all"], env=self.env,
                            capture_output=True, timeout=30)
             subprocess.run([str(self.args.keygen_gpg.with_name("gpgconf.exe")), "--homedir", str(home), "--kill", "all"],
                            env=self.env, capture_output=True, timeout=30)
@@ -597,8 +611,8 @@ def main():
     parser.add_argument("--baseline-only", action="store_true")
     parser.add_argument("--bash", type=Path, default=Path("C:/Program Files/Git/bin/bash.exe"))
     parser.add_argument("--powershell", type=Path, default=Path("C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe"))
-    parser.add_argument("--gpg", type=Path, default=Path("C:/Program Files/Git/usr/bin/gpg.exe"))
-    parser.add_argument("--gpgconf", type=Path, default=Path("C:/Program Files/Git/usr/bin/gpgconf.exe"))
+    parser.add_argument("--gpg", type=Path, default=Path("C:/Program Files/GnuPG/bin/gpg.exe"))
+    parser.add_argument("--gpgconf", type=Path, default=Path("C:/Program Files/GnuPG/bin/gpgconf.exe"))
     parser.add_argument("--keygen-gpg", type=Path, default=Path("C:/Program Files/GnuPG/bin/gpg.exe"))
     args = parser.parse_args()
     suite = Suite(args)

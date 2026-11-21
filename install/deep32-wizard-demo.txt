@@ -1,0 +1,699 @@
+# deep32-wizard-demo.txt: the recorded deep32-setup runs that the wizard's --demo mode plays back.
+#
+# Both wizards (deep32-wizard.sh and deep32-wizard.ps1) start themselves in replay mode in place of
+# deep32-setup, so the demo goes through the same process, pipes, events and screens as a real run. Nothing
+# here touches the network, Docker, Tailscale or any disk outside the wizard's own log.
+#
+# Format: "=== NAME" starts a scenario. Other lines are printed as deep32-setup would print them, except:
+#   .sleep SECONDS                        wait
+#   .json {...}                           one event line (dropped when the replay runs without --events)
+#   .ask ID QUESTION                      a question (an "ask" event, or "QUESTION [y/N] " in plain mode)
+#   .prompt TEXT                          a hidden prompt read from the terminal (Connect's pairing code)
+#   .dl FILE BYTES SECONDS [FROM [TO]]    download progress for FILE from FROM to TO per mille, over SECONDS
+#   .if COND ... .endif                   COND: yes, no (the last answer), first, retry (the attempt),
+#                                         digest, nodigest (--plan-digest given), windows, unix,
+#                                         fixed (a fix pass of this demo already said yes)
+#   .exit STATUS                          stop with this exit status
+# {dir} is the download folder, {root} the Forge data folder, {py} the Python path, {tab} a tab.
+
+=== guess
+.sleep 0.5
+.if unix
+.json {"deep32":"role","role":"forge","guessed":true,"os":"Linux","gpu":"ada","kvm":"yes","agents":"claude"}
+.endif
+.if windows
+.json {"deep32":"role","role":"forge","guessed":true,"os":"Windows","gpu":"ada","hyperv":"yes","agents":"claude"}
+.endif
+.exit 0
+
+=== check-forge
+.json {"deep32":"step","step":"check"}
+.sleep 0.3
+.if unix
+[ok] python3 3.12 for the download tools
+.sleep 0.2
+[ok] gpgv for the signature checks
+.sleep 0.2
+[ok] python3 is 3.12 or newer for the Forge installer
+.sleep 0.3
+[ok] NVIDIA GeForce RTX 4090, class ada
+[ok] driver 580.82.07
+[ok] 24564 MiB of GPU memory (the Forge needs 10752)
+.sleep 0.4
+[ok] Docker running
+[ok] Docker Compose v2
+[ok] Docker uses the classic image store
+[ok] NVIDIA Container Toolkit
+.sleep 0.3
+[ok] pairing helper Python
+.endif
+.if windows
+[ok] Python for the download tools ({py})
+.sleep 0.2
+[ok] Python is 3.12 or newer for the Forge installer
+.sleep 0.3
+[ok] NVIDIA GeForce RTX 4090, class ada
+[ok] driver 581.57
+[ok] 24564 MiB of GPU memory (the Forge needs 10752)
+.sleep 0.4
+[ok] Docker Desktop running
+[ok] Docker uses the classic image store
+[ok] Docker Compose v2
+[info] Docker Desktop must use the WSL 2 backend; GPU support comes with it on current NVIDIA drivers
+[ok] running as administrator (the install loads Docker images and adds a startup task)
+.endif
+.sleep 0.4
+.if fixed
+[ok] Tailscale signed in
+[ok] MagicDNS on
+[ok] Tailscale name deep32-forge starts with deep32-
+[ok] HTTPS certificates on
+.json {"deep32":"checked","role":"forge","problems":0}
+.exit 0
+.endif
+[fix] Tailscale is not signed in
+.ask tailscale-signin Start Tailscale sign-in now?
+.if yes
+.if unix
+[you] open the address Tailscale prints below in any browser and sign in with your account
+.endif
+.if windows
+[you] sign in with your account in the browser window Tailscale opens
+.endif
+.json {"deep32":"signin","role":"forge"}
+.sleep 0.8
+
+To authenticate, visit:
+
+{tab}https://login.tailscale.com/a/1f4e7c29b03d
+
+.sleep 7
+Success.
+[ok] Tailscale signed in
+[ok] MagicDNS on
+[ok] Tailscale name deep32-forge starts with deep32-
+[ok] HTTPS certificates on
+.json {"deep32":"checked","role":"forge","problems":0}
+.exit 0
+.endif
+.json {"deep32":"checked","role":"forge","problems":1}
+.exit 1
+
+=== check-workstation
+.json {"deep32":"step","step":"check"}
+.sleep 0.4
+.if unix
+[ok] python3 3.12 for the download tools
+.sleep 0.2
+[ok] gpgv for the signature checks
+.endif
+.if windows
+[ok] Python for the download tools ({py})
+.sleep 0.3
+[ok] Hyper-V is available
+.endif
+.json {"deep32":"checked","role":"workstation","problems":0}
+.exit 0
+
+=== check-headend
+.json {"deep32":"step","step":"check"}
+.sleep 0.4
+.if unix
+[ok] python3 3.12 for the download tools
+.sleep 0.2
+[ok] gpgv for the signature checks
+.endif
+.if windows
+[ok] Python for the download tools ({py})
+.endif
+.sleep 0.3
+[ok] Tailscale signed in
+[ok] MagicDNS on
+.json {"deep32":"checked","role":"headend","problems":0}
+.exit 0
+
+=== forge
+.json {"deep32":"step","step":"check"}
+.sleep 0.3
+.if unix
+[ok] python3 3.12 for the download tools
+[ok] gpgv for the signature checks
+[ok] python3 is 3.12 or newer for the Forge installer
+[ok] NVIDIA GeForce RTX 4090, class ada
+[ok] driver 580.82.07
+[ok] 24564 MiB of GPU memory (the Forge needs 10752)
+[ok] Docker running
+[ok] Docker Compose v2
+[ok] Docker uses the classic image store
+[ok] NVIDIA Container Toolkit
+[ok] pairing helper Python
+.endif
+.if windows
+[ok] Python for the download tools ({py})
+[ok] Python is 3.12 or newer for the Forge installer
+[ok] NVIDIA GeForce RTX 4090, class ada
+[ok] driver 581.57
+[ok] 24564 MiB of GPU memory (the Forge needs 10752)
+[ok] Docker Desktop running
+[ok] Docker uses the classic image store
+[ok] Docker Compose v2
+[ok] running as administrator (the install loads Docker images and adds a startup task)
+.endif
+[ok] Tailscale signed in
+[ok] MagicDNS on
+[ok] Tailscale name deep32-forge starts with deep32-
+[ok] HTTPS certificates on
+.sleep 0.4
+[info] downloading, verifying and installing the GPU pack for ada into {root}
+[you] the installer shows its plan (folders, ports, images, sizes) and waits for you to accept it
+.json {"deep32":"step","step":"download"}
+.json {"deep32":"run","tool":"get","disc":"disc3","class":"ada","dir":"{dir}","root":"{root}"}
+.sleep 0.3
+Split Disc 3 installation includes the ingestion ISO required by the Forge loader.
+Checking read-only prerequisites for this GPU host
+.sleep 0.5
+Prerequisites passed for gpu-host; review the selected installation plan before changes.
+.json {"deep32":"demo-progress","file":"deep32-0.1.0-alpha.2-disc3-gpu-pack-core.iso","bytes":0,"size":9126805504}
+.json {"deep32":"demo-progress","file":"deep32-0.1.0-alpha.2-disc3-gpu-pack-embedder-ada.iso","bytes":0,"size":6871318528}
+.json {"deep32":"demo-progress","file":"deep32-0.1.0-alpha.2-disc3-gpu-pack-ingestion.iso","bytes":0,"size":5368709120}
+.if nodigest
+.dl deep32-0.1.0-alpha.2-disc3-gpu-pack-core.iso 9126805504 6
+Verified deep32-0.1.0-alpha.2-disc3-gpu-pack-core.iso from mirror github (github.com).
+.dl deep32-0.1.0-alpha.2-disc3-gpu-pack-embedder-ada.iso 6871318528 9
+Verified deep32-0.1.0-alpha.2-disc3-gpu-pack-embedder-ada.iso from mirror github (github.com).
+.dl deep32-0.1.0-alpha.2-disc3-gpu-pack-ingestion.iso 5368709120 5
+Verified deep32-0.1.0-alpha.2-disc3-gpu-pack-ingestion.iso from mirror github (github.com).
+.endif
+.if digest
+.dl deep32-0.1.0-alpha.2-disc3-gpu-pack-core.iso 9126805504 0.6 1000 1000
+Verified local image deep32-0.1.0-alpha.2-disc3-gpu-pack-core.iso.
+.dl deep32-0.1.0-alpha.2-disc3-gpu-pack-embedder-ada.iso 6871318528 0.5 1000 1000
+Verified local image deep32-0.1.0-alpha.2-disc3-gpu-pack-embedder-ada.iso.
+.dl deep32-0.1.0-alpha.2-disc3-gpu-pack-ingestion.iso 5368709120 0.4 1000 1000
+Verified local image deep32-0.1.0-alpha.2-disc3-gpu-pack-ingestion.iso.
+.endif
+Optional manual torrent: https://archive.org/download/deep32-0.1.0-alpha.2/deep32-0.1.0-alpha.2_archive.torrent
+.sleep 0.5
+{
+  "digest": "3f2a9c417be021d5c0de86b19a4471f2e53b0c9d8a6e1f37b24c95d0e8a1f6c3",
+  "identity": {
+    "data_root": "{root}",
+    "docker_role": "forge",
+    "download_directory": "{dir}",
+    "form": "docker",
+    "journey": "J2",
+    "media_components": [
+      {
+        "component": "core",
+        "sha256": "fad31509e846ef0a3d9540e633e260bb2a33d7d59e6eb8414159e20d7138da79",
+        "size": 9126805504
+      },
+      {
+        "component": "embedder-ada",
+        "sha256": "d080b8582bb73b6246fee1bb419ac508206a7ce3da63325cc906153dc8a5f7c6",
+        "size": 6871318528
+      },
+      {
+        "component": "ingestion",
+        "sha256": "996b802f2f7aeaaedd8c887a759e0234b7cc571d9204a29072d1cc4200b5c4ba",
+        "size": 5368709120
+      }
+    ],
+    "media_sha256": "fad31509e846ef0a3d9540e633e260bb2a33d7d59e6eb8414159e20d7138da79",
+    "platform": "linux",
+    "target": "{root}/config/settings.json"
+  },
+  "install_id": "8c41d2f07a9be35c6e1d0b27",
+  "profiles": [
+    "two-machines"
+  ],
+  "schema": "deep32.install-plan.v1",
+  "settings": {
+    "forge_accept_ct": true,
+    "format": "deep32-settings",
+    "format_version": 1,
+    "keyboard": "us",
+    "node_name": "deep32-forge",
+    "profile": "two-machines",
+    "publish": "serve-https",
+    "role": "forge",
+    "time_zone": "Europe/London",
+    "transport": "tailnet",
+    "user_name": "deep32",
+    "written_by": "deep32-wizard"
+  }
+}
+.if nodigest
+Download refused: Plan consent required; rerun with --accept-plan and the displayed digest
+.json {"deep32":"exit","tool":"get","status":1}
+[fail] the Forge install stopped; its message above names the cause
+.exit 1
+.endif
+Checking read-only prerequisites for this GPU host
+Prerequisites passed for gpu-host; review the selected installation plan before changes.
+.json {"deep32":"step","step":"install"}
+Mounting core read-only
+.sleep 0.4
+Mounting embedder-ada read-only
+.sleep 0.4
+Mounting ingestion read-only
+.sleep 0.6
+Protected staging settings: /tmp/deep32-get.Xq81/settings.json
+Running the disc3 Docker form
+Waiting for the verified disc3 loader; protected runtime output is withheld.
+This stage has a finite deadline. Stop with Ctrl+C to return to a resumable operator action.
+.sleep 6
+The verified disc3 loader returned successfully; runtime readiness is a separate check.
+Disc3 loader returned; settings handoff completed.
+Verified joined payload retained at {dir}/.deep32-v0.1.0-alpha.2/joined-3c91
+Next: review GPU pack status and the host publication request before authorizing Tailscale Serve.
+.json {"deep32":"exit","tool":"get","status":0}
+[ok] Forge installed and running
+.json {"deep32":"step","step":"pair"}
+.sleep 0.6
+[ok] door answers on https://deep32-forge.tail4c2e.ts.net:443 and asks for a token
+[ok] door answers on https://deep32-forge.tail4c2e.ts.net:8443 and asks for a token
+.sleep 1.2
+.json {"deep32":"pair","code":"K7QPM4X2TA","peer":"deep32-forge","minutes":5}
+[you] on the Workstation: open Pairing, choose Forge, pick deep32-forge and type the code K7QPM4X2TA (valid five minutes)
+[you] if the code expires, run this script again to see the next one
+.exit 0
+
+=== workstation
+.json {"deep32":"step","step":"check"}
+.if unix
+[ok] python3 3.12 for the download tools
+[ok] gpgv for the signature checks
+.endif
+.if windows
+[ok] Python for the download tools ({py})
+[ok] Hyper-V is available
+.endif
+[info] downloading and verifying disc 1 (Workstation) and disc 2 (content) into {dir}
+.json {"deep32":"step","step":"download"}
+.json {"deep32":"run","tool":"get","disc":"disc1","dir":"{dir}"}
+.sleep 0.4
+.json {"deep32":"demo-progress","file":"deep32-0.1.0-alpha.2-disc1-workstation-amd64.img","bytes":0,"size":1876951040}
+.json {"deep32":"demo-progress","file":"deep32-0.1.0-alpha.2-disc2-content.iso","bytes":0,"size":19638284288}
+.if first
+.dl deep32-0.1.0-alpha.2-disc1-workstation-amd64.img 1876951040 4
+Verified deep32-0.1.0-alpha.2-disc1-workstation-amd64.img from mirror github (github.com).
+.endif
+.if retry
+.dl deep32-0.1.0-alpha.2-disc1-workstation-amd64.img 1876951040 0.5 1000 1000
+Verified local image deep32-0.1.0-alpha.2-disc1-workstation-amd64.img.
+.endif
+Optional manual torrent: https://archive.org/download/deep32-0.1.0-alpha.2/deep32-0.1.0-alpha.2_archive.torrent
+Write the verified disc1 image to a USB stick to start Workstation.
+.json {"deep32":"exit","tool":"get","status":0}
+.json {"deep32":"run","tool":"get","disc":"disc2","dir":"{dir}"}
+.sleep 0.3
+.if first
+.dl deep32-0.1.0-alpha.2-disc2-content.iso 19638284288 7 0 430
+Download interrupted; verified chunks can be resumed.
+.json {"deep32":"exit","tool":"get","status":1}
+[fail] disc 2 download stopped
+.exit 1
+.endif
+.dl deep32-0.1.0-alpha.2-disc2-content.iso 19638284288 7 430 1000
+Completed from mirror github (github.com); resumed verified bytes from earlier mirrors.
+Optional manual torrent: https://archive.org/download/deep32-0.1.0-alpha.2/deep32-0.1.0-alpha.2_archive.torrent
+Attach the verified disc2 content image in Workstation and import its content.
+.json {"deep32":"exit","tool":"get","status":0}
+.json {"deep32":"step","step":"install"}
+.if unix
+.json {"deep32":"run","tool":"get","disc":"disc1","dir":"{dir}","action":"prepare-vm","hypervisor":"kvm"}
+.endif
+.if windows
+.json {"deep32":"run","tool":"get","disc":"disc1","dir":"{dir}","action":"prepare-vm","hypervisor":"hyper-v"}
+.endif
+.sleep 0.8
+Verified local image deep32-0.1.0-alpha.2-disc1-workstation-amd64.img.
+.if unix
+VM artefacts written: {dir}/deep32-0.1.0-alpha.2-disc1-workstation-amd64-kvm; review commands.txt. Host boot qualification is pending.
+.endif
+.if windows
+VM artefacts written: {dir}\deep32-0.1.0-alpha.2-disc1-workstation-amd64-hyper-v; review commands.txt. Host boot qualification is pending.
+.endif
+.json {"deep32":"exit","tool":"get","status":0}
+.if unix
+[you] create the VM with the commands above, boot it from disc 1, and answer the installer's questions (INSTALL.md section 6)
+[you] at first boot, set the passwords, sign in to Tailscale with the address shown, and leave disc 2 in the drive for the import
+.endif
+.if windows
+[you] create the Generation 1 VM with the commands above, boot it from disc 1, and answer the installer (INSTALL.md section 6)
+[you] at first boot, set the passwords, sign in to Tailscale, and leave disc 2 in the drive for the import
+.endif
+.exit 0
+
+=== headend
+.if unix
+[ok] python3 3.12 for the download tools
+[ok] gpgv for the signature checks
+.endif
+.if windows
+[ok] Python for the download tools ({py})
+.endif
+[ok] Tailscale signed in
+[ok] MagicDNS on
+[you] Connect asks for a ten-character code: on the Workstation open Pairing and choose Headend, then type the code the Workstation shows into Connect here
+.sleep 0.6
+claude: waiting for the published gateway; keep the Workstation on and connected to Tailscale.
+.sleep 0.8
+claude: waiting for headend enrolment; open its five-minute Workstation pairing window.
+.prompt Workstation one-time code for claude:
+claude: waiting for authenticated MCP checks; restore the Workstation services if this fails.
+.sleep 1
+claude: waiting for the installed client connection check; update the agent if its credential mode is unsupported.
+.sleep 1
+claude: paired; config checked (3 files); gateway authentication passed; eleven tools passed; retrieval ready.
+URL: https://deep32-ws.tail4c2e.ts.net/mcp; install ID: 6f1c0a94e2b7d385a1c4e09f27b6d3a8.
+Actual agent restart/reconnect and revocation acceptance remain required; this result verifies MCP internally.
+.exit 0
+
+# --- The Workstation VM guide: what the read-only checks would read, for --demo and the tests ------------------
+# vm-NAME-N is the Nth read of NAME (the last one repeats); vm-NAME has no number. {tab} is a TAB.
+
+=== vm-net
+.if unix
+This PC{tab}192.168.1.20/24 on enp3s0, from DHCP
+Gateway{tab}192.168.1.1
+DNS{tab}192.168.1.1
+VirtualBox bridged{tab}enp3s0
+VirtualBox host-only{tab}vboxnet0
+libvirt networks{tab}default
+hostif{tab}enp3s0
+.endif
+.if windows
+This PC{tab}192.168.1.21/24 on Ethernet, from DHCP
+Gateway{tab}192.168.1.1
+DNS{tab}192.168.1.1
+Hyper-V switches{tab}Default Switch (Internal), LAN (External)
+NAT networks{tab}none
+VirtualBox bridged{tab}Intel(R) Ethernet Connection I219-LM
+hostif{tab}Intel(R) Ethernet Connection I219-LM
+switch{tab}LAN
+.endif
+
+=== vm-ts
+{
+  "BackendState": "Running",
+  "MagicDNSSuffix": "tail4c2e.ts.net",
+  "CurrentTailnet": {"Name": "example.com", "MagicDNSSuffix": "tail4c2e.ts.net", "MagicDNSEnabled": true},
+  "CertDomains": ["workpc.tail4c2e.ts.net"],
+  "Self": {"HostName": "workpc", "Online": true},
+  "Peer": {
+    "nodekey:7a1f": {"HostName": "deep32-forge", "Online": true},
+    "nodekey:c93e": {"HostName": "phone", "Online": false}
+  }
+}
+
+=== vm-ts-poll-1
+{
+  "BackendState": "Running",
+  "CurrentTailnet": {"Name": "example.com"},
+  "Peer": {
+    "nodekey:7a1f": {"HostName": "deep32-forge", "Online": true},
+    "nodekey:c93e": {"HostName": "phone", "Online": false}
+  }
+}
+
+=== vm-ts-poll-2
+{
+  "BackendState": "Running",
+  "CurrentTailnet": {"Name": "example.com"},
+  "Peer": {
+    "nodekey:7a1f": {"HostName": "deep32-forge", "Online": true},
+    "nodekey:c93e": {"HostName": "phone", "Online": false},
+    "nodekey:5d20": {"HostName": "deep32", "Online": true}
+  }
+}
+
+=== vm-pve-config-1
+balloon: 0
+bios: seabios
+boot: order=scsi0
+cores: 6
+cpu: host
+memory: 12288
+name: deep32-workstation
+net0: virtio=BC:24:11:5E:20:07,bridge=vmbr0
+ostype: other
+scsi0: local-lvm:vm-100-disk-0,discard=on,iothread=1,size=1790M,ssd=1
+scsi1: local-lvm:vm-100-disk-1,discard=on,iothread=1,size=160G,ssd=1
+scsihw: virtio-scsi-single
+serial0: socket
+sockets: 1
+vga: std
+
+=== vm-pve-config-2
+balloon: 0
+bios: seabios
+boot: order=scsi0
+cores: 6
+cpu: host
+memory: 12288
+name: deep32-workstation
+net0: virtio=BC:24:11:5E:20:07,bridge=vmbr0
+ostype: other
+scsi0: local-lvm:vm-100-disk-0,discard=on,iothread=1,size=1790M,ssd=1
+scsi1: local-lvm:vm-100-disk-2,discard=on,iothread=1,size=200G,ssd=1
+scsihw: virtio-scsi-single
+serial0: socket
+sockets: 1
+vga: std
+
+=== vm-pve-config-3
+balloon: 0
+bios: seabios
+boot: order=scsi1
+cores: 6
+cpu: host
+memory: 12288
+name: deep32-workstation
+net0: virtio=BC:24:11:5E:20:07,bridge=vmbr0
+ostype: other
+sata1: local:iso/deep32-0.1.0-alpha.2-disc2-content.iso,media=cdrom,size=19164340K
+scsi0: local-lvm:vm-100-disk-0,discard=on,iothread=1,size=1790M,ssd=1
+scsi1: local-lvm:vm-100-disk-2,discard=on,iothread=1,size=200G,ssd=1
+scsihw: virtio-scsi-single
+serial0: socket
+sockets: 1
+vga: std
+
+=== vm-vbox-info-1
+name="Deep32Workstation"
+memory=12288
+cpus=6
+chipset="piix3"
+firmware="EFI"
+graphicscontroller="vboxvga"
+storagecontrollername0="SATA"
+storagecontrollertype0="IntelAhci"
+.if unix
+"SATA-0-0"="/home/you/deep32-downloads/deep32-0.1.0-alpha.2-disc1-workstation-amd64-kvm/installer.vdi"
+"SATA-1-0"="/home/you/deep32-downloads/deep32-0.1.0-alpha.2-disc1-workstation-amd64-kvm/target.vdi"
+.endif
+.if windows
+"SATA-0-0"="C:\Users\you\deep32-downloads\deep32-0.1.0-alpha.2-disc1-workstation-amd64-hyper-v\installer.vdi"
+"SATA-1-0"="C:\Users\you\deep32-downloads\deep32-0.1.0-alpha.2-disc1-workstation-amd64-hyper-v\target.vdi"
+.endif
+nic1="bridged"
+nictype1="82540EM"
+
+=== vm-vbox-info-2
+name="Deep32Workstation"
+memory=12288
+cpus=6
+chipset="piix3"
+firmware="BIOS"
+graphicscontroller="vboxvga"
+storagecontrollername0="SATA"
+storagecontrollertype0="IntelAhci"
+.if unix
+"SATA-0-0"="/home/you/deep32-downloads/deep32-0.1.0-alpha.2-disc1-workstation-amd64-kvm/installer.vdi"
+"SATA-1-0"="/home/you/deep32-downloads/deep32-0.1.0-alpha.2-disc1-workstation-amd64-kvm/target.vdi"
+.endif
+.if windows
+"SATA-0-0"="C:\Users\you\deep32-downloads\deep32-0.1.0-alpha.2-disc1-workstation-amd64-hyper-v\installer.vdi"
+"SATA-1-0"="C:\Users\you\deep32-downloads\deep32-0.1.0-alpha.2-disc1-workstation-amd64-hyper-v\target.vdi"
+.endif
+nic1="bridged"
+nictype1="82540EM"
+
+=== vm-vbox-info-3
+name="Deep32Workstation"
+memory=12288
+cpus=6
+chipset="piix3"
+firmware="BIOS"
+graphicscontroller="vboxvga"
+storagecontrollername0="SATA"
+storagecontrollertype0="IntelAhci"
+"SATA-0-0"="none"
+.if unix
+"SATA-1-0"="/home/you/deep32-downloads/deep32-0.1.0-alpha.2-disc1-workstation-amd64-kvm/target.vdi"
+"SATA-2-0"="/home/you/deep32-downloads/deep32-0.1.0-alpha.2-disc2-content.iso"
+.endif
+.if windows
+"SATA-1-0"="C:\Users\you\deep32-downloads\deep32-0.1.0-alpha.2-disc1-workstation-amd64-hyper-v\target.vdi"
+"SATA-2-0"="C:\Users\you\deep32-downloads\deep32-0.1.0-alpha.2-disc2-content.iso"
+.endif
+nic1="bridged"
+nictype1="82540EM"
+
+=== vm-vbox-medium-installer
+Capacity:       1790 MBytes
+
+=== vm-vbox-medium-target
+Capacity:       204800 MBytes
+
+=== vm-vmx-1
+.encoding = "UTF-8"
+displayName = "Deep32Workstation"
+memsize = "4096"
+numvcpus = "6"
+scsi0.virtualDev = "lsilogic"
+scsi0:0.fileName = "installer.vmdk"
+scsi0:1.fileName = "Deep32Workstation.vmdk"
+ethernet0.virtualDev = "e1000e"
+
+=== vm-vmx-2
+.encoding = "UTF-8"
+displayName = "Deep32Workstation"
+memsize = "12288"
+numvcpus = "6"
+scsi0.virtualDev = "lsilogic"
+scsi0:0.fileName = "installer.vmdk"
+scsi0:1.fileName = "Deep32Workstation.vmdk"
+ethernet0.virtualDev = "e1000e"
+
+=== vm-vmx-3
+.encoding = "UTF-8"
+displayName = "Deep32Workstation"
+memsize = "12288"
+numvcpus = "6"
+scsi0.virtualDev = "lsilogic"
+scsi0:1.fileName = "Deep32Workstation.vmdk"
+sata0:1.deviceType = "cdrom-image"
+sata0:1.fileName = "deep32-0.1.0-alpha.2-disc2-content.iso"
+sata0:1.present = "TRUE"
+ethernet0.virtualDev = "e1000e"
+
+=== vm-virsh-xml-1
+<domain type='kvm'>
+  <name>Deep32Workstation</name>
+  <memory unit='KiB'>12582912</memory>
+  <vcpu placement='static'>6</vcpu>
+  <os>
+    <type arch='x86_64' machine='pc-i440fx-8.2'>hvm</type>
+    <boot dev='hd'/>
+  </os>
+  <devices>
+    <disk type='file' device='disk'>
+      <driver name='qemu' type='raw'/>
+      <source file='/home/you/deep32-downloads/deep32-0.1.0-alpha.2-disc1-workstation-amd64-kvm/installer.img'/>
+      <target dev='hda' bus='ide'/>
+    </disk>
+    <disk type='file' device='disk'>
+      <driver name='qemu' type='qcow2'/>
+      <source file='/home/you/deep32-downloads/deep32-0.1.0-alpha.2-disc1-workstation-amd64-kvm/target.qcow2'/>
+      <target dev='hdb' bus='ide'/>
+    </disk>
+    <interface type='network'>
+      <source network='default'/>
+      <model type='e1000'/>
+    </interface>
+    <video>
+      <model type='virtio' heads='1' primary='yes'/>
+    </video>
+  </devices>
+</domain>
+
+=== vm-virsh-xml-2
+<domain type='kvm'>
+  <name>Deep32Workstation</name>
+  <memory unit='KiB'>12582912</memory>
+  <vcpu placement='static'>6</vcpu>
+  <os>
+    <type arch='x86_64' machine='pc-i440fx-8.2'>hvm</type>
+    <boot dev='hd'/>
+  </os>
+  <devices>
+    <disk type='file' device='disk'>
+      <driver name='qemu' type='raw'/>
+      <source file='/home/you/deep32-downloads/deep32-0.1.0-alpha.2-disc1-workstation-amd64-kvm/installer.img'/>
+      <target dev='hda' bus='ide'/>
+    </disk>
+    <disk type='file' device='disk'>
+      <driver name='qemu' type='qcow2'/>
+      <source file='/home/you/deep32-downloads/deep32-0.1.0-alpha.2-disc1-workstation-amd64-kvm/target.qcow2'/>
+      <target dev='hdb' bus='ide'/>
+    </disk>
+    <interface type='network'>
+      <source network='default'/>
+      <model type='e1000'/>
+    </interface>
+    <video>
+      <model type='vga' vram='16384' heads='1' primary='yes'/>
+    </video>
+  </devices>
+</domain>
+
+=== vm-virsh-xml-3
+<domain type='kvm'>
+  <name>Deep32Workstation</name>
+  <memory unit='KiB'>12582912</memory>
+  <vcpu placement='static'>6</vcpu>
+  <os>
+    <type arch='x86_64' machine='pc-i440fx-8.2'>hvm</type>
+    <boot dev='hd'/>
+  </os>
+  <devices>
+    <disk type='file' device='disk'>
+      <driver name='qemu' type='qcow2'/>
+      <source file='/home/you/deep32-downloads/deep32-0.1.0-alpha.2-disc1-workstation-amd64-kvm/target.qcow2'/>
+      <target dev='hdb' bus='ide'/>
+    </disk>
+    <disk type='file' device='cdrom'>
+      <driver name='qemu' type='raw'/>
+      <source file='/home/you/deep32-downloads/deep32-0.1.0-alpha.2-disc2-content.iso'/>
+      <target dev='hdc' bus='ide'/>
+      <readonly/>
+    </disk>
+    <interface type='network'>
+      <source network='default'/>
+      <model type='e1000'/>
+    </interface>
+    <video>
+      <model type='vga' vram='16384' heads='1' primary='yes'/>
+    </video>
+  </devices>
+</domain>
+
+=== vm-hyperv-1
+generation: 2
+processors: 6
+memory_mb: 12288
+disk: IDE 0 0 C:\Users\you\deep32-downloads\deep32-0.1.0-alpha.2-disc1-workstation-amd64-hyper-v\installer.vhd 1876951040
+disk: IDE 0 1 C:\Users\you\deep32-downloads\deep32-0.1.0-alpha.2-disc1-workstation-amd64-hyper-v\target.vhdx 214748364800
+adapter: LAN false
+switch: LAN External
+
+=== vm-hyperv-2
+generation: 1
+processors: 6
+memory_mb: 12288
+disk: IDE 0 0 C:\Users\you\deep32-downloads\deep32-0.1.0-alpha.2-disc1-workstation-amd64-hyper-v\installer.vhd 1876951040
+disk: IDE 0 1 C:\Users\you\deep32-downloads\deep32-0.1.0-alpha.2-disc1-workstation-amd64-hyper-v\target.vhdx 214748364800
+adapter: LAN false
+switch: LAN External
+
+=== vm-hyperv-3
+generation: 1
+processors: 6
+memory_mb: 12288
+disk: IDE 0 1 C:\Users\you\deep32-downloads\deep32-0.1.0-alpha.2-disc1-workstation-amd64-hyper-v\target.vhdx 214748364800
+dvd: IDE 1 0 C:\Users\you\deep32-downloads\deep32-0.1.0-alpha.2-disc2-content.iso
+adapter: LAN false
+switch: LAN External

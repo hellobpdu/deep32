@@ -29,6 +29,7 @@ _d32load() {
     [ "${D32_LOADED-0}" != 1 ] || return 0
     _d32c6init || err_exit 'cannot start console status'
     D32_RUNNING_MSG='looking for a settings disc'
+    rm -f "${D32_ROOT-}/tmp/ai/d32-guided-disk"
     c6_set install running "msg=$D32_RUNNING_MSG" || :
     d32s_clear
     D32_SETTINGS_DISC=absent
@@ -196,6 +197,8 @@ EOF
 _d32diskbytes() {
     local _d32label _d32line _d32value _d32sectors= _d32sectorbytes=
     local _d32nsectors=0 _d32nbytes=0
+    # The ramdisk makes disk nodes on demand; the stock installer does it after its own disk question.
+    make_dev "$1" >/dev/null 2>&1 || :
     _d32label=$(disklabel "$1" 2>/dev/null) || return 1
     while IFS= read -r _d32line; do
         case $_d32line in
@@ -253,7 +256,7 @@ _d32ask() {
                 case $_d32a in '?'|L|l)
                     kbd -l | grep -Ev '^(user|tables|encoding)' >>"${D32_TTY_OUT:-/dev/tty}"
                     continue;;
-                default) _d32ok=1;;
+                ''|default) _d32a=default; _d32ok=1;;
                 *) d32s_ok_keyboard "$_d32a" && command -v kbd >/dev/null 2>&1 && kbd -q "$_d32a" >/dev/null 2>&1 && _d32ok=1;;
                 esac;;
             node_name) d32s_ok_node_name "$_d32a" && _d32ok=1;;
@@ -308,6 +311,12 @@ _d32resp() {
             [ "$_d32valid" = 1 ] || continue
             _d32candidates="$_d32candidates $_d32disk"; _d32count=$((_d32count + 1)); resp=$_d32disk
         done
+        # The installer's own default can name the install medium. Replace it
+        # with our sole eligible disk, or require an explicit answer.
+        _d32default=
+        [ "$_d32count" != 1 ] || _d32default=$resp
+        _d32question=${_d32question% \[*\]}
+        [ -z "$_d32default" ] || _d32question="$_d32question [$_d32default]"
         [ "$D32_SETTINGS_DISC/$D32S_EFF_hw_profile/$_d32count" != present/vm/1 ] || _d32auto=1
         if [ "$_d32auto" = 1 ]; then
             _d32diskbytes "$resp" || { _d32running; err_exit 'cannot read the root disk size'; return 1; }
@@ -326,6 +335,7 @@ _d32resp() {
                         echo -n "$_d32question " >>"${D32_TTY_OUT:-/dev/tty}"
                         IFS= read -r resp || { _d32running; return 1; }
                         if [ "$resp" = '?' ]; then diskinfo $(get_dkdevs) >>"${D32_TTY_OUT:-/dev/tty}" 2>&1; continue; fi
+                        [ -n "$resp" ] || resp=$_d32default
                         case "$_d32candidates " in *" $resp "*) [ -n "$resp" ] && break;; esac
                         echo 'That disk cannot be used: type one of the disks listed, or ? for details.' >>"${D32_TTY_OUT:-/dev/tty}"
                     done
@@ -344,6 +354,8 @@ _d32resp() {
             } <"${D32_TTY_IN:-/dev/tty}" || { _d32running; return 1; }
         fi
         D32_GUIDED_DISK_READY=1
+        # The install runs as a child of do_autoinstall, which decides power-off; a variable cannot reach it.
+        mkdir -p "${D32_ROOT-}/tmp/ai" && : >"${D32_ROOT-}/tmp/ai/d32-guided-disk" || { err_exit 'cannot record the guided disk'; return 1; }
         _d32running;;
     @ENCRYPT@)
         if [ "$D32_SETTINGS_DISC" = present ]; then

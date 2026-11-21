@@ -1,0 +1,141 @@
+{
+  "BackendState": "Running",
+  "Self": {
+    "HostName": "deep32-test-self",
+    "DNSName": "deep32-test-self.tail0000.ts.net.",
+    "TailscaleIPs": [
+      "100.64.0.10",
+      "fd7a:115c:a1e0::10"
+    ]
+  },
+  "Peer": {
+    "nodekey:0000000000000000000000000000000000000000000000000000000000000001": {
+      "ID": "n0000000001CNTRL",
+      "HostName": "deep32-forge",
+      "DNSName": "deep32-forge.tail0000.ts.net.",
+      "OS": "linux",
+      "TailscaleIPs": [
+        "100.64.0.101",
+        "fd7a:115c:a1e0::101"
+      ],
+      "Online": true,
+      "Active": true,
+      "CurAddr": "100.64.0.201:41641",
+      "Relay": "tst"
+    },
+    "nodekey:0000000000000000000000000000000000000000000000000000000000000002": {
+      "ID": "n0000000002CNTRL",
+      "HostName": "deep32-workstation",
+      "DNSName": "deep32-workstation.tail0000.ts.net.",
+      "OS": "openbsd",
+      "TailscaleIPs": [
+        "100.64.0.102",
+        "fd7a:115c:a1e0::102"
+      ],
+      "Online": true,
+      "Active": false,
+      "CurAddr": "",
+      "Relay": "tst"
+    },
+    "nodekey:0000000000000000000000000000000000000000000000000000000000000003": {
+      "ID": "n0000000003CNTRL",
+      "HostName": "deep32-headend",
+      "DNSName": "deep32-headend.tail0000.ts.net.",
+      "OS": "windows",
+      "TailscaleIPs": [
+        "100.64.0.103",
+        "fd7a:115c:a1e0::103"
+      ],
+      "Online": true,
+      "Active": true,
+      "CurAddr": "",
+      "Relay": "tst"
+    },
+    "nodekey:0000000000000000000000000000000000000000000000000000000000000004": {
+      "ID": "n0000000004CNTRL",
+      "HostName": "Deep32-Forge2",
+      "DNSName": "deep32-forge2.tail0000.ts.net.",
+      "OS": "linux",
+      "TailscaleIPs": [
+        "100.64.0.104",
+        "fd7a:115c:a1e0::104"
+      ],
+      "Online": true,
+      "Active": true,
+      "CurAddr": "100.64.0.204:41641",
+      "Relay": "tst"
+    },
+    "nodekey:0000000000000000000000000000000000000000000000000000000000000005": {
+      "ID": "n0000000005CNTRL",
+      "HostName": "localhost",
+      "DNSName": "deep32-forge-3.tail0000.ts.net.",
+      "OS": "linux",
+      "TailscaleIPs": [
+        "100.64.0.105",
+        "fd7a:115c:a1e0::105"
+      ],
+      "Online": true,
+      "Active": false,
+      "CurAddr": "",
+      "Relay": ""
+    },
+    "nodekey:0000000000000000000000000000000000000000000000000000000000000006": {
+      "ID": "n0000000006CNTRL",
+      "HostName": "laptop-1",
+      "DNSName": "laptop-1.tail0000.ts.net.",
+      "OS": "windows",
+      "TailscaleIPs": [
+        "100.64.0.106",
+        "fd7a:115c:a1e0::106"
+      ],
+      "Online": true,
+      "Active": true,
+      "CurAddr": "100.64.0.206:41641",
+      "Relay": "tst"
+    },
+    "nodekey:0000000000000000000000000000000000000000000000000000000000000007": {
+      "ID": "n0000000007CNTRL",
+      "HostName": "deep32-old",
+      "DNSName": "deep32-old.tail0000.ts.net.",
+      "OS": "linux",
+      "TailscaleIPs": [
+        "100.64.0.107",
+        "fd7a:115c:a1e0::107"
+      ],
+      "Online": false,
+      "Active": false,
+      "CurAddr": "",
+      "Relay": "",
+      "Expired": true
+    },
+    "nodekey:0000000000000000000000000000000000000000000000000000000000000008": {
+      "ID": "n0000000008CNTRL",
+      "HostName": "deep32-shared",
+      "DNSName": "deep32-shared.tail0000.ts.net.",
+      "OS": "linux",
+      "TailscaleIPs": [
+        "100.64.0.108",
+        "fd7a:115c:a1e0::108"
+      ],
+      "Online": true,
+      "Active": true,
+      "CurAddr": "",
+      "Relay": "tst",
+      "ShareeNode": true
+    },
+    "nodekey:0000000000000000000000000000000000000000000000000000000000000009": {
+      "ID": "n0000000009CNTRL",
+      "HostName": "deep32-offline",
+      "DNSName": "deep32-offline.tail0000.ts.net.",
+      "OS": "linux",
+      "TailscaleIPs": [
+        "100.64.0.109",
+        "fd7a:115c:a1e0::109"
+      ],
+      "Online": false,
+      "Active": false,
+      "CurAddr": "",
+      "Relay": ""
+    }
+  }
+}

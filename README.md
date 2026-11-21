@@ -7,41 +7,39 @@
 </picture>
 
 <p>
-  <a href="#11-release-and-verification"><img alt="Release: 0.1.0-alpha.1" src="https://img.shields.io/badge/release-0.1.0--alpha.1-9a6700?style=flat-square"></a>
-  <a href="#license"><img alt="License: AGPL-3.0" src="https://img.shields.io/badge/license-AGPL--3.0-0969da?style=flat-square"></a>
+  <a href="#11-release-and-verification"><img alt="Release: 0.1.0-alpha.2" src="https://img.shields.io/badge/release-0.1.0--alpha.2-9a6700?style=flat-square"></a>
+  <a href="#license"><img alt="License: Apache-2.0" src="https://img.shields.io/badge/license-Apache--2.0-0969da?style=flat-square"></a>
   <a href="#11-release-and-verification"><img alt="Signed with OpenPGP" src="https://img.shields.io/badge/signed-OpenPGP-8250df?style=flat-square"></a>
   <a href="#6-tools-and-answer-protocol"><img alt="Interface: Model Context Protocol" src="https://img.shields.io/badge/interface-MCP-0969da?style=flat-square"></a>
   <a href="#5-retrieval-pipeline"><img alt="Retrieval: BM25, dense, rerank" src="https://img.shields.io/badge/retrieval-BM25_%2B_dense_%2B_rerank-1a7f37?style=flat-square"></a>
   <br>
   <a href="https://doi.org/10.5281/zenodo.24272647"><img alt="DOI 10.5281/zenodo.24272647" src="https://img.shields.io/badge/DOI-10.5281%2Fzenodo.24272647-1682d4?style=flat-square"></a>
   <a href="https://orcid.org/0009-0003-8091-4637"><img alt="ORCID 0009-0003-8091-4637" src="https://img.shields.io/badge/ORCID-0009--0003--8091--4637-a6ce39?style=flat-square&amp;logo=orcid&amp;logoColor=white"></a>
+  <a href="https://www.bestpractices.dev/projects/16932"><img alt="OpenSSF Best Practices" src="https://img.shields.io/cii/level/16932?style=flat-square&amp;label=OpenSSF%20best%20practices"></a>
+  <a href="https://scorecard.dev/viewer/?uri=github.com/hellobpdu/deep32"><img alt="OpenSSF Scorecard" src="https://img.shields.io/ossf-scorecard/github.com/hellobpdu/deep32?style=flat-square&amp;label=OpenSSF%20scorecard"></a>
+  <a href="https://github.com/hellobpdu/deep32/actions/workflows/tests.yml"><img alt="Tests" src="https://img.shields.io/github/actions/workflow/status/hellobpdu/deep32/tests.yml?branch=main&amp;style=flat-square&amp;label=tests"></a>
 </p>
 
-[Introduction](#1-introduction) · [Deployment](#3-deployment) · [Architecture](#4-architecture) · [Retrieval](#5-retrieval-pipeline) · [Evaluation](#8-evaluation) · [Security](#10-security-considerations) · [References](#references)
+[Install](#quick-start) · [Status](#status-of-this-release) · [Introduction](#1-introduction) · [Deployment](#3-deployment) · [Architecture](#4-architecture) · [Retrieval](#5-retrieval-pipeline) · [Evaluation](#8-evaluation) · [Security](#10-security-considerations) · [References](#references)
 
 </div>
 
 ```text
 Deep32                                                                        J. A. Cummings
-Release: 0.1.0-alpha.1 (source)                                                November 2026
-Category: Experimental                                 Images: withdrawn until 0.1.0-alpha.2
+Release: 0.1.0-alpha.2                                                         November 2026
+Category: Experimental                                             Design document: D32-TR-1
 ```
 
 ## Abstract
 
 Deep32 answers network and security engineering questions from a local corpus of 365 RFCs and 489 Cisco documents.
+Two more collections come with it and are searched only when you ask for them: 241 PowerShell documents and 85 about
+Deep32 itself.
 Claude Code or Codex does the research through eleven MCP tools. The tools search the corpus (BM25 and dense
 retrieval, fused and reranked), read whole sections, look up identifiers and RFC status, and string-match quotations
 against the stored text. On 696 labeled questions, a correct passage is ranked first for 665 of them (0.955) and is in
 the top 8 for 690 (0.991). The corpus, the index and the search engine run on your own machines. The language model is
 hosted, so the question, the queries the agent writes and the passages it gets back go to the model provider.
-
-## Status of this release
-
-0.1.0-alpha.1 is the source release. Its three images downloaded and verified, but the install didn't yet join the
-Workstation, the Forge and the agent end to end, so I withdrew them. 0.1.0-alpha.2 brings them back with a working
-install, and the install steps return to this page with it. The numbers on this page come from my development setup,
-which runs the same engine, models and corpus.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/figures/glance-dark.svg">
@@ -49,10 +47,55 @@ which runs the same engine, models and corpus.
   <img alt="At a glance: hit@1 0.955; hit@8 0.991; 854 documents (365 RFCs, 489 Cisco); 11 MCP tools for Claude Code and Codex; median search 542 ms with hybrid search and reranking." src="docs/figures/glance-light.svg" width="100%">
 </picture>
 
+## Status of this release
+
+This is an alpha, and it assumes you're comfortable installing an OS in a VM and running Docker. The numbers on this
+page come from my development setup, which runs the same engine, models and corpus. Known issues are in the
+[release notes](CHANGELOG.md).
+
+| Part | In 0.1.0-alpha.2 |
+|---|---|
+| Workstation and content | Tested on a clean install: the guided install, first boot, Tailscale and publishing the gateway |
+| Your agent | Claude Code and Codex connect over MCP and answer from the corpus with checked quotations on my development setup. Connect has paired a headend with a clean install of this release's Workstation: gateway authentication and all eleven tools passed |
+| Forge | Installs from the signed images on Linux, in WSL 2 and on Docker Desktop. I checked each of its parts on an RTX 2080 Ti; the full run on each kind of host follows the release |
+| Ask window | Pairs and keeps its link. A question asked in the Ask window on a Workstation is answered through the relay with Claude Code, with the model and strength you choose |
+| `deep32 doctor` and `deep32 selftest` | On the images, not working yet |
+
+## Quick start
+
+```sh
+git clone https://github.com/hellobpdu/deep32.git && cd deep32
+bash install/deep32-wizard.sh
+```
+
+```powershell
+# Windows; use an elevated PowerShell on the Forge
+git clone https://github.com/hellobpdu/deep32.git; cd deep32
+powershell -NoProfile -ExecutionPolicy Bypass -File install\deep32-wizard.ps1
+```
+
+Run the setup wizard once on each machine. It works out whether the machine should be the Forge, the Workstation's
+host or the headend, checks it, fixes what it safely can with your consent, downloads and verifies the images, and
+installs. Its VM guide takes you through the Workstation VM on your hypervisor, and it can send disc 2 to the
+Workstation over your tailnet, so you need no optical drive; a USB stick written with the disc 2 image works too. It
+stops only for a Tailscale sign-in, the installer's plan and a pairing code. `--demo` shows it without changing
+anything, and `install/deep32-setup.sh` is the same install without the screens. To install with an agent, open
+Claude Code or Codex in the clone and type `/deep32-install` (Claude Code) or `$deep32-install` (Codex): it walks you
+through the wizard on each machine and stops at every step that needs you ([AGENTS.md](AGENTS.md)). The
+[project site](https://hellobpdu.github.io/deep32/) has a step-by-step walkthrough, and [INSTALL.md](INSTALL.md) has
+every step by hand.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/figures/setup-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="docs/figures/setup-light.svg">
+  <img alt="A terminal running the setup script on a Forge host. Each line starts with a tag: ok for a check that passed, fix for something to correct, you for a step only a person can do, and info for progress. It checks Python, the graphics card, Docker and Tailscale, installs the Forge, checks its door and ends with the pairing code to type on the Workstation." src="docs/figures/setup-light.svg" width="100%">
+</picture>
+<p align="center"><sub>The setup script on a Forge host. Every line starts with a tag, so a person or an agent can follow it.</sub></p>
+
 <p align="center">
   <img alt="The Deep32 Workstation desktop. The Ask window shows a cited answer about BGP keepalive and hold timers; a network calculator, a text editor and the desktop style menu are open beside it." src="docs/screenshots/workstation-desktop.png" width="100%">
 </p>
-<p align="center"><sub><b>Figure 1.</b> The Workstation on my laptop, in the HP-UX CDE look. Ask is answering the BGP timer question, with the network calculator, a text editor and the desktop style menu open. Panels that exist only in my private build are blanked.</sub></p>
+<p align="center"><sub><b>Figure 1.</b> The Workstation on my laptop, in the HP-UX CDE look the release installs. Ask is answering the BGP timer question, with the network calculator, a text editor and the desktop style menu open. Panels that exist only in my private build are blanked.</sub></p>
 
 ## 1. Introduction
 
@@ -101,14 +144,24 @@ next and roll back.
 
 ## 2. Terminology
 
-- **Workstation**: the machine or VM that holds the index. OpenBSD with the desktop, the search engine and the MCP
-  gateway. Installed from disc 1, with its content from disc 2.
-- **Forge**: the machine with the NVIDIA card. It runs the embedding and reranking models in Docker, and optionally the
-  PDF converter and index builder.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/figures/parts-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="docs/figures/parts-light.svg">
+  <img alt="The parts of Deep32: the headend, your agent on your PC; the Workstation for search and archive, disc 1; the Forge, the GPU powerhouse, disc 3; the Ask relay, the link between the Ask window and your agent; and the content, the library on disc 2." src="docs/figures/parts-light.svg" width="100%">
+</picture>
+
+- **Workstation**: the machine or VM that holds the index. OpenBSD with the desktop, the Ask window, the search engine
+  and the MCP gateway. Installed from disc 1, with its content from disc 2.
+- **Forge**: the machine with the NVIDIA card. It runs the embedding and reranking models in Docker, and the PDF
+  converter and index builder when you build indexes of your own.
 - **GPU pack**: disc 3, which installs a Forge.
 - **Headend**: the PC where Claude Code or Codex runs, with the Deep32 research skill installed.
+- **Ask relay**: an optional program on the headend that answers the questions typed in the Workstation's Ask window
+  with your agent.
+- **Content**: disc 2, the corpus with its prebuilt index and the Deep32 Library.
 - **Tailnet**: your Tailscale network. All three parts sign in to it with your account.
-- **Pairing**: a one-time short-code exchange between two parts, using SPAKE2 [[RFC9382]](#references).
+- **Pairing**: the one-time step that introduces two parts to each other. One side shows a short code and the other
+  types it, checked with SPAKE2 [[RFC9382]](#references); the Ask link compares ten words on both consoles instead.
 - **Generation**: one complete, immutable build of the index. The engine serves one at a time.
 
 ## 3. Deployment
@@ -122,17 +175,38 @@ next and roll back.
 
 ### 3.1 Requirements
 
-The install returns with 0.1.0-alpha.2. These are its requirements.
-
 | Part | Minimum | Software |
 |---|---|---|
-| Workstation | 64-bit Intel or AMD with virtualization, 6 threads, 12 GB of memory, 160 GB of disk | A hypervisor, or a spare machine |
-| Forge | An NVIDIA card of compute capability 7.5 or newer (RTX 20 series and later) with 6 GB, 4 threads, 16 GB of memory | NVIDIA driver 580.65.06 or newer, and Docker with the NVIDIA Container Toolkit (Docker Desktop on Windows) |
+| Workstation | 64-bit Intel or AMD with virtualization, 6 threads, 12 GB of memory, 200 GB of disk | A hypervisor, or a spare machine |
+| Forge | An NVIDIA card of compute capability 7.5 or newer with at least 10.5 GB of graphics memory (an 11 GB card or larger), 4 threads, 16 GB of memory | NVIDIA driver 580.65.06 or newer, Python 3.12, and Docker with the NVIDIA Container Toolkit (on Windows, Docker Desktop or an Ubuntu 24.04 WSL 2 distro) |
 | Both on one machine | 8 threads, 32 GB of memory, the card above | As above |
 | Headend | Any PC | Claude Code or Codex |
 | Network | Internet access during install | Tailscale (the free plan is enough), with MagicDNS and HTTPS certificates turned on |
 
+The downloads are 21.5 GB for the Workstation (its 1.9 GB system image and the 19.6 GB content image) and about
+37.1 GB for the Forge (the 18.6 GB shared core, your card's 3.1 to 3.3 GB embedder and the 15.3 GB ingestion image).
+
 Without a Forge, search is keyword only. Card details and layouts are in [docs/HARDWARE.md](docs/HARDWARE.md).
+
+### 3.2 What an install involves
+
+The [quick start](#quick-start) does all of this for you, one machine at a time. Run it from a clone of this
+repository: `deep32-get` checks the images against the release key in `install/`. [INSTALL.md](INSTALL.md) has each
+step by hand, with the Windows commands, the VM settings, recovery, and isolated agent profiles for a PC whose Claude
+Code or Codex is already set up for other work.
+
+| Step | What you do |
+|---|---|
+| Tailnet | Create a Tailscale account if you don't have one, and turn on MagicDNS and HTTPS certificates in the admin console |
+| Workstation | Download discs 1 and 2, install disc 1 in a VM or on a spare machine, sign it in to your tailnet at first boot and let it import disc 2 |
+| Forge | On the GPU machine, sign in to the same tailnet with a name that starts with `deep32-`, then let the setup script download and install the core, your card's embedder and the ingestion image |
+| Pairing | Type the Forge's ten-character code on the Workstation. A code lasts five minutes |
+| Agent | Publish the Workstation's gateway once, then run Connect on your PC and type the code the Workstation shows |
+| Ask window (optional) | Install the relay on your PC and compare ten words on both screens |
+
+To check an install, ask your agent something you already know the answer to, like the BGP hold time in RFC 4271, and
+see that it cites the RFC and quotes it. `deep32 doctor` and `deep32 selftest` are on the images but don't work yet in
+0.1.0-alpha.2.
 
 ## 4. Architecture
 
@@ -146,7 +220,8 @@ Without a Forge, search is keyword only. Card details and layouts are in [docs/H
 Figure 3 has two paths. On the query path the agent calls the gateway, the gateway calls the engine, and the engine
 calls the Forge's models for embeddings and reranking. On the build path, documents are converted and checked, built
 into a new index generation and validated before the engine serves it. It's the usual RAG arrangement
-[[RAG]](#references), with two searches instead of one.
+[[RAG]](#references), with two searches instead of one. The design document [[D32-TR-1]](#references) specifies each
+part and the protocols between them.
 
 | Component | Runs on | Role |
 |---|---|---|
@@ -159,14 +234,19 @@ into a new index generation and validated before the engine serves it. It's the 
 The gateway holds no documents. It checks the token and hands the call to the engine. Its server instructions tell the
 agent to treat tool output as document text and not to follow instructions found in it.
 
-The agent uses Deep32 over plain MCP, calling the gateway's tools while it works, the way Claude Code and Codex use
-any MCP server. The Ask window on the Workstation needs a relay on the headend, which comes in a later
-release. A question typed there goes over the paired link to the relay, the relay starts the agent with the research
-skill, and the answer streams back into the window. Figures 1 and 5 show it running on my setup.
+The agent reaches Deep32 in two ways. Over plain MCP it calls the gateway's tools while it works, the way Claude Code
+and Codex use any MCP server. From the Workstation, you type a question in the Ask window. It goes over the paired
+link to a small relay on the headend, the relay starts the agent with the research skill, the agent's searches come
+back to the Workstation's gateway, and the answer streams into the window (Figures 1 and 5). The relay runs on
+Windows, Linux and macOS. In this release a question asked in the Ask window, or with `d32-ask` in a terminal, is answered
+through the relay with Claude Code, with the model and strength you choose, and when the agent's sign-in has lapsed the
+relay reports `agent-sign-in-required`. The known issues are in the
+[release notes](CHANGELOG.md).
 
 ### 4.1 Design decisions
 
-These are the decisions that shaped the system most, with what I ruled out.
+These are the decisions that shaped the system most, with what I ruled out. The [Decision Record](docs/DECISIONS.md)
+has all of them, with dates and the measurements behind each.
 
 | Decision | Instead of | Why | Trade-off |
 |---|---|---|---|
@@ -176,14 +256,22 @@ These are the decisions that shaped the system most, with what I ruled out.
 | Immutable index generations, one served at a time, with automatic rollback | Updating the index in place | I can compare a change with the previous build and undo it with one setting. | Disk space for old generations |
 | Keyword and dense search, merged by rank | One retriever, or normalized scores | BM25 and dense search miss different questions (Figure 4), and their scores aren't on comparable scales. | Two searches per query |
 | Cross-encoder reranking on by default | Fused order only | Most misses already had a correct passage in the top 8, so the order was the problem. Reranking took hit@1 from 0.822 to 0.955. | About 400 ms per search. I set the latency budget at an 800 ms median and 1,000 ms p95 to make room for it |
+| Quotations checked by string match | Asking a model whether a quote is supported | Same result every time, with no model in the loop. A normalized comparison ignores RFC line breaks and page footers. | Checks wording only ([section 12](#12-limitations)) |
+| No secret on any image, and pairing by short code (SPAKE2) | Keys built into the images, or tailnet membership as authorization | Each machine makes its own tokens at install, and a pairing code lasts five minutes with one attempt. | One manual step for each pair of parts |
+
+<details>
+<summary><b>Six more decisions</b></summary>
+
+| Decision | Instead of | Why | Trade-off |
+|---|---|---|---|
 | Rerank the top 15, reading a 1,600-character window around the best-matching lines | The top 10 or top 20, or a shorter input | hit@8 gained 4 questions and lost none (p = 0.002) for 52 ms. The top 20 lost 13 questions, and a shorter input lost 10. | A few questions have no relevant passage in the top 15 at all |
 | Text windows and whole-section tools for the agent | Short snippets with each hit | The ranking was already good. The 360-character snippets showed the agent only 21.8% of the correct passages. | More text per search, which is why hits 9 to 32 are trimmed or sent as pointers |
-| Quotations checked by string match | Asking a model whether a quote is supported | Same result every time, with no model in the loop. A normalized comparison ignores RFC line breaks and page footers. | Checks wording only ([section 12](#12-limitations)) |
 | Exact scan of a flat vector file on the Workstation | Qdrant with an HNSW index | Qdrant doesn't run on OpenBSD without Docker. On the 78,275-vector index an exact scan took 12.7 ms against Qdrant's 19.8 ms, and the C kernel gives bit-identical scores on any amd64 machine. | Cost grows linearly with the corpus |
 | GPU services on their own machine, treated as unreliable | Running everything on the GPU machine | The Workstation needs no model of its own, and a GPU machine is the part most likely to be switched off or busy. A circuit breaker ([section 5](#5-retrieval-pipeline)) keeps searches from waiting on it. | Without the Forge, hit@1 drops to BM25's 0.710 |
-| No secret on any image, and pairing by short code (SPAKE2) | Keys built into the images, or tailnet membership as authorization | Each machine makes its own tokens at install, and a pairing code lasts five minutes with one attempt. | One manual step for each pair of parts |
-| One Linux Docker form for the GPU pack | Separate forms per host, including WSL 2 | One thing to build and test. Windows runs it through Docker Desktop. | Windows needs Docker Desktop with GPU support |
+| One Linux Docker form for the GPU pack | A separate form for each kind of host | One thing to build and test. On Windows it runs in Docker Desktop or in a WSL 2 distro. | This release needs Docker's classic image store |
 | The release built and scanned as its own product | Publishing the development tree | Everything shipped is rebuilt from pinned commits through an allowlist and scanned, because built files can carry strings from material that was cut. | A full rebuild and scan for every release |
+
+</details>
 
 <details>
 <summary><b>Software versions</b></summary>
@@ -197,7 +285,7 @@ These are the decisions that shaped the system most, with what I ruled out.
 | Vector search | Exact scan of a flat index | 1024 dimensions, cosine, float32, scanned by a small C kernel ([section 4.1](#41-design-decisions) explains why). |
 | Embeddings | Text Embeddings Inference 1.9, `jina-embeddings-v5-text-small` | On the Forge. float32, last-token pooling, model revision pinned |
 | Reranker | `jina-reranker-v3.5` | On the Forge. Cross-encoder, model revision pinned |
-| PDF converter | MinerU 4.0.7 and PyMuPDF | On the Forge, under AGPL-3.0 with source included |
+| PDF converter | MinerU 4.0.7 and PyMuPDF | On the Forge, run on demand for indexes of your own. It uses MuPDF, so it is under AGPL-3.0-or-later; its source is on the ingestion image |
 | Network | Tailscale | Your tailnet, HTTPS between parts |
 
 </details>
@@ -219,8 +307,8 @@ identifiers and sometimes ranks the exact match low. On my test set, hit@1 is 0.
 alone and 0.822 with the two merged.
 
 BM25 scores and cosine similarities are on different scales, so reciprocal rank fusion [[RRF]](#references) ignores the
-scores and uses only the ranks. A passage scores 1/(60 + rank) in each list it appears in, the scores are added, and one
-ranked well by both lists ends up near the top.
+scores and uses only the ranks. A passage scores 1/(60 + rank) in each list it appears in. The scores are added, and a
+passage ranked well by both lists ends up near the top.
 
 The reranker is a second, slower model. It reads the question and a candidate passage together and scores how well
 the passage answers it. It's too slow to run over the whole corpus, so it only sees the top 15 of the fused list. It's
@@ -424,6 +512,10 @@ label, so those are gaps in my labels. In 21 the reranker put another passage ab
 left the relevant passage outside the reranker's top 15. That leaves 24 real misses, 672 of 696 (0.966) with the labels
 corrected. I report 0.955 until the label set is frozen again.
 
+`deep32 selftest` will run a public, RFC-only subset of the question set through your install and print hit@1, hit@3,
+hit@8 and MRR@10 next to the release's reference values. It ships in 0.1.0-alpha.2 without its signed reference
+values, so it can't score a run yet.
+
 <details>
 <summary><b>Test set and rank distribution</b></summary>
 
@@ -449,7 +541,7 @@ corrected. I report 0.955 until the label set is frozen again.
 
 I built and tested Deep32 on a 2013 Xeon without AVX2 and one consumer graphics card, which is close to the minimum.
 For a Workstation and Forge on one machine I'd recommend 12 or more threads, 32 GB or more, an AVX2 processor and an RTX
-20 series or newer card. Supported cards and layouts are in [docs/HARDWARE.md](docs/HARDWARE.md).
+card with 11 GB or more of memory. Supported cards and layouts are in [docs/HARDWARE.md](docs/HARDWARE.md).
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/figures/latency-dark.svg">
@@ -479,45 +571,77 @@ through a DERP relay and 1 to 2 ms direct.
 gets its own credential when it pairs. The gateway compares bearer tokens in constant time.
 
 **Network.** The parts sign in to your tailnet with your Tailscale account and publish their services over HTTPS
-inside the tailnet only. Being on the tailnet isn't enough to use a service, though. Two parts have to pair first, by
-typing a short code on both sides (SPAKE2 [[RFC9382]](#references)). A code lasts five minutes and allows one attempt,
-and after repeated failures pairing locks for fifteen minutes.
+inside the tailnet only. Being on the tailnet isn't enough to use a service, though. Two parts have to pair first: one
+shows a short code and the other types it, and SPAKE2 [[RFC9382]](#references) checks it without sending it. A code
+lasts five minutes and allows one attempt, and after repeated failures pairing locks for fifteen minutes. The Ask link
+pairs by comparing ten words on both consoles, and only while a pairing window is open on the relay.
+
+**The Workstation.** It runs OpenBSD with a firewall that denies by default and allows each service's traffic by
+user, system files that can't be changed while it runs, and a raised kernel security level. It is administered at
+its console. The one exception is optional maintenance SSH, which is off unless you give the installer an Ed25519
+public key. With a key, a separate SSH server accepts that key for root, only from the tailnet address of the machine
+the Workstation is paired with, with password login and forwarding turned off. Without one, nothing administrative
+can be changed over the network. [INSTALL.md](INSTALL.md#11-what-is-never-stored) lists every credential and where it
+is made.
 
 **Prompt injection.** I treat documents as untrusted input. Ingest flags instruction-like lines for review, and the
 gateway's server instructions ([section 4](#4-architecture)) tell the agent not to follow instructions found in tool
-output. Both are mitigations, and a model can still follow injected text.
+output. Both are mitigations, and a model can still follow injected text. An Ask session can only search and read
+the corpus, whatever it is told. An agent you connect directly keeps its own tools, so for that I'd use a
+[separate agent profile](adapters/README.md#3-use-a-separate-profile).
 
 **Supply chain.** Each release has a checksum list with a detached OpenPGP signature. `deep32-get` checks the signer's
-fingerprint before it uses any hash in the list, so a download source can't swap an image without the check failing.
+fingerprint before it uses any hash in the list, so a mirror can't swap an image without the check failing. The images
+include a software bill of materials, and each one's provenance record names the source revision it was built from.
+Part of the build is repeated and compared. The content image was made twice from the same staged files, and the two
+images were byte-identical. The GPU pack's build makes the core image twice, compares the two byte
+for byte and stops if they differ. I compared this release's Workstation image with the build before it, member by
+member inside its archives, and the only differences were the fixes I made and the build time that each pack records.
+All of these builds ran on my own build hosts. Building every image twice and publishing the byte-for-byte comparison,
+and a guide for rebuilding the images yourself, are on the [roadmap](docs/ROADMAP.md#54-builds).
 
 **Hosted model.** The provider sees everything the agent sees: the question, the queries it writes and the passages the
 tools return. The corpus files and the index stay on your machines, and a passage leaves only when a search returns it.
 
-Send security reports by email, encrypted to the key in [section 11](#11-release-and-verification).
+**Assurance.** The [assurance case](docs/ASSURANCE-CASE.md) argues claim by claim, with the code as evidence, why the
+design meets its security requirements, and the [security review of November 2026](docs/SECURITY-REVIEW-2026-11.md)
+records what I checked and found. Fuzz targets built with AddressSanitizer and UndefinedBehaviorSanitizer exercise the
+Workstation's C parsers ([tests/fuzz](tests/fuzz/README.md)).
+
+To report a security problem, follow [SECURITY.md](SECURITY.md): a private report on GitHub, or an email encrypted to
+the key in [section 11](#11-release-and-verification).
 
 ## 11. Release and verification
 
-0.1.0-alpha.1 is the source release, archived on Zenodo. An install uses three images, covered by one signed checksum
-list and installed without any of my keys, logins or network settings. They return with 0.1.0-alpha.2.
+The release is three discs in eleven image files, all covered by one signed checksum list. It installs without any of
+my keys, logins or network settings.
 
-| Image | Kind | Contents |
-|---|---|---|
-| Workstation (disc 1) | Bootable installer | OpenBSD with the engine, the gateway, the Deep32 Encyclopedia and the desktop. The Ask window needs the relay from a later release |
-| Content (disc 2) | Data | The corpus described in section 7 (RFCs, Cisco documentation and the opt-in collections), a prebuilt index generation built from it, and the encyclopedia content |
-| GPU pack (disc 3) | Data, mounted on the host | The Forge's services as Docker containers |
+| Image | Size | What it is |
+|---|---:|---|
+| Disc 1, Workstation | 1.9 GB | Bootable installer: OpenBSD with the engine, the gateway, the Ask window, the Deep32 Library and the desktop |
+| Disc 2, content | 19.6 GB | The corpus described in section 7 (RFCs, Cisco documentation and the opt-in collections), a prebuilt index generation built from it, and the encyclopedia content |
+| Disc 3, core | 18.6 GB | The Forge's door and reranker, both models' files and the loader, shared by every card |
+| Disc 3, embedder (one of seven) | 3.1 to 3.3 GB | The embedding server built for your card's generation |
+| Disc 3, ingestion | 15.3 GB | The PDF converter and the index builder |
 
 <table>
   <tr>
-    <td width="50%"><img alt="The Deep32 Encyclopedia open at the Border Gateway Protocol article, with the article outline on the left and the Internet protocol suite navigation box." src="docs/screenshots/library-article.png"></td>
+    <td width="50%"><img alt="The Deep32 Library open at the Border Gateway Protocol article, with the article outline on the left and the Internet protocol suite navigation box." src="docs/screenshots/library-article.png"></td>
     <td width="50%"><img alt="The Pinpointer search panel with the query ospf: a list of matching RFCs, Internet-Drafts and local glossary entries with scope, type and sort controls." src="docs/screenshots/library-search.png"></td>
   </tr>
   <tr>
-    <td><sub><b>Figure 9.</b> The Deep32 Encyclopedia from the content image, open at Border Gateway Protocol (article text from Wikipedia, CC BY-SA 4.0).</sub></td>
+    <td><sub><b>Figure 9.</b> The Deep32 Library from the content image, open at Border Gateway Protocol (article text from Wikipedia, CC BY-SA 4.0).</sub></td>
     <td><sub><b>Figure 10.</b> Pinpointer search for "ospf" across the RFCs, Internet-Drafts and the local glossary.</sub></td>
   </tr>
 </table>
 
-Commits, tags and release checksum lists are signed with this OpenPGP key:
+Start from the [GitHub release page](https://github.com/hellobpdu/deep32/releases/tag/v0.1.0-alpha.2). It carries
+the signed checksum list and the signed index of mirrors, which points to the images on the Internet Archive (with a
+torrent). `deep32-get` reads that index and works through the mirrors in order. It resumes
+an interrupted download and checks the size, hash and signature before it keeps an image.
+
+Release commits, tags and checksum lists are signed with this OpenPGP key (a change made in GitHub's web editor carries
+GitHub's own signature instead):
 
 ```text
 B205 B406 5486 27AA BF52  50D8 A078 C5F2 5D02 5DD6
@@ -527,8 +651,10 @@ B205 B406 5486 27AA BF52  50D8 A078 C5F2 5D02 5DD6
 gpg --keyserver hkps://keys.openpgp.org --recv-keys B205B406548627AABF5250D8A078C5F25D025DD6
 git verify-commit HEAD
 gpg --verify SHA256SUMS.sig SHA256SUMS
-sha256sum -c SHA256SUMS
+sha256sum -c --ignore-missing SHA256SUMS
 ```
+
+`--ignore-missing` checks the images you downloaded and skips the ones you didn't.
 
 The key is on [keys.openpgp.org](https://keys.openpgp.org/search?q=B205B406548627AABF5250D8A078C5F25D025DD6).
 
@@ -538,12 +664,18 @@ The key is on [keys.openpgp.org](https://keys.openpgp.org/search?q=B205B40654862
 - [x] Quotation checks and RFC status checks
 - [x] Gated index generations with rollback
 - [x] Retrieval evaluation on a labeled question set
-- [x] Source release under AGPL-3.0, archived with a DOI
-- [ ] Signed images that install end to end, with `deep32 doctor` and `deep32 selftest` (0.1.0-alpha.2)
-- [ ] Design document D32-TR-1: architecture and verification method
+- [x] Source release under Apache-2.0 (the parts that use MuPDF under AGPL-3.0-or-later), archived with a DOI
+- [x] Design document [D32-TR-1](docs/tr/README.md): architecture and verification method
+- [x] Signed images, one-command setup, pairing by short code and publication on your tailnet (0.1.0-alpha.2)
+- [ ] Full Forge acceptance on Linux, WSL 2 and Docker Desktop, with measured storage budgets (a signed revision of 0.1.0-alpha.2)
+- [x] Ask answers end to end, from the Ask window on a Workstation through the relay, with a choice of model and strength (0.1.0-alpha.2)
+- [ ] Working `deep32 doctor` and `deep32 selftest`, Docker's containerd image store, and Forge pairing on appliance hosts such as Unraid (0.1.0-alpha.3)
+- [ ] Everything in Docker on one Linux host, with no VM
 - [ ] Answer-level evaluation with verification on and off
-- [ ] The Ask window's relay on the headend
 - [ ] Bootable GPU installer
+
+[docs/ROADMAP.md](docs/ROADMAP.md) has the plan through November 2027, the project practices I'm working on and what
+Deep32 will not do.
 
 ## 12. Limitations
 
@@ -577,12 +709,56 @@ The key is on [keys.openpgp.org](https://keys.openpgp.org/search?q=B205B40654862
 
 </details>
 
+## 13. Questions
+
+<details>
+<summary><b>Does my data leave my machines?</b></summary>
+
+The corpus, the index and the search run on your machines. What leaves is what the hosted model sees: your question,
+the queries the agent writes and the passages the tools return.
+
+</details>
+
+<details>
+<summary><b>Do I need a graphics card?</b></summary>
+
+No. A Workstation by itself answers keyword searches, and on my test set a correct passage comes first for 0.710 of the
+questions that way. Meaning search and reranking need a Forge, and a Forge needs an NVIDIA card with 11 GB or more.
+
+</details>
+
+<details>
+<summary><b>Can I add my own documents?</b></summary>
+
+Not yet in a supported way. The PDF converter and the index builder ship on the Forge, and a later release adds the
+steps for building a generation of your own and switching to it.
+
+</details>
+
+<details>
+<summary><b>Why OpenBSD for the Workstation?</b></summary>
+
+The Workstation holds the index and its credentials, and I wanted it small and hard to change: a firewall that denies
+by default, pledge and unveil around each service, and system files that can't be modified while it runs. If you'd
+rather not run a VM, a layout with everything in Docker on one Linux host is on the roadmap.
+
+</details>
+
+<details>
+<summary><b>Which Docker setups work for the Forge?</b></summary>
+
+Docker Engine on Linux, Docker Engine inside an Ubuntu 24.04 WSL 2 distro, and Docker Desktop on Windows. This release
+needs Docker's classic image store on all three; [INSTALL.md](INSTALL.md#5-install-the-forge) shows how to check.
+
+</details>
+
 ## References
 
 | Key | Reference |
 |---|---|
 | [BM25] | Robertson, S. and H. Zaragoza, "The Probabilistic Relevance Framework: BM25 and Beyond", *Foundations and Trends in Information Retrieval* 3(4), 2009. |
 | [ColBERT] | Khattab, O. and M. Zaharia, "ColBERT: Efficient and Effective Passage Search via Contextualized Late Interaction over BERT", SIGIR 2020. |
+| [D32-TR-1] | Cummings, J. A., "Deep32: Design of a Local Retrieval System for Agentic Network Research", Deep32 Technical Report 1, November 2026, <https://hellobpdu.github.io/deep32/tr/d32-tr-1.html> ([PDF](docs/tr/d32-tr-1.pdf), [text](docs/tr/d32-tr-1.txt)). |
 | [MCP] | Model Context Protocol, specification, <https://modelcontextprotocol.io/specification>. |
 | [RAG] | Lewis, P. et al., "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks", NeurIPS 2020. |
 | [RFC4271] | Rekhter, Y., Ed., Li, T., Ed., and S. Hares, Ed., "A Border Gateway Protocol 4 (BGP-4)", RFC 4271, DOI 10.17487/RFC4271, January 2006. |
@@ -597,18 +773,47 @@ The key is on [keys.openpgp.org](https://keys.openpgp.org/search?q=B205B40654862
   title  = {Deep32: Retrieval-augmented question answering for network and security engineering},
   year   = {2026},
   url    = {https://github.com/hellobpdu/deep32},
-  doi    = {10.5281/zenodo.24272647},
-  note   = {Version 0.1.0-alpha.1}
+  version = {0.1.0-alpha.2},
+  doi    = {10.5281/zenodo.24371692}
 }
 ```
 
-[10.5281/zenodo.24272647](https://doi.org/10.5281/zenodo.24272647) always resolves to the latest version.
+The entry cites 0.1.0-alpha.2 itself, [10.5281/zenodo.24371692](https://doi.org/10.5281/zenodo.24371692). To cite
+Deep32 without a version, use [10.5281/zenodo.24272647](https://doi.org/10.5281/zenodo.24272647), which always
+resolves to the latest version.
+
+## Contributing and support
+
+Questions go to [Discussions](https://github.com/hellobpdu/deep32/discussions) and bugs to
+[Issues](https://github.com/hellobpdu/deep32/issues). For a security problem, follow [SECURITY.md](SECURITY.md).
+[CONTRIBUTING.md](CONTRIBUTING.md) says how to send a change and how to run the tests, and
+[GOVERNANCE.md](GOVERNANCE.md) who decides.
+
+If you like Deep32 and want to support it, the Sponsor button at the top of this page links to
+[GitHub Sponsors](https://github.com/sponsors/hellobpdu) and my [Ko-fi](https://ko-fi.com/hellobpdu). Everything
+donated goes to costs for this project.
 
 ## License
 
-Code is licensed under AGPL-3.0-or-later and documentation under CC-BY-4.0. See [LICENSING.md](licenses/LICENSING.md),
-[LICENSE](LICENSE) and [LICENSE-DOCS](LICENSE-DOCS). Third-party software, models and documents keep their own terms.
-Both Jina models are licensed CC BY-NC 4.0, and artwork and sounds keep the terms recorded in the asset ledger.
+Code is licensed under the Apache License 2.0 and documentation under CC BY 4.0. The two parts that use MuPDF, which
+is AGPL, are under AGPL-3.0-or-later: the Forge's PDF converter (`src/gpu-pack/containers/converter-agpl/`) and the
+Workstation Library's renderer `e26-render` (`src/workstation/library/src/render/`). See
+[LICENSING.md](licenses/LICENSING.md), [LICENSE](LICENSE), [NOTICE](NOTICE) and [LICENSE-DOCS](LICENSE-DOCS).
+The PDF converter uses MinerU 4.0.7 by the MinerU team, under the MinerU Open Source License: Apache-2.0 with
+additional terms. You need a separate commercial license from the MinerU team once you and your affiliates pass 100
+million monthly active users or USD 20 million in monthly revenue, and an online service for other people built on
+MinerU must say clearly that it uses MinerU ([license text](src/gpu-pack/licenses/MinerU-4.0.7-LICENSE.md),
+[third-party notices](notices/THIRD-PARTY-NOTICES.md)).
+Third-party software, models and documents keep their own terms, and artwork and sounds keep the terms recorded in the
+asset ledger.
+
+If you share Deep32 or a version you changed, the Apache License asks you to pass on the attribution in the NOTICE file
+and to mark the files you changed.
+
+The Apache License covers Deep32's code only. Everything on the content image keeps its own license: the Encyclopedia's
+Wikipedia articles are CC BY-SA 4.0 (some also GFDL), each Wikimedia Commons picture keeps its author's license, RFCs
+follow the IETF Trust's provisions, and the PowerShell documentation is CC BY 4.0. The image's
+`THIRD-PARTY-NOTICES.txt` summarizes them, and `LIBRARY-CREDITS.tsv` credits every article and picture.
 
 ## Author
 
@@ -618,4 +823,4 @@ Jeffrey A. Cummings · [ORCID 0009-0003-8091-4637](https://orcid.org/0009-0003-8
 
 ---
 
-<p align="center"><sub><b>Overview</b> · <a href="INSTALL.md">Installation</a> · <a href="docs/HARDWARE.md">Hardware</a> · <a href="docs/OPTIONAL-FEATURES.md">Optional features</a> · <a href="docs/contracts/README.md">Contracts</a> · <a href="adapters/README.md">Agent adapters</a> · <a href="SECURITY.md">Security</a> · <a href="CHANGELOG.md">Release notes</a></sub></p>
+<p align="center"><sub><b>Overview</b> · <a href="INSTALL.md">Installation</a> · <a href="docs/HARDWARE.md">Hardware</a> · <a href="docs/OPTIONAL-FEATURES.md">Optional features</a> · <a href="docs/tr/README.md">Design</a> · <a href="docs/DECISIONS.md">Decision record</a> · <a href="docs/contracts/README.md">Contracts</a> · <a href="adapters/README.md">Agent adapters</a> · <a href="SECURITY.md">Security</a> · <a href="CHANGELOG.md">Release notes</a></sub></p>

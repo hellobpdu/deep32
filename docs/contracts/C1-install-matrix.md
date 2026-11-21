@@ -1,10 +1,12 @@
 # C1. Install matrix
 
-Contract C1, version 1, draft of 2026-11-14. Not frozen. This page describes `install/matrix.json` as it stands
+Contract C1, version 2, 2026-11-17. Not frozen. This page describes `install/matrix.json` as it stands
 (schema `deep32.matrix.v1`, matrix version 0.3.1). The builder writes it by hand; `status`, `last_tested` and
 `bench_reference` change only from a recorded test run. Five things read it, so they cannot drift: the inventory's
 verdict (C10), the installer's plan, the README's compatibility tables, the benchmark comparison and the record of
 the profiles a release tested. It is JSON because Windows PowerShell 5.1 reads JSON with nothing installed.
+
+Changed (2026-11-17): state the measured GPU-memory tier thresholds and null tier, and close the converter port decision.
 
 ## Rules for every reader
 
@@ -24,7 +26,7 @@ the profiles a release tested. It is JSON because Windows PowerShell 5.1 reads J
 | `ports` | port number and use | `port.<n>` (busy or free), `ports.busy_count` |
 | `cpu_classes` | `id`, `when`, `workstation`, `forge`, `text`; the first class whose `when` holds wins | `cpu.class`, `cpu.ws`, `cpu.forge` |
 | `gpu_classes`, `gpu_class_rule`, `gpu_notes` | NVIDIA classes: name patterns, compute capabilities, architecture, embeddings-server image tag (`tei`), upstream status, Forge verdict; the rule that classes a card and picks the best one | `gpu.nvidia`, `gpu.usable`, `gpu.class`, `gpu.forge`, `gpu.tei`, `gpu.upstream`, `gpu.mem_gb`, `gpu.driver` |
-| `gpu_mem_tiers` | `id`, `min_gb`, what runs; the first tier the card's memory reaches. Tier `0` (no card, or under 6 GB) is keyword search only: without the GPU disc nothing embeds a query, so the stored vectors are not searched | `gpu.mem_tier` |
+| `gpu_mem_tiers` | `id`, `min_gb`, what runs; the first tier the card's memory reaches: `11` at 10.5 GiB, `8` at 7.5 GiB, `6` at 5.5 GiB, `0` below 5.5 GiB; no selected card or unknown memory gives null. Tier `0` is keyword search only; meaning search needs a separately paired NVIDIA Forge. | `gpu.mem_tier` |
 | `hw_profiles` | known hardware (today `latitude-5430`) | `hw.profile` |
 | `sizing` | what the host keeps (2 threads, 4 GB), four tiers with VM ranges, the minimums, the allocation rule | `mem.basis_gb`, `size.threads`, `size.tier`, `size.both`, `size.ws_fits`, `size.forge_fits`, sizes per profile |
 | `disk_gb` | free space per layout, marked `provisional` | `disk.free_gb` (largest free volume), `disk.ssd` |
@@ -87,8 +89,7 @@ runs on every edit.
 - OPEN: the numbering rule for `matrix_version`. Decides: the builder.
 - OPEN: `ports` lists 7452 for the relay, which is production's number; the distribution gets its own
   relay port (C8). Decides: the builder in stage 8; the matrix and the inventory's port check change together.
-- OPEN: no row for the Forge's PDF converter service (loopback 8083 in production). Decides: the builder in stage 4.
+- The PDF converter is an opt-in conversion-job container with `network_mode: none`; it exposes no service port, so the matrix needs no converter listener row.
 - OPEN: the `disk_gb` figures are placeholders until stages 4 to 6 measure the discs. Decides: the builder.
 
-Sources: `install/matrix.json` 0.3.1 and `install/deep32-inventory.ps1` (derived facts), as read 2026-11-14;
-C10 (the verdict).
+Sources: `install/matrix.json` 0.3.1, `install/deep32-inventory.ps1` and `install/deep32-inventory.sh` (derived facts), `src/gpu-pack/containers/{compose.yaml,convert-job.sh}` and `src/gpu-pack/forms/forge_docker_role.py` (converter job), as read 2026-11-17; C10 (the verdict).

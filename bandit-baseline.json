@@ -1,0 +1,3165 @@
+{
+ "note": "Bandit findings reviewed on 19 November 2026 (none is an exploitable vulnerability; docs/BUILDING.md section 3). Used as: bandit -c bandit.yaml -r . -b bandit-baseline.json. Paths are as Bandit prints them on Linux and macOS. Regenerate after reviewing any new finding.",
+ "results": [
+  {
+   "code": "",
+   "filename": "./adapters/connect.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 78
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Starting a process with a partial executable path",
+   "line_number": 125,
+   "line_range": [
+    125,
+    126,
+    127,
+    128
+   ],
+   "test_id": "B607",
+   "test_name": "start_process_with_partial_path"
+  },
+  {
+   "code": "",
+   "filename": "./adapters/relay/deep32_relay/native.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 259
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Possible hardcoded password: 'DEEP32_RELAY_SESSION_BEARER'",
+   "line_number": 269,
+   "line_range": [
+    269
+   ],
+   "test_id": "B105",
+   "test_name": "hardcoded_password_string"
+  },
+  {
+   "code": "",
+   "filename": "./adapters/relay/deep32_relay/platform.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 20
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Using xml.etree.ElementTree to parse untrusted XML data is known to be vulnerable to XML attacks. Replace xml.etree.ElementTree with the equivalent defusedxml package, or make sure defusedxml.defuse_stdlib() is called.",
+   "line_number": 15,
+   "line_range": [
+    15
+   ],
+   "test_id": "B405",
+   "test_name": "blacklist"
+  },
+  {
+   "code": "",
+   "filename": "./adapters/relay/deep32_relay/platform.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 20
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Using xml.etree.ElementTree.fromstring to parse untrusted XML data is known to be vulnerable to XML attacks. Replace xml.etree.ElementTree.fromstring with its defusedxml equivalent function or make sure defusedxml.defuse_stdlib() is called",
+   "line_number": 274,
+   "line_range": [
+    274
+   ],
+   "test_id": "B314",
+   "test_name": "blacklist"
+  },
+  {
+   "code": "",
+   "filename": "./adapters/relay/deep32_relay/platform.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 20
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Using xml.etree.ElementTree.fromstring to parse untrusted XML data is known to be vulnerable to XML attacks. Replace xml.etree.ElementTree.fromstring with its defusedxml equivalent function or make sure defusedxml.defuse_stdlib() is called",
+   "line_number": 318,
+   "line_range": [
+    318
+   ],
+   "test_id": "B314",
+   "test_name": "blacklist"
+  },
+  {
+   "code": "",
+   "filename": "./adapters/relay/deep32_relay/proxy.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 703
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Try, Except, Pass detected.",
+   "line_number": 426,
+   "line_range": [
+    426,
+    427
+   ],
+   "test_id": "B110",
+   "test_name": "try_except_pass"
+  },
+  {
+   "code": "",
+   "filename": "./adapters/relay/deep32_relay/service.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 703
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Try, Except, Pass detected.",
+   "line_number": 161,
+   "line_range": [
+    161,
+    162
+   ],
+   "test_id": "B110",
+   "test_name": "try_except_pass"
+  },
+  {
+   "code": "",
+   "filename": "./adapters/relay/deep32_relay/transport.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 703
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Try, Except, Pass detected.",
+   "line_number": 183,
+   "line_range": [
+    183,
+    184
+   ],
+   "test_id": "B110",
+   "test_name": "try_except_pass"
+  },
+  {
+   "code": "",
+   "filename": "./adapters/setup_skills.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 259
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Possible hardcoded password: '\"DEEP32_MCP_TOKEN\"'",
+   "line_number": 116,
+   "line_range": [
+    116,
+    117
+   ],
+   "test_id": "B105",
+   "test_name": "hardcoded_password_string"
+  },
+  {
+   "code": "",
+   "filename": "./src/build/alpha2-tree/make-alpha2-tree.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 78
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Starting a process with a partial executable path",
+   "line_number": 241,
+   "line_range": [
+    241,
+    242,
+    243
+   ],
+   "test_id": "B607",
+   "test_name": "start_process_with_partial_path"
+  },
+  {
+   "code": "",
+   "filename": "./src/build/alpha2-tree/test_release_key.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 703
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.",
+   "line_number": 48,
+   "line_range": [
+    48
+   ],
+   "test_id": "B101",
+   "test_name": "assert_used"
+  },
+  {
+   "code": "",
+   "filename": "./src/build/disc3-pins/resolve-pins.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 327
+   },
+   "issue_severity": "HIGH",
+   "issue_text": "Use of weak SHA1 hash for security. Consider usedforsecurity=False",
+   "line_number": 1287,
+   "line_range": [
+    1287
+   ],
+   "test_id": "B324",
+   "test_name": "hashlib"
+  },
+  {
+   "code": "",
+   "filename": "./src/build/s5-build-driver/slots/t0120/902-disc2-importer-sources/distrib/site/usr/local/d32/libexec/d32-import/d32import.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 703
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Try, Except, Pass detected.",
+   "line_number": 461,
+   "line_range": [
+    461,
+    462
+   ],
+   "test_id": "B110",
+   "test_name": "try_except_pass"
+  },
+  {
+   "code": "",
+   "filename": "./src/build/s5-build-driver/slots/t0120/902-disc2-importer-sources/distrib/site/usr/local/d32/libexec/d32-import/vendor/kb_bundle.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 85,
+   "line_range": [
+    85
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/build/s5-build-driver/slots/t0120/902-disc2-importer-sources/distrib/site/usr/local/d32/libexec/d32-import/vendor/kb_bundle.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 89,
+   "line_range": [
+    89
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/build/s5-build-driver/slots/t0120/902-disc2-importer-sources/distrib/site/usr/local/d32/libexec/d32-import/vendor/kb_bundle.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 97,
+   "line_range": [
+    97
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/build/s5-build-driver/slots/t0120/902-disc2-importer-sources/distrib/site/usr/local/d32/libexec/d32-import/vendor/kb_bundle.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 322,
+   "line_range": [
+    322
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/build/s5-build-driver/slots/t0120/902-disc2-importer-sources/distrib/site/usr/local/d32/libexec/d32-import/vendor/kb_bundle.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 406,
+   "line_range": [
+    406
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/build/s5-build-driver/slots/t0120/902-disc2-importer-sources/distrib/site/usr/local/d32/libexec/d32-import/vendor/kb_bundle.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 409,
+   "line_range": [
+    409
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/build/s5-build-driver/slots/t0120/902-disc2-importer-sources/distrib/site/usr/local/d32/libexec/d32-import/vendor/kb_bundle.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 414,
+   "line_range": [
+    414
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/build/s5-build-driver/slots/t0120/902-disc2-importer-sources/distrib/site/usr/local/d32/libexec/d32-import/vendor/kb_bundle.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 259
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Possible hardcoded password: 'pass'",
+   "line_number": 784,
+   "line_range": [
+    784
+   ],
+   "test_id": "B105",
+   "test_name": "hardcoded_password_string"
+  },
+  {
+   "code": "",
+   "filename": "./src/build/s5-build-driver/stages/alpha2_stage.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 732
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Chmod setting a permissive mask 0o755 on file (p).",
+   "line_number": 96,
+   "line_range": [
+    96
+   ],
+   "test_id": "B103",
+   "test_name": "set_bad_file_permissions"
+  },
+  {
+   "code": "",
+   "filename": "./src/build/s5-build-driver/test-lane/d32test-pve.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 259
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Possible hardcoded password: 'False'",
+   "line_number": 161,
+   "line_range": [
+    161
+   ],
+   "test_id": "B105",
+   "test_name": "hardcoded_password_string"
+  },
+  {
+   "code": "",
+   "filename": "./src/diagnostics/deep32_diag/errors.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 703
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Try, Except, Pass detected.",
+   "line_number": 33,
+   "line_range": [
+    33,
+    34
+   ],
+   "test_id": "B110",
+   "test_name": "try_except_pass"
+  },
+  {
+   "code": "",
+   "filename": "./src/diagnostics/deep32_diag/mcp.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 703
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Try, Except, Pass detected.",
+   "line_number": 57,
+   "line_range": [
+    57,
+    58
+   ],
+   "test_id": "B110",
+   "test_name": "try_except_pass"
+  },
+  {
+   "code": "",
+   "filename": "./src/diagnostics/deep32_diag/mcp.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 703
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Try, Except, Pass detected.",
+   "line_number": 319,
+   "line_range": [
+    319,
+    320
+   ],
+   "test_id": "B110",
+   "test_name": "try_except_pass"
+  },
+  {
+   "code": "",
+   "filename": "./src/diagnostics/deep32_diag/selftest_trust.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 703
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Try, Except, Pass detected.",
+   "line_number": 63,
+   "line_range": [
+    63,
+    64
+   ],
+   "test_id": "B110",
+   "test_name": "try_except_pass"
+  },
+  {
+   "code": "",
+   "filename": "./src/engine/src/rag_core/chunker.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 259
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Possible hardcoded password: 'lexical-estimate-v1'",
+   "line_number": 1729,
+   "line_range": [
+    1708,
+    1709,
+    1710,
+    1711,
+    1712,
+    1713,
+    1714,
+    1715,
+    1716,
+    1717,
+    1718,
+    1719,
+    1720,
+    1721,
+    1722,
+    1723,
+    1724,
+    1725,
+    1726,
+    1727,
+    1728,
+    1729,
+    1730,
+    1731,
+    1732
+   ],
+   "test_id": "B105",
+   "test_name": "hardcoded_password_string"
+  },
+  {
+   "code": "",
+   "filename": "./src/engine/src/rag_core/db.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 374,
+   "line_range": [
+    374
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/engine/src/rag_core/db.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 375,
+   "line_range": [
+    375
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/engine/src/rag_core/db.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 381,
+   "line_range": [
+    381
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/engine/src/rag_core/dense.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 703
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.",
+   "line_number": 760,
+   "line_range": [
+    760
+   ],
+   "test_id": "B101",
+   "test_name": "assert_used"
+  },
+  {
+   "code": "",
+   "filename": "./src/engine/src/rag_core/kb.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 259
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Possible hardcoded password: '[{'",
+   "line_number": 116,
+   "line_range": [
+    116
+   ],
+   "test_id": "B105",
+   "test_name": "hardcoded_password_string"
+  },
+  {
+   "code": "",
+   "filename": "./src/engine/src/rag_core/kb.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 259
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Possible hardcoded password: ']}'",
+   "line_number": 118,
+   "line_range": [
+    118
+   ],
+   "test_id": "B105",
+   "test_name": "hardcoded_password_string"
+  },
+  {
+   "code": "",
+   "filename": "./src/engine/src/rag_core/kb.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 259
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Possible hardcoded password: '|'",
+   "line_number": 120,
+   "line_range": [
+    120
+   ],
+   "test_id": "B105",
+   "test_name": "hardcoded_password_string"
+  },
+  {
+   "code": "",
+   "filename": "./src/engine/src/rag_core/kb.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 259
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Possible hardcoded password: '[{'",
+   "line_number": 133,
+   "line_range": [
+    133
+   ],
+   "test_id": "B105",
+   "test_name": "hardcoded_password_string"
+  },
+  {
+   "code": "",
+   "filename": "./src/engine/src/rag_core/kb.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 259
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Possible hardcoded password: ']}'",
+   "line_number": 136,
+   "line_range": [
+    136
+   ],
+   "test_id": "B105",
+   "test_name": "hardcoded_password_string"
+  },
+  {
+   "code": "",
+   "filename": "./src/engine/src/rag_core/kb.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 259
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Possible hardcoded password: '|'",
+   "line_number": 139,
+   "line_range": [
+    139
+   ],
+   "test_id": "B105",
+   "test_name": "hardcoded_password_string"
+  },
+  {
+   "code": "",
+   "filename": "./src/engine/src/rag_core/kb.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 920,
+   "line_range": [
+    920
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/engine/src/rag_core/reader.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 493,
+   "line_range": [
+    493
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/engine/src/rag_core/reader.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 987,
+   "line_range": [
+    987,
+    988,
+    989,
+    990,
+    991,
+    992,
+    993
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/engine/src/rag_core/retrievers/colbert.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 161,
+   "line_range": [
+    161,
+    162,
+    163,
+    164,
+    165,
+    166,
+    167,
+    168,
+    169,
+    170,
+    171,
+    172,
+    173,
+    174,
+    175,
+    176,
+    177,
+    178,
+    179,
+    180,
+    181,
+    182,
+    183,
+    184,
+    185,
+    186,
+    187
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/engine/src/rag_core/retrievers/dense.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 269,
+   "line_range": [
+    269,
+    270,
+    271,
+    272,
+    273,
+    274,
+    275,
+    276,
+    277,
+    278,
+    279,
+    280,
+    281,
+    282,
+    283,
+    284,
+    285,
+    286,
+    287,
+    288,
+    289
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/engine/src/rag_core/retrievers/lexical.py",
+   "issue_confidence": "LOW",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 105,
+   "line_range": [
+    105,
+    106,
+    107,
+    108,
+    109,
+    110,
+    111,
+    112
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/engine/src/rag_core/retrievers/lexical.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 149,
+   "line_range": [
+    149
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/engine/src/rag_core/retrievers/lexical.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 228,
+   "line_range": [
+    228
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/engine/src/rag_core/retrievers/lexical.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 234,
+   "line_range": [
+    234
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/engine/src/rag_core/status.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 103,
+   "line_range": [
+    103
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/engine/src/rag_core/status.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 155,
+   "line_range": [
+    155
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/engine/src/rag_core/traces.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 330
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Standard pseudo-random generators are not suitable for security/cryptographic purposes.",
+   "line_number": 101,
+   "line_range": [
+    101
+   ],
+   "test_id": "B311",
+   "test_name": "blacklist"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/autoinstall/select-settings.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 78
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Starting a process with a partial executable path",
+   "line_number": 11,
+   "line_range": [
+    11
+   ],
+   "test_id": "B607",
+   "test_name": "start_process_with_partial_path"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/autoinstall/select-settings.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 78
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Starting a process with a partial executable path",
+   "line_number": 15,
+   "line_range": [
+    15
+   ],
+   "test_id": "B607",
+   "test_name": "start_process_with_partial_path"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/autoinstall/select-settings.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 78
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Starting a process with a partial executable path",
+   "line_number": 41,
+   "line_range": [
+    41
+   ],
+   "test_id": "B607",
+   "test_name": "start_process_with_partial_path"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/build/alpha2_disc3.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 78
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Starting a process with a partial executable path",
+   "line_number": 196,
+   "line_range": [
+    196,
+    197
+   ],
+   "test_id": "B607",
+   "test_name": "start_process_with_partial_path"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/build/alpha2_disc3.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 78
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Starting a process with a partial executable path",
+   "line_number": 199,
+   "line_range": [
+    199
+   ],
+   "test_id": "B607",
+   "test_name": "start_process_with_partial_path"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/build/alpha2_qualify.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 377
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Probable insecure usage of temp file/directory.",
+   "line_number": 208,
+   "line_range": [
+    208
+   ],
+   "test_id": "B108",
+   "test_name": "hardcoded_tmp_directory"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/build/alpha2_qualify.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 605
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible binding to all interfaces.",
+   "line_number": 338,
+   "line_range": [
+    337,
+    338,
+    339
+   ],
+   "test_id": "B104",
+   "test_name": "hardcoded_bind_all_interfaces"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/build/alpha2_source.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 78
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Starting a process with a partial executable path",
+   "line_number": 17,
+   "line_range": [
+    17
+   ],
+   "test_id": "B607",
+   "test_name": "start_process_with_partial_path"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/build/builder_inputs.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 78
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Starting a process with a partial executable path",
+   "line_number": 109,
+   "line_range": [
+    109,
+    110
+   ],
+   "test_id": "B607",
+   "test_name": "start_process_with_partial_path"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/build/fetch-inputs.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 22
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Audit url open for permitted schemes. Allowing use of file:/ or custom schemes is often unexpected.",
+   "line_number": 263,
+   "line_range": [
+    263
+   ],
+   "test_id": "B310",
+   "test_name": "blacklist"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/build/fetch-inputs.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 22
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Audit url open for permitted schemes. Allowing use of file:/ or custom schemes is often unexpected.",
+   "line_number": 282,
+   "line_range": [
+    282
+   ],
+   "test_id": "B310",
+   "test_name": "blacklist"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/build/fetch-inputs.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 327
+   },
+   "issue_severity": "HIGH",
+   "issue_text": "Use of weak SHA1 hash for security. Consider usedforsecurity=False",
+   "line_number": 308,
+   "line_range": [
+    308
+   ],
+   "test_id": "B324",
+   "test_name": "hashlib"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/build/fetch-inputs.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 78
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Starting a process with a partial executable path",
+   "line_number": 320,
+   "line_range": [
+    320
+   ],
+   "test_id": "B607",
+   "test_name": "start_process_with_partial_path"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/build/fetch-inputs.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 78
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Starting a process with a partial executable path",
+   "line_number": 321,
+   "line_range": [
+    321
+   ],
+   "test_id": "B607",
+   "test_name": "start_process_with_partial_path"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/build/fetch-inputs.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 78
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Starting a process with a partial executable path",
+   "line_number": 338,
+   "line_range": [
+    338
+   ],
+   "test_id": "B607",
+   "test_name": "start_process_with_partial_path"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/build/fetch-inputs.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 78
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Starting a process with a partial executable path",
+   "line_number": 479,
+   "line_range": [
+    479,
+    480
+   ],
+   "test_id": "B607",
+   "test_name": "start_process_with_partial_path"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/build/fetch-inputs.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 78
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Starting a process with a partial executable path",
+   "line_number": 522,
+   "line_range": [
+    522,
+    523,
+    524
+   ],
+   "test_id": "B607",
+   "test_name": "start_process_with_partial_path"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/build/full_images.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 78
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Starting a process with a partial executable path",
+   "line_number": 130,
+   "line_range": [
+    130
+   ],
+   "test_id": "B607",
+   "test_name": "start_process_with_partial_path"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/build/images.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 78
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Starting a process with a partial executable path",
+   "line_number": 180,
+   "line_range": [
+    180
+   ],
+   "test_id": "B607",
+   "test_name": "start_process_with_partial_path"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/builder/engine/rag/core/scripts/ann_audit.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 330
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Standard pseudo-random generators are not suitable for security/cryptographic purposes.",
+   "line_number": 306,
+   "line_range": [
+    306
+   ],
+   "test_id": "B311",
+   "test_name": "blacklist"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/builder/engine/rag/core/scripts/ann_audit.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 78
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Starting a process with a partial executable path",
+   "line_number": 721,
+   "line_range": [
+    721,
+    722
+   ],
+   "test_id": "B607",
+   "test_name": "start_process_with_partial_path"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/builder/engine/rag/core/scripts/bench_query_embed.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 494
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Unsafe Hugging Face Hub download without revision pinning in from_pretrained()",
+   "line_number": 162,
+   "line_range": [
+    162
+   ],
+   "test_id": "B615",
+   "test_name": "huggingface_unsafe_download"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/builder/engine/rag/core/scripts/build_root.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 78
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Starting a process with a partial executable path",
+   "line_number": 210,
+   "line_range": [
+    210,
+    211,
+    212
+   ],
+   "test_id": "B607",
+   "test_name": "start_process_with_partial_path"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/builder/engine/rag/core/scripts/build_root.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 78
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Starting a process with a partial executable path",
+   "line_number": 493,
+   "line_range": [
+    493
+   ],
+   "test_id": "B607",
+   "test_name": "start_process_with_partial_path"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/builder/engine/rag/core/scripts/build_root.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 683,
+   "line_range": [
+    683
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/builder/engine/rag/core/scripts/build_root.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 684,
+   "line_range": [
+    684
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/builder/engine/rag/core/scripts/build_root.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 693,
+   "line_range": [
+    693
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/builder/engine/rag/core/scripts/build_root.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 948,
+   "line_range": [
+    948
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/builder/engine/rag/core/scripts/build_root.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 330
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Standard pseudo-random generators are not suitable for security/cryptographic purposes.",
+   "line_number": 957,
+   "line_range": [
+    957
+   ],
+   "test_id": "B311",
+   "test_name": "blacklist"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/builder/engine/rag/core/scripts/compare_validation.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 330
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Standard pseudo-random generators are not suitable for security/cryptographic purposes.",
+   "line_number": 88,
+   "line_range": [
+    88
+   ],
+   "test_id": "B311",
+   "test_name": "blacklist"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/builder/engine/rag/core/scripts/export_generation.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 703
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Try, Except, Pass detected.",
+   "line_number": 196,
+   "line_range": [
+    196,
+    197
+   ],
+   "test_id": "B110",
+   "test_name": "try_except_pass"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/builder/engine/rag/core/scripts/export_generation.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 234,
+   "line_range": [
+    234
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/builder/engine/rag/core/scripts/export_generation.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 267,
+   "line_range": [
+    267
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/builder/engine/rag/core/scripts/export_generation.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 78
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Starting a process with a partial executable path",
+   "line_number": 318,
+   "line_range": [
+    318,
+    319
+   ],
+   "test_id": "B607",
+   "test_name": "start_process_with_partial_path"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/builder/engine/rag/core/scripts/validate_root.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 78
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Starting a process with a partial executable path",
+   "line_number": 1158,
+   "line_range": [
+    1158,
+    1159
+   ],
+   "test_id": "B607",
+   "test_name": "start_process_with_partial_path"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/builder/engine/rag/core/src/rag_core/chunker.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 259
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Possible hardcoded password: 'lexical-estimate-v1'",
+   "line_number": 1705,
+   "line_range": [
+    1684,
+    1685,
+    1686,
+    1687,
+    1688,
+    1689,
+    1690,
+    1691,
+    1692,
+    1693,
+    1694,
+    1695,
+    1696,
+    1697,
+    1698,
+    1699,
+    1700,
+    1701,
+    1702,
+    1703,
+    1704,
+    1705,
+    1706,
+    1707,
+    1708
+   ],
+   "test_id": "B105",
+   "test_name": "hardcoded_password_string"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/builder/engine/rag/core/src/rag_core/db.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 374,
+   "line_range": [
+    374
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/builder/engine/rag/core/src/rag_core/db.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 375,
+   "line_range": [
+    375
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/builder/engine/rag/core/src/rag_core/db.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 381,
+   "line_range": [
+    381
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/builder/engine/rag/core/src/rag_core/dense.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 703
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.",
+   "line_number": 760,
+   "line_range": [
+    760
+   ],
+   "test_id": "B101",
+   "test_name": "assert_used"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/builder/engine/rag/core/src/rag_core/kb.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 259
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Possible hardcoded password: '[{'",
+   "line_number": 116,
+   "line_range": [
+    116
+   ],
+   "test_id": "B105",
+   "test_name": "hardcoded_password_string"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/builder/engine/rag/core/src/rag_core/kb.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 259
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Possible hardcoded password: ']}'",
+   "line_number": 118,
+   "line_range": [
+    118
+   ],
+   "test_id": "B105",
+   "test_name": "hardcoded_password_string"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/builder/engine/rag/core/src/rag_core/kb.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 259
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Possible hardcoded password: '|'",
+   "line_number": 120,
+   "line_range": [
+    120
+   ],
+   "test_id": "B105",
+   "test_name": "hardcoded_password_string"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/builder/engine/rag/core/src/rag_core/kb.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 259
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Possible hardcoded password: '[{'",
+   "line_number": 133,
+   "line_range": [
+    133
+   ],
+   "test_id": "B105",
+   "test_name": "hardcoded_password_string"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/builder/engine/rag/core/src/rag_core/kb.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 259
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Possible hardcoded password: ']}'",
+   "line_number": 136,
+   "line_range": [
+    136
+   ],
+   "test_id": "B105",
+   "test_name": "hardcoded_password_string"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/builder/engine/rag/core/src/rag_core/kb.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 259
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Possible hardcoded password: '|'",
+   "line_number": 139,
+   "line_range": [
+    139
+   ],
+   "test_id": "B105",
+   "test_name": "hardcoded_password_string"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/builder/engine/rag/core/src/rag_core/kb.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 907,
+   "line_range": [
+    907
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/builder/engine/rag/core/src/rag_core/reader.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 491,
+   "line_range": [
+    491
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/builder/engine/rag/core/src/rag_core/reader.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 985,
+   "line_range": [
+    985,
+    986,
+    987,
+    988,
+    989,
+    990,
+    991
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/builder/engine/rag/core/src/rag_core/retrievers/colbert.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 161,
+   "line_range": [
+    161,
+    162,
+    163,
+    164,
+    165,
+    166,
+    167,
+    168,
+    169,
+    170,
+    171,
+    172,
+    173,
+    174,
+    175,
+    176,
+    177,
+    178,
+    179,
+    180,
+    181,
+    182,
+    183,
+    184,
+    185,
+    186,
+    187
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/builder/engine/rag/core/src/rag_core/retrievers/dense.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 269,
+   "line_range": [
+    269,
+    270,
+    271,
+    272,
+    273,
+    274,
+    275,
+    276,
+    277,
+    278,
+    279,
+    280,
+    281,
+    282,
+    283,
+    284,
+    285,
+    286,
+    287,
+    288,
+    289
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/builder/engine/rag/core/src/rag_core/retrievers/lexical.py",
+   "issue_confidence": "LOW",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 105,
+   "line_range": [
+    105,
+    106,
+    107,
+    108,
+    109,
+    110,
+    111,
+    112
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/builder/engine/rag/core/src/rag_core/retrievers/lexical.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 149,
+   "line_range": [
+    149
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/builder/engine/rag/core/src/rag_core/retrievers/lexical.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 228,
+   "line_range": [
+    228
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/builder/engine/rag/core/src/rag_core/retrievers/lexical.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 234,
+   "line_range": [
+    234
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/builder/engine/rag/core/src/rag_core/status.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 103,
+   "line_range": [
+    103
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/builder/engine/rag/core/src/rag_core/status.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 155,
+   "line_range": [
+    155
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/builder/engine/rag/core/src/rag_core/traces.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 330
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Standard pseudo-random generators are not suitable for security/cryptographic purposes.",
+   "line_number": 101,
+   "line_range": [
+    101
+   ],
+   "test_id": "B311",
+   "test_name": "blacklist"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/builder/kb-bundle/kb_bundle.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 85,
+   "line_range": [
+    85
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/builder/kb-bundle/kb_bundle.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 89,
+   "line_range": [
+    89
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/builder/kb-bundle/kb_bundle.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 97,
+   "line_range": [
+    97
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/builder/kb-bundle/kb_bundle.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 322,
+   "line_range": [
+    322
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/builder/kb-bundle/kb_bundle.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 406,
+   "line_range": [
+    406
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/builder/kb-bundle/kb_bundle.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 409,
+   "line_range": [
+    409
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/builder/kb-bundle/kb_bundle.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 414,
+   "line_range": [
+    414
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/builder/kb-bundle/kb_bundle.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 259
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Possible hardcoded password: 'pass'",
+   "line_number": 784,
+   "line_range": [
+    784
+   ],
+   "test_id": "B105",
+   "test_name": "hardcoded_password_string"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/builder/kb-tools/build_iana.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 20
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Using xml.etree.ElementTree to parse untrusted XML data is known to be vulnerable to XML attacks. Replace xml.etree.ElementTree with the equivalent defusedxml package, or make sure defusedxml.defuse_stdlib() is called.",
+   "line_number": 9,
+   "line_range": [
+    9
+   ],
+   "test_id": "B405",
+   "test_name": "blacklist"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/builder/kb-tools/build_iana.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 20
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Using xml.etree.ElementTree.fromstring to parse untrusted XML data is known to be vulnerable to XML attacks. Replace xml.etree.ElementTree.fromstring with its defusedxml equivalent function or make sure defusedxml.defuse_stdlib() is called",
+   "line_number": 844,
+   "line_range": [
+    844
+   ],
+   "test_id": "B314",
+   "test_name": "blacklist"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/builder/kb-tools/build_rfc.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 20
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Using xml.etree.ElementTree to parse untrusted XML data is known to be vulnerable to XML attacks. Replace xml.etree.ElementTree with the equivalent defusedxml package, or make sure defusedxml.defuse_stdlib() is called.",
+   "line_number": 20,
+   "line_range": [
+    20
+   ],
+   "test_id": "B405",
+   "test_name": "blacklist"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/builder/kb-tools/build_rfc.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 20
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Using xml.etree.ElementTree.fromstring to parse untrusted XML data is known to be vulnerable to XML attacks. Replace xml.etree.ElementTree.fromstring with its defusedxml equivalent function or make sure defusedxml.defuse_stdlib() is called",
+   "line_number": 72,
+   "line_range": [
+    72
+   ],
+   "test_id": "B314",
+   "test_name": "blacklist"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/builder/kb-tools/kbcommon.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 22
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Audit url open for permitted schemes. Allowing use of file:/ or custom schemes is often unexpected.",
+   "line_number": 59,
+   "line_range": [
+    59
+   ],
+   "test_id": "B310",
+   "test_name": "blacklist"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/converter-agpl/production-converter/chain/pilot/vendor-add/fetch_add.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 22
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Audit url open for permitted schemes. Allowing use of file:/ or custom schemes is often unexpected.",
+   "line_number": 52,
+   "line_range": [
+    52
+   ],
+   "test_id": "B310",
+   "test_name": "blacklist"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/converter-agpl/production-converter/chain/pilot/vendor-add/qa_v21.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 703
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.",
+   "line_number": 36,
+   "line_range": [
+    36
+   ],
+   "test_id": "B101",
+   "test_name": "assert_used"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/converter-agpl/production-converter/chain/pilot/vendor-add/scan_injection.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 838
+   },
+   "issue_severity": "HIGH",
+   "issue_text": "A Python source file contains bidirectional control characters ('\\u202a').",
+   "line_number": 35,
+   "line_range": [
+    35
+   ],
+   "test_id": "B613",
+   "test_name": "trojansource"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/converter-agpl/production-converter/chain/tools/convert_docs.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 20
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Using ElementTree to parse untrusted XML data is known to be vulnerable to XML attacks. Replace ElementTree with the equivalent defusedxml package, or make sure defusedxml.defuse_stdlib() is called.",
+   "line_number": 24,
+   "line_range": [
+    24
+   ],
+   "test_id": "B405",
+   "test_name": "blacklist"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/converter-agpl/production-converter/chain/tools/convert_docs.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 20
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Using xml.etree.ElementTree.fromstring to parse untrusted XML data is known to be vulnerable to XML attacks. Replace xml.etree.ElementTree.fromstring with its defusedxml equivalent function or make sure defusedxml.defuse_stdlib() is called",
+   "line_number": 165,
+   "line_range": [
+    165
+   ],
+   "test_id": "B314",
+   "test_name": "blacklist"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/converter-agpl/production-converter/chain/tools/convert_docs.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 20
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Using xml.etree.ElementTree.fromstring to parse untrusted XML data is known to be vulnerable to XML attacks. Replace xml.etree.ElementTree.fromstring with its defusedxml equivalent function or make sure defusedxml.defuse_stdlib() is called",
+   "line_number": 180,
+   "line_range": [
+    180
+   ],
+   "test_id": "B314",
+   "test_name": "blacklist"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/converter-agpl/production-converter/chain/tools/convert_docs.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 20
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Using xml.etree.ElementTree.fromstring to parse untrusted XML data is known to be vulnerable to XML attacks. Replace xml.etree.ElementTree.fromstring with its defusedxml equivalent function or make sure defusedxml.defuse_stdlib() is called",
+   "line_number": 199,
+   "line_range": [
+    199
+   ],
+   "test_id": "B314",
+   "test_name": "blacklist"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/converter-agpl/production-converter/chain/tools/convert_docs.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 20
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Using xml.etree.ElementTree.fromstring to parse untrusted XML data is known to be vulnerable to XML attacks. Replace xml.etree.ElementTree.fromstring with its defusedxml equivalent function or make sure defusedxml.defuse_stdlib() is called",
+   "line_number": 202,
+   "line_range": [
+    202
+   ],
+   "test_id": "B314",
+   "test_name": "blacklist"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/containers/door/door.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 605
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible binding to all interfaces.",
+   "line_number": 91,
+   "line_range": [
+    91
+   ],
+   "test_id": "B104",
+   "test_name": "hardcoded_bind_all_interfaces"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/firstboot/firstboot.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 78
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Starting a process with a partial executable path",
+   "line_number": 148,
+   "line_range": [
+    148
+   ],
+   "test_id": "B607",
+   "test_name": "start_process_with_partial_path"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/firstboot/installed-inputs.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 78
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Starting a process with a partial executable path",
+   "line_number": 243,
+   "line_range": [
+    243
+   ],
+   "test_id": "B607",
+   "test_name": "start_process_with_partial_path"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/firstboot/installed-inputs.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 78
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Starting a process with a partial executable path",
+   "line_number": 287,
+   "line_range": [
+    287,
+    288
+   ],
+   "test_id": "B607",
+   "test_name": "start_process_with_partial_path"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/import/d32import.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 703
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Try, Except, Pass detected.",
+   "line_number": 461,
+   "line_range": [
+    461,
+    462
+   ],
+   "test_id": "B110",
+   "test_name": "try_except_pass"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/import/vendor/kb_bundle.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 85,
+   "line_range": [
+    85
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/import/vendor/kb_bundle.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 89,
+   "line_range": [
+    89
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/import/vendor/kb_bundle.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 97,
+   "line_range": [
+    97
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/import/vendor/kb_bundle.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 322,
+   "line_range": [
+    322
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/import/vendor/kb_bundle.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 406,
+   "line_range": [
+    406
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/import/vendor/kb_bundle.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 409,
+   "line_range": [
+    409
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/import/vendor/kb_bundle.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 414,
+   "line_range": [
+    414
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/import/vendor/kb_bundle.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 259
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Possible hardcoded password: 'pass'",
+   "line_number": 784,
+   "line_range": [
+    784
+   ],
+   "test_id": "B105",
+   "test_name": "hardcoded_password_string"
+  },
+  {
+   "code": "",
+   "filename": "./src/gpu-pack/pairing/deep32net/discovery.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 78
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Starting a process with a partial executable path",
+   "line_number": 103,
+   "line_range": [
+    103
+   ],
+   "test_id": "B607",
+   "test_name": "start_process_with_partial_path"
+  },
+  {
+   "code": "",
+   "filename": "./src/kb-tools/kb-bundle/kb_bundle.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 85,
+   "line_range": [
+    85
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/kb-tools/kb-bundle/kb_bundle.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 89,
+   "line_range": [
+    89
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/kb-tools/kb-bundle/kb_bundle.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 97,
+   "line_range": [
+    97
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/kb-tools/kb-bundle/kb_bundle.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 322,
+   "line_range": [
+    322
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/kb-tools/kb-bundle/kb_bundle.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 406,
+   "line_range": [
+    406
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/kb-tools/kb-bundle/kb_bundle.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 409,
+   "line_range": [
+    409
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/kb-tools/kb-bundle/kb_bundle.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 414,
+   "line_range": [
+    414
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/kb-tools/kb-bundle/kb_bundle.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 259
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Possible hardcoded password: 'pass'",
+   "line_number": 784,
+   "line_range": [
+    784
+   ],
+   "test_id": "B105",
+   "test_name": "hardcoded_password_string"
+  },
+  {
+   "code": "",
+   "filename": "./src/kb-tools/linux-line/w2/crosscard.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 703
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.",
+   "line_number": 31,
+   "line_range": [
+    31
+   ],
+   "test_id": "B101",
+   "test_name": "assert_used"
+  },
+  {
+   "code": "",
+   "filename": "./src/kb-tools/linux-line/w2/crosscard.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 703
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.",
+   "line_number": 32,
+   "line_range": [
+    32
+   ],
+   "test_id": "B101",
+   "test_name": "assert_used"
+  },
+  {
+   "code": "",
+   "filename": "./src/model-bridge/linux_bridge.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 259
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Possible hardcoded password: '/run/secrets/forge-token'",
+   "line_number": 27,
+   "line_range": [
+    27
+   ],
+   "test_id": "B105",
+   "test_name": "hardcoded_password_string"
+  },
+  {
+   "code": "",
+   "filename": "./src/model-bridge/linux_bridge.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 259
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Possible hardcoded password: '/run/secrets/core-token'",
+   "line_number": 28,
+   "line_range": [
+    28
+   ],
+   "test_id": "B105",
+   "test_name": "hardcoded_password_string"
+  },
+  {
+   "code": "",
+   "filename": "./src/model-bridge/linux_bridge.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 605
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible binding to all interfaces.",
+   "line_number": 223,
+   "line_range": [
+    223
+   ],
+   "test_id": "B104",
+   "test_name": "hardcoded_bind_all_interfaces"
+  },
+  {
+   "code": "",
+   "filename": "./src/model-bridge/linux_runtime.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 605
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible binding to all interfaces.",
+   "line_number": 229,
+   "line_range": [
+    229
+   ],
+   "test_id": "B104",
+   "test_name": "hardcoded_bind_all_interfaces"
+  },
+  {
+   "code": "",
+   "filename": "./src/release-tools/forge_ports.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 605
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible binding to all interfaces.",
+   "line_number": 285,
+   "line_range": [
+    285
+   ],
+   "test_id": "B104",
+   "test_name": "hardcoded_bind_all_interfaces"
+  },
+  {
+   "code": "",
+   "filename": "./src/release-tools/openpgp_pub.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 327
+   },
+   "issue_severity": "HIGH",
+   "issue_text": "Use of weak SHA1 hash for security. Consider usedforsecurity=False",
+   "line_number": 131,
+   "line_range": [
+    131
+   ],
+   "test_id": "B324",
+   "test_name": "hashlib"
+  },
+  {
+   "code": "",
+   "filename": "./src/release-tools/sbom/spdx.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 259
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Possible hardcoded password: '('",
+   "line_number": 93,
+   "line_range": [
+    93
+   ],
+   "test_id": "B105",
+   "test_name": "hardcoded_password_string"
+  },
+  {
+   "code": "",
+   "filename": "./src/workstation/distrib/site/usr/local/d32/deep32net/discovery.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 78
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Starting a process with a partial executable path",
+   "line_number": 103,
+   "line_range": [
+    103
+   ],
+   "test_id": "B607",
+   "test_name": "start_process_with_partial_path"
+  },
+  {
+   "code": "",
+   "filename": "./src/workstation/distrib/site/usr/local/d32/deep32net/enrol.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 732
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Chmod setting a permissive mask 0o711 on file (path).",
+   "line_number": 41,
+   "line_range": [
+    41
+   ],
+   "test_id": "B103",
+   "test_name": "set_bad_file_permissions"
+  },
+  {
+   "code": "",
+   "filename": "./src/workstation/distrib/site/usr/local/d32/deep32net/enrol.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 259
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Possible hardcoded password: '/etc/d32/private/forge.token'",
+   "line_number": 105,
+   "line_range": [
+    104,
+    105,
+    106,
+    107,
+    108
+   ],
+   "test_id": "B105",
+   "test_name": "hardcoded_password_string"
+  },
+  {
+   "code": "",
+   "filename": "./src/workstation/distrib/site/usr/local/d32/deep32net/enrol.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 259
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Possible hardcoded password: 'True'",
+   "line_number": 142,
+   "line_range": [
+    142
+   ],
+   "test_id": "B105",
+   "test_name": "hardcoded_password_string"
+  },
+  {
+   "code": "",
+   "filename": "./src/workstation/distrib/site/usr/local/d32/libexec/d32-import/d32import.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 703
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Try, Except, Pass detected.",
+   "line_number": 461,
+   "line_range": [
+    461,
+    462
+   ],
+   "test_id": "B110",
+   "test_name": "try_except_pass"
+  },
+  {
+   "code": "",
+   "filename": "./src/workstation/distrib/site/usr/local/d32/libexec/d32-import/vendor/kb_bundle.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 85,
+   "line_range": [
+    85
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/workstation/distrib/site/usr/local/d32/libexec/d32-import/vendor/kb_bundle.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 89,
+   "line_range": [
+    89
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/workstation/distrib/site/usr/local/d32/libexec/d32-import/vendor/kb_bundle.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 97,
+   "line_range": [
+    97
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/workstation/distrib/site/usr/local/d32/libexec/d32-import/vendor/kb_bundle.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 322,
+   "line_range": [
+    322
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/workstation/distrib/site/usr/local/d32/libexec/d32-import/vendor/kb_bundle.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 406,
+   "line_range": [
+    406
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/workstation/distrib/site/usr/local/d32/libexec/d32-import/vendor/kb_bundle.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 409,
+   "line_range": [
+    409
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/workstation/distrib/site/usr/local/d32/libexec/d32-import/vendor/kb_bundle.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 89
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Possible SQL injection vector through string-based query construction.",
+   "line_number": 414,
+   "line_range": [
+    414
+   ],
+   "test_id": "B608",
+   "test_name": "hardcoded_sql_expressions"
+  },
+  {
+   "code": "",
+   "filename": "./src/workstation/distrib/site/usr/local/d32/libexec/d32-import/vendor/kb_bundle.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 259
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Possible hardcoded password: 'pass'",
+   "line_number": 784,
+   "line_range": [
+    784
+   ],
+   "test_id": "B105",
+   "test_name": "hardcoded_password_string"
+  },
+  {
+   "code": "",
+   "filename": "./src/workstation/distrib/site/usr/local/d32/publication.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 732
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Chmod setting a permissive mask 0o711 on file (directory).",
+   "line_number": 180,
+   "line_range": [
+    180
+   ],
+   "test_id": "B103",
+   "test_name": "set_bad_file_permissions"
+  },
+  {
+   "code": "",
+   "filename": "./src/workstation/node/shims/py/serve_accel.py",
+   "issue_confidence": "MEDIUM",
+   "issue_cwe": {
+    "id": 259
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Possible hardcoded password: '/etc/d32/private/forge.token'",
+   "line_number": 66,
+   "line_range": [
+    66
+   ],
+   "test_id": "B105",
+   "test_name": "hardcoded_password_string"
+  },
+  {
+   "code": "",
+   "filename": "./src/workstation/pyrag/tools/core_smoke.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 22
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Audit url open for permitted schemes. Allowing use of file:/ or custom schemes is often unexpected.",
+   "line_number": 18,
+   "line_range": [
+    18
+   ],
+   "test_id": "B310",
+   "test_name": "blacklist"
+  },
+  {
+   "code": "",
+   "filename": "./src/workstation/pyrag/tools/fetch_pypi.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 22
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Audit url open for permitted schemes. Allowing use of file:/ or custom schemes is often unexpected.",
+   "line_number": 26,
+   "line_range": [
+    26
+   ],
+   "test_id": "B310",
+   "test_name": "blacklist"
+  },
+  {
+   "code": "",
+   "filename": "./src/workstation/pyrag/tools/fetch_pypi.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 22
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Audit url open for permitted schemes. Allowing use of file:/ or custom schemes is often unexpected.",
+   "line_number": 62,
+   "line_range": [
+    62
+   ],
+   "test_id": "B310",
+   "test_name": "blacklist"
+  },
+  {
+   "code": "",
+   "filename": "./src/workstation/pyrag/tools/mcp_smoke.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 22
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Audit url open for permitted schemes. Allowing use of file:/ or custom schemes is often unexpected.",
+   "line_number": 21,
+   "line_range": [
+    21
+   ],
+   "test_id": "B310",
+   "test_name": "blacklist"
+  },
+  {
+   "code": "",
+   "filename": "./src/workstation/pyrag/tools/pypi_meta.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 22
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Audit url open for permitted schemes. Allowing use of file:/ or custom schemes is often unexpected.",
+   "line_number": 39,
+   "line_range": [
+    39
+   ],
+   "test_id": "B310",
+   "test_name": "blacklist"
+  },
+  {
+   "code": "",
+   "filename": "./src/workstation/pyrag/tools/tls_probe.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 22
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Audit url open for permitted schemes. Allowing use of file:/ or custom schemes is often unexpected.",
+   "line_number": 98,
+   "line_range": [
+    98
+   ],
+   "test_id": "B310",
+   "test_name": "blacklist"
+  },
+  {
+   "code": "",
+   "filename": "./src/workstation/pyrag/tools/tls_probe.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 22
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Audit url open for permitted schemes. Allowing use of file:/ or custom schemes is often unexpected.",
+   "line_number": 101,
+   "line_range": [
+    101
+   ],
+   "test_id": "B310",
+   "test_name": "blacklist"
+  },
+  {
+   "code": "",
+   "filename": "./src/workstation/pyrag/tools/tls_probe.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 22
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Audit url open for permitted schemes. Allowing use of file:/ or custom schemes is often unexpected.",
+   "line_number": 120,
+   "line_range": [
+    120
+   ],
+   "test_id": "B310",
+   "test_name": "blacklist"
+  },
+  {
+   "code": "",
+   "filename": "./src/workstation/ship/u10/src/regdata/build.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 20
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Using xml.etree.ElementTree to parse untrusted XML data is known to be vulnerable to XML attacks. Replace xml.etree.ElementTree with the equivalent defusedxml package, or make sure defusedxml.defuse_stdlib() is called.",
+   "line_number": 18,
+   "line_range": [
+    18
+   ],
+   "test_id": "B405",
+   "test_name": "blacklist"
+  },
+  {
+   "code": "",
+   "filename": "./src/workstation/ship/u10/src/regdata/build.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 20
+   },
+   "issue_severity": "MEDIUM",
+   "issue_text": "Using xml.etree.ElementTree.fromstring to parse untrusted XML data is known to be vulnerable to XML attacks. Replace xml.etree.ElementTree.fromstring with its defusedxml equivalent function or make sure defusedxml.defuse_stdlib() is called",
+   "line_number": 128,
+   "line_range": [
+    128
+   ],
+   "test_id": "B314",
+   "test_name": "blacklist"
+  }
+ ]
+}

@@ -1,0 +1,338 @@
+{
+  "$id": "urn:deep32:doctor-install:v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "capability_manifest_sha256": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        }
+      ]
+    },
+    "content": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "corpus_fingerprint": {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            "generation": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]*$",
+              "type": "string"
+            },
+            "manifest_sha256": {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            }
+          },
+          "required": [
+            "generation",
+            "corpus_fingerprint",
+            "manifest_sha256"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "credential_slots": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]*$",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "posix-private",
+              "dpapi",
+              "acl-private"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "kind"
+        ],
+        "type": "object"
+      },
+      "maxItems": 16,
+      "minItems": 0,
+      "type": "array"
+    },
+    "filesystems": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]*$",
+            "type": "string"
+          },
+          "next_operation_bytes": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "safe_running_bytes": {
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "safe_running_bytes",
+          "next_operation_bytes"
+        ],
+        "type": "object"
+      },
+      "maxItems": 16,
+      "minItems": 0,
+      "type": "array"
+    },
+    "models": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "files_manifest_sha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "model": {
+            "maxLength": 256,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$",
+            "type": "string"
+          },
+          "revision": {
+            "pattern": "^[0-9a-f]{40}$",
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "embedding",
+              "reranker",
+              "mineru-small",
+              "mineru-vlm"
+            ]
+          }
+        },
+        "required": [
+          "role",
+          "model",
+          "revision",
+          "files_manifest_sha256"
+        ],
+        "type": "object"
+      },
+      "maxItems": 16,
+      "minItems": 0,
+      "type": "array"
+    },
+    "ntp_service": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]*$",
+          "type": "string"
+        }
+      ]
+    },
+    "platform": {
+      "enum": [
+        "openbsd",
+        "linux",
+        "windows",
+        "macos"
+      ]
+    },
+    "ports": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]*$",
+            "type": "string"
+          },
+          "owner": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]*$",
+            "type": "string"
+          },
+          "port": {
+            "maximum": 65535,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "service": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]*$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "port",
+          "service",
+          "owner"
+        ],
+        "type": "object"
+      },
+      "maxItems": 32,
+      "minItems": 0,
+      "type": "array"
+    },
+    "release": {
+      "const": "v0.1.0-alpha.2"
+    },
+    "role": {
+      "enum": [
+        "workstation",
+        "forge",
+        "headend"
+      ]
+    },
+    "routes": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]*$",
+            "type": "string"
+          },
+          "owner": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]*$",
+            "type": "string"
+          },
+          "peer_role": {
+            "enum": [
+              "workstation",
+              "forge",
+              "headend"
+            ]
+          },
+          "port": {
+            "maximum": 65535,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "peer_role",
+          "port",
+          "owner"
+        ],
+        "type": "object"
+      },
+      "maxItems": 32,
+      "minItems": 0,
+      "type": "array"
+    },
+    "schema": {
+      "const": "deep32.doctor-install.v1"
+    },
+    "services": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]*$",
+            "type": "string"
+          },
+          "image_id": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "mode": {
+            "enum": [
+              "running",
+              "on-demand"
+            ]
+          },
+          "required": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "image_id",
+          "required",
+          "mode"
+        ],
+        "type": "object"
+      },
+      "maxItems": 32,
+      "minItems": 0,
+      "type": "array"
+    },
+    "trust": {
+      "additionalProperties": false,
+      "properties": {
+        "mirrors_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "root_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "signer_fingerprint": {
+          "const": "B205B406548627AABF5250D8A078C5F25D025DD6"
+        }
+      },
+      "required": [
+        "root_sha256",
+        "mirrors_sha256",
+        "signer_fingerprint"
+      ],
+      "type": "object"
+    }
+  },
+  "required": [
+    "schema",
+    "release",
+    "role",
+    "platform",
+    "trust",
+    "capability_manifest_sha256",
+    "services",
+    "models",
+    "ports",
+    "routes",
+    "filesystems",
+    "credential_slots",
+    "content",
+    "ntp_service"
+  ],
+  "title": "Deep32 doctor-install version 1",
+  "type": "object"
+}

@@ -2317,7 +2317,11 @@ class CorrespondingSource(Item):
 
 
 def all_items(doc):
-    items = [LeadPairingHelper(), LeadMineruConfig(), LeadConverterSource(), LeadPymupdf()]
+    items = [LeadMineruConfig(), LeadConverterSource(), LeadPymupdf()]
+    # New kits ship the reviewed pairing package as runtime source. Retain the
+    # old resolver only for an explicitly supplied legacy payload register.
+    if 'pairing_helper_sha256' in doc['runtime']:
+        items.insert(0, LeadPairingHelper())
     if any(field in doc['runtime'] for field in ('cuda_minimum_driver', 'tei_minimum_driver')):
         items += [LeadDriverRequirements()]
     names = ('ubuntu', 'nvidia', 'tailscale') if profile(doc) == 'pack' else ('ubuntu', 'ubuntu-release', 'nvidia', 'tailscale')

@@ -21,6 +21,7 @@ from collections.abc import Awaitable, Callable, Mapping
 from contextlib import asynccontextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from typing import Annotated, Any, Literal
 
 import anyio
@@ -243,6 +244,22 @@ class Guard:
         self.networks = networks
 
     async def __call__(self, scope: Any, receive: Any, send: Any) -> None:
+        # Generate peer UTC at this process's response boundary, including 401.
+        # This is only an observation on the existing /mcp route, not a new API.
+        original_send = send
+
+        async def clock_send(message: Any) -> None:
+            if message['type'] == 'http.response.start' and scope.get('path') == '/mcp':
+                nonce = [v for k, v in scope.get('headers', ()) if k.lower() == b'x-deep32-nonce']
+                if len(nonce) == 1 and re.fullmatch(rb'[A-Za-z0-9_-]{16,64}', nonce[0]):
+                    stamp = datetime.now(timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
+                    headers = [(k, v) for k, v in message.get('headers', ())
+                               if k.lower() not in (b'x-deep32-time', b'x-deep32-nonce', b'cache-control', b'age')]
+                    message = {**message, 'headers': headers + [(b'x-deep32-time', stamp.encode('ascii')),
+                        (b'x-deep32-nonce', nonce[0]), (b'cache-control', b'no-store')]}
+            await original_send(message)
+
+        send = clock_send
         status = self.refusal(scope)
         if not status:
             if scope["type"] != "http":

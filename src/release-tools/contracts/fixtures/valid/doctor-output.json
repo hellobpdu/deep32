@@ -1,0 +1,31 @@
+{
+  "checked_at": "2000-01-01T00:00:00Z",
+  "checks": [
+    {
+      "blocked_by": [],
+      "detail": "Forge link is relayed.",
+      "fix": "Allow outbound UDP between the two machines so Tailscale can use a direct path; relayed links add tens of milliseconds to every search.",
+      "id": "tailnet-path.forge",
+      "observed": {
+        "path_kind": "relayed",
+        "peer_role": "forge"
+      },
+      "source": [
+        "tailscale status --json:Peer.Relay"
+      ],
+      "state": "WARN"
+    }
+  ],
+  "complete": true,
+  "exit_code": 1,
+  "hostname": "synthetic-fixture",
+  "platform": "linux",
+  "role": "headend",
+  "schema": "deep32.doctor-output.v1",
+  "summary": {
+    "fail": 0,
+    "ok": 0,
+    "skip": 0,
+    "warn": 1
+  }
+}

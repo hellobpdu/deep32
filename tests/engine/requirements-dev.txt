@@ -1,0 +1,35 @@
+# What tests/engine needs: deep32-engine's own packages, at the versions of
+# src/workstation/pyrag/locks/requirements-core.lock. That lock's hashes are for the Workstation's wheels, so they are
+# not repeated here. uvloop and httptools are left out: the tests do not start uvicorn's event loop. One exception
+# to the versions: certifi is newer here (2026.10.23, which fixes GHSA-6q48-6c7w-9gw2); the Workstation's own pin
+# moves at its next build, and docs/security/README.md explains why it does not affect 0.1.0-alpha.2.
+# Tested with CPython 3.12:
+#   python -m pip install -r tests/engine/requirements-dev.txt
+annotated-doc==0.0.5
+annotated-types==0.8.0
+anyio==4.15.1
+certifi==2026.10.23
+click==8.5.0
+fastapi==0.141.1
+grpcio==1.84.0
+h11==0.16.0
+h2==4.4.1
+hpack==4.2.0
+httpcore==1.0.9
+httpx==0.28.1
+hyperframe==6.1.0
+idna==3.20
+numpy==2.5.3
+portalocker==3.2.0
+protobuf==7.36.2
+pydantic==2.13.5
+pydantic-core==2.46.5
+qdrant-client==1.19.1
+regex==2026.9.10
+starlette==1.7.0
+typing-extensions==4.16.0
+typing-inspection==0.4.4
+urllib3==2.8.0
+uvicorn==0.54.0
+colorama==0.4.6; sys_platform == "win32"
+pywin32==312; sys_platform == "win32"

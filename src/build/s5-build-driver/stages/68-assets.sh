@@ -3,6 +3,11 @@
 # IN /build/lanes/ship/src/assets/{root,SHA256SUMS,LEDGER-v2.tsv} (only when the tree carries the asset store: v1 and RC1)
 # OUT /build/lanes/ship/stage/d32-apps/<installed paths>
 run() {
+	# build-time runtime audit failure below.
+	# Recheck the runtime and asset collision boundary before any overlay writes.
+	set -- check --tree "$T" --stage /build/lanes/ship/stage --site-src "$S"
+	[ ! -f "$S/assets/SHA256SUMS" ] || set -- "$@" --assets "$S/assets/SHA256SUMS"
+	python3.14 -I "$D32_ROOT/stages/alpha2_stage.py" "$@" || die "alpha.2 runtime audit failed"
 	A=$S/assets
 	if [ ! -d "$A" ]; then log "no asset store in this tree (v0): nothing to lay in"; return 0; fi
 	[ "${D32_ASSETS_OVERLAY:-1}" = 1 ] || { log "D32_ASSETS_OVERLAY=0: a 960-979 transform installs the assets itself"; return 0; }

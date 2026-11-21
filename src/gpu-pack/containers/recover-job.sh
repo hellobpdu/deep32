@@ -6,6 +6,19 @@ if [[ "${1:-}" == --dry-run ]]; then
   echo 'Would acquire converter lock, validate recovery record and container labels, stop the recorded converter, restore only the recorded services, then remove the record. Downloads: none.'
   exit 0
 fi
+portable_root=
+if [[ "${1:-}" == --data-root ]]; then
+  [[ $# -ge 2 && -n "$2" ]] || exit 2
+  portable_root=$2
+  shift 2
+fi
+kit_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
+if [[ -z "$portable_root" && "$kit_dir" =~ ^(.+)/releases/[0-9a-f]{64}/kit$ ]]; then
+  portable_root=${BASH_REMATCH[1]}
+fi
+if [[ -n "$portable_root" ]]; then
+  exec python3 -I -B "$kit_dir/forms/forge_jobs.py" --data-root "$portable_root" recover "$@"
+fi
 [[ $# == 0 ]] || exit 2
 exec 9>/run/deep32-forge/converter.lock
 flock 9

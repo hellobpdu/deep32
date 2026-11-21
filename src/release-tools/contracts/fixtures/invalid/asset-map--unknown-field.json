@@ -1,0 +1,67 @@
+{
+  "entries": [
+    {
+      "asset": "selftest-questions.json",
+      "install": [
+        {
+          "path": "selftest/questions.json",
+          "role": "workstation"
+        },
+        {
+          "path": "selftest/questions.json",
+          "role": "headend"
+        }
+      ],
+      "media_paths": [
+        {
+          "disc": "disc1",
+          "path": "selftest/questions.json"
+        }
+      ]
+    },
+    {
+      "asset": "image-reranker.spdx.json",
+      "install": [],
+      "media_paths": [
+        {
+          "disc": "disc3",
+          "path": "sbom/images/reranker.spdx.json"
+        }
+      ]
+    },
+    {
+      "asset": "disc1.spdx.json",
+      "install": [],
+      "media_paths": []
+    },
+    {
+      "asset": "disc2.spdx.json",
+      "install": [],
+      "media_paths": []
+    },
+    {
+      "asset": "disc3.spdx.json",
+      "install": [],
+      "media_paths": []
+    },
+    {
+      "asset": "forge-docker.tar.spdx.json",
+      "install": [],
+      "media_paths": []
+    },
+    {
+      "asset": "image-full.spdx.json",
+      "install": [],
+      "media_paths": [
+        {
+          "disc": "disc3",
+          "path": "sbom/images/full.spdx.json"
+        }
+      ]
+    }
+  ],
+  "format": "deep32-asset-map",
+  "format_version": 1,
+  "release": "v0.1.0-alpha.2",
+  "unknown_field": true
+}

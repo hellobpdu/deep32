@@ -277,9 +277,11 @@ d32ui_words() {
 #   D32UI_ADDR   the sign-in address to show in the read-only field (empty: no field)
 #   D32UI_CGRP, D32UI_CSPELL, D32UI_CLEFT   a pairing code to show, grouped and spelled, and its time left
 #   D32UI_OPEN   yes when the window should open by itself at login (the first start is not finished)
+#   D32UI_NET    yes while disc 2 is awaited on a node with a network link: Get Disc 2 over the Network is offered
 # The address and the code are copied only from the line the helper printed, and only while their step waits.
 d32ui_setup_model() {
 	D32UI_ROWS= D32UI_HEAD= D32UI_TEXT1= D32UI_TEXT2= D32UI_ADDR= D32UI_CGRP= D32UI_CSPELL= D32UI_CLEFT= D32UI_OPEN=yes
+	D32UI_NET=
 	D32UI_line=
 	D32UI_done=no
 	# split the lines by parameter expansion, not a here-document: ksh and dtksh write a here-document to a temporary
@@ -373,7 +375,20 @@ d32ui_setup_model() {
 		'more than one disc 2'*) d32ui_fmt setup.content.many; D32UI_HEAD=$D32UI_T ;;
 		*)	d32ui_fmt setup.content.attach; D32UI_HEAD=$D32UI_T
 			d32ui_fmt setup.content.how; D32UI_TEXT1=$D32UI_T ;;
-		esac ;;
+		esac
+		# disc 2 over the network (d32-content-fetch): the action and its line, on a node with a network link
+		if [ "$2" != loopback ]; then
+			D32UI_NET=yes
+			case $D32C6_msg in
+			'the download of disc 2 stopped'*) d32ui_fmt setup.content.net.stopped ;;
+			*)	d32ui_fmt setup.content.net ;;
+			esac
+			D32UI_TEXT2=$D32UI_T
+		fi ;;
+	content.running)
+		# d32-content-fetch is downloading disc 2; its console line says how far
+		d32ui_fmt setup.content.fetch; D32UI_HEAD=$D32UI_T
+		D32UI_TEXT1=$D32C6_msg ;;
 	content.*)
 		d32ui_fmt setup.content.found; D32UI_HEAD=$D32UI_T ;;
 	import.done)

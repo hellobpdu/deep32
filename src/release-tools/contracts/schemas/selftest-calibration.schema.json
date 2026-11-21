@@ -1,0 +1,199 @@
+{
+  "$id": "urn:deep32:selftest-calibration:v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "bundle_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]*$",
+      "type": "string"
+    },
+    "candidate_inputs": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "maxLength": 240,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$",
+            "type": "string"
+          },
+          "sha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "sha256"
+        ],
+        "type": "object"
+      },
+      "maxItems": 1024,
+      "minItems": 1,
+      "type": "array"
+    },
+    "corpus_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "fixture_only": {
+      "type": "boolean"
+    },
+    "format": {
+      "const": "deep32-selftest-calibration"
+    },
+    "format_version": {
+      "const": 1
+    },
+    "generation": {
+      "maxLength": 128,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]*$",
+      "type": "string"
+    },
+    "models": {
+      "additionalProperties": false,
+      "properties": {
+        "embedding": {
+          "additionalProperties": false,
+          "properties": {
+            "model": {
+              "maxLength": 512,
+              "minLength": 1,
+              "pattern": "^[ -~]+$",
+              "type": "string"
+            },
+            "revision": {
+              "pattern": "^[0-9a-f]{40}$",
+              "type": "string"
+            }
+          },
+          "required": [
+            "model",
+            "revision"
+          ],
+          "type": "object"
+        },
+        "reranker": {
+          "additionalProperties": false,
+          "properties": {
+            "model": {
+              "maxLength": 512,
+              "minLength": 1,
+              "pattern": "^[ -~]+$",
+              "type": "string"
+            },
+            "revision": {
+              "pattern": "^[0-9a-f]{40}$",
+              "type": "string"
+            }
+          },
+          "required": [
+            "model",
+            "revision"
+          ],
+          "type": "object"
+        }
+      },
+      "required": [
+        "embedding",
+        "reranker"
+      ],
+      "type": "object"
+    },
+    "question_count": {
+      "maximum": 64,
+      "minimum": 1,
+      "type": "integer"
+    },
+    "questions_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "release": {
+      "const": "v0.1.0-alpha.2"
+    },
+    "request_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "runs": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "complete": {
+            "const": true
+          },
+          "id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]*$",
+            "type": "string"
+          },
+          "ranks_sha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "receipt": {
+            "additionalProperties": false,
+            "properties": {
+              "path": {
+                "maxLength": 240,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$",
+                "type": "string"
+              },
+              "sha256": {
+                "pattern": "^[0-9a-f]{64}$",
+                "type": "string"
+              }
+            },
+            "required": [
+              "path",
+              "sha256"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "id",
+          "complete",
+          "ranks_sha256",
+          "receipt"
+        ],
+        "type": "object"
+      },
+      "maxItems": 3,
+      "minItems": 3,
+      "type": "array"
+    },
+    "settings_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "signer_fingerprint": {
+      "const": "B205B406548627AABF5250D8A078C5F25D025DD6"
+    }
+  },
+  "required": [
+    "format",
+    "format_version",
+    "release",
+    "fixture_only",
+    "bundle_id",
+    "questions_sha256",
+    "question_count",
+    "generation",
+    "corpus_fingerprint",
+    "models",
+    "request_sha256",
+    "settings_sha256",
+    "candidate_inputs",
+    "runs",
+    "signer_fingerprint"
+  ],
+  "title": "Deep32 selftest-calibration version 1",
+  "type": "object"
+}

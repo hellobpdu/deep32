@@ -1,0 +1,42 @@
+Deep32 doctor  forge  forge-demo  2026-11-17T12:00:00Z
+CHECK                     STATE  DETAIL
+installation              OK     Forge release receipt agrees with verified media
+tailscale-installed       OK     approved executable present; 1.92.1
+tailscale-running         OK     status answered
+tailscale-signin          OK     Running; online; key valid
+magicdns                  OK     enrolled peer name resolves
+https-available           OK     paired peer TLS certificate valid
+serve-routes              OK     3 owned routes match the retained journal
+pairing                   OK     committed enrolment and protected identity agree
+peer-reachability         OK     enrolled peer HTTPS answered
+tailnet-path.workstation  WARN   workstation path relayed
+peer-clock                OK     peer offset interval -0.1 to 0.1 s
+first-start               OK     READY; ready; 0.1.0-alpha.2
+driver                    OK     590.10; required 590.00
+docker-engine             OK     Linux engine; recorded local endpoint
+docker-compose            OK     2.30.0; required 2.24.0
+gpu-runtime               OK     NVIDIA runtime configuration observed; check gpu-visible for service device evidence
+gpu-visible.embeddings    OK     running service device gpu
+gpu-visible.reranker      OK     running service device gpu
+container.embeddings      OK     running; health passed; image agrees
+container.reranker        OK     running; health passed; image agrees
+container.door            OK     running; health passed; image agrees
+container.converter       SKIP   optional service inactive
+container.builder         SKIP   optional service inactive
+container.qdrant          SKIP   optional service inactive
+model.embeddings          OK     revision 1111111111111111111111111111111111111111; match; age 2 s
+model.reranker            OK     revision 2222222222222222222222222222222222222222; match; age 2 s
+port.embeddings           OK     8081 owned by this installation
+port.reranker             OK     8082 owned by this installation
+port.pairing              OK     7453 free
+disk.data                 OK     90000000000 free; 10000000000 required
+disk.docker               OK     80000000000 free; 20000000000 required
+gpu-hold                  OK     no active hold or recovery marker
+windows-pairing           SKIP   Linux Forge host
+
+FIX 1 [tailnet-path.workstation]: Allow outbound UDP between the two machines so Tailscale can use a direct path; relayed links add tens of milliseconds to every search.
+FIX 2 [container.converter]: No repair is needed; use deep32 doctor after starting an authorised conversion or build job to check its active service.
+FIX 3 [container.builder]: No repair is needed; use deep32 doctor after starting an authorised conversion or build job to check its active service.
+FIX 4 [container.qdrant]: No repair is needed; use deep32 doctor after starting an authorised conversion or build job to check its active service.
+FIX 5 [windows-pairing]: No repair is needed on Linux; run deep32 doctor on the Windows host to check that platform's pairing adapter.
+28 OK, 1 WARN, 0 FAIL

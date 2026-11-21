@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 Jeffrey A. Cummings */
 /* op_pdfwrite.c: e26-render's pdf_write (W1-IMAGE for W2-RESEARCH's Print and export to PDF, plan T6;
  * LIB-PROTOCOL "e26-render named operations"). The interface lays out what is printed as a display list (text, lines
  * and boxes on pages measured in points, top-left origin) and hands over a descriptor it opened for writing, chosen

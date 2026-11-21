@@ -3,7 +3,7 @@
 . /etc/d32/site-lib.sh
 install -d -o root -g wheel -m 0755 /etc/d32
 install -d -o root -g wheel -m 0700 /etc/d32/state
-for f in inbound-profiles ifmap web-proxy hosts.d32; do
+for f in inbound-profiles ifmap web-proxy hosts.d32 gpu_hub relay_hub relay_work; do
 	if [ ! -f /etc/d32/state/$f ]; then
 		print -r -- "# /etc/d32/state/$f: run-time state (FIX-19); root 0600, not schg; changes are audited" \
 			>/etc/d32/state/$f
@@ -11,7 +11,7 @@ for f in inbound-profiles ifmap web-proxy hosts.d32; do
 	chown root:wheel /etc/d32/state/$f
 	chmod 0600 /etc/d32/state/$f
 done
-d32 "item /etc/d32/state: inbound-profiles ifmap web-proxy hosts.d32"
+d32 "item /etc/d32/state: inbound-profiles ifmap web-proxy hosts.d32 gpu_hub relay_hub relay_work"
 
 # /var/d32: run-time data on /var (ISO 4.1)
 mk() { install -d -o $2 -g $3 -m $4 $1; }

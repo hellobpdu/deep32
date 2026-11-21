@@ -30,7 +30,7 @@ class Tree {
     }
     fs.writeFileSync(abs, buf);
     this.files.push(Object.assign({ rel: rel.replace(/\\/g, '/'), sha256: crypto.createHash('sha256').update(buf).digest('hex'),
-      size: buf.length, mode: '0444', owner: 'root:wheel', install: 'file', licence: 'AGPL-3.0-or-later (Deep32)', encoding: 'binary' }, meta));
+      size: buf.length, mode: '0444', owner: 'root:wheel', install: 'file', licence: 'Apache-2.0 (Deep32)', encoding: 'binary' }, meta));
     return abs;
   }
   manifest(extraHeader) {

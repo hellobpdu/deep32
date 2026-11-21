@@ -16,4 +16,6 @@ rc_pre() {
 	    [ "$(cat /etc/d32/state/edge_front 2>/dev/null)" = on ]
 }
 
+# At boot, an Ask link that is not set up yet is not a failure: start nothing and say nothing.
+[ -z "${INRC}" ] || [ "$1" != start ] || rc_pre || exit 0
 rc_cmd "$1"

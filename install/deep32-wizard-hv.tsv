@@ -1,0 +1,297 @@
+# deep32-wizard-hv.tsv: the Workstation VM guide's hypervisors, settings, steps and checks.
+# Both wizards (deep32-wizard.sh and deep32-wizard.ps1) read this one file, so their screens, steps and checks
+# cannot drift apart. Lines starting with # are comments; blank lines are ignored. Fields are separated by one TAB;
+# "-" is an empty field. Text is ASCII. In text, `backticks` mark a command (shown whole, on a line of its own),
+# " | " separates the numbered items of a step, and {name} is filled in by the wizard:
+#   {image} {imagename} {sha256} {bytes} {sectors}  the verified disc 1 image (deep32-get's recipe.json)
+#   {kit} {copy} {copyname} {gethv}                 deep32-get's VM folder and its installer copy
+#   {disc2} {disc2name} {dl} {sep} {vdi}             disc 2, the download folder, the path separator, the VDI copy
+#   {hvname} {net} {netlabel} {nodeimage} {ts-stall} the choices made on the earlier screens, and text ts-stall
+#   any settings key below ({vm} {vmid} {storage} {bridge} {node} {host} {token} {datastore} {vmx} {hostif}
+#   {switch} {wsname})
+# The wizard never creates, changes, starts or stops a VM: every command here is for the person to run.
+# The official pages every hypervisor value rests on are listed at the end of this file.
+#
+# hv     ID  NAME  BOOT-TESTED(yes|no)  THIS-PC(found|always|windows|unix|never)  LOCAL-CHECK  TOOLS  NETWORKS
+# field  HV  WHERE(here|other|bridged|nat|*)  KEY  LABEL  DEFAULT  PATTERN  ERROR  HELP
+# step   HV  WHERE  NET(bridged|nat|*)  OS(unix|windows|*)  ID  CHECK  TITLE  PLACE  BODY  LOOK-FOR
+#        CHECK: image, copy, vmdk, vdi, vm:create, vm:after (add +look to also ask for LOOK-FOR), join, confirm
+# rule   HV(*|id)  PHASE  FACT  OP(eq|ne|ge|in|has)  VALUE  CODE (a row of deep32-wizard-errors.tsv)
+# fact   FACT  LABEL
+# fix    HV  CODE  STEPS (replaces the error table's steps for this hypervisor)
+# text   ID  TEXT
+
+hv	proxmox	Proxmox VE	yes	found	qm	qm	bridged
+hv	esxi	VMware ESXi	no	never	-	-	bridged
+hv	vmware	VMware Workstation	no	always	vmx	vmrun,%ProgramFiles(x86)%\VMware\VMware Workstation\vmrun.exe	bridged,nat
+hv	virtualbox	VirtualBox	no	always	vbox	VBoxManage,%ProgramFiles%\Oracle\VirtualBox\VBoxManage.exe	bridged,nat
+hv	hyper-v	Hyper-V	no	windows	hyperv	Get-VM	bridged,nat
+hv	kvm	KVM / libvirt	no	unix	virsh	virsh,virt-manager	nat
+hv	other	Other hypervisor or bare metal	no	never	-	-	bridged
+
+text	hv-proxmox	A Proxmox VE node. This is the recipe the Deep32 lab boots (VM 929, Proxmox VE 9.1.11).
+text	hv-esxi	A VMware ESXi host, managed in its Host Client. The wizard asks for no ESXi login: you confirm each step.
+text	hv-vmware	VMware Workstation on this PC or another one. The wizard writes a disk descriptor for the installer.
+text	hv-virtualbox	Oracle VirtualBox on this PC or another one. The wizard makes a VirtualBox copy of the installer.
+text	hv-hyper-v	Hyper-V on Windows 10/11 Pro, Enterprise or Education, with deep32-get's Generation 1 recipe.
+text	hv-kvm	KVM with libvirt on Linux, with deep32-get's recipe (virt-install).
+text	hv-other	Any other hypervisor, or a PC of its own. The wizard lists the settings; you confirm each step.
+
+text	where-here	On this PC
+text	where-other	On another machine
+text	where-here-ok	The wizard reads the VM's settings on this PC with {tool}; it only reads them.
+text	where-here-missing	{hvname} was not found on this PC. Install it first, or choose another machine.
+text	tool-qm	qm config
+text	tool-vbox	VBoxManage
+text	tool-vmx	its .vmx file
+text	tool-hyperv	Get-VM
+text	tool-virsh	virsh -r
+text	where-other-text	You copy the files there and run the steps there. The wizard checks what it can see from here and asks you to confirm the rest.
+text	where-other-proxmox	A Proxmox node on your network. With an optional read-only API token the wizard reads the VM's settings itself; without one you confirm each step.
+
+field	*	*	wsname	Workstation name	deep32	^[A-Za-z0-9][A-Za-z0-9-]{0,62}$	The Workstation name uses letters, digits and -, at most 63 characters.	The system host name you give the Workstation installer. The wizard waits for this name to join your tailnet.
+field	proxmox	*	vmid	VM ID	100	^[1-9][0-9]{2,8}$	The VM ID is a number of 100 or more.	The ID for the new VM. The node's Create VM wizard suggests the next free one on its General tab.
+field	proxmox	*	vm	VM name	deep32-workstation	^[A-Za-z0-9][A-Za-z0-9.-]{0,62}$	The VM name uses letters, digits, . and -.	The name the web UI shows.
+field	proxmox	*	storage	Disk storage	local-lvm	^[A-Za-z][A-Za-z0-9_.-]{0,63}$	The storage name uses letters, digits, _, . and -.	Where the two disks go. An LVM install has local-lvm, a ZFS install local-zfs; `pvesm status` on the node lists them.
+field	proxmox	*	bridge	Bridge	vmbr0	^[A-Za-z][A-Za-z0-9_.-]{0,14}$	The bridge name uses letters, digits, _, . and -.	The node's bridge to your LAN. The Proxmox VE installer creates vmbr0.
+field	proxmox	*	node	Node name	pve	^[A-Za-z0-9][A-Za-z0-9.-]{0,62}$	The node name uses letters, digits, . and -.	The node's name in the web UI's tree.
+field	proxmox	other	host	Node address	-	^[A-Za-z0-9][A-Za-z0-9.:-]{0,252}$	Type the node's address or name on your LAN.	For scp and the web UI (https://ADDRESS:8006).
+field	proxmox	other	token	API token (optional)	-	^$|^[^@! ]+@[^@! ]+![A-Za-z0-9_-]+$	The token has the form user@realm!tokenid, or leave it empty.	Leave it empty to confirm each step yourself. To let the wizard read the VM's settings, on the node run `pveum user token add root@pam deep32-audit --privsep 1` (it shows the secret once) and `pveum acl modify /vms/VMID --tokens 'root@pam!deep32-audit' --roles PVEAuditor`, then type root@pam!deep32-audit here.
+field	esxi	*	vm	VM name	deep32-workstation	^[A-Za-z0-9][A-Za-z0-9.-]{0,62}$	The VM name uses letters, digits, . and -.	The name of the VM in the Host Client.
+field	esxi	*	datastore	Datastore	datastore1	^[A-Za-z0-9][A-Za-z0-9 _.-]{0,63}$	Type the datastore's name.	The datastore the VM goes on (Storage > Datastores in the Host Client).
+field	esxi	*	host	ESXi host address	-	^[A-Za-z0-9][A-Za-z0-9.:-]{0,252}$	Type the host's address or name on your LAN.	For the Host Client in a browser and for SSH.
+field	vmware	*	vm	VM name	Deep32Workstation	^[A-Za-z0-9][A-Za-z0-9.-]{0,62}$	The VM name uses letters, digits, . and -.	The name you give the VM in the New Virtual Machine wizard.
+field	vmware	here	vmx	VM file (.vmx)	{vmxdefault}	^.+[.]vmx$	Type the path of the VM's .vmx file.	The wizard reads this file (it never writes to it). Workstation keeps virtual machines under Documents\Virtual Machines on Windows and ~/vmware on Linux, one folder per VM.
+field	virtualbox	*	vm	VM name	Deep32Workstation	^[A-Za-z0-9][A-Za-z0-9.-]{0,62}$	The VM name uses letters, digits, . and -.	The name of the VM in VirtualBox.
+field	virtualbox	bridged	hostif	Bridged adapter	{hostif}	^.+$	Type the host network adapter to bridge to.	The host network adapter the VM bridges to. `VBoxManage list bridgedifs` lists them.
+field	hyper-v	*	vm	VM name	Deep32Workstation	^[A-Za-z0-9][A-Za-z0-9.-]{0,62}$	The VM name uses letters, digits, . and -.	deep32-get's recipe calls it Deep32Workstation.
+field	hyper-v	*	switch	Virtual switch	{switch}	^.+$	Type the name of the switch.	An External switch (bridged), or an Internal switch with NAT. Get-VMSwitch lists them.
+field	kvm	*	vm	VM name	Deep32Workstation	^[A-Za-z0-9][A-Za-z0-9.-]{0,62}$	The VM name uses letters, digits, . and -.	deep32-get's recipe calls it Deep32Workstation.
+
+text	net-title	How the Workstation VM connects
+text	net-label-bridged	Bridged
+text	net-label-nat	NAT
+text	net-bridged	Bridged: the Workstation gets an address on your LAN from the router's DHCP, like any other machine there. Tailscale usually connects directly between machines on the same LAN, which is the fastest path. Recommended.
+text	net-nat	NAT: also works; the Workstation only needs outbound internet. Tailscale may relay through its DERP servers when it cannot connect directly, which is slower for Ask, the Library and the Forge.
+text	net-hostonly	Host-only, internal and private networks do not work: the Workstation has no internet there, so its Tailscale sign-in cannot finish.
+text	net-only	{hvname} connects VMs to your LAN through a bridge, so the Workstation is bridged.
+text	net-kvm-only	deep32-get's recipe puts the VM on libvirt's default network, which is NAT. For a host bridge, check your hypervisor's manual.
+text	net-proxmox-bridged	the node's bridge, vmbr0 unless you name another next
+text	net-esxi-bridged	a port group on a virtual switch that reaches your LAN
+text	net-vmware-bridged	Bridged (VMnet0)
+text	net-vmware-nat	NAT (VMnet8)
+text	net-virtualbox-bridged	Bridged networking, to a host network adapter you name next
+text	net-virtualbox-nat	NAT networking
+text	net-hyper-v-bridged	an External switch
+text	net-hyper-v-nat	an Internal switch with NAT
+text	net-kvm-nat	libvirt's default network (NAT)
+text	net-other-bridged	a wired network with DHCP and internet
+
+text	ts-title	Tailscale, here and across sites
+text	ts-1	Deep32 machines talk over your tailnet, so the Workstation, the Forge and the agent PC can be in different places. At home on one LAN the connections are direct. Across sites they still work; the speed depends on whether Tailscale gets a direct path or relays.
+text	ts-2	The Workstation signs in to Tailscale at its first boot. It shows the sign-in address on its console.
+text	ts-3	Publication (d32-publish publish --accept-ct) gives the gateway an HTTPS name on your tailnet. That name appears in public certificate-transparency logs. Only the name: the gateway is still reachable only inside your tailnet.
+text	ts-4	Tailscale access rules (ACLs) must let the agent PC and the Forge reach the Workstation. If your tailnet has custom rules, allow them; the default policy allows everything.
+text	ts-stall	The Workstation checks DNSSEC through the DNS server DHCP gives it. A few routers' DNS breaks that and the sign-in stalls. Then give the VM's network another DNS server.
+
+fact	image	Disc 1 image
+fact	sha256	SHA-256
+fact	copy	Installer copy
+fact	vmdk	Disk descriptor
+fact	vdi	VirtualBox copy
+fact	vm	The VM
+fact	seen	You saw
+fact	api	Proxmox API
+fact	tailscale	Tailscale
+fact	firmware	Firmware
+fact	display	Display
+fact	nic	Network card
+fact	netmode	Network
+fact	cores	vCPUs
+fact	memory_mb	Memory (MiB)
+fact	target_bytes	Target disk
+fact	installer	Installer disk
+fact	boot_first	Boots from
+fact	cdrom	CD/DVD
+fact	ostype	OS type
+fact	cpu	CPU type
+fact	scsihw	SCSI controller
+fact	chipset	Chipset
+fact	generation	Generation
+
+rule	*	create	firmware	eq	bios	VM_FIRMWARE_UEFI
+rule	*	create	generation	eq	1	VM_GENERATION
+rule	*	create	display	ne	virtio-gpu	VM_DISPLAY_VIRTIO
+rule	*	create	cores	ge	4	VM_CPU_LOW
+rule	*	create	memory_mb	ge	8192	VM_MEMORY_LOW
+rule	*	create	target_bytes	ge	200000000000	VM_DISK_SMALL
+rule	*	create	installer	eq	yes	VM_INSTALLER_MISSING
+rule	*	create	boot_first	eq	installer	VM_BOOT_ORDER
+rule	*	create	netmode	in	bridged,nat	NET_HOSTONLY
+rule	proxmox	create	nic	in	virtio,e1000,e1000-82540em,e1000-82545em,e1000e,vmxnet3	VM_NIC_MODEL
+rule	proxmox	create	ostype	eq	other	VM_OS_TYPE
+rule	proxmox	create	cpu	eq	host	VM_CPU_TYPE
+rule	proxmox	create	scsihw	eq	virtio-scsi-single	VM_DISK_CONTROLLER
+rule	virtualbox	create	nic	in	82540EM,82545EM,virtio	VM_NIC_MODEL
+rule	virtualbox	create	chipset	eq	piix3	VM_CHIPSET
+rule	vmware	create	nic	in	e1000e,vmxnet3	VM_NIC_MODEL
+rule	kvm	create	nic	in	e1000,e1000e,virtio	VM_NIC_MODEL
+rule	*	after	boot_first	eq	target	VM_BOOT_ORDER
+rule	*	after	cdrom	has	{disc2name}	VM_CDROM_MISSING
+rule	*	after	netmode	in	bridged,nat	NET_HOSTONLY
+
+fix	proxmox	VM_FIRMWARE_UEFI	On the node: `qm set {vmid} --bios seabios` | Check the step again
+fix	proxmox	VM_DISPLAY_VIRTIO	On the node: `qm set {vmid} --vga std` | Check the step again
+fix	proxmox	VM_CPU_LOW	On the node: `qm set {vmid} --sockets 1 --cores 6` | Check the step again
+fix	proxmox	VM_MEMORY_LOW	On the node: `qm set {vmid} --memory 12288 --balloon 0` | Check the step again
+fix	proxmox	VM_DISK_SMALL	Give the VM an empty disk of at least 200 GB. On a VM with no scsi1: `qm set {vmid} --scsi1 {storage}:200,discard=on,iothread=1,ssd=1` | Check the step again
+fix	proxmox	VM_INSTALLER_MISSING	On the node: `qm set {vmid} --scsi0 {storage}:0,import-from={nodeimage},discard=on,iothread=1,ssd=1` | Check the step again
+fix	proxmox	VM_BOOT_ORDER	On the node, for the install: `qm set {vmid} --boot order=scsi0` | After the install: `qm set {vmid} --boot order=scsi1` | Check the step again
+fix	proxmox	VM_NIC_MODEL	On the node: `qm set {vmid} --net0 virtio,bridge={bridge}` | Check the step again
+fix	proxmox	VM_OS_TYPE	On the node: `qm set {vmid} --ostype other` | Check the step again
+fix	proxmox	VM_CPU_TYPE	On the node: `qm set {vmid} --cpu host` | Check the step again
+fix	proxmox	VM_DISK_CONTROLLER	On the node, with the VM stopped: `qm set {vmid} --scsihw virtio-scsi-single` | Check the step again
+fix	proxmox	VM_CDROM_MISSING	Put disc 2 in the node's ISO folder /var/lib/vz/template/iso | On the node: `qm set {vmid} --sata1 local:iso/{disc2name},media=cdrom` | Check the step again
+fix	proxmox	PVE_TOKEN_DENIED	On the node, make the token again: `pveum user token add root@pam deep32-audit --privsep 1` | Give it the read-only role on this VM: `pveum acl modify /vms/{vmid} --tokens '{token}' --roles PVEAuditor` | Check the step again and type the new secret
+fix	virtualbox	VM_FIRMWARE_UEFI	With the VM shut down: `VBoxManage modifyvm {vm} --firmware=bios` | Check the step again
+fix	virtualbox	VM_CHIPSET	With the VM shut down: `VBoxManage modifyvm {vm} --chipset=piix3` | Check the step again
+fix	virtualbox	VM_NIC_MODEL	With the VM shut down: `VBoxManage modifyvm {vm} --nic-type1=82540EM` | Check the step again
+fix	virtualbox	VM_CPU_LOW	With the VM shut down: `VBoxManage modifyvm {vm} --cpus=6` | Check the step again
+fix	virtualbox	VM_MEMORY_LOW	With the VM shut down: `VBoxManage modifyvm {vm} --memory=12288` | Check the step again
+fix	virtualbox	NET_HOSTONLY	With the VM shut down, bridged: `VBoxManage modifyvm {vm} --nic1=bridged --bridge-adapter1={hostif}` | Or NAT: `VBoxManage modifyvm {vm} --nic1=nat` | Check the step again
+fix	virtualbox	VM_CDROM_MISSING	`VBoxManage storageattach {vm} --storagectl=SATA --port=2 --device=0 --type=dvddrive --medium="{disc2}"` | Check the step again
+fix	virtualbox	VM_BOOT_ORDER	For the install, the installer copy goes on SATA port 0 and the 200 GB disk on port 1 | After the install, detach the installer: `VBoxManage storageattach {vm} --storagectl=SATA --port=0 --device=0 --type=hdd --medium=none` | Check the step again
+fix	hyper-v	VM_GENERATION	A Generation 2 VM boots with UEFI only. Remove this VM and create it again with the step's New-VM line (-Generation 1) | Check the step again
+fix	hyper-v	VM_CPU_LOW	In PowerShell as administrator: `Set-VMProcessor -VMName {vm} -Count 6` | Check the step again
+fix	hyper-v	VM_CDROM_MISSING	In PowerShell as administrator: `Add-VMDvdDrive -VMName {vm} -Path '{disc2}'` | Check the step again
+fix	hyper-v	VM_BOOT_ORDER	After the install, in PowerShell as administrator: `Remove-VMHardDiskDrive -VMName {vm} -ControllerType IDE -ControllerNumber 0 -ControllerLocation 0` | Check the step again
+fix	hyper-v	KIT_MISSING	Make deep32-get's Hyper-V files (Windows, PowerShell, in the Deep32 folder): `powershell -NoProfile -ExecutionPolicy Bypass -File src\release-tools\deep32-get.ps1 disc1 --to .\deep32-downloads --prepare-vm --hypervisor hyper-v` | Start the VM guide again
+fix	kvm	KIT_MISSING	Make deep32-get's KVM files (in the Deep32 folder): `bash src/release-tools/deep32-get.sh disc1 --to ./deep32-downloads --prepare-vm --hypervisor kvm` | Start the VM guide again
+fix	kvm	VM_CDROM_MISSING	As root: `virsh attach-disk {vm} "{disc2}" hdc --type cdrom --mode readonly --config` | Check the step again
+fix	kvm	VM_BOOT_ORDER	After the install, as root: `virsh detach-disk {vm} hda --config` | Check the step again
+fix	vmware	VM_NIC_MODEL	With the VM powered off, set this line in {vmx}: `ethernet0.virtualDev = "e1000e"` | Check the step again
+
+text	ui-nofacts	The VM's settings could not be read here, so confirm the step yourself.
+text	ui-vdi-elsewhere	VirtualBox is not on this PC: run the command on the PC that has it, with a copy of the image.
+text	ui-nopython	the API check needs python3 on this PC
+text	ui-ts-not-here	this PC is not on your tailnet, so the wizard cannot see the Workstation join. Confirm it yourself.
+text	ui-ts-missing	has not joined your tailnet yet.
+text	vmdk-text	# Disk DescriptorFile\nversion=1\nCID=fffffffe\nparentCID=ffffffff\ncreateType="monolithicFlat"\n\n# Extent description\nRW {sectors} FLAT "{copyname}" 0\n\n# The Disk Data Base\nddb.virtualHWVersion = "4"\nddb.geometry.cylinders = "{cyl}"\nddb.geometry.heads = "16"\nddb.geometry.sectors = "63"\nddb.adapterType = "lsilogic"
+text	demo-sha256	5c1b0e47d9a2f8c3604e8b1d7f2a9c5e3b08d4f61a7c2e9b5d3f0a8c6e4b1d97
+text	demo-pve-fp	3A:9F:12:C4:7B:E0:55:D1:08:6C:AF:21:93:4E:B7:0D:6A:F2:1C:88:E5:4B:30:9D:C7:12:5E:A0:F3:68:2B:D4
+
+# --- Proxmox VE (boot-tested: lab VM 929, Proxmox VE 9.1.11) ---------------------------------------------------
+step	proxmox	*	*	*	image	image	The verified disc 1 image	This PC	deep32-get checked this image against the signed release: `{image}` | Its SHA-256 is {sha256} and its size {bytes} bytes. Every copy you make must keep both.	-
+step	proxmox	other	*	*	copy	confirm	Copy disc 1 to the node	This PC, then a shell on the node	Copy the image to /var/tmp on the node: `scp "{image}" root@{host}:/var/tmp/` | On the node, check the copy: `sha256sum /var/tmp/{imagename}`	sha256sum on the node printed {sha256}
+step	proxmox	*	*	*	create	vm:create	Create the VM	A shell on the node, as root	Create the VM: `qm create {vmid} --name {vm} --ostype other --bios seabios --cpu host --sockets 1 --cores 6 --memory 12288 --balloon 0 --scsihw virtio-scsi-single --net0 virtio,bridge={bridge} --vga std --serial0 socket` | Import the installer as its first disk (a copy on {storage}; the image file is only read): `qm set {vmid} --scsi0 {storage}:0,import-from={nodeimage},discard=on,iothread=1,ssd=1` | Add the empty 200 GB target disk: `qm set {vmid} --scsi1 {storage}:200,discard=on,iothread=1,ssd=1` | Boot the installer first: `qm set {vmid} --boot order=scsi0` | The same values in the web UI's Create VM wizard: OS, Do not use any media; System, BIOS SeaBIOS, SCSI Controller VirtIO SCSI single, Graphic card Default (std); CPU, Sockets 1, Cores 6, Type host; Memory, Memory (MiB) 12288, Ballooning Device off; Network, Bridge {bridge}, Model VirtIO (paravirtualized). The installer disk still comes from the import line above. Check it with `qm config {vmid}`	qm config {vmid} shows bios: seabios, cores: 6, cpu: host, memory: 12288, ostype: other, scsihw: virtio-scsi-single, vga: std, net0 virtio on {bridge}, scsi0 of {mib}M, scsi1 of 200G and boot: order=scsi0
+step	proxmox	*	*	*	install	confirm	Install the Workstation	The node's web UI: the VM's Console	Start the VM: `qm start {vmid}` | Open its Console in the web UI. The guided installer starts. | Install to the empty 200 GB disk, never to the installer disk. When it asks for the system host name, type {wsname}. | When the install has finished, the installer halts the VM.	the installer said the install finished, and the VM is stopped
+step	proxmox	other	*	*	after	vm:after	Boot the installed disk; attach disc 2	This PC, then a shell on the node	Copy disc 2 to the node's ISO folder: `scp "{disc2}" root@{host}:/var/lib/vz/template/iso/` | Boot from the target disk: `qm set {vmid} --boot order=scsi1` | Attach disc 2 as a CD drive: `qm set {vmid} --sata1 local:iso/{disc2name},media=cdrom` | The installer disk scsi0 can stay; the boot order passes over it.	qm config {vmid} shows boot: order=scsi1 and sata1 with {disc2name},media=cdrom
+step	proxmox	here	*	*	after	vm:after	Boot the installed disk; attach disc 2	A shell on this node, as root	Copy disc 2 to the node's ISO folder: `cp "{disc2}" /var/lib/vz/template/iso/` | Boot from the target disk: `qm set {vmid} --boot order=scsi1` | Attach disc 2 as a CD drive: `qm set {vmid} --sata1 local:iso/{disc2name},media=cdrom` | The installer disk scsi0 can stay; the boot order passes over it.	qm config {vmid} shows boot: order=scsi1 and sata1 with {disc2name},media=cdrom
+step	proxmox	*	*	*	firstboot	join	First boot and Tailscale	The VM's Console, then this PC	Start the VM: `qm start {vmid}` | On its console, set the passwords the first boot asks for. | It then shows a Tailscale sign-in address. Open it on any device and sign in to your tailnet. | If the sign-in stalls: {ts-stall}	the Tailscale admin console lists {wsname} as connected
+step	proxmox	*	*	*	import	confirm	The disc 2 import	The Workstation	The import starts by itself. Search works once the knowledge base is in; the Library carries on in the background. | Import Report shows how far it is. From a terminal: `/usr/local/d32/libexec/d32-import-report` | If it stopped, resume it: `doas /usr/local/d32/sbin/d32-import-resume`	Import Report shows the knowledge base in use
+
+# --- VMware ESXi (not boot-tested yet; signals only) -----------------------------------------------------------
+step	esxi	*	*	*	image	image	The verified disc 1 image	This PC	deep32-get checked this image against the signed release: `{image}` | Its SHA-256 is {sha256} and its size {bytes} bytes. Every copy you make must keep both.	-
+step	esxi	*	*	*	vmdk	vmdk	The installer's disk descriptor	This PC	Enter writes `{kit}{sep}installer.vmdk`, a disk descriptor (a small text file) that points at {copyname} in the same folder: deep32-get's copy of disc 1. The signed image is never opened by the hypervisor.	-
+step	esxi	*	*	*	upload	confirm	Upload the installer and disc 2	The Host Client in a browser: https://{host}	Storage, Datastores, Datastore browser: in {datastore} make a folder deep32-installer and Upload installer.vmdk and {copyname} from `{kit}` into it. | Upload disc 2 too: `{disc2}` | Turn on SSH: right-click Host, Services, Enable Secure Shell (SSH).	both files and disc 2 are in the datastore browser
+step	esxi	*	*	*	create	confirm	Create the VM	The Host Client	Right-click Host, Create/Register VM, Create a new virtual machine. Name {vm}; guest OS family Other, and its 64-bit version; storage {datastore}. | Customize settings: CPU 6, Memory 12288 MB, a new 200 GB hard disk, SCSI controller LSI Logic Parallel, network adapter type E1000E on {netlabel}. | VM Options, Boot Options, Firmware: BIOS.	the VM has BIOS firmware, 6 CPUs, 12288 MB and a 200 GB disk
+step	esxi	*	*	*	clone	confirm	Copy the installer into the VM	An SSH session on {host}, as root	Clone the uploaded installer into the VM's folder: `vmkfstools -i /vmfs/volumes/{datastore}/deep32-installer/installer.vmdk /vmfs/volumes/{datastore}/{vm}/installer-esxi.vmdk -d thin` | In the VM's settings add installer-esxi.vmdk as an existing hard disk on SCSI 0:0 and put the 200 GB disk on SCSI 0:1, so the VM boots the installer. Check your hypervisor's manual for the disk order on its BIOS boot screen.	installer-esxi.vmdk is on SCSI 0:0 and the 200 GB disk on SCSI 0:1
+step	esxi	*	*	*	install	confirm	Install the Workstation	The Host Client: the VM's console	Power on the VM and open its console. The guided installer starts. | Install to the empty 200 GB disk, never to the installer disk. When it asks for the system host name, type {wsname}. | When the install has finished, the installer halts the VM.	the installer said the install finished, and the VM is off
+step	esxi	*	*	*	after	confirm	Boot the installed disk; attach disc 2	The Host Client	Remove the installer disk (installer-esxi.vmdk) from the VM. | Add a CD/DVD drive: Use ISO Image, Datastore ISO File {disc2name}, Connect at power on.	the VM has one hard disk and a CD/DVD drive with {disc2name}
+step	esxi	*	*	*	firstboot	join	First boot and Tailscale	The VM's console, then this PC	Power on the VM. | On its console, set the passwords the first boot asks for. | It then shows a Tailscale sign-in address. Open it on any device and sign in to your tailnet. | If the sign-in stalls: {ts-stall}	the Tailscale admin console lists {wsname} as connected
+step	esxi	*	*	*	import	confirm	The disc 2 import	The Workstation	The import starts by itself. Search works once the knowledge base is in; the Library carries on in the background. | Import Report shows how far it is. From a terminal: `/usr/local/d32/libexec/d32-import-report` | If it stopped, resume it: `doas /usr/local/d32/sbin/d32-import-resume`	Import Report shows the knowledge base in use
+
+# --- VMware Workstation (not boot-tested yet) --------------------------------------------------------------------
+step	vmware	*	*	*	image	image	The verified disc 1 image	This PC	deep32-get checked this image against the signed release: `{image}` | Its SHA-256 is {sha256} and its size {bytes} bytes. Every copy you make must keep both.	-
+step	vmware	*	*	*	vmdk	vmdk	The installer's disk descriptor	This PC	Enter writes `{kit}{sep}installer.vmdk`, a disk descriptor (a small text file) that points at {copyname} in the same folder: deep32-get's copy of disc 1. The signed image is never opened by the hypervisor. | On another machine, copy both files into one folder there.	-
+step	vmware	*	*	*	create	vm:create+look	Create the VM	VMware Workstation	File, New Virtual Machine, Custom. Install the guest operating system later; guest operating system Other, and its 64-bit version; firmware type BIOS; name {vm}; 6 processor cores in total; memory 12288 MB; network {netlabel}; I/O controller LSI Logic. | Disk: Use an existing virtual disk, the descriptor `installer.vmdk`. Then in its Advanced settings choose Independent, Nonpersistent: the installer copy then never changes. | Add a second hard disk, a new one of 200 GB. | With the VM powered off, set this line in its .vmx file (Workstation's E1000E is an Intel 82574, which OpenBSD's em driver runs): `ethernet0.virtualDev = "e1000e"`	VM Settings, Options, Advanced, Firmware type shows Legacy BIOS, the second disk is 200 GB and the network is {netlabel}
+step	vmware	*	*	*	install	confirm	Install the Workstation	VMware Workstation: the VM's console	Power on the VM. The guided installer starts. | Install to the empty 200 GB disk, never to the installer disk. When it asks for the system host name, type {wsname}. | When the install has finished, the installer halts the VM.	the installer said the install finished, and the VM is off
+step	vmware	*	*	*	after	vm:after+look	Boot the installed disk; attach disc 2	VMware Workstation: VM Settings	Remove the installer disk (installer.vmdk) from the VM. | Add a CD/DVD drive that uses the ISO image `{disc2}`	the VM has one hard disk and a CD/DVD drive with {disc2name}
+step	vmware	*	*	*	firstboot	join	First boot and Tailscale	The VM's console, then this PC	Power on the VM. | On its console, set the passwords the first boot asks for. | It then shows a Tailscale sign-in address. Open it on any device and sign in to your tailnet. | If the sign-in stalls: {ts-stall}	the Tailscale admin console lists {wsname} as connected
+step	vmware	*	*	*	import	confirm	The disc 2 import	The Workstation	The import starts by itself. Search works once the knowledge base is in; the Library carries on in the background. | Import Report shows how far it is. From a terminal: `/usr/local/d32/libexec/d32-import-report` | If it stopped, resume it: `doas /usr/local/d32/sbin/d32-import-resume`	Import Report shows the knowledge base in use
+
+# --- VirtualBox (not boot-tested yet) ----------------------------------------------------------------------------
+step	virtualbox	*	*	*	image	image	The verified disc 1 image	This PC	deep32-get checked this image against the signed release: `{image}` | Its SHA-256 is {sha256} and its size {bytes} bytes. Every copy you make must keep both.	-
+step	virtualbox	here	*	*	vdi	vdi	The VirtualBox copy of disc 1	This PC	Enter runs this, which reads the signed image and writes a converted copy into deep32-get's folder: `VBoxManage convertfromraw "{image}" "{vdi}" --format=VDI --variant=Fixed` | The wizard then checks the copy holds the whole image.	-
+step	virtualbox	other	*	*	vdi	confirm	The VirtualBox copy of disc 1	The PC with VirtualBox	Copy the image there, then make the converted copy: `VBoxManage convertfromraw "{imagename}" installer.vdi --format=VDI --variant=Fixed`	VBoxManage finished without an error and installer.vdi is at least {bytes} bytes
+step	virtualbox	*	bridged	*	create	vm:create	Create the VM	A terminal on the VirtualBox PC	`VBoxManage createvm --name={vm} --register` | `VBoxManage modifyvm {vm} --firmware=bios --chipset=piix3 --memory=12288 --cpus=6 --graphicscontroller=vboxvga --nic1=bridged --bridge-adapter1="{hostif}" --nic-type1=82540EM` | `VBoxManage storagectl {vm} --name=SATA --add=sata --controller=IntelAhci` | The installer copy on port 0: `VBoxManage storageattach {vm} --storagectl=SATA --port=0 --device=0 --type=hdd --medium="{vdi}"` | The empty 200 GB disk on port 1: `VBoxManage createmedium disk --filename="{kit}{sep}target.vdi" --size=204800 --format=VDI` `VBoxManage storageattach {vm} --storagectl=SATA --port=1 --device=0 --type=hdd --medium="{kit}{sep}target.vdi"`	the VM has BIOS firmware (EFI off), the PIIX3 chipset, 12288 MB of memory, 6 CPUs, an Intel PRO/1000 MT Desktop (82540EM) network card on {netlabel}, installer.vdi on SATA port 0 and the 200 GB target.vdi on SATA port 1
+step	virtualbox	*	nat	*	create	vm:create	Create the VM	A terminal on the VirtualBox PC	`VBoxManage createvm --name={vm} --register` | `VBoxManage modifyvm {vm} --firmware=bios --chipset=piix3 --memory=12288 --cpus=6 --graphicscontroller=vboxvga --nic1=nat --nic-type1=82540EM` | `VBoxManage storagectl {vm} --name=SATA --add=sata --controller=IntelAhci` | The installer copy on port 0: `VBoxManage storageattach {vm} --storagectl=SATA --port=0 --device=0 --type=hdd --medium="{vdi}"` | The empty 200 GB disk on port 1: `VBoxManage createmedium disk --filename="{kit}{sep}target.vdi" --size=204800 --format=VDI` `VBoxManage storageattach {vm} --storagectl=SATA --port=1 --device=0 --type=hdd --medium="{kit}{sep}target.vdi"`	the VM has BIOS firmware (EFI off), the PIIX3 chipset, 12288 MB of memory, 6 CPUs, an Intel PRO/1000 MT Desktop (82540EM) network card on {netlabel}, installer.vdi on SATA port 0 and the 200 GB target.vdi on SATA port 1
+step	virtualbox	*	*	*	install	confirm	Install the Workstation	VirtualBox: the VM's window	Start {vm} in VirtualBox. The guided installer starts. | Install to the empty 200 GB disk, never to the installer disk. When it asks for the system host name, type {wsname}. | When the install has finished, the installer halts the VM.	the installer said the install finished, and the VM is powered off
+step	virtualbox	*	*	*	after	vm:after	Boot the installed disk; attach disc 2	A terminal on the VirtualBox PC	Detach the installer copy: `VBoxManage storageattach {vm} --storagectl=SATA --port=0 --device=0 --type=hdd --medium=none` | Attach disc 2 as a DVD: `VBoxManage storageattach {vm} --storagectl=SATA --port=2 --device=0 --type=dvddrive --medium="{disc2}"`	SATA port 0 is empty, target.vdi is on port 1 and disc 2 is in the DVD drive on port 2
+step	virtualbox	*	*	*	firstboot	join	First boot and Tailscale	The VM's window, then this PC	Start {vm} in VirtualBox. | On its console, set the passwords the first boot asks for. | It then shows a Tailscale sign-in address. Open it on any device and sign in to your tailnet. | If the sign-in stalls: {ts-stall}	the Tailscale admin console lists {wsname} as connected
+step	virtualbox	*	*	*	import	confirm	The disc 2 import	The Workstation	The import starts by itself. Search works once the knowledge base is in; the Library carries on in the background. | Import Report shows how far it is. From a terminal: `/usr/local/d32/libexec/d32-import-report` | If it stopped, resume it: `doas /usr/local/d32/sbin/d32-import-resume`	Import Report shows the knowledge base in use
+
+# --- Hyper-V (deep32-get's recipe; not boot-tested yet) ----------------------------------------------------------
+step	hyper-v	*	*	*	image	image	The verified disc 1 image	This PC	deep32-get checked this image against the signed release: `{image}` | Its SHA-256 is {sha256} and its size {bytes} bytes. Every copy you make must keep both.	-
+step	hyper-v	*	*	*	copy	copy	deep32-get's Hyper-V files	This PC	deep32-get wrote installer.vhd (the image with a VHD footer), recipe.json and commands.txt into `{kit}` | If this folder is the KVM one, make the Hyper-V files first (Windows, PowerShell): `powershell -NoProfile -ExecutionPolicy Bypass -File src\release-tools\deep32-get.ps1 disc1 --to .\deep32-downloads --prepare-vm --hypervisor hyper-v`	-
+step	hyper-v	*	*	*	create	vm:create	Create the VM	PowerShell as administrator, in the folder `{kit}`	These are commands.txt's lines with the switch filled in and the target at 200GB (commands.txt still says 160GB): `$root = (Get-Location).Path` `New-VHD -Path (Join-Path $root 'target.vhdx') -Dynamic -SizeBytes 200GB` `New-VM -Name {vm} -Generation 1 -MemoryStartupBytes 12GB -NoVHD -SwitchName '{switch}'` `Set-VMProcessor -VMName {vm} -Count 6` `Add-VMHardDiskDrive -VMName {vm} -ControllerType IDE -ControllerNumber 0 -ControllerLocation 0 -Path (Join-Path $root 'installer.vhd')` `Add-VMHardDiskDrive -VMName {vm} -ControllerType IDE -ControllerNumber 0 -ControllerLocation 1 -Path (Join-Path $root 'target.vhdx')`	{vm} is a Generation 1 VM with 6 virtual processors and 12 GB of memory, installer.vhd on IDE 0:0, target.vhdx (200 GB) on IDE 0:1 and its network adapter on the switch {switch}
+step	hyper-v	*	*	*	install	confirm	Install the Workstation	Hyper-V Manager: the VM's console	Start {vm} and connect to its console. The guided installer starts. | Install to the empty 200 GB disk (IDE 0:1), never to the installer disk (IDE 0:0). When it asks for the system host name, type {wsname}. | When the install has finished, the installer halts the VM.	the installer said the install finished, and the VM is off
+step	hyper-v	*	*	*	after	vm:after	Boot the installed disk; attach disc 2	PowerShell as administrator	Detach the installer: `Remove-VMHardDiskDrive -VMName {vm} -ControllerType IDE -ControllerNumber 0 -ControllerLocation 0` | Attach disc 2 as a DVD: `Add-VMDvdDrive -VMName {vm} -Path '{disc2}'`	IDE 0:0 is empty, target.vhdx is on IDE 0:1 and disc 2 is in the DVD drive
+step	hyper-v	*	*	*	firstboot	join	First boot and Tailscale	The VM's console, then this PC	Start {vm} and connect to its console. | Set the passwords the first boot asks for. | It then shows a Tailscale sign-in address. Open it on any device and sign in to your tailnet. | If the sign-in stalls: {ts-stall}	the Tailscale admin console lists {wsname} as connected
+step	hyper-v	*	*	*	import	confirm	The disc 2 import	The Workstation	The import starts by itself. Search works once the knowledge base is in; the Library carries on in the background. | Import Report shows how far it is. From a terminal: `/usr/local/d32/libexec/d32-import-report` | If it stopped, resume it: `doas /usr/local/d32/sbin/d32-import-resume`	Import Report shows the knowledge base in use
+
+# --- KVM / libvirt (deep32-get's recipe; not boot-tested yet) ----------------------------------------------------
+step	kvm	*	*	*	image	image	The verified disc 1 image	This PC	deep32-get checked this image against the signed release: `{image}` | Its SHA-256 is {sha256} and its size {bytes} bytes. Every copy you make must keep both.	-
+step	kvm	*	*	*	copy	copy	deep32-get's KVM files	This PC	deep32-get wrote installer.img (a copy of the image), recipe.json and commands.txt into `{kit}` | If this folder is the Hyper-V one, make the KVM files first: `bash src/release-tools/deep32-get.sh disc1 --to ./deep32-downloads --prepare-vm --hypervisor kvm`	-
+step	kvm	*	*	*	create	vm:create	Create the VM	A shell as root, in the folder `{kit}`	These are commands.txt's lines with the target at 200G (commands.txt still says 160G): `qemu-img create -f qcow2 target.qcow2 200G` `virt-install --name {vm} --memory 12288 --vcpus 6 --os-variant generic --import --boot hd --disk path=installer.img,format=raw,bus=ide --disk path=target.qcow2,format=qcow2,bus=ide --network network=default,model=e1000 --graphics vnc,listen=127.0.0.1 --video vga --noautoconsole --print-xml > workstation.xml` | Read workstation.xml, then: `virsh define workstation.xml`	virsh dumpxml {vm} shows no firmware='efi', 6 vCPUs, 12582912 KiB of memory, installer.img on hda and target.qcow2 on hdb, model type='e1000' on network 'default' and video model type='vga'
+step	kvm	*	*	*	install	confirm	Install the Workstation	virt-manager, or a VNC viewer on 127.0.0.1	Start the VM: `virsh start {vm}` | Open its console. The guided installer starts. | Install to the empty 200 GB disk (the second IDE disk), never to the installer disk. When it asks for the system host name, type {wsname}. | When the install has finished, the installer halts the VM.	the installer said the install finished, and the VM is shut off
+step	kvm	*	*	*	after	vm:after	Boot the installed disk; attach disc 2	A shell as root	Detach the installer: `virsh detach-disk {vm} hda --config` | Attach disc 2 as a read-only CD: `virsh attach-disk {vm} "{disc2}" hdc --type cdrom --mode readonly --config`	virsh dumpxml {vm} shows no hda, target.qcow2 on hdb and disc 2 on hdc as a read-only CD-ROM
+step	kvm	*	*	*	firstboot	join	First boot and Tailscale	The VM's console, then this PC	Start the VM: `virsh start {vm}` | On its console, set the passwords the first boot asks for. | It then shows a Tailscale sign-in address. Open it on any device and sign in to your tailnet. | If the sign-in stalls: {ts-stall}	the Tailscale admin console lists {wsname} as connected
+step	kvm	*	*	*	import	confirm	The disc 2 import	The Workstation	The import starts by itself. Search works once the knowledge base is in; the Library carries on in the background. | Import Report shows how far it is. From a terminal: `/usr/local/d32/libexec/d32-import-report` | If it stopped, resume it: `doas /usr/local/d32/sbin/d32-import-resume`	Import Report shows the knowledge base in use
+
+# --- Another hypervisor, or bare metal (not boot-tested yet; signals only) ---------------------------------------
+step	other	*	*	*	image	image	The verified disc 1 image	This PC	deep32-get checked this image against the signed release: `{image}` | Its SHA-256 is {sha256} and its size {bytes} bytes. Every copy you make must keep both.	-
+step	other	*	*	*	settings	confirm	The VM or the machine	Your hypervisor, or the PC itself	In a VM: BIOS boot, never UEFI. The image carries BIOS and UEFI boot loaders, but only BIOS boot in VMs has been tested. 64-bit; 6 vCPUs and 12 GB of memory (at least 4 and 8 GB). | Disc 1 as the first disk. It is a USB disk image (an MBR with an EFI system partition), not an ISO. In a VM, attach the image as a disk. On bare metal, write it to a USB stick of at least 2 GB with balenaEtcher or dd (this erases the stick). | An empty disk of at least 200 GB. | One wired network card on a network with DHCP and internet. OpenBSD drives Intel PRO/1000 cards (em), VirtIO (vio), VMXNET3 (vmx) and Hyper-V's network (hvn). | A standard VGA display, never a virtio-gpu display.	BIOS boot in a VM, 6 vCPUs and 12 GB, disc 1 as the first disk, an empty 200 GB disk, a wired network with DHCP
+step	other	*	*	*	install	confirm	Install the Workstation	The VM's console, or the PC's screen	Boot disc 1. The guided installer starts. | Install to the empty 200 GB disk, never to the installer disk. When it asks for the system host name, type {wsname}. | When the install has finished, the installer halts.	the installer said the install finished, and the machine halted
+step	other	*	*	*	after	confirm	Boot the installed disk; attach disc 2	Your hypervisor, or the PC itself	Remove the installer disk (or the disc 1 USB stick). | Give it disc 2 (19.6 GB) in one of three ways. A CD drive: in a VM, attach `{disc2}` as a read-only CD/DVD drive; on bare metal, a BD-R in a Blu-ray drive. | A USB stick of 32 GB or more: write the disc 2 image to it with balenaEtcher or dd (this erases the stick) and plug it in. | The network: in First Start choose Get Disc 2 over the Network, then pick a PC that runs the wizard's Send disc 2, or the release mirror.	the installer disk is gone, and disc 2 is in a CD drive or on a USB stick, or Get Disc 2 over the Network is chosen
+step	other	*	*	*	firstboot	join	First boot and Tailscale	The console, then this PC	Start the Workstation. | Set the passwords the first boot asks for. | It then shows a Tailscale sign-in address. Open it on any device and sign in to your tailnet. | If the sign-in stalls: {ts-stall}	the Tailscale admin console lists {wsname} as connected
+step	other	*	*	*	import	confirm	The disc 2 import	The Workstation	The import starts by itself. Search works once the knowledge base is in; the Library carries on in the background. | Import Report shows how far it is. From a terminal: `/usr/local/d32/libexec/d32-import-report` | If it stopped, resume it: `doas /usr/local/d32/sbin/d32-import-resume`	Import Report shows the knowledge base in use
+
+# --- Sources (fetched 2026-11-20; official vendor pages only) ----------------------------------------------------
+# Proxmox VE (pve.proxmox.com):
+#   pve-docs/qm.1.html: qm create/set options (bios seabios default, ostype other default, cpu, sockets, cores,
+#     memory MiB default 512, balloon 0, scsihw virtio-scsi-single (default lsi), net[n] models incl. virtio, e1000,
+#     e1000-82540em, e1000-82545em, e1000e, vmxnet3, vga std default with virtio/virtio-gl, serial0 socket,
+#     boot order=), STORAGE_ID:SIZE_IN_GiB, STORAGE_ID:0 with import-from, discard, iothread, ssd, media=cdrom,
+#     qm config, qm list, qm disk import; pve-docs/qm.conf.5.html: ostype values (other = unspecified OS)
+#   pve-docs/chapter-qm.html: CPU type host, iothread needs VirtIO SCSI single, boot order, config files,
+#     Create VM wizard tabs and labels (older screenshots: General, OS, System, Hard Disk, CPU, Memory, Network)
+#   pve-docs/api-viewer (apidoc.js): GET /nodes/{node}/qemu/{vmid}/config needs VM.Audit on /vms/{vmid};
+#     import-from takes a volume ID or an absolute path; /nodes/{node}/certificates/info fingerprint is SHA-256
+#   pve-docs/pveum.1.html, chapter-pveum.html: pveum user token add (privsep), pveum acl modify --tokens --roles,
+#     PVEAuditor read-only, the secret shown once, Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID
+#   wiki/Proxmox_VE_API: port 8006; pve-docs/chapter-pvesm.html: local is /var/lib/vz, ISO images in template/iso,
+#     local-lvm (LVM) and local-zfs (ZFS); chapter-sysadmin.html: vmbr0, bridge-vlan-aware, Node -> Certificates;
+#     pvenode.1.html: pvenode cert info
+# VMware (techdocs.broadcom.com, knowledge.broadcom.com):
+#   Workstation Pro 17 "Create a new virtual machine", "Selecting the firmware type", "Configure a firmware type"
+#     (Options, Advanced, Firmware type), "Add an existing virtual hard disk", "Exclude a virtual disk from snapshots"
+#     (Independent, Nonpersistent), "Understanding virtual networking components" (VMnet0 bridged, VMnet1 host-only,
+#     VMnet8 NAT), "Virtual machines directory" (Documents\Virtual Machines, homedir/vmware), vmrun syntax and list
+#   KB 315605: ethernet0.virtualDev = "e1000e"; KB 341298: memsize; KB 313255: numvcpus; KB 395781: .fileName,
+#     .deviceType = "cdrom-image", .present; KB 344223 and KB 321422: the disk descriptor's layout
+#   vSphere 8 "Network adapter types": E1000E is an Intel 82574, E1000 an Intel 82545EM; "SCSI controller
+#     configuration": LSI Logic Parallel; Host Client: Create/Register VM, datastore browser Upload, Enable SSH,
+#     CD/DVD with Datastore ISO File; vSphere Storage "Cloning a virtual or raw disk": vmkfstools -i ... -d thin
+# Oracle VirtualBox (www.virtualbox.org/manual, docs.oracle.com):
+#   ch08.html: convertfromraw (--format, --variant Fixed), createvm, modifyvm (--firmware, --chipset, --memory,
+#     --cpus, --nicN, --nic-typeN, --bridge-adapterN, --graphicscontroller), storagectl, storageattach (--medium
+#     none), createmedium, showvminfo --machinereadable, showmediuminfo, list bridgedifs/hostonlyifs/natnets
+#   topics/networkingdetails.html: which modes reach the LAN; 82540EM is Intel PRO/1000 MT Desktop;
+#   BasicConcepts (7.1): Enable EFI, PIIX3, VBoxVGA for legacy guests; topics/vboxmanage.html: VBoxManage paths
+#   The machine-readable key names (firmware, chipset, memory, cpus, nic1, nictype1, graphicscontroller,
+#     storagecontrollernameN, "CTL-PORT-DEV") and the "Capacity: N MBytes" line are not in the manual: they come
+#     from Oracle's own source (VirtualBox/virtualbox on GitHub, VBoxManageInfo.cpp and VBoxManageDisk.cpp).
+# Microsoft Learn: "Should I create a generation 1 or 2 virtual machine" (Gen 1 BIOS, IDE boot); the Hyper-V
+#   cmdlet pages Get-VM, Get-VMHardDiskDrive, Get-VMNetworkAdapter, Get-VMSwitch, Get-VMDvdDrive, Add-VMDvdDrive,
+#   Remove-VMHardDiskDrive, New-VHD; Get-NetNat; "Set up a NAT network"; "Create a virtual switch"; "Plan Hyper-V
+#   networking" (the legacy adapter emulates an Intel 21140). Property names read from the Hyper-V module's types.
+# libvirt (libvirt.org): uri.html (qemu:///system), manpages/virsh.html (-r, dumpxml, attach-disk --type cdrom
+#   --mode readonly --config, detach-disk --config), formatdomain.html (os firmware='efi', loader pflash, interface
+#   model, video model vga/virtio, disk target, cdrom readonly), formatnetwork.html (default network is NAT)
+# OpenBSD (man.openbsd.org): em(4) (82540EM, 82545EM, 82574L), vio(4), vmx(4), hvn(4), de(4) (21140), vioscsi(4),
+#   mpi(4) (LSI53C1030 as VMware emulates it), vmwpvs(4), hvs(4), pciide(4), ahci(4), vga(4), viogpu(4) (since 7.4)
+# Not confirmed on any official page and so not in the steps: Proxmox's "import" storage file extensions, the Proxmox
+#   token GUI path, PVE 9's tab names, VMware's monolithicFlat descriptor grammar (VMware's VMDK specification is no
+#   longer online; the descriptor follows the KB examples), vmkfstools importing a monolithicFlat disk, the exact
+#   "Other 64-bit" labels, VirtualBox's OpenBSD OS type, which VirtualBox display OpenBSD drives beyond vga(4).

@@ -1,0 +1,80 @@
+# Known vulnerabilities in the Python packages this repository pins, checked with OSV-Scanner against the OSV database
+# (https://osv.dev) on each push and pull request to main and once a week. --no-resolve checks each pin file as it is
+# written; the scanner does not add the dependencies it would guess for a partial list.
+#
+# The first job reads every pin file and sends the findings to code scanning (the Security tab). Most of the pins are
+# inputs of the release images: src/gpu-pack/containers, src/kb-tools/linux-line/compose and
+# src/workstation/pyrag/locks. They change only when the images are rebuilt for a release, so findings there are
+# reported without failing this workflow. That job reads osv-scanner.toml, which leaves out the advisories the release's
+# OpenVEX document (docs/security/) marks not_affected; docs/security/README.md says how they were triaged.
+#
+# The second job checks the pins that can change at any time and fails on any known vulnerability, without the
+# osv-scanner.toml exceptions: the tools in .github/requirements-*.txt, the Ask relay's adapters/relay/requirements.lock
+# and the test pins in tests/engine and tests/gateway.
+#
+# In the first job OSV-Scanner finds files named requirements*.txt by itself, and a pin file with another name needs a
+# --lockfile line. The second job scans only the files it names, so a new pin file outside the images needs a
+# --lockfile line there whatever its name.
+name: OSV-Scanner
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '33 6 * * 2'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  all-pins:
+    name: Every pin file, reported to code scanning
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@32d3cd482bdadfb38b186c0ad1b031902d55d932 # v2.7.1
+    with:
+      scan-args: |-
+        --config=osv-scanner.toml
+        --recursive
+        --no-resolve
+        --lockfile=requirements.txt:adapters/relay/requirements.lock
+        --lockfile=requirements.txt:src/gpu-pack/containers/builder/requirements-engine.in
+        --lockfile=requirements.txt:src/gpu-pack/containers/full/requirements-gateway.in
+        --lockfile=requirements.txt:src/kb-tools/linux-line/compose/requirements-engine.in
+        --lockfile=requirements.txt:src/kb-tools/linux-line/compose/requirements-gateway.in
+        --lockfile=requirements.txt:src/workstation/pyrag/locks/requirements-buildenv312.lock
+        --lockfile=requirements.txt:src/workstation/pyrag/locks/requirements-buildenv314.lock
+        --lockfile=requirements.txt:src/workstation/pyrag/locks/requirements-core.lock
+        --lockfile=requirements.txt:src/workstation/pyrag/locks/requirements-edge.lock
+        --lockfile=requirements.txt:src/workstation/pyrag/locks/requirements-test.lock
+        ./
+      fail-on-vuln: false
+      # A pull request from a fork gets a read-only token, which cannot upload to code scanning.
+      upload-sarif: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+
+  changeable-pins:
+    name: Pins outside the release images
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Scan, failing on any known vulnerability
+        uses: google/osv-scanner-action/osv-scanner-action@32d3cd482bdadfb38b186c0ad1b031902d55d932 # v2.7.1
+        with:
+          scan-args: |-
+            --no-resolve
+            --lockfile=requirements.txt:.github/requirements-coverage.txt
+            --lockfile=requirements.txt:.github/requirements-lint.txt
+            --lockfile=requirements.txt:adapters/relay/requirements.lock
+            --lockfile=requirements.txt:tests/engine/requirements-dev.txt
+            --lockfile=requirements.txt:tests/gateway/requirements-dev.txt

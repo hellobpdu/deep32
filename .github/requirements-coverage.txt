@@ -1,0 +1,35 @@
+# coverage.py for the Coverage workflow and `make coverage`, pinned by version and hash.
+#   python -m pip install --require-hashes -r .github/requirements-coverage.txt
+# The hashes are the CPython 3.12 to 3.15 wheels for Windows (x64, Arm64), Linux (x86-64, Arm64, musl x86-64) and
+# macOS, and the pure-Python wheel for any other interpreter. coverage.py has no other dependency on Python 3.11 and
+# newer. To update, take the new version's hashes for the same files from https://pypi.org/project/coverage/#files.
+coverage==7.17.3 \
+    --hash=sha256:203aa5e42c88e9accfa18a0cc91950499efaa5b179a1da14bcbf5b995afdbcb6 \
+    --hash=sha256:61138b3a51d91ee443b04962ec9990fa140208a7a082b1754135ebd1378a420f \
+    --hash=sha256:0860a5f27ceccd53ee4070acc182588ed4f15b7401cdcca09d8c0cece9c2ad7d \
+    --hash=sha256:84b5a474040b33f3d805c0b19fadf5a2e78fdd46e0bcb8b813631e5cac64195e \
+    --hash=sha256:c45c4e99a09c70e7d6fe101f59fe4556b89d99bfc80cd4e7f5e13ebb6c1e4854 \
+    --hash=sha256:df0faa493ab92bbf33ff8bdab442c5b75089baa5ba752844871b5ce9d009a026 \
+    --hash=sha256:d5a3cd933fdffb958b4046d6f19d3138c7c8a28c439aac800badf61fab6d655e \
+    --hash=sha256:c4ae9befec714c867f42bbea99e1ec25eecdbe51c8faf1cc82164bd65bf4db0c \
+    --hash=sha256:8a0aef07b2eaeee9d82ca62241d5c6586aed5dd729300507d2d3f612588c2634 \
+    --hash=sha256:222bc51858b0f64cb15d51380541712f8d5dc9bb5ce4fd9828bf466503d6debb \
+    --hash=sha256:39c063c038b710e0bca3afd4997ccee680674bece468fac13cb8aee9af530d31 \
+    --hash=sha256:16ed46c0d461a3972e8474268c22bf5d88cdd1088435313edc7e220050c5ac97 \
+    --hash=sha256:49fff24117050f1784447ae8181e75a78b01cfef4b6a8ccba676d466d1d68d9b \
+    --hash=sha256:d3353cb2ad4254fa433cc53d1ee1fe80eebde529085b238393f3f6d5af821f70 \
+    --hash=sha256:e033255f24c1df6e046b6c4e9f91baacae08426beb5296bea8d46176b3a137d8 \
+    --hash=sha256:22a80bbdee3c22fb3319befaa112a2ed2d6e1417aa75c310f048235170ceca44 \
+    --hash=sha256:eb25b51a30d07db8493901e3040284f2e756ec2b6549ee392798b9ef4c0607b3 \
+    --hash=sha256:2b9a39e25bf0e6fe072c6f3bceaa02f5303b9f975e83f590d118c4e92aacf6d8 \
+    --hash=sha256:28b05f6b2622551805324196c32f3f20f4fa639bade8ac299ca83073253f6663 \
+    --hash=sha256:957ba72e11d26b6e6e1abdaa72e41020871f4108c8ff64ff571fc50c81fb57a3 \
+    --hash=sha256:f7ff8b21efcbdf9c7a6c051dc158c9bb9e938b7af33e55ed264d2e529b836d17 \
+    --hash=sha256:e592f790fee57e2bedaa27cdc76988a082090d1aac560ca4bbea80a7a58436ec \
+    --hash=sha256:59c15dcae783ed291da3af6be2e70762322637ac886b19671d12123521cf6ac3 \
+    --hash=sha256:a13a946d8de807d8992e56a09502952d81bfbb4b80204ef77a6a2a38b4ce22be \
+    --hash=sha256:c769e6a28bb645c915449ed8ddf6059765a72d8ef79590bfd6202022a4441cd3 \
+    --hash=sha256:24389d7d50f1fe98ac8d8ec1c946656a75b97d953b51a714484e174ed9f48eb1 \
+    --hash=sha256:f8f6252bb4c457d686c18e42965087b30155ff72b0dbda6e79a43ee3682c0870 \
+    --hash=sha256:5559549a14f997b261c936ca463ed67e030511f914ffd1692ad08b3b16ed6034 \
+    --hash=sha256:21745c08f2835b847a16887b748d3084dddeb0571ae2a0d62e33644413568b99

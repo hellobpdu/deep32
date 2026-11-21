@@ -26,11 +26,13 @@ for my $lib (@ARGV) {
     $fn .= shift(@lines) . "\n";
     $fn .= join('', map { "$_\n" } grep { !/^\s*(?:#|$)/ } @lines);
 }
-# Optional root maintenance, no stored or shipped key.
+# Optional root maintenance, no stored or shipped key. The ramdisk has ksh's
+# print built-in, but no printf utility; keep all shell output on that built-in.
 my $d32_maint = <<'D32_MAINT_KSH';
 d32_maint_key_ok() {
     [ "$#" = 1 ] || return 1
     case $1 in ''|*[![:print:]]*) return 1;; esac
+    # ksh print is available even when the ramdisk has no printf utility.
     print -r -- "$1" | LC_ALL=C grep -Eq '^ssh-ed25519 [A-Za-z0-9+/]{68}={0,2}( [A-Za-z0-9@._-]{1,64})?$'
 }
 

@@ -1,0 +1,12 @@
+{
+  "BackendState": "Running",
+  "Self": {
+    "HostName": "deep32-test-self",
+    "DNSName": "deep32-test-self.tail0000.ts.net.",
+    "TailscaleIPs": [
+      "100.64.0.10",
+      "fd7a:115c:a1e0::10"
+    ]
+  },
+  "Peer": null
+}

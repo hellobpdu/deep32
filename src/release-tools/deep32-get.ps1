@@ -2,6 +2,7 @@
 # Exit codes: 0 success, 1 refusal or failure, 3 selected disc pending.
 $script:Deep32ReleaseBase = 'https://github.com/hellobpdu/deep32/releases/download'
 $script:Deep32ScriptDirectory = $PSScriptRoot
+$script:Deep32PythonExecutable = $null
 
 function Assert-Deep32Name {
     param([object]$Name)
@@ -39,6 +40,15 @@ function Get-Deep32PlainPath {
     return $full
 }
 
+function Assert-Deep32SplitLocalPath {
+    param([string]$Path)
+    $devices = '\A(?:con|prn|aux|nul|clock\$|conin\$|conout\$|(?:com|lpt)[0-9\u00b9\u00b2\u00b3])(?:\.|\z)'
+    if ($Path -cnotmatch '\A[A-Za-z]:[\\/]' -or $Path.Substring(2) -match '[\x00-\x1f\x7f:<>"|?*]' -or
+            @($Path.Substring(3) -split '[\\/]' | Where-Object { $_ -match '[. ]$' -or $_ -match $devices }).Count) {
+        throw 'Use absolute local Windows paths for the split release folder, data and backing directories.'
+    }
+}
+
 function New-Deep32Directory {
     param([string]$Path)
     $full = Get-Deep32PlainPath -Path $Path -Directory -MayNotExist
@@ -47,17 +57,40 @@ function New-Deep32Directory {
 }
 
 function Get-Deep32Hash {
-    param([string]$Path)
-    $full = Get-Deep32PlainPath -Path $Path
-    $stream = $null
+    param([string]$Path, [IO.Stream]$ReadHandle)
+    $stream = $ReadHandle
     $digest = $null
     try {
-        $stream = [IO.File]::Open($full, 'Open', 'Read', 'Read')
+        if (-not $ReadHandle) {
+            $full = Get-Deep32PlainPath -Path $Path
+            $stream = [IO.File]::Open($full, 'Open', 'Read', 'Read')
+        }
+        $stream.Position = 0
         $digest = [Security.Cryptography.SHA256]::Create()
         return [BitConverter]::ToString($digest.ComputeHash($stream)).Replace('-', '').ToLowerInvariant()
     } finally {
-        if ($null -ne $stream) { $stream.Dispose() }
+        if (-not $ReadHandle -and $null -ne $stream) { $stream.Dispose() }
         if ($null -ne $digest) { $digest.Dispose() }
+    }
+}
+
+function Open-Deep32VerifiedMedia {
+    param([string]$Path, [string]$Source, [long]$Size, [string]$Hash)
+    Assert-Deep32SplitLocalPath $Path
+    Assert-Deep32SplitLocalPath $Source
+    $full = Get-Deep32PlainPath -Path $Path
+    $parent = [IO.Path]::GetDirectoryName($full).TrimEnd([char[]]@('\', '/'))
+    if ($parent -ine $Source.TrimEnd([char[]]@('\', '/'))) { throw 'A verified ISO is outside the consented release folder.' }
+    $stream = [IO.File]::Open($full, 'Open', 'Read', 'Read')
+    try {
+        [void](Get-Deep32PlainPath -Path $full)
+        if ($stream.Length -ne $Size -or (Get-Deep32Hash -ReadHandle $stream) -cne $Hash) {
+            throw 'A split Forge ISO changed after verification.'
+        }
+        return $stream
+    } catch {
+        $stream.Dispose()
+        throw
     }
 }
 
@@ -272,75 +305,64 @@ function ConvertTo-Deep32Quoted {
     return "'" + $Value.Replace("'", "''") + "'"
 }
 
+function Get-Deep32Python {
+    if ($script:Deep32PythonExecutable) { return $script:Deep32PythonExecutable }
+    $candidates = @()
+    if ($env:DEEP32_PYTHON) { $candidates = @($env:DEEP32_PYTHON) }
+    else { $candidates = @(Get-Command python3.exe,python.exe -CommandType Application -ErrorAction SilentlyContinue | ForEach-Object { $_.Source }) }
+    foreach ($candidate in $candidates) {
+        if ([IO.Path]::GetExtension($candidate) -ine '.exe' -or $candidate -match '[\\/]WindowsApps[\\/]') { continue }
+        # Installed Python launchers may themselves be links. The no-reparse
+        # rule applies to release/settings targets, not the selected toolchain.
+        $candidate = [IO.Path]::GetFullPath($candidate)
+        if (-not [IO.File]::Exists($candidate)) { continue }
+        & $candidate -I -B -c 'import sys;sys.exit(sys.version_info<(3,10))' 2>$null
+        if ($LASTEXITCODE -eq 0) { $script:Deep32PythonExecutable = $candidate; return $candidate }
+    }
+    # the Python requirement and corrective action apply to each host.
+    Write-Output "Install Python 3.10 or later using this host's package manager or the Python vendor download; reopen PowerShell and run this command again."
+    exit 10
+}
+
+function Invoke-Deep32ManifestHelper {
+    param([string[]]$Arguments)
+    $python = Get-Deep32Python
+    & $python -I -B (Join-Path $script:Deep32ScriptDirectory 'deep32_get_manifest.py') @Arguments
+    if ($LASTEXITCODE -eq 10) { exit 10 }
+    if ($LASTEXITCODE -ne 0) { throw 'Release operation refused. Next: correct the reported input and rerun the same command.' }
+}
+
+function Invoke-Deep32WholeHelper {
+    param([string[]]$Arguments, [switch]$Multiple)
+    $python = Get-Deep32Python
+    $lines = @(& $python -I -B (Join-Path $script:Deep32ScriptDirectory 'deep32_get_whole.py') @Arguments)
+    $result = $LASTEXITCODE
+    if ($result -in @(3, 10)) { exit $result }
+    if ($result -ne 0) { throw 'Release operation refused. Next: correct the reported input and rerun the same command.' }
+    # The shared helper alone authenticates/selects and transfers the images.
+    # Its stdout contains literal TSV records; diagnostic text uses stderr.
+    if (($Multiple -and ($lines.Count -lt 2 -or $lines.Count -gt 4)) -or
+        (-not $Multiple -and $lines.Count -ne 1)) { throw 'The shared downloader returned invalid image records.' }
+    $names = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+    foreach ($line in $lines) {
+        $fields = @(([string]$line).Split([char]9))
+        [long]$size = 0
+        if ($fields.Count -ne 4 -or -not [long]::TryParse($fields[2], [ref]$size) -or $size -lt 1 -or
+            $fields[3] -cnotmatch '^[0-9a-f]{64}$') { throw 'The shared downloader returned an invalid image record.' }
+        Assert-Deep32Name $fields[1]
+        if (-not $names.Add($fields[1])) { throw 'The shared downloader returned a duplicate image record.' }
+        $image = Get-Deep32PlainPath -Path $fields[0]
+        if ([IO.Path]::GetFileName($image) -cne $fields[1]) { throw 'The shared downloader returned an invalid image name.' }
+        Assert-Deep32File $image $size $fields[3]
+        @{ image = $image; disc = @{ file = $fields[1]; size = $size; sha256 = $fields[3] } }
+    }
+}
+
 function Confirm-Deep32Signature {
-    param([string]$Cache, [string]$Key)
-    $homeDirectory = New-Deep32Directory (Join-Path $Cache 'gpg')
-    $sums = Join-Path $Cache 'SHA256SUMS'
-    $signature = $sums + '.sig'
-    $verifyArguments = @('--no-options', '--homedir', $homeDirectory, '--batch', '--no-auto-key-retrieve',
-        '--no-default-keyring', '--keyring', $Key, '--lock-never', '--trust-model', 'always',
-        '--status-fd', '1', '--verify', $signature, $sums)
-    $gpg = Get-Command gpg -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
-    if ($null -eq $gpg) {
-        $exact = 'gpg ' + (($verifyArguments | ForEach-Object { ConvertTo-Deep32Quoted $_ }) -join ' ')
-        throw ("GPG is missing. Install GnuPG, then run the same download command. Verification command:`n" + $exact)
-    }
-    [void](Get-Deep32PlainPath -Path $Key)
-    $keyArguments = @('--no-options', '--homedir', $homeDirectory, '--batch', '--no-auto-key-retrieve',
-        '--no-default-keyring', '--lock-never', '--with-colons', '--show-keys', '--fingerprint', '--', $Key)
-    $previousHome = $env:GNUPGHOME
-    $previousPreference = $ErrorActionPreference
-    try {
-        $env:GNUPGHOME = $homeDirectory
-        $ErrorActionPreference = 'Continue'
-        $keyOutput = @(& $gpg.Source @keyArguments 2>&1 | ForEach-Object { $_.ToString() })
-        $keyCode = $LASTEXITCODE
-        if ($keyCode -ne 0) { throw 'The supplied release public key could not be inspected.' }
-        $primaryCount = 0
-        $primarySection = $false
-        $fingerprints = New-Object 'Collections.Generic.List[string]'
-        foreach ($line in $keyOutput) {
-            $fields = $line.Split([char]58)
-            if ($fields[0] -ceq 'pub') {
-                $primaryCount++
-                $primarySection = $true
-            } elseif ($fields[0] -ceq 'sub') {
-                $primarySection = $false
-            } elseif ($fields[0] -ceq 'fpr' -and $primarySection) {
-                if ($fields.Count -lt 10 -or $fields[9] -cnotmatch '^(?:[0-9A-Fa-f]{40}|[0-9A-Fa-f]{64})$') {
-                    throw 'The supplied release public key has an invalid primary fingerprint.'
-                }
-                $fingerprints.Add($fields[9].ToUpperInvariant())
-            }
-        }
-        if ($primaryCount -ne 1 -or $fingerprints.Count -ne 1) {
-            throw 'The supplied release public key must contain exactly one primary key and fingerprint.'
-        }
-        $expectedFingerprint = $fingerprints[0]
-        $output = @(& $gpg.Source @verifyArguments 2>&1 | ForEach-Object { $_.ToString() })
-        $code = $LASTEXITCODE
-    } finally {
-        $env:GNUPGHOME = $previousHome
-        $ErrorActionPreference = $previousPreference
-    }
-    if ($code -ne 0) { throw 'The release checksum signature is invalid; no payload was downloaded.' }
-    $validCount = 0
-    foreach ($line in $output) {
-        if ($line -cnotmatch '^\[GNUPG:\] VALIDSIG(?: |$)') { continue }
-        $fields = $line.Split([char]32)
-        if (($fields.Count -ne 11 -and $fields.Count -ne 12) -or
-            $fields[2] -cnotmatch '^(?:[0-9A-Fa-f]{40}|[0-9A-Fa-f]{64})$') {
-            throw 'The release checksum signature has malformed signer status.'
-        }
-        $primary = $fields[2]
-        if ($fields.Count -eq 12) { $primary = $fields[11] }
-        if ($primary -cnotmatch '^(?:[0-9A-Fa-f]{40}|[0-9A-Fa-f]{64})$' -or
-            $primary.ToUpperInvariant() -cne $expectedFingerprint) {
-            throw 'The release checksum signer does not match the supplied primary key.'
-        }
-        $validCount++
-    }
-    if ($validCount -ne 1) { throw 'The release checksum signature is invalid; no payload was downloaded.' }
+    param([string]$Cache, [string]$Key, [string]$Fingerprint, [string]$Gpg)
+    $arguments = @('authenticate', $Cache, $Key, $Fingerprint)
+    if ($Gpg) { $arguments += $Gpg }
+    Invoke-Deep32ManifestHelper -Arguments $arguments
 }
 
 function Assert-Deep32Integer {
@@ -488,65 +510,281 @@ function Get-Deep32Manifest {
     return $selected
 }
 
-function Invoke-Deep32Wsl {
+function Invoke-Deep32DockerLoader {
     param([string[]]$Arguments)
-    & wsl.exe @Arguments
-    if ($LASTEXITCODE -ne 0) { throw 'A WSL command failed.' }
+    $python = Get-Deep32Python
+    & $python -I -B (Join-Path $script:Deep32ScriptDirectory 'deep32_settings.py') run-loader -- $python -I -B @Arguments
+    if ($LASTEXITCODE -eq 11) { exit 11 }
+    if ($LASTEXITCODE -ne 0) { throw 'The Docker Desktop loader failed. Next: check the GPU pack status and recovery commands.' }
+}
+
+function Invoke-Deep32Settings {
+    param([string[]]$Arguments)
+    $python = Get-Deep32Python
+    & $python -I -B (Join-Path $script:Deep32ScriptDirectory 'deep32_settings.py') @Arguments
+    if ($LASTEXITCODE -ne 0) { throw 'The settings handoff was refused. Next: correct the non-secret choices and review the plan again.' }
+}
+
+function Test-Deep32InstallPrerequisites {
+    param([string]$Journey, [string]$InternalForgeEvidence)
+    $engine = Join-Path ([Environment]::GetFolderPath('System')) 'WindowsPowerShell\v1.0\powershell.exe'
+    $inventory = Join-Path $script:Deep32ScriptDirectory '..\..\install\deep32-inventory.ps1'
+    Write-Host 'Checking read-only prerequisites for this GPU host'
+    $arguments = @('-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', $inventory,
+        '-Journey', $Journey, '-Role', 'gpu-host', '-CheckPrereqs')
+    if ($InternalForgeEvidence) { $arguments += @('-InternalForgeEvidence', $InternalForgeEvidence) }
+    & $engine @arguments
+    if ($LASTEXITCODE -ne 0) {
+        Write-Output 'Prerequisites need operator action; no installation change was made by this stage.'
+        Write-Output ('Next: powershell -NoProfile -ExecutionPolicy Bypass -File install\deep32-inventory.ps1 -Journey ' + $Journey + ' -Role gpu-host -CheckPrereqs')
+        exit 10
+    }
+}
+
+function Test-Deep32SignedForgePrerequisites {
+    param([hashtable]$Evidence, [hashtable]$SettingsPlan)
+    $identity = $SettingsPlan.plan.identity
+    $arguments = @('--source', $Evidence.source, '--gpu-class', $Evidence.gpu_class,
+        '--forge-data-root', $identity.data_root, '--key', $Evidence.key, '--fingerprint', $Evidence.fingerprint,
+        '--plan', $SettingsPlan.path, '--accept-plan', $SettingsPlan.accepted, '--journey', $identity.journey)
+    if ($Evidence.gpg) { $arguments += @('--gpg', $Evidence.gpg) }
+    $python = Get-Deep32Python
+    $helper = Join-Path $script:Deep32ScriptDirectory 'forge_preflight_windows.py'
+    & $python -I -B $helper @arguments
+    if ($LASTEXITCODE -eq 10) { exit 10 }
+    if ($LASTEXITCODE -ne 0) { throw 'The signed Windows Forge prerequisites could not be verified. Review the local release folder and plan.' }
+}
+
+function Test-Deep32SplitForgePrerequisites {
+    param([hashtable]$Evidence, [hashtable]$SettingsPlan)
+    $observation = @(Test-Deep32SignedForgePrerequisites -Evidence $Evidence -SettingsPlan $SettingsPlan)
+    if ($observation.Count -ne 1 -or $observation[0] -isnot [string] -or $observation[0].Length -gt 65535 -or
+            $observation[0] -cnotmatch '\A\{[^\r\n]*\}\z' -or $observation[0] -cmatch '[^\x00-\x7f]') {
+        throw 'The signed Windows Forge prerequisite probe returned invalid observations.'
+    }
+    $path = Join-Path $SettingsPlan.directory 'forge-evidence.json'
+    [void](Get-Deep32PlainPath -Path $path -MayNotExist)
+    $empty = [IO.File]::Open($path, 'CreateNew', 'Write', 'None')
+    try {
+        $empty.Dispose()
+        Set-Deep32PrivatePath -Path $path
+        [IO.File]::WriteAllText($path, $observation[0] + "`n", [Text.Encoding]::ASCII)
+        Test-Deep32InstallPrerequisites -Journey $SettingsPlan.plan.identity.journey -InternalForgeEvidence $path
+    } finally { [IO.File]::Delete($path) }
+}
+
+function Set-Deep32PrivatePath {
+    param([string]$Path, [switch]$Directory, [switch]$Inherit)
+    [void](Get-Deep32PlainPath -Path $Path -Directory:$Directory)
+    $owner = [Security.Principal.WindowsIdentity]::GetCurrent().User
+    $system = New-Object Security.Principal.SecurityIdentifier 'S-1-5-18'
+    if ($Directory) { $acl = New-Object Security.AccessControl.DirectorySecurity }
+    else { $acl = New-Object Security.AccessControl.FileSecurity }
+    $acl.SetOwner($owner)
+    $acl.SetAccessRuleProtection($true, $false)
+    foreach ($identity in @($owner, $system)) {
+        if ($Directory -and $Inherit) {
+            $inheritance = [Security.AccessControl.InheritanceFlags]::ContainerInherit -bor
+                [Security.AccessControl.InheritanceFlags]::ObjectInherit
+            $rule = [Security.AccessControl.FileSystemAccessRule]::new($identity, 'FullControl', $inheritance, 'None', 'Allow')
+        } else {
+            $rule = New-Object Security.AccessControl.FileSystemAccessRule($identity, 'FullControl', 'Allow')
+        }
+        $acl.AddAccessRule($rule)
+    }
+    # Use the host ACL APIs directly so protected staging also works when
+    # a parent shell's module path prevents Security cmdlet auto-loading.
+    if ($PSVersionTable.PSEdition -eq 'Core') {
+        if ($Directory) { [IO.FileSystemAclExtensions]::SetAccessControl([IO.DirectoryInfo]::new($Path), $acl) }
+        else { [IO.FileSystemAclExtensions]::SetAccessControl([IO.FileInfo]::new($Path), $acl) }
+    } elseif ($Directory) { [IO.Directory]::SetAccessControl($Path, $acl) }
+    else { [IO.File]::SetAccessControl($Path, $acl) }
+}
+
+function New-Deep32SettingsPlan {
+    param([string]$ImageHash, [string]$Destination, [hashtable]$Options, [object[]]$MediaComponents)
+    $arguments = @('plan', '--media-sha256', $ImageHash, '--destination', $Destination,
+        '--journey', $Options.journey, '--form', $Options.form, '--platform', $Options.platform,
+        '--docker-role', $Options.docker_role, '--data-root', $Options.data_root) + @($Options.settings_arguments)
+    foreach ($media in $MediaComponents) {
+        $arguments += @('--media-component', $media.component, [string]$media.disc.size, $media.disc.sha256)
+    }
+    if ($Options.docker_role -ceq 'full') { $arguments += @('--content', $Options.content) }
+    if ($Options.docker_storage_path) { $arguments += @('--docker-storage-path', $Options.docker_storage_path) }
+    if ($Options.confirm_tailnet) { $arguments += @('--confirm-tailnet', $Options.confirm_tailnet) }
+    if ($Options['desktop_isolation_confirmed']) { $arguments += '--confirm-desktop-isolation' }
+    if (-not $Options.non_interactive -and -not [Console]::IsInputRedirected) { $arguments += '--interactive' }
+    $lines = @(Invoke-Deep32Settings -Arguments $arguments)
+    $planText = ($lines -join "`n") + "`n"
+    $plan = ConvertFrom-Json -InputObject $planText
+    Write-Host $planText
+    $accepted = $Options.accept_plan
+    if (-not $accepted -and -not $Options.non_interactive -and -not [Console]::IsInputRedirected) {
+        $accepted = Read-Host 'Review this target and settings. Type the plan digest to install'
+    }
+    if ($accepted -cne $plan.digest) { throw 'Plan consent required. Next: rerun with --accept-plan and the displayed digest.' }
+    # Create only after every choice and consent has been validated. The helper
+    # verifies this owner/System-only ACL before writing settings or its record.
+    $stageParent = $Destination
+    if ($MediaComponents) { $stageParent = [IO.Path]::GetTempPath() }
+    $stage = Join-Path $stageParent ('.settings-' + [Guid]::NewGuid().ToString('N'))
+    [void](New-Deep32Directory $stage)
+    try {
+        Set-Deep32PrivatePath -Path $stage -Directory
+        $path = Join-Path $stage 'plan.json'
+        $empty = [IO.File]::Open($path, 'CreateNew', 'Write', 'None')
+        $empty.Dispose()
+        Set-Deep32PrivatePath -Path $path
+        [IO.File]::WriteAllText($path, $planText, [Text.Encoding]::ASCII)
+        Invoke-Deep32Settings -Arguments @('stage', '--plan', $path, '--accept-plan', $accepted, '--directory', $stage) | Write-Host
+        return @{ path = $path; plan = $plan; directory = $stage; accepted = $accepted }
+    } catch {
+        Remove-Deep32SettingsStage -Directory $stage
+        throw
+    }
+}
+
+function Remove-Deep32SettingsStage {
+    param([string]$Directory)
+    [void](Get-Deep32PlainPath -Path $Directory -Directory)
+    foreach ($name in @('plan.json', 'settings.json', 'settings-deployment.json', 'deployment.json', 'forge-evidence.json')) {
+        $path = Join-Path $Directory $name
+        [void](Get-Deep32PlainPath -Path $path -MayNotExist)
+        if ([IO.File]::Exists($path)) { [IO.File]::Delete($path) }
+    }
+    [IO.Directory]::Delete($Directory, $false)
+}
+
+function Assert-Deep32InstallReady {
+    param([hashtable]$SettingsPlan, [switch]$RawMedia)
+    if ($null -eq $SettingsPlan -or -not $SettingsPlan.plan -or -not $SettingsPlan.path) {
+        throw 'Validated settings and plan consent are required before the Docker Desktop loader.'
+    }
+    if ((-not $RawMedia -and -not (Get-Command Mount-DiskImage -ErrorAction SilentlyContinue)) -or
+        -not (Get-Command docker.exe -CommandType Application -ErrorAction SilentlyContinue)) {
+        throw 'Disc 3 installation needs local media access and Docker Desktop using Linux containers with its WSL2 backend and NVIDIA GPU support.'
+    }
+}
+
+function Get-Deep32MountedKit {
+    param($Attachment)
+    $volumes = @($Attachment | Get-Volume -ErrorAction Stop | Where-Object {
+        $null -ne $_.DriveLetter -and [string]$_.DriveLetter -ne ''
+    })
+    if ($volumes.Count -ne 1) { throw 'The verified disc needs one readable drive letter.' }
+    $discRoot = [string]$volumes[0].DriveLetter + ':\'
+    return Get-Deep32PlainPath -Path $discRoot -Directory
+}
+
+function Get-Deep32DockerLoaderArguments {
+    param([string]$Kit, [string]$Payload, [hashtable]$SettingsPlan)
+    $provision = Get-Deep32PlainPath -Path (Join-Path $Kit 'forms\provision.py')
+    $settings = Get-Deep32PlainPath -Path (Join-Path $SettingsPlan.directory 'settings.json')
+    $identity = $SettingsPlan.plan.identity
+    $arguments = @($provision, '--form', 'docker', '--kit', $Kit,
+        '--platform', 'windows', '--docker-role', $identity.docker_role, '--payload', $Payload,
+        '--settings', $settings, '--data-root', $identity.data_root)
+    if ($identity.docker_role -ceq 'full') {
+        $content = Get-Deep32PlainPath -Path $identity.content -Directory
+        $arguments += @('--content', $content)
+    }
+    if ($identity.PSObject.Properties['docker_storage_path']) {
+        $arguments += @('--docker-storage-path', $identity.docker_storage_path)
+    }
+    return $arguments
 }
 
 function Invoke-Deep32Install {
-    param([string]$Image, [string]$Destination)
-    if (-not (Get-Command Mount-DiskImage -ErrorAction SilentlyContinue) -or
-        -not (Get-Command wsl.exe -ErrorAction SilentlyContinue)) {
-        throw 'Disc 3 installation needs Windows Mount-DiskImage and WSL. Enable WSL, then rerun with --install.'
-    }
+    param([string]$Image, [string]$Destination, [hashtable]$SettingsPlan)
+    Assert-Deep32InstallReady -SettingsPlan $SettingsPlan
     $attachment = Get-DiskImage -ImagePath $Image -ErrorAction Stop
-    $needsAttachment = -not $attachment.Attached
     $acquired = $false
-    $drvfsAcquired = $false
-    $directoryAcquired = $false
-    $mountPoint = '/mnt/deep32-' + [Guid]::NewGuid().ToString('N')
-    $distro = 'Deep32Forge'
+    $loaderStarted = $false
     try {
-        if ($needsAttachment) {
+        if (-not $attachment.Attached) {
             $attachment = Mount-DiskImage -ImagePath $Image -Access ReadOnly -PassThru -ErrorAction Stop
             $acquired = $true
         }
-        $volumes = @($attachment | Get-Volume -ErrorAction Stop | Where-Object { $null -ne $_.DriveLetter -and [string]$_.DriveLetter -ne '' })
-        if ($volumes.Count -ne 1) { throw 'The verified disc needs one readable drive letter.' }
-        $drive = [string]$volumes[0].DriveLetter + ':'
-        $discRoot = $drive + '\'
-        $rootfs = Get-Deep32PlainPath -Path (Join-Path $discRoot 'deep32\forms\forge-wsl.tar')
-        [void](Get-Deep32PlainPath -Path (Join-Path $discRoot 'deep32\payload') -Directory)
-        $existing = @(Invoke-Deep32Wsl -Arguments @('--list', '--quiet'))
-        $found = @($existing | ForEach-Object { ([string]$_).Replace([string][char]0, '').Trim() } | Where-Object { $_ -ceq $distro }).Count -gt 0
-        if (-not $found) {
-            $import = Join-Path $Destination 'Deep32Forge'
-            [void](Get-Deep32PlainPath -Path $import -Directory -MayNotExist)
-            if ([IO.Directory]::Exists($import) -or [IO.File]::Exists($import)) {
-                throw 'The Deep32Forge import directory already exists; it will not be replaced.'
-            }
-            Invoke-Deep32Wsl -Arguments @('--import', $distro, $import, $rootfs, '--version', '2')
-        }
-        Invoke-Deep32Wsl -Arguments @('--distribution', $distro, '--user', 'root', '--exec', 'mkdir', '--', $mountPoint)
-        $directoryAcquired = $true
-        Invoke-Deep32Wsl -Arguments @('--distribution', $distro, '--user', 'root', '--exec', 'mount', '-t', 'drvfs', '-o', 'ro', $drive, $mountPoint)
-        $drvfsAcquired = $true
-        Invoke-Deep32Wsl -Arguments @('--distribution', $distro, '--user', 'root', '--exec',
-            '/opt/deep32-forge/forms/provision-wsl.sh', ($mountPoint + '/deep32/payload'))
+        $kit = Get-Deep32MountedKit -Attachment $attachment
+        $payload = Get-Deep32PlainPath -Path (Join-Path $kit 'deep32\payload') -Directory
+        $loaderArguments = @(Get-Deep32DockerLoaderArguments -Kit $kit -Payload $payload -SettingsPlan $SettingsPlan)
+        Test-Deep32InstallPrerequisites -Journey $SettingsPlan.plan.identity.journey
+        $loaderStarted = $true
+        Invoke-Deep32DockerLoader -Arguments $loaderArguments
     } finally {
-        try {
-            if ($drvfsAcquired) {
-                Invoke-Deep32Wsl -Arguments @('--distribution', $distro, '--user', 'root', '--exec', 'umount', '--', $mountPoint)
-            }
-            if ($directoryAcquired) {
-                Invoke-Deep32Wsl -Arguments @('--distribution', $distro, '--user', 'root', '--exec', 'rmdir', '--', $mountPoint)
-            }
-        } finally {
-            if ($acquired) { Dismount-DiskImage -ImagePath $Image -ErrorAction Stop }
-        }
+        # Both roles bind verified model files from the media. Retain the
+        # attachment after handoff, including interruption, for start/resume.
+        if ($acquired -and -not $loaderStarted) { Dismount-DiskImage -ImagePath $Image -ErrorAction Stop }
     }
-    Write-Output 'Disc 3 installation finished.'
+    Write-Output 'Disc 3 Docker Desktop loader returned; settings handoff completed.'
+    Write-Output 'Keep the verified GPU pack media attached for start and resume; full also retains content media.'
+    Write-Output 'Next: review the GPU pack status and the host publication request before authorising Tailscale Serve.'
+}
+
+function Invoke-Deep32WindowsIsoJoin {
+    param([string[]]$Arguments)
+    $python = Get-Deep32Python
+    & $python -I -B (Join-Path $script:Deep32ScriptDirectory 'deep32_download.py') @Arguments
+    if ($LASTEXITCODE -ne 0) { throw 'The verified Forge media could not be read and joined.' }
+}
+
+function Invoke-Deep32SplitInstall {
+    param([object[]]$MediaComponents, [hashtable]$SettingsPlan, [hashtable]$Evidence)
+    Assert-Deep32InstallReady -SettingsPlan $SettingsPlan -RawMedia
+    if ($MediaComponents.Count -ne 3 -or -not $SettingsPlan.accepted) {
+        throw 'Validated plan consent and three verified Forge media components are required.'
+    }
+    $identity = $SettingsPlan.plan.identity
+    $tailnet = $identity.PSObject.Properties['tailnet_sha256']
+    if (-not $Evidence -or -not $Evidence.source -or -not $tailnet -or $tailnet.Value -cnotmatch '^[0-9a-f]{64}$') {
+        throw 'A local signed release folder and a reviewed tailnet are required for split Windows Forge installation.'
+    }
+    $tar = Get-Deep32PlainPath -Path (Join-Path ([Environment]::GetFolderPath('System')) 'tar.exe')
+    Test-Deep32SplitForgePrerequisites -Evidence $Evidence -SettingsPlan $SettingsPlan
+    $handles = [Collections.Generic.List[IO.FileStream]]::new()
+    $ownedWorkspace = $null
+    try {
+        foreach ($media in $MediaComponents) {
+            $handles.Add((Open-Deep32VerifiedMedia -Path $media.image -Source $Evidence.source -Size $media.disc.size -Hash $media.disc.sha256))
+        }
+        $paths = @(Invoke-Deep32Settings -Arguments @('media-cache', '--plan', $SettingsPlan.path,
+            '--accept-plan', $SettingsPlan.accepted))
+        if ($paths.Count -ne 1) { throw 'The verified media cache could not be selected.' }
+        $output = Get-Deep32PlainPath -Path $paths[0] -Directory -MayNotExist
+        $cache = Get-Deep32PlainPath -Path ([IO.Path]::GetDirectoryName($output)) -Directory
+        $workspace = Join-Path $cache ('.windows-iso-' + [Guid]::NewGuid().ToString('N'))
+        if ([IO.File]::Exists($workspace) -or [IO.Directory]::Exists($workspace)) {
+            throw 'The Windows ISO workspace name was already in use.'
+        }
+        [void][IO.Directory]::CreateDirectory($workspace)
+        $ownedWorkspace = $workspace
+        try {
+            Set-Deep32PrivatePath -Path $workspace -Directory -Inherit
+            $joinArguments = @('--core', $handles[0].Name, '--embedder', $handles[1].Name, '--ingestion', $handles[2].Name,
+                '--gpu-class', $MediaComponents[1].component.Substring(9), '--output', $output, '--data-root', $identity.data_root,
+                '--windows-workspace', $workspace, '--bsdtar', $tar)
+            Invoke-Deep32WindowsIsoJoin -Arguments $joinArguments
+            $payload = Get-Deep32PlainPath -Path (Join-Path $output 'payload') -Directory
+            $kit = Get-Deep32PlainPath -Path (Join-Path $workspace 'kit') -Directory
+            $loaderArguments = @(Get-Deep32DockerLoaderArguments -Kit $kit -Payload $payload -SettingsPlan $SettingsPlan)
+            Test-Deep32SplitForgePrerequisites -Evidence $Evidence -SettingsPlan $SettingsPlan
+            Invoke-Deep32DockerLoader -Arguments $loaderArguments
+        } finally {
+            if ($ownedWorkspace) {
+                $cleanup = Get-Deep32PlainPath -Path $ownedWorkspace -Directory
+                if ([IO.Path]::GetDirectoryName($cleanup) -ine $cache -or
+                        [IO.Path]::GetFileName($cleanup) -cnotmatch '^\.windows-iso-[0-9a-f]{32}$') {
+                    throw 'The owned Windows ISO workspace could not be identified for cleanup.'
+                }
+                Remove-Item -LiteralPath $cleanup -Recurse -Force -ErrorAction Stop
+            }
+        }
+    } finally {
+        foreach ($handle in $handles) { $handle.Dispose() }
+    }
+    Write-Output 'Disc 3 Docker Desktop loader returned; settings handoff completed.'
+    Write-Output "Keep the joined verified media cache for recovery: $output"
+    Write-Output 'Next: review the GPU pack status and the host publication request before authorizing Tailscale Serve.'
 }
 
 function Invoke-Deep32Main {
@@ -555,51 +793,193 @@ function Invoke-Deep32Main {
     $ErrorActionPreference = 'Stop'
     $role = $null
     $destination = Join-Path (Get-Location).Path 'deep32-downloads'
-    $release = 'v0.1.0-alpha.1'
+    $release = 'v0.1.0-alpha.2'
     $key = Join-Path $script:Deep32ScriptDirectory '..\..\install\release-key.gpg'
     $source = $null
+    $repository = 'hellobpdu/deep32'
+    $gpuClass = ''
+    $ingestion = $false
+    $full = $false
     $install = $false
+    $gpg = ''; $fingerprint = 'B205B406548627AABF5250D8A078C5F25D025DD6'; $prepareVm = $false; $hypervisor = ''
+    $installOptions = @{ journey = ''; form = 'docker'; platform = 'windows'; docker_role = 'forge'; data_root = (Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'Deep32'); content = ''; docker_storage_path = '';
+        non_interactive = $false; accept_plan = ''; confirm_tailnet = ''; desktop_isolation_confirmed = $false; settings_arguments = @() }
     $seen = New-Object 'Collections.Generic.HashSet[string]' ([StringComparer]::Ordinal)
     for ($index = 0; $index -lt $Arguments.Count; $index++) {
         $argument = $Arguments[$index]
-        if ($argument -ceq '--install') {
-            if (-not $seen.Add($argument)) { throw 'Duplicate option: --install' }
-            $install = $true
-        } elseif ($argument -cin @('--to', '--release', '--key', '--source')) {
+        # PowerShell's native spelling and the portable long options share the
+        # same duplicate/ambiguity checks, including the source alias.
+        if ($argument -ieq '-From') { $argument = '--from' }
+        elseif ($argument -ieq '-Source') { $argument = '--source' }
+        elseif ($argument -ieq '-To') { $argument = '--to' }
+        if ($argument -cin @('--help', '-h')) {
+            Write-Output 'deep32-get.ps1 disc1|disc2|disc3 [--to DIR | --from DIR] [--release TAG] [--repo OWNER/NAME] [--key PUBLIC.asc|PUBLIC.gpg] [--gpg FILE] [--fingerprint HEX] [--gpu-class CLASS] [--ingestion] [--full]';
+            Write-Output '--from DIR (PowerShell -From) verifies local media in place without copying or network; --source is its alias.';
+            Write-Output 'disc1 --prepare-vm --hypervisor hyper-v|kvm writes artefacts and commands only.';
+            Write-Output 'disc3 --install --journey J1|J2|J3|J4 [--data-root DIR] [--docker-storage-path DIR] [--settings FILE] [--node-name NAME --user-name NAME --time-zone ZONE --keyboard LAYOUT --profile ID --transport tailnet|loopback --publish serve-https] [--form docker --platform windows --docker-role forge|full] [--content DIR (full only)] [--confirm-tailnet SUFFIX] [--confirm-desktop-isolation] [--non-interactive --accept-plan DIGEST]'; return
+        } elseif ($argument -cin @('--install', '--non-interactive', '--prepare-vm', '--ingestion', '--full', '--confirm-desktop-isolation')) {
+            if (-not $seen.Add($argument)) { throw 'Duplicate option.' }
+            if ($argument -ceq '--install') { $install = $true }
+            elseif ($argument -ceq '--prepare-vm') { $prepareVm = $true }
+            elseif ($argument -ceq '--ingestion') { $ingestion = $true }
+            elseif ($argument -ceq '--full') { $full = $true }
+            elseif ($argument -ceq '--confirm-desktop-isolation') { $installOptions.desktop_isolation_confirmed = $true }
+            else { $installOptions.non_interactive = $true }
+        } elseif ($argument -cin @('--status', '--resume', '--remove', '--pair-headend', '--pairing-console')) {
+            Write-Output 'This lifecycle action needs Phase B media. Next: use the status and recovery commands in src/gpu-pack/PACK.md.'
+            exit 10
+        } elseif ($argument -cin @('--to', '--from', '--release', '--repo', '--gpu-class', '--key', '--source', '--gpg', '--fingerprint', '--hypervisor', '--journey', '--settings', '--node-name',
+            '--user-name', '--time-zone', '--keyboard', '--profile', '--transport', '--publish', '--form', '--platform', '--docker-role', '--accept-plan', '--confirm-tailnet', '--data-root', '--content', '--docker-storage-path')) {
             if (-not $seen.Add($argument) -or $index + 1 -ge $Arguments.Count) { throw "Missing value or duplicate option: $argument" }
             $index++
             $value = $Arguments[$index]
+            if ($value.Length -eq 0) { throw "Missing value: $argument" }
+            if ($value -match '[\x00-\x1f\x7f]') { throw "Control characters are refused in option values: $argument" }
             switch -CaseSensitive ($argument) {
                 '--to' { $destination = $value }
                 '--release' { $release = $value }
+                '--repo' { $repository = $value }
+                '--gpu-class' { $gpuClass = $value }
                 '--key' { $key = $value }
+                '--from' { $source = $value }
                 '--source' { $source = $value }
+                '--gpg' { $gpg = $value }
+                '--fingerprint' { $fingerprint = $value }
+                '--hypervisor' { $hypervisor = $value }
+                '--journey' { $installOptions.journey = $value }
+                '--form' { $installOptions.form = $value }
+                '--platform' { $installOptions.platform = $value }
+                '--docker-role' { $installOptions.docker_role = $value }
+                '--data-root' { $installOptions.data_root = $value }
+                '--content' { $installOptions.content = $value }
+                '--docker-storage-path' { $installOptions.docker_storage_path = $value }
+                '--accept-plan' { $installOptions.accept_plan = $value }
+                '--confirm-tailnet' { $installOptions.confirm_tailnet = $value }
+                default { $installOptions.settings_arguments += @($argument, $value) }
             }
         } elseif ($null -eq $role -and $argument -cin @('disc1', 'disc2', 'disc3')) {
             $role = $argument
         } else {
-            throw 'Usage: deep32-get.ps1 disc1|disc2|disc3 [--to DIR] [--release v0.1.0-alpha.1] [--install] [--key FILE] [--source LOCAL_DIRECTORY_OR_FILE_URL]'
+            throw 'Usage: deep32-get.ps1 disc1|disc2|disc3 [--to DIR | --from DIR] [--release v0.1.0-alpha.2] [--install] [--key FILE]'
         }
     }
     if ($null -eq $role) { throw 'Select disc1, disc2 or disc3.' }
+    if ($seen.Contains('--from') -and $seen.Contains('--source')) { throw 'Select only one of --from and --source.' }
+    if ($null -ne $source -and $seen.Contains('--to')) { throw '--from/--source and explicit --to cannot be combined.' }
+    if (($gpuClass -or $ingestion -or $full) -and $role -cne 'disc3') { throw 'GPU class and add-on selection apply only to disc3.' }
     if ($release -cnotmatch '^v[A-Za-z0-9][A-Za-z0-9._-]*$' -or $release.Contains('..')) { throw 'The release tag is unsafe.' }
+    if ($repository -cnotmatch '^[A-Za-z0-9][A-Za-z0-9_.-]{0,99}/[A-Za-z0-9][A-Za-z0-9_.-]{0,99}$' -or
+        $repository.Contains('..')) { throw 'The release repository is unsafe.' }
     if ($install -and $role -cne 'disc3') { throw '--install is supported only for disc3.' }
+    $splitInstall = $install -and $release -cne 'v0.1.0-alpha.1'
+    if ($installOptions.confirm_tailnet -and -not $splitInstall) { throw '--confirm-tailnet applies only to split Windows Forge installation.' }
+    if ($installOptions.desktop_isolation_confirmed -and -not $splitInstall) { throw '--confirm-desktop-isolation applies only to split Windows Forge installation.' }
+    if ($role -ceq 'disc3' -and $release -cne 'v0.1.0-alpha.1' -and -not $gpuClass) { throw 'disc3 requires the observed --gpu-class; no class fallback is permitted.' }
+    if ($installOptions.journey -and $installOptions.journey -cnotmatch '^J[1-5]$') { throw 'Invalid journey.' }
+    if ($install) {
+        if ($installOptions.journey -cnotmatch '^J[1234]$') { throw 'Select --journey J1, J2, J3 or J4 for the GPU loader.' }
+        if ($installOptions.form -cne 'docker' -or $installOptions.platform -cne 'windows' -or $installOptions.docker_role -cnotin @('forge', 'full')) {
+            Write-Output 'Windows GPU installation uses Docker Desktop. Next: select --form docker --platform windows with Forge (default) or explicit --docker-role full.'
+            exit 10
+        }
+        if ($installOptions.docker_role -ceq 'full') {
+            if (-not $installOptions.content) { throw 'Select --content DIR containing the signed content medium for the full Docker role.' }
+            $installOptions.content = Get-Deep32PlainPath -Path $installOptions.content -Directory
+        } elseif ($installOptions.journey -ceq 'J3' -or $installOptions.content) {
+            throw 'J3 and --content require the explicit --docker-role full choice.'
+        }
+        if ($splitInstall -and ($installOptions.docker_role -cne 'forge' -or $full)) {
+            throw 'Split disc 3 installation supports the Forge role.'
+        }
+        if ($splitInstall) {
+            if (-not $installOptions.desktop_isolation_confirmed) { throw 'Supply --confirm-desktop-isolation after reviewing Docker Desktop WSL integration for unrelated distributions.' }
+            if (-not $installOptions.docker_storage_path) { throw 'Select the exact existing Docker Desktop backing directory with --docker-storage-path.' }
+            Assert-Deep32SplitLocalPath $installOptions.data_root
+            Assert-Deep32SplitLocalPath $installOptions.docker_storage_path
+            if ($source -and $source -notmatch '^file:') { Assert-Deep32SplitLocalPath $source }
+        }
+        $installOptions.data_root = Get-Deep32PlainPath -Path $installOptions.data_root -Directory -MayNotExist
+        if ($installOptions.docker_storage_path) { $installOptions.docker_storage_path = Get-Deep32PlainPath -Path $installOptions.docker_storage_path -Directory }
+    }
+    if ($prepareVm -and ($role -cne 'disc1' -or $hypervisor -cnotin @('hyper-v', 'kvm'))) { throw '--prepare-vm requires disc1 --hypervisor hyper-v|kvm.' }
+    if ($hypervisor -and -not $prepareVm) { throw '--hypervisor requires --prepare-vm.' }
+    if ($install -and -not $splitInstall) { Test-Deep32InstallPrerequisites -Journey $installOptions.journey }
+    if ($splitInstall) {
+        if (-not $source) {
+            throw 'Download disc 3 with --gpu-class CLASS --ingestion as a standard user, then install from the signed release folder in elevated PowerShell with --from DIR.'
+        }
+        if (-not $installOptions.confirm_tailnet -and ($installOptions.non_interactive -or [Console]::IsInputRedirected)) {
+            throw 'Confirm the intended tailnet with --confirm-tailnet EXPECTED_SUFFIX for non-interactive split Windows Forge installation.'
+        }
+        $python = Get-Deep32Python
+        & $python -I -B -c 'import sys; sys.exit(2 if not sys.executable.isascii() else int(sys.version_info < (3, 12)))'
+        if ($LASTEXITCODE -eq 2) {
+            throw 'Choose DEEP32_PYTHON at an ASCII-only path for the retained Forge startup hook.'
+        }
+        if ($LASTEXITCODE -ne 0) {
+            throw 'Split Forge installation requires Windows Python 3.12 or later. Set DEEP32_PYTHON to that interpreter and retry.'
+        }
+        if ($installOptions.data_root -match '[^\x00-\x7f]') {
+            throw 'Choose --data-root at an ASCII-only path for the retained Forge startup hook.'
+        }
+        if ($installOptions.docker_storage_path -match '[^\x00-\x7f]') {
+            throw 'Specify the existing ASCII-only Docker Desktop backing directory with --docker-storage-path for the retained Forge startup hook.'
+        }
+        $ingestion = $true
+        Write-Output 'Selecting the signed ingestion image required for split Forge installation.'
+    }
     $script:Deep32Source = $null
     $script:Deep32Release = $release
+    $script:Deep32ReleaseBase = 'https://github.com/' + $repository + '/releases/download'
     if ($null -ne $source) {
+        if ($source -match '[\x00-\x1f\x7f]') { throw '--from/--source must not contain control characters.' }
         if ($source -match '^file:') {
             $uri = [Uri]$source
-            if (-not $uri.IsFile -or $uri.IsUnc -or ($uri.Host -and $uri.Host -cne 'localhost')) {
+            if (-not $uri.IsFile -or $uri.IsUnc -or ($uri.Host -and $uri.Host -cne 'localhost') -or $uri.Query -or $uri.Fragment) {
                 throw '--source file URLs must name a local folder.'
             }
             $source = $uri.LocalPath
         } elseif ($source -match '^[A-Za-z][A-Za-z0-9+.-]*://' -or $source.StartsWith('\\') -or $source.StartsWith('//')) {
             throw '--source accepts only a local folder or file URL.'
         }
+        if ($splitInstall) { Assert-Deep32SplitLocalPath $source }
         if ([IO.Path]::GetFullPath($source).StartsWith('\\')) { throw '--source must be a local folder.' }
         $script:Deep32Source = Get-Deep32PlainPath -Path $source -Directory
     }
     $key = [IO.Path]::GetFullPath($key)
+    if ($script:Deep32Source -or $release -cne 'v0.1.0-alpha.1') {
+        $wholeArguments = @($role, '--release', $release, '--repo', $repository, '--key', $key, '--fingerprint', $fingerprint)
+        if ($gpg) { $wholeArguments += @('--gpg', $gpg) }
+        if ($gpuClass) { $wholeArguments += @('--gpu-class', $gpuClass) }
+        if ($ingestion) { $wholeArguments += '--ingestion' }
+        if ($full) { $wholeArguments += '--full' }
+        if ($script:Deep32Source) {
+            $wholeArguments += @('--from', $script:Deep32Source)
+            # Local verification itself never creates a destination. VM or
+            # installation stages may create their explicit output afterwards.
+            if ($prepareVm -or $install) { $destination = Get-Deep32PlainPath -Path $destination -Directory -MayNotExist }
+        } else {
+            $destination = New-Deep32Directory $destination
+            $cache = New-Deep32Directory (Join-Path $destination ('.deep32-' + $release))
+            $wholeArguments += @('--to', $destination, '--cache', $cache)
+        }
+        $verified = @(Invoke-Deep32WholeHelper -Arguments $wholeArguments -Multiple:($role -ceq 'disc3' -and $release -cne 'v0.1.0-alpha.1'))
+        $image = $verified[0].image
+        $disc = $verified[0].disc
+        if ($splitInstall) {
+            if ($script:Deep32Source) {
+                $destination = Get-Deep32PlainPath -Path ([IO.Path]::GetDirectoryName($image)) -Directory
+            }
+            $components = @('core', "embedder-$gpuClass", 'ingestion')
+            if ($verified.Count -ne $components.Count) {
+                throw 'The signed selection must include the core, selected embedder and ingestion images.'
+            }
+            $mediaComponents = @(for ($index = 0; $index -lt $components.Count; $index++) {
+                @{ component = $components[$index]; image = $verified[$index].image; disc = $verified[$index].disc }
+            })
+        }
+    } else {
+    if ($gpuClass -or $ingestion -or $full) { throw 'GPU class and add-on selection require whole-image release metadata.' }
     $destination = New-Deep32Directory $destination
     $cache = New-Deep32Directory (Join-Path $destination ('.deep32-' + $release))
     foreach ($name in @('ASSEMBLY.json', 'SHA256SUMS', 'SHA256SUMS.sig')) {
@@ -612,13 +992,18 @@ function Invoke-Deep32Main {
         if ([IO.File]::Exists($final)) { [IO.File]::Delete($final) }
         Move-Deep32NewFile $temporary $final
     }
-    Confirm-Deep32Signature -Cache $cache -Key $key
+    Confirm-Deep32Signature -Cache $cache -Key $key -Fingerprint $fingerprint -Gpg $gpg
     $disc = Get-Deep32Manifest -Cache $cache -Role $role -Release $release
     if ($null -eq $disc) {
         Write-Output ($role + ' is not in this release yet; it will be added to the same release. Check the release page.')
         exit 3
     }
     Write-Output 'Release signature and manifest verified.'
+    $storageArguments = @('storage', (Join-Path $cache 'ASSEMBLY.json'), (Join-Path $cache 'SHA256SUMS'), $role, $release, $destination, $cache, 'ps1')
+    if ($hypervisor) { $storageArguments += $hypervisor }
+    Invoke-Deep32ManifestHelper -Arguments $storageArguments
+    Invoke-Deep32ManifestHelper -Arguments @('publication-check', $destination)
+    Invoke-Deep32ManifestHelper -Arguments @('publication-check', $cache)
     $image = Join-Path $destination $disc.file
     [void](Get-Deep32PlainPath -Path $image -MayNotExist)
     if ([IO.File]::Exists($image)) {
@@ -639,7 +1024,7 @@ function Invoke-Deep32Main {
             Move-Deep32NewFile $partial $path
             Write-Output ('Downloaded and verified ' + $part.name)
         }
-        $joined = Join-Path $cache ($disc.file + '.joining')
+        $joined = Join-Path $destination ($disc.file + '.joining')
         [void](Get-Deep32PlainPath -Path $joined -MayNotExist)
         if ([IO.File]::Exists($joined)) { [IO.File]::Delete($joined) }
         $outputStream = $null
@@ -662,10 +1047,38 @@ function Invoke-Deep32Main {
         Move-Deep32NewFile $joined $image
         Write-Output ('Disc image verified: ' + $image)
     }
-    if ($install) { Invoke-Deep32Install -Image $image -Destination $destination }
+    }
+    # A source medium can disappear or change after initial verification. Check
+    # it again immediately before handing it to a mutating downstream stage.
+    if ($prepareVm) {
+        Assert-Deep32File $image $disc.size $disc.sha256
+        $destination = New-Deep32Directory $destination
+        Invoke-Deep32ManifestHelper -Arguments @('prepare-vm', $image, ([string]$disc.size), $disc.sha256, $hypervisor, $destination)
+    } elseif ($splitInstall) {
+        $policy = @{ DOCKER_HOST = 'npipe:////./pipe/dockerDesktopLinuxEngine'; DOCKER_CONTEXT = $null;
+            DOCKER_TLS = $null; DOCKER_TLS_VERIFY = $null; DOCKER_CERT_PATH = $null; TS_SOCKET = $null }
+        $previous = @{}
+        foreach ($name in $policy.Keys) { $previous[$name] = [Environment]::GetEnvironmentVariable($name, 'Process') }
+        try {
+            foreach ($name in $policy.Keys) { [Environment]::SetEnvironmentVariable($name, $policy[$name], 'Process') }
+            $evidence = @{ source = $script:Deep32Source; gpu_class = $gpuClass; key = $key; fingerprint = $fingerprint; gpg = $gpg }
+            $settingsPlan = New-Deep32SettingsPlan -ImageHash $disc.sha256 -Destination $destination -Options $installOptions -MediaComponents $mediaComponents
+            try { Invoke-Deep32SplitInstall -MediaComponents $mediaComponents -SettingsPlan $settingsPlan -Evidence $evidence }
+            finally { Remove-Deep32SettingsStage -Directory $settingsPlan.directory }
+        } finally {
+            foreach ($name in $previous.Keys) { [Environment]::SetEnvironmentVariable($name, $previous[$name], 'Process') }
+        }
+    } elseif ($install) {
+        $settingsPlan = New-Deep32SettingsPlan -ImageHash $disc.sha256 -Destination $destination -Options $installOptions
+        try {
+            Assert-Deep32File $image $disc.size $disc.sha256
+            Invoke-Deep32Install -Image $image -Destination $destination -SettingsPlan $settingsPlan
+        }
+        finally { Remove-Deep32SettingsStage -Directory $settingsPlan.directory }
+    }
     elseif ($role -ceq 'disc1') { Write-Output 'Write the verified disc 1 image to a USB stick, then boot from that USB stick.' }
     elseif ($role -ceq 'disc2') { Write-Output 'Attach the verified disc 2 content image in Deep32 Workstation and import its content.' }
-    else { Write-Output 'Rerun this command with --install to install disc 3 using its WSL form.' }
+    else { Write-Output 'Selected GPU capability packs verified.' }
 }
 
 if ($MyInvocation.InvocationName -ne '.') {

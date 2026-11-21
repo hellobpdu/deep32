@@ -1,144 +1,165 @@
 # C2. Release manifest
 
-Contract C2, version 1, DRAFT of 2026-11-14. Written by the release tooling; read by
-`install/verify-release.ps1`, `install/verify-release.sh` and the installer. Once frozen, any change raises
-the version and needs the release tooling, both verifiers and the installer retested.
+Contract C2, version 2, DRAFT of 2026-11-17.
+Written by the release tooling; alpha.2 outer metadata is read by
+`src/release-tools/verify-release.ps1`, `src/release-tools/verify-release.sh` and the download helpers.
+The `install/verify-release.*` scripts retain the older signed `MANIFEST.json` interface.
+Once frozen, any change raises the version and needs the release tooling, both verifiers and the installer retested.
 
-Changed 2026-11-14 (same draft, never released): the manifest is signed with the release key holder's
-OpenPGP key as a detached, armored signature, checked with `gpgv` against the public key shipped in
-`install/` and a pinned fingerprint. The earlier OpenSSH signatures are gone; there is no unsigned mode.
+Changed 2026-11-17: whole objects, MIRRORS version 2 and GPU bundles, signed root and child
+checksum lists, explicit metadata coverage, native GnuPG verification, verification scopes and exit codes.
+
 
 ## 1. What a release is
 
-- Three discs, each with a role: `system` (disc 1, the Workstation installer, bootable), `content` (disc 2,
-  data), `gpu` (disc 3, the Forge, bootable). Each disc has its own version.
-- Each disc is uploaded as numbered parts to the GitHub release of its own tag, `<role>-<version>`.
-- One code release, tag `v<version>`, holds `MANIFEST.json` and `MANIFEST.json.asc`. Its bill of materials
-  names the three disc versions that go together.
-- A disc that did not change is carried: the new manifest names the earlier disc release and repeats its
-  part list; the parts stay where they are.
+- Three logical disc roles: `disc1` / `workstation` (the Workstation installer, bootable),
+  `disc2` / `content` (data), and `disc3` / `gpu-pack` (the Forge).
+- Alpha.2 uses release tag `v0.1.0-alpha.2` and architecture `amd64`.
+  Whole-object assembly refuses pending producers and requires the exact declared transports.
+- MIRRORS version 2 lists the Workstation and content images in `discs`, and GPU media in
+  `bundles`: shared `core`, all seven `embedder-<class>` objects, shared `ingestion`, and declared optional companions.
+  The classes are `turing`, `ampere80`, `ampere86`, `ada`, `hopper`, `blackwell100` and
+  `blackwell120`.
+- GitHub holds the small release assets listed by `ASSETS.txt`; whole images are fetched from
+  the authenticated mirror URLs.
+- The content image is carried unchanged from alpha.1; its external release metadata changes.
+  An SPDX document ships beside each image, covered by the signed root checksum list.
+  No SBOM is embedded in an image.
 
-## 2. Parts
+## 2. Whole objects
 
-- Name: `deep32-<role>-<disc version><ext>.partNNN`, NNN from `001`, three digits (at most 999 parts).
-- Size: every part except the last is exactly `part_size` bytes; the last holds the rest. `part_size` is at
-  most 1,900 MiB (1,992,294,400 bytes), under GitHub's 2 GiB limit per release file. A GitHub release holds
-  at most 1,000 files.
-- Joining: the parts in index order, concatenated, are the disc image named `file`.
+- Names are `deep32-0.1.0-alpha.2-disc1-workstation-amd64.img` or `.iso`,
+  `deep32-0.1.0-alpha.2-disc2-content.iso`, and `deep32-0.1.0-alpha.2-disc3-gpu-pack-<bundle_id>.iso`.
+- Each object is between 1 byte and 512 GiB (549,755,813,888 bytes).
+  Its ordered SHA-256 list describes consecutive 64 MiB (67,108,864-byte) ranges; the final
+  range holds the remainder, with at most 8,192 ranges.
+  These are signed range hashes within one object, not separate part files.
+- Alpha.2 has no numbered release parts, joining step or `ASSEMBLY.json`.
+  Legacy split verification and signing require `--legacy-split` or `-LegacySplit` explicitly.
+- The assembled small-upload list has at most 1,000 entries.
 
-## 3. MANIFEST.json
+## 3. MIRRORS.json and checksums
 
-ASCII JSON, two-space indent, LF line ends, a final newline, keys in the order below. The signature covers
-these exact bytes: a reader verifies the bytes it read, then parses those same bytes, and never re-serialises
-before verifying. Hashes are lower-case hex SHA-256; sizes are bytes.
+Canonical JSON is ASCII, with sorted keys, two-space indentation, LF line endings and a final newline.
+The root signature authenticates the original `SHA256SUMS` bytes; raw `MIRRORS.json` bytes
+must match their authenticated root hash before JSON parsing.
+Hashes are lowercase hexadecimal SHA-256, and sizes are bytes.
 
 | Field | Value |
 |---|---|
-| `format`, `format_version` | `"deep32-release-manifest"`, `1`. Readers refuse any other |
-| `release.version`, `release.tag` | e.g. `"1.0.0"`, `"v1.0.0"` (tag defaults to `v<version>`) |
-| `release.created` | `YYYY-MM-DDTHH:MM:SSZ`, given to the tool, never read from the clock, so the same inputs give the same bytes |
-| `release.complete` | `true` when all three roles are present. Only complete manifests are released |
-| `author.name`, `.contact_email`, `.github`, `.notice` | the visible attribution, from the project's single authorship record |
-| `signer` | `{"type": "openpgp", "fingerprint": "<40 upper-case hex digits>"}`: the primary-key fingerprint of the release key that signs this manifest |
-| `introduces` | list of `{"type": "openpgp", "fingerprint": ...}`: next release keys this release introduces (normally empty) |
-| `bill_of_materials` | list of `{role, version, tag, file, size, sha256}`, one per disc |
-| `discs` | list in role order `system`, `content`, `gpu`, each `{role, version, tag, file, size, sha256, part_size, parts}` |
-| `discs[].parts` | list in order, each `{index, name, size, sha256}`, index from 1 |
+| `format`, `format_version` | `"deep32-mirrors"`, `2` for new alpha.2 assembly; version 1 remains readable for verification |
+| `release`, `architecture` | `"v0.1.0-alpha.2"`, `"amd64"` |
+| `revision` | Integer from 1 through 2,147,483,647; independent of the release tag |
+| `source_commit` | 40 lowercase hexadecimal digits |
+| `published_at` | Supplied UTC `YYYY-MM-DDTHH:MM:SSZ`; no clock-derived assembly value |
+| `citation` | `concept_doi` and `release_doi`; the concept DOI is `https://doi.org/10.5281/zenodo.24272647` |
+| `archive` | `item`, `details_url`, `torrent_url`, bound to the release's Internet Archive item |
+| `capability_manifest` | `{file, sha256}` binding the original capability-manifest bytes |
+| `discs` | Exactly `disc1` / `workstation` and `disc2` / `content`; each `{role, kind, file, size, sha256, chunk_bytes, chunk_sha256, mirrors}` |
+| `bundles` | GPU transports, each `{bundle_id, bundle_sha256, file, size, sha256, chunk_bytes, chunk_sha256, mirrors}`; `bundle_sha256` hashes the canonical exact capability-bundle definition |
+| `chunk_bytes`, `chunk_sha256` | `67108864` and an ordered list of SHA-256 hashes, with exactly `ceil(size / chunk_bytes)` entries |
+| `mirrors` | From 1 through 16 ordered `{id, url}` entries; the first is the canonical Internet Archive download URL |
 
-Names (`file`, part names) match `[A-Za-z0-9][A-Za-z0-9._-]*`; a verifier refuses anything else.
+Flat filenames match `[A-Za-z0-9][A-Za-z0-9._-]*`, at most 200 characters, with no `..`,
+trailing dot, reserved device stem or case-colliding duplicate.
+Links, reparse points and special files are refused.
+
+Root `SHA256SUMS` covers every whole object, `MIRRORS.json`, the capability manifest,
+`ASSET-MAP.json`, `ASSETS.txt`, all three child checksum lists and every supplied small asset.
+Each child list covers its own image or GPU transports, its fixed README and explicitly mapped
+sidecars; a sidecar must also be covered by the root.
+Neither the root nor a child list hashes itself or any signature.
+`ASSETS.txt` lists exactly the sorted small uploads and four future signature names.
+Ordinary small metadata is limited to 5 MiB, and the explicitly bound capability manifest to 8 MiB.
+The assembler takes an explicit metadata source list and child memberships, never a directory sweep.
 
 ## 4. Signature and keys
 
 - The release key is an OpenPGP key (today: Ed25519, version 4, held by the release key holder only).
-- Signing, by the key holder only, in the folder holding the manifest:
-  `gpg --local-user <fingerprint> --armor --detach-sign --output MANIFEST.json.asc MANIFEST.json`.
+- Only the key holder signs, using
+  `src/release-tools/sign-release.sh --release-dir <folder> --key-id <fingerprint>`.
+  After whole-metadata preflight, the script signs the three child lists, then the root,
+  with `gpg --local-user <key> --detach-sign --armor --output <checksum>.sig <checksum>`.
+  Existing signatures are never overwritten, and `--dry-run` invokes no signing command.
   Git tags and commits of the repository are signed with the same key (`git tag -s`).
 - Shipped in `install/` of the repository: `release-key.asc` (the public key, armored),
   `release-key.gpg` (the same key, binary: the keyring `gpgv` reads) and `release-key.fingerprint`
   (line 1: the 40 hex digits; line 2: the same, spaced as GnuPG prints it). The fingerprint is also printed
   in the README.
-- Check, exactly: `gpgv --homedir <new empty folder> --keyring <path of install/release-key.gpg>
-  --status-fd 1 MANIFEST.json.asc MANIFEST.json`. The keyring path must contain a `/` (a bare name is looked
-  for in gpgv's own folder), and its form depends on the gpgv build (as checked on 2026-11-14): the gpgv of Linux,
-  macOS and Gpg4win takes an ordinary full path (on Windows written `C:/...`); the gpgv of Git for Windows, an
-  MSYS2 program, does not accept a `C:/...` path (it reads it as a key resource and reports
-  `NO_PUBKEY`) and needs `./release-key.gpg`, relative to the current folder, or `/c/...`. The shipped
-  verifiers write the keyring and the `--homedir` paths in the form the gpgv they found takes. The person's
-  own GnuPG keyring is never used. The signature
-  is good only when `gpgv` exits 0 and its status lines hold exactly one `GOODSIG` and one `VALIDSIG`, none
-  of `BADSIG`, `ERRSIG`, `EXPSIG`, `EXPKEYSIG`, `REVKEYSIG` or `NO_PUBKEY`, the signature class in `VALIDSIG`
-  (its ninth field, just before the primary-key fingerprint) is `00`, a binary signature over the exact
-  bytes (a text-mode signature, class `01`, would also match the manifest with other line ends, and is
-  refused), and the last field of `VALIDSIG` (the primary-key fingerprint) equals the pinned fingerprint. A
-  signature made by a signing subkey of the release key is accepted: the pin is always the primary key's.
-  A non-detached or clear-signed message given as `MANIFEST.json.asc` is refused (`gpgv` reports no
-  signature over the data file). `signer.fingerprint` must equal the pin too.
-- Where `gpgv` comes from: Linux distributions ship it; on Windows it comes with Git for Windows
-  (`C:\Program Files\Git\usr\bin\gpgv.exe`) and with Gpg4win; macOS users run `brew install gnupg` once.
-  A verifier looks for it on PATH, then in those Windows places. Not found is its own exit code, never a pass.
+- Alpha.2 outer verification uses GnuPG `gpg`, imports one supplied public key into a fresh
+  private temporary home, and pins its primary fingerprint to the caller's expected 40- or 64-digit value before
+  checking `SHA256SUMS.sig` and each child signature.
+  Secret-key input, automatic key retrieval and an index-selected key are refused.
+  The person's own GnuPG keyring is never used.
+  A signature must have binary class `00`, never text class `01`, to bind exact bytes.
+  Successful verification requires GnuPG success and exactly one `VALIDSIG` from the pinned
+  primary, including a signing subkey whose reported primary matches the pin.
+  There is no unsigned mode.
+- GnuPG discovery uses an explicit executable when supplied; otherwise it checks native
+  GnuPG/Gpg4win locations on Windows, then PATH, and skips implicit Git/MSYS `gpg.exe`.
+  A missing working GnuPG executable is a needs-action failure.
 - Expiry: a signature by a key that has expired by the time of the check gives `EXPKEYSIG` and is refused.
   The key holder extends the expiry before it lapses and the repository's `install/release-key.*` are
   refreshed, so a current checkout always verifies.
-- Changing the key: a release signed with the current key lists the next key in `introduces`. The installer
-  adds a key to its trusted list only from a manifest that verified under a key it already trusts. Later
-  releases are signed with the new key, and the repository then ships the new key and fingerprint.
+- Trust changes require the caller's expected public key and primary fingerprint; the outer
+  format has no `introduces` field or automatic key enrollment.
+- The retained `install/verify-release.*` scripts and the content importer use the separate
+  `MANIFEST.json.asc` / `gpgv` interface, including the pinned signer, exact `GOODSIG`/`VALIDSIG` counts, bad-status
+  refusals and binary signature-class check.
 
 ## 5. Verification order (both verifiers, normative)
 
-1. The signature is good under the rules of section 4, against the shipped key and the pinned fingerprint,
-   and `signer` names that same key. Nothing in the manifest is used before this.
-2. Form: format and version, roles, safe names, hash and size forms, requested roles present.
-3. Every part: present, right size, right SHA-256. All parts are checked and every bad one is listed;
-   nothing is joined if any fails.
-4. Each disc is joined into `<file>.partial`, its size and SHA-256 are checked, and only then is it renamed
-   to `<file>`. A disc that fails is deleted.
+1. Authenticate the root checksum list using the supplied public key and expected primary
+   fingerprint before using release descriptors or payload URLs.
+2. Hash raw MIRRORS bytes, parse and validate format, roles, safe names, sizes, hashes and
+   the capability-manifest byte and exact-bundle bindings.
+3. Check exact small-file coverage, sizes and hashes, `ASSETS.txt`, ASSET-MAP and all child
+   memberships; missing and unexpected metadata are refused.
+4. With explicit `metadata` scope, omit only the declared whole objects and report that
+   image bytes were not checked.
+   With explicit `whole` scope, verify size and SHA-256 of every declared whole object at its
+   supplied path, or the default sibling `images/` path, without joining or copying it.
+   Authenticate all three child signatures before reporting success.
 
 | Exit | Meaning |
 |---|---|
-| 0 | every check passed (and every disc was joined, unless told not to join) |
-| 1 | usage error |
-| 2 | an input file or folder is missing or unreadable, or `release-key.fingerprint` is malformed |
-| 3 | `gpgv` was not found or could not be started |
-| 4 | the signature is not good, is not by the pinned release key, or `signer` names another key |
-| 5 | the manifest is not usable: not JSON, unknown format or version, unsafe names, a requested role absent |
-| 6 | a part is missing or has the wrong size |
-| 7 | a part has the wrong SHA-256 |
-| 8 | a joined disc has the wrong size or SHA-256 (it is deleted) |
-| 9 | a joined disc, or the verifier's private work folder, could not be written |
-| 10 | (shell verifier only) another needed tool is missing: a SHA-256 tool |
+| 0 | The requested scope passed |
+| 1 | Refusal, input/I/O or helper failure; the PowerShell wrapper maps helper failures here |
+| 2 | Python helper argument-parser usage error |
+| 10 | The direct helper needs a working GnuPG installation; the PowerShell wrapper maps this failure to 1 |
 
 ## 6. For INSTALL.md: verify it yourself
 
-You do not have to trust the installer. Download the parts of each disc, `MANIFEST.json` and
-`MANIFEST.json.asc` into one folder, and take `install/release-key.gpg` and `install/release-key.fingerprint`
-from the repository. Compare the fingerprint in that file with the one printed in the README. Then run
-`gpgv --keyring ./release-key.gpg --status-fd 1 MANIFEST.json.asc MANIFEST.json` (write the keyring exactly
-as `./release-key.gpg`: a name without `/` is looked for in gpgv's own folder, and the gpgv of Git for Windows
-refuses a `C:/...` path, though `/c/...` works). `gpg` is not needed for this check; it only
-shows the key's fingerprint, if you want to see it. It must print a `GOODSIG` line and a `VALIDSIG`
-line whose last field is that fingerprint and whose field before it is `00`. Every part's SHA-256 (`Get-FileHash` on Windows, `sha256sum` on
-Linux, `shasum -a 256` on macOS) must equal the one in the manifest; the parts joined in order must give the
-disc's `sha256`. `install/verify-release.ps1` and `install/verify-release.sh` do exactly these steps.
+Download the signed small release assets, take the public key from the repository, and compare
+its primary fingerprint with the independently expected fingerprint.
+Run `src/release-tools/verify-release.sh <metadata-folder> <fingerprint> --scope metadata`,
+or `src/release-tools/verify-release.ps1 -ReleaseDirectory <metadata-folder> -Fingerprint <fingerprint> -Scope metadata`.
+To verify image bytes too, use `whole` scope with every declared object, supplying
+`--image <disc-role-or-bundle-id>=<path>` or `-ImagePath <disc-role-or-bundle-id>=<path>` where needed.
+The helpers require Python 3.10 or later, their bundled helper/schema files and working native
+GnuPG; `gpgv` alone does not implement this outer check.
+These verifiers use the same authenticated root, descriptor and child checks described above.
 
 ## 7. Example (abridged)
 
-```json
-{
-  "format": "deep32-release-manifest",
-  "format_version": 1,
-  "release": {"version": "1.0.0", "tag": "v1.0.0", "created": "2026-11-14T00:00:00Z", "complete": true},
-  "author": {"name": "...", "contact_email": "...", "github": "...", "notice": "Copyright (C) 2026 Jeffrey A. Cummings"},
-  "signer": {"type": "openpgp", "fingerprint": "B205B406548627AABF5250D8A078C5F25D025DD6"},
-  "introduces": [],
-  "bill_of_materials": [
-    {"role": "system", "version": "1.0.0", "tag": "system-1.0.0", "file": "deep32-system-1.0.0.iso",
-     "size": 3221225472, "sha256": "..."}
-  ],
-  "discs": [
-    {"role": "system", "version": "1.0.0", "tag": "system-1.0.0", "file": "deep32-system-1.0.0.iso",
-     "size": 3221225472, "sha256": "...", "part_size": 1992294400,
-     "parts": [{"index": 1, "name": "deep32-system-1.0.0.iso.part001", "size": 1992294400, "sha256": "..."},
-               {"index": 2, "name": "deep32-system-1.0.0.iso.part002", "size": 1228931072, "sha256": "..."}]}
-  ]
-}
+These checksum names show the four detached signatures; MIRRORS version 2 supplies the
+complete image and bundle descriptors, and ASSET-MAP supplies each sidecar's association.
+
+```text
+SHA256SUMS
+SHA256SUMS.sig
+MIRRORS.json
+ASSET-MAP.json
+ASSETS.txt
+deep32-0.1.0-alpha.2-disc1-workstation-amd64-SHA256SUMS
+deep32-0.1.0-alpha.2-disc1-workstation-amd64-SHA256SUMS.sig
+deep32-0.1.0-alpha.2-disc2-content-SHA256SUMS
+deep32-0.1.0-alpha.2-disc2-content-SHA256SUMS.sig
+deep32-0.1.0-alpha.2-disc3-gpu-pack-SHA256SUMS
+deep32-0.1.0-alpha.2-disc3-gpu-pack-SHA256SUMS.sig
 ```
+
+Sources: `src/release-tools/release_assemble.py`, `src/release-tools/deep32_get_manifest.py`,
+`src/release-tools/contract_validate.py`, `src/release-tools/contracts/schemas/mirrors.schema.json`,
+`src/release-tools/sign-release.sh`, `src/release-tools/verify-release.ps1`,
+`src/release-tools/verify-release.sh`, `install/verify-release.ps1`.

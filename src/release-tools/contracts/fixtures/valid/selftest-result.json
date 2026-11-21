@@ -1,0 +1,40 @@
+{
+  "bundle_id": "fixture-beacons-v1",
+  "checks": [
+    {
+      "check": "bundle-and-run",
+      "detail": "Invented fixture only.",
+      "fix": null,
+      "state": "OK"
+    }
+  ],
+  "completed_questions": 2,
+  "details": [
+    {
+      "first_relevant_rank": 1,
+      "id": "fixture-beacon"
+    },
+    {
+      "first_relevant_rank": 2,
+      "id": "fixture-kite"
+    }
+  ],
+  "exit_code": 0,
+  "fixture_only": true,
+  "measured": {
+    "hit_at_1": 0.5,
+    "hit_at_3": 1.0,
+    "hit_at_8": 1.0,
+    "mrr_at_10": 0.75
+  },
+  "question_count": 2,
+  "reference": {
+    "hit_at_1": 0.5,
+    "hit_at_3": 1.0,
+    "hit_at_8": 1.0,
+    "mrr_at_10": 0.75
+  },
+  "release": "v0.1.0-alpha.2",
+  "schema_version": 1,
+  "status": "PASS"
+}

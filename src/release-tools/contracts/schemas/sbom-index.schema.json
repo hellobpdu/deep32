@@ -1,0 +1,230 @@
+{
+  "$id": "urn:deep32:sbom-index:v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "format": {
+      "const": "deep32-sbom-index"
+    },
+    "format_version": {
+      "const": 1
+    },
+    "release": {
+      "const": "v0.1.0-alpha.2"
+    },
+    "subjects": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "contents": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "path": {
+                  "maxLength": 240,
+                  "minLength": 1,
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$",
+                  "type": "string"
+                },
+                "sha256": {
+                  "pattern": "^[0-9a-f]{64}$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "path",
+                "sha256"
+              ],
+              "type": "object"
+            },
+            "maxItems": 1024,
+            "minItems": 0,
+            "type": "array"
+          },
+          "coverage": {
+            "additionalProperties": false,
+            "properties": {
+              "components": {
+                "enum": [
+                  "complete",
+                  "partial"
+                ]
+              },
+              "licences": {
+                "enum": [
+                  "complete",
+                  "partial"
+                ]
+              }
+            },
+            "required": [
+              "components",
+              "licences"
+            ],
+            "type": "object"
+          },
+          "gap": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "path": {
+                    "maxLength": 240,
+                    "minLength": 1,
+                    "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$",
+                    "type": "string"
+                  },
+                  "sha256": {
+                    "pattern": "^[0-9a-f]{64}$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "path",
+                  "sha256"
+                ],
+                "type": "object"
+              }
+            ]
+          },
+          "sbom": {
+            "additionalProperties": false,
+            "properties": {
+              "asset": {
+                "maxLength": 200,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+                "type": "string"
+              },
+              "media_paths": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "disc": {
+                      "enum": [
+                        "disc1",
+                        "disc2",
+                        "disc3"
+                      ]
+                    },
+                    "path": {
+                      "maxLength": 240,
+                      "minLength": 1,
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "disc",
+                    "path"
+                  ],
+                  "type": "object"
+                },
+                "maxItems": 3,
+                "minItems": 0,
+                "type": "array",
+                "uniqueItems": true
+              },
+              "sha256": {
+                "pattern": "^[0-9a-f]{64}$",
+                "type": "string"
+              }
+            },
+            "required": [
+              "asset",
+              "sha256",
+              "media_paths"
+            ],
+            "type": "object"
+          },
+          "subject": {
+            "additionalProperties": false,
+            "properties": {
+              "aliases": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "path": {
+                      "maxLength": 240,
+                      "minLength": 1,
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$",
+                      "type": "string"
+                    },
+                    "role": {
+                      "maxLength": 128,
+                      "minLength": 1,
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]*$",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "role",
+                    "path"
+                  ],
+                  "type": "object"
+                },
+                "maxItems": 32,
+                "minItems": 0,
+                "type": "array",
+                "uniqueItems": true
+              },
+              "kind": {
+                "enum": [
+                  "disc",
+                  "runtime",
+                  "container",
+                  "model",
+                  "source"
+                ]
+              },
+              "path": {
+                "maxLength": 240,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$",
+                "type": "string"
+              },
+              "sha256": {
+                "pattern": "^[0-9a-f]{64}$",
+                "type": "string"
+              },
+              "size": {
+                "minimum": 0,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "kind",
+              "path",
+              "size",
+              "sha256",
+              "aliases"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "subject",
+          "sbom",
+          "contents",
+          "coverage",
+          "gap"
+        ],
+        "type": "object"
+      },
+      "maxItems": 1024,
+      "minItems": 1,
+      "type": "array"
+    }
+  },
+  "required": [
+    "format",
+    "format_version",
+    "release",
+    "subjects"
+  ],
+  "title": "Deep32 sbom-index version 1",
+  "type": "object"
+}

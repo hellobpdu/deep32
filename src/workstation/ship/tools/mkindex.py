@@ -100,7 +100,7 @@ w("<div class='box'><b>RFCs and Internet-Drafts</b> (IETF, 2026-11): <a href='%s
   "(work in progress, never a standard); <a href='%s/ietf/index/rfc-index.xml'>RFC index</a>. IETF Trust Legal "
   "Provisions, as stated in each document.</div>" % (LC, rfc_n, LC, LC, LC, draft_n, LC))
 w("<h2>Cisco Validated Designs and design guides (%d)</h2>" % len(cisco))
-w("<div class='note'>Cisco documentation for viewing only, personal use; not to be redistributed. PDFs open in "
+w("<div class='note'>Cisco documentation, Copyright Cisco Systems, Inc., included unmodified for reference. PDFs open in "
   "Firefox here, or in MuPDF from the Cisco Papers folder (front panel, Deep32 Encyclopedia subpanel).</div><table>")
 for t, d, f, r in cisco:
     kind = "PDF" if f.lower().endswith(".pdf") else "HTML"

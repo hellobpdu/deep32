@@ -1,0 +1,237 @@
+{
+  "cases": [
+    {
+      "kind": "asset-map",
+      "path": "valid/asset-map.json",
+      "valid": true
+    },
+    {
+      "kind": "doctor-install",
+      "path": "valid/doctor-install.json",
+      "valid": true
+    },
+    {
+      "kind": "doctor-output",
+      "path": "valid/doctor-output.json",
+      "valid": true
+    },
+    {
+      "kind": "hash-graph",
+      "path": "valid/hash-graph.json",
+      "valid": true
+    },
+    {
+      "kind": "mirrors",
+      "path": "valid/mirrors.json",
+      "valid": true
+    },
+    {
+      "kind": "release-metadata",
+      "path": "valid/release-metadata.json",
+      "valid": true
+    },
+    {
+      "kind": "reproducibility",
+      "path": "valid/reproducibility-proven.json",
+      "valid": true
+    },
+    {
+      "kind": "reproducibility",
+      "path": "valid/reproducibility.json",
+      "valid": true
+    },
+    {
+      "kind": "sbom-gap",
+      "path": "valid/sbom-gap.json",
+      "valid": true
+    },
+    {
+      "kind": "sbom-index",
+      "path": "valid/sbom-index.json",
+      "valid": true
+    },
+    {
+      "kind": "sbom-input",
+      "path": "valid/sbom-input.json",
+      "valid": true
+    },
+    {
+      "kind": "selftest-calibration",
+      "path": "valid/selftest-calibration.json",
+      "valid": true
+    },
+    {
+      "kind": "selftest-questions",
+      "path": "valid/selftest-questions.json",
+      "valid": true
+    },
+    {
+      "kind": "selftest-reference",
+      "path": "valid/selftest-reference.json",
+      "valid": true
+    },
+    {
+      "kind": "selftest-result",
+      "path": "valid/selftest-result-incomplete.json",
+      "valid": true
+    },
+    {
+      "kind": "selftest-result",
+      "path": "valid/selftest-result.json",
+      "valid": true
+    },
+    {
+      "kind": "asset-map",
+      "path": "invalid/asset-map--traversal.json",
+      "valid": false
+    },
+    {
+      "kind": "asset-map",
+      "path": "invalid/asset-map--unknown-field.json",
+      "valid": false
+    },
+    {
+      "kind": "doctor-install",
+      "path": "invalid/doctor-install--duplicate-key.json",
+      "valid": false
+    },
+    {
+      "kind": "doctor-install",
+      "path": "invalid/doctor-install--role-platform.json",
+      "valid": false
+    },
+    {
+      "kind": "doctor-install",
+      "path": "invalid/doctor-install--unknown-field.json",
+      "valid": false
+    },
+    {
+      "kind": "doctor-output",
+      "path": "invalid/doctor-output--source-control.json",
+      "valid": false
+    },
+    {
+      "kind": "doctor-output",
+      "path": "invalid/doctor-output--summary.json",
+      "valid": false
+    },
+    {
+      "kind": "doctor-output",
+      "path": "invalid/doctor-output--unknown-field.json",
+      "valid": false
+    },
+    {
+      "kind": "hash-graph",
+      "path": "invalid/hash-graph--cycle.json",
+      "valid": false
+    },
+    {
+      "kind": "hash-graph",
+      "path": "invalid/hash-graph--self-hash.json",
+      "valid": false
+    },
+    {
+      "kind": "hash-graph",
+      "path": "invalid/hash-graph--unknown-field.json",
+      "valid": false
+    },
+    {
+      "kind": "mirrors",
+      "path": "invalid/mirrors--boolean-size.json",
+      "valid": false
+    },
+    {
+      "kind": "mirrors",
+      "path": "invalid/mirrors--duplicate-key.json",
+      "valid": false
+    },
+    {
+      "kind": "mirrors",
+      "path": "invalid/mirrors--unknown-field.json",
+      "valid": false
+    },
+    {
+      "kind": "mirrors",
+      "path": "invalid/mirrors--unsafe-url.json",
+      "valid": false
+    },
+    {
+      "kind": "release-metadata",
+      "path": "invalid/release-metadata--unknown-field.json",
+      "valid": false
+    },
+    {
+      "kind": "reproducibility",
+      "path": "invalid/reproducibility--mismatch.json",
+      "valid": false
+    },
+    {
+      "kind": "reproducibility",
+      "path": "invalid/reproducibility--missing-runs.json",
+      "valid": false
+    },
+    {
+      "kind": "reproducibility",
+      "path": "invalid/reproducibility--same-run.json",
+      "valid": false
+    },
+    {
+      "kind": "reproducibility",
+      "path": "invalid/reproducibility--unknown-field.json",
+      "valid": false
+    },
+    {
+      "kind": "sbom-gap",
+      "path": "invalid/sbom-gap--unknown-field.json",
+      "valid": false
+    },
+    {
+      "kind": "sbom-index",
+      "path": "invalid/sbom-index--alias-path.json",
+      "valid": false
+    },
+    {
+      "kind": "sbom-index",
+      "path": "invalid/sbom-index--duplicate-subject.json",
+      "valid": false
+    },
+    {
+      "kind": "sbom-index",
+      "path": "invalid/sbom-index--unknown-field.json",
+      "valid": false
+    },
+    {
+      "kind": "sbom-input",
+      "path": "invalid/sbom-input--unknown-field.json",
+      "valid": false
+    },
+    {
+      "kind": "selftest-calibration",
+      "path": "invalid/selftest-calibration--duplicate-run.json",
+      "valid": false
+    },
+    {
+      "kind": "selftest-calibration",
+      "path": "invalid/selftest-calibration--unknown-field.json",
+      "valid": false
+    },
+    {
+      "kind": "selftest-reference",
+      "path": "invalid/selftest-reference--unknown-field.json",
+      "valid": false
+    },
+    {
+      "kind": "selftest-reference",
+      "path": "invalid/selftest-reference--unknown-settings.json",
+      "valid": false
+    },
+    {
+      "kind": "mirrors",
+      "path": "valid/mirrors-v2.json",
+      "valid": true
+    }
+  ],
+  "fixture_only": true,
+  "format": "deep32-contract-fixtures",
+  "format_version": 1
+}

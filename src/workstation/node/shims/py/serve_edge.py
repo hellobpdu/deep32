@@ -19,7 +19,7 @@ The limits are Core's own (8 connections, 4 kept alive, 4 s expiry): httpx ignor
 given a transport, so they are repeated on the transport to keep production's connection behaviour.
 
 Environment file: RAG_CORE_URL (http://localhost: only Host: comes from it), RAG_CORE_API_TOKEN,
-TAILSCALE_DNS_NAME (the node's name; the DNS-rebinding allow-list), RAG_MCP_TOKENS, optional RAG_MCP_ALLOWED_IPS
+TAILSCALE_DNS_NAME (the node's name; the DNS-rebinding allow-list), RAG_MCP_TOKENS_FILE, optional RAG_MCP_ALLOWED_IPS
 (leave it EMPTY on the node: a UNIX-socket caller has no address and would get 403). Options:
   D32_EDGE_CODE   code tree (default /usr/local/d32/deep32-gateway/current)
   D32_CORE_SOCK   deep32-engine's socket (default /var/run/d32/core.sock)
@@ -32,6 +32,9 @@ from __future__ import annotations
 import json
 import logging
 import os
+from pathlib import Path
+import re
+import stat
 import sys
 
 HERE = os.path.dirname(os.path.realpath(__file__))
@@ -55,6 +58,81 @@ REMOTE_TOOLS = frozenset({"search_rag", "search_many", "get_section", "get_outli
 MAX_BODY = 256 * 1024  # deep32-gateway's own max_request_body_size
 
 log = logging.getLogger("d32svc")
+
+
+def publication_dns(root=Path('/'), *, active=True, expected_gid=None):
+    """Load the non-secret service-readable name before pledge/unveil.
+
+    sockexec has already dropped to _d32edge: the root-only journal cannot be
+    read here. The controller materialises this separate 0440 file only while
+    publication is requested; the signed credential-bearing settings stay put.
+    """
+    if not active:
+        return None
+    directory = Path(root) / 'etc/d32/private'
+    path = directory / 'publication-dns'
+    try:
+        for part in (path, *path.parents):
+            if part.is_symlink() or getattr(part, 'is_junction', lambda: False)():
+                raise ValueError()
+        if not path.exists():
+            return None
+        if os.name == 'posix':
+            import grp
+            gid = grp.getgrnam('_d32edge').gr_gid if expected_gid is None else expected_gid
+            parent = directory.stat()
+            if parent.st_uid != 0 or stat.S_IMODE(parent.st_mode) != 0o711:
+                raise ValueError()
+        fd = os.open(path, os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0) | getattr(os, 'O_NONBLOCK', 0))
+        with os.fdopen(fd, 'rb') as stream:
+            meta = os.fstat(stream.fileno())
+            if not stat.S_ISREG(meta.st_mode):
+                raise ValueError()
+            if os.name == 'posix' and (meta.st_uid != 0 or meta.st_gid != gid or stat.S_IMODE(meta.st_mode) != 0o440):
+                raise ValueError()
+            raw = stream.read(256)
+        if not raw.endswith(b'\n') or raw.count(b'\n') != 1:
+            raise ValueError()
+        host = raw[:-1].decode('ascii')
+        if (len(host) > 253 or not host.endswith('.ts.net') or len(host.split('.')) < 4
+                or any(not re.fullmatch(r'[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?', label)
+                       for label in host.split('.'))):
+            raise ValueError()
+        return host
+    except (OSError, ValueError, KeyError, TypeError, AttributeError, UnicodeError):
+        raise SystemExit('deep32-gateway: publication state is invalid; run d32-publish resume') from None
+
+
+def load_mcp_tokens(path, *, expected_gid=None):
+    """Read the dedicated allow-list before confinement; never expose its values."""
+    message = 'deep32-gateway: paired credentials unavailable; run gateway enrolment'
+    try:
+        path = Path(os.path.abspath(path))
+        for part in (path, *path.parents):
+            if part.is_symlink() or getattr(part, 'is_junction', lambda: False)():
+                raise ValueError()
+        if os.name == 'posix':
+            import grp
+            gid = grp.getgrnam('_d32edge').gr_gid if expected_gid is None else expected_gid
+            parent = path.parent.stat()
+            if parent.st_uid != 0 or stat.S_IMODE(parent.st_mode) != 0o711:
+                raise ValueError()
+        fd = os.open(path, os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0) | getattr(os, 'O_NONBLOCK', 0))
+        with os.fdopen(fd, 'rb') as stream:
+            meta = os.fstat(stream.fileno())
+            if not stat.S_ISREG(meta.st_mode):
+                raise ValueError()
+            if os.name == 'posix' and (meta.st_uid != 0 or meta.st_gid != gid or stat.S_IMODE(meta.st_mode) != 0o440):
+                raise ValueError()
+            raw = stream.read(65537)
+        if len(raw) > 65536 or not raw.endswith(b'\n'):
+            raise ValueError()
+        values = raw.decode('ascii').splitlines()
+        if not values or len(values) != len(set(values)) or any(not re.fullmatch('[0-9a-f]{64}', v) for v in values):
+            raise ValueError()
+        return ','.join(values)
+    except (OSError, ValueError, KeyError, UnicodeError):
+        raise SystemExit(message) from None
 
 # Update 15: how long deep32-gateway waits for deep32-engine's GET /v2/status when an answer without hits wants to name the
 # opt-in collections the search left out (rag_edge.opt_in_unsearched). deep32-gateway's own 3 s covers production's slowest
@@ -188,7 +266,18 @@ def main() -> None:
     from rag_edge import Config, Core, create_app
 
     log.warning("node layer: %s", longer_opt_in_status(rag_edge))
-    cfg = Config.from_env(os.environ)
+    credential_path = os.environ.get('RAG_MCP_TOKENS_FILE', '')
+    if credential_path != '/etc/d32/private/mcp-tokens' or 'RAG_MCP_TOKENS' in os.environ:
+        raise SystemExit('deep32-gateway: paired credentials unavailable; run gateway enrolment')
+    # Config's old interface takes a string. Supply it only in this private
+    # in-process mapping; no bearer is added to the process environment.
+    config_env = dict(os.environ)
+    published_host = publication_dns(active='front' in svc.listeners)
+    if published_host:
+        config_env['TAILSCALE_DNS_NAME'] = published_host
+    config_env['RAG_MCP_TOKENS'] = load_mcp_tokens(credential_path)
+    cfg = Config.from_env(config_env)
+    config_env.clear()
     transport = httpx.AsyncHTTPTransport(
         uds=core_sock,
         limits=httpx.Limits(max_connections=8, max_keepalive_connections=4, keepalive_expiry=4.0))

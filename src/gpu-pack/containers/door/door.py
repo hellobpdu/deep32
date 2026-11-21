@@ -4,6 +4,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import http.client
 from pathlib import Path
 import threading
+import re
+from datetime import datetime, timezone
 
 MAX_BODY = 4 * 1024 * 1024
 LIMIT = threading.BoundedSemaphore(16)
@@ -23,6 +25,13 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header('Content-Type', content_type)
         self.send_header('Content-Length', str(len(body)))
         self.send_header('Connection', 'close')
+        # Origin clock only: never forward a backend/proxy time or nonce header.
+        if self.path == '/info':
+            nonce = self.headers.get_all('X-Deep32-Nonce', [])
+            if len(nonce) == 1 and re.fullmatch(r'[A-Za-z0-9_-]{16,64}', nonce[0]):
+                self.send_header('X-Deep32-Time', datetime.now(timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z'))
+                self.send_header('X-Deep32-Nonce', nonce[0])
+                self.send_header('Cache-Control', 'no-store')
         self.end_headers()
         self.wfile.write(body)
         self.close_connection = True
@@ -33,7 +42,7 @@ class Handler(BaseHTTPRequestHandler):
             self.reply(401)
             return
         port = self.server.server_port
-        allowed = {8081: {'/v1/embeddings', '/health', '/info'}, 8082: {'/v1/rerank', '/health'}}[port]
+        allowed = {8081: {'/v1/embeddings', '/health', '/info'}, 8082: {'/v1/rerank', '/health', '/info'}}[port]
         if self.path not in allowed or self.headers.get('Transfer-Encoding'):
             self.reply(400)
             return

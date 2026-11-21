@@ -10,7 +10,14 @@ export PATH
 [ -n "${D32_ROOT-}" ] || [ "$(id -u)" = 0 ] || exit 4
 case ${1-}/$# in boot/1|resume/1|status/1) ;; *) exit 2;; esac
 D32_FB_DIR=${D32_ROOT-}/var/db/d32/firstboot
-if [ "$1" = resume ] && [ -f "$D32_FB_DIR/done" ]; then exit 0; fi
+# disc 2 over the network: d32-content-fetch and its record of the image it downloaded
+D32_FB_FETCH=${D32_ROOT-}/usr/local/d32/sbin/d32-content-fetch
+D32_FB_FETCHED=${D32_ROOT-}/var/db/d32/fetch/state.json
+if [ "$1" = resume ] && [ -f "$D32_FB_DIR/done" ]; then
+    # an image whose import has finished is removed; one whose import has not is attached again
+    if [ -f "$D32_FB_FETCHED" ] && [ -x "$D32_FB_FETCH" ]; then "$D32_FB_FETCH" --attach </dev/null >/dev/null 2>&1; fi
+    exit 0
+fi
 . "${D32_ROOT-}/usr/local/d32/libexec/d32-c6.sh"
 . "${D32_ROOT-}/usr/local/d32/libexec/d32-settings.sh"
 C6_DIR=${C6_DIR:-${D32_ROOT-}/var/run/d32/c6}
@@ -98,7 +105,7 @@ _d32f_token() {
 _d32f_keys() {
     local _d32f1=${D32_ROOT-}/etc/d32/core.env _d32f2=${D32_ROOT-}/etc/d32/edge.env
     local _d32f3=${D32_ROOT-}/etc/d32/state/mcp.token _d32line _d32c1= _d32c2= _d32m= _d32stored=
-    local _d32n1=0 _d32n2=0 _d32nm=0 _d32ns=0 _d32newc _d32newm _d32f _d32ln
+    local _d32n1=0 _d32n2=0 _d32nm=0 _d32ns=0 _d32newc _d32newm _d32f _d32ln _d32mfile= _d32keep=0
     c6_set keys running || return 1
     if [ ! -f "$_d32f1" ] && [ ! -f "$_d32f2" ]; then
         c6_set keys done 'msg=no search engine on this image'; return $?
@@ -111,6 +118,7 @@ _d32f_keys() {
         case $_d32line in
         RAG_CORE_API_TOKEN=*) _d32n2=$((_d32n2 + 1)); _d32c2=${_d32line#*=};;
         RAG_MCP_TOKENS=*) _d32nm=$((_d32nm + 1)); _d32m=${_d32line#*=};;
+        RAG_MCP_TOKENS_FILE=*) _d32nm=$((_d32nm + 1)); _d32mfile=${_d32line#*=};;
         esac
     done <"$_d32f2"
     [ "$_d32n1/$_d32n2/$_d32nm" = 1/1/1 ] || { _d32f_fail keys WS_KEYS 'token files incomplete'; return 1; }
@@ -118,12 +126,25 @@ _d32f_keys() {
         while IFS= read -r _d32line; do _d32ns=$((_d32ns + 1)); _d32stored=$_d32line; done <"$_d32f3"
         [ -z "$_d32line" ] || _d32ns=0
     fi
-    if [ "$_d32ns" = 1 ] && _d32f_token "$_d32c1" && _d32f_token "$_d32c2" &&
-        _d32f_token "$_d32m" && [ "$_d32c1" = "$_d32c2" ] && [ "$_d32m" = "$_d32stored" ]; then
+    if [ "$_d32ns" = 1 ] && _d32f_token "$_d32stored"; then
+        case ",$_d32m," in *",$_d32stored,"*) _d32keep=1;; esac
+        [ "$_d32mfile" != /etc/d32/private/mcp-tokens ] || _d32keep=1
+    fi
+    if [ "$_d32keep" = 1 ] && _d32f_token "$_d32c1" && _d32f_token "$_d32c2" &&
+        [ "$_d32c1" = "$_d32c2" ]; then
+        "${D32_ROOT-}/usr/local/d32/libexec/d32-gateway-enrol" --firstboot </dev/null >/dev/null 2>&1 || {
+            _d32f_fail keys WS_KEYS 'gateway credential enrolment failed'; return 1; }
         c6_set keys done 'msg=tokens kept'; return $?
+    fi
+    # Only empty first-install templates may create credentials. A damaged or
+    # mismatched installed store needs recovery; it must not revoke existing users.
+    if [ -e "$_d32f3" ] || [ -n "$_d32c1" ] || [ -n "$_d32c2" ] ||
+        [ -n "$_d32m" ] || [ -n "$_d32mfile" ]; then
+        _d32f_fail keys WS_KEYS 'credential state needs recovery; existing tokens kept'; return 1
     fi
     _d32newc=$(openssl rand -hex 32) && _d32newm=$(openssl rand -hex 32) &&
         _d32f_token "$_d32newc" && _d32f_token "$_d32newm" || { _d32f_fail keys WS_KEYS 'token files incomplete'; return 1; }
+    if [ "$_d32ns" = 1 ] && _d32f_token "$_d32stored"; then _d32newm=$_d32stored; fi
     for _d32f in "$_d32f1" "$_d32f2"; do
         {
             _d32ln=0
@@ -141,6 +162,8 @@ _d32f_keys() {
     install -d -o root -g wheel -m 0700 "${D32_ROOT-}/etc/d32/state" || return 1
     echo "$_d32newm" >"$_d32f3.new" && chmod 0600 "$_d32f3.new" && chown root:wheel "$_d32f3.new" &&
         mv "$_d32f3.new" "$_d32f3" || { _d32f_fail keys WS_KEYS 'token files incomplete'; return 1; }
+    "${D32_ROOT-}/usr/local/d32/libexec/d32-gateway-enrol" --firstboot </dev/null >/dev/null 2>&1 || {
+        _d32f_fail keys WS_KEYS 'gateway credential enrolment failed'; return 1; }
     c6_set keys done 'msg=tokens made'
 }
 _d32f_boot() {
@@ -186,14 +209,60 @@ _d32f_waiting() {
     fi
     c6_hold_start
 }
+# _d32f_disc2_devices: the devices disc 2 may be on, optical drives (cd) first, then disks (sd) such as a USB stick
+# with the disc 2 image written to it, each in kernel order. An sd disk is never named when it has a mounted
+# partition (the root disk above all) or a RAID partition (the disk under an encrypted root, a key disk), and no sd
+# disk is named when mount shows no root device. Last come the vnd units attached to the disc 2 image that
+# d32-content-fetch downloaded (the file named in its iso record), and no other vnd unit.
+_d32f_disc2_devices() {
+    local _d32names _d32mounts _d32root _d32kind _d32entry _d32name _d32label _d32file=
+    _d32names=$(sysctl -n hw.disknames 2>/dev/null | sed 's/,/ /g')
+    _d32mounts=$(mount 2>/dev/null) || _d32mounts=
+    _d32root=$(echo "$_d32mounts" | sed -n 's|^/dev/\([a-z][a-z]*[0-9][0-9]*\)[a-p] on / type .*|\1|p')
+    for _d32kind in cd sd; do
+        for _d32entry in $_d32names; do
+            _d32name=${_d32entry%%:*}
+            case $_d32name in "$_d32kind"[0-9]|"$_d32kind"[0-9][0-9]) ;; *) continue;; esac
+            if [ "$_d32kind" = sd ]; then
+                [ -n "$_d32root" ] && [ "$_d32name" != "$_d32root" ] || continue
+                case $_d32mounts in *"/dev/$_d32name"[a-p]' on '*) continue;; esac
+                _d32label=$(disklabel "$_d32name" 2>/dev/null) || continue
+                if echo "$_d32label" | grep -Eq '^  [a-p]: +[0-9]+ +[0-9]+ +RAID'; then continue; fi
+            fi
+            echo "$_d32name"
+        done
+    done
+    if [ -f "${D32_ROOT-}/var/db/d32/fetch/iso" ] && IFS= read -r _d32file <"${D32_ROOT-}/var/db/d32/fetch/iso" &&
+        [ -n "$_d32file" ]; then
+        vnconfig -l 2>/dev/null | while IFS= read -r _d32entry; do
+            case $_d32entry in vnd[0-9]": covering $_d32file on "*) echo "${_d32entry%%:*}";; esac
+        done
+    fi
+}
+# _d32f_disc2_mount DEV MOUNTPOINT: an optical drive as d32_cd_mount mounts it. An sd disk holds the disc 2 image
+# from its first sector, so its whole-disk partition c is mounted read-only as ISO 9660, and so is a vnd unit
+# attached to the downloaded image (vnconfig(8): mount -t cd9660 /dev/vnd0c).
+_d32f_disc2_mount() {
+    case $1 in
+    sd*|vnd*) mount -t cd9660 -o ro "${D32_ROOT-}/dev/${1}c" "$2";;
+    *) d32_cd_mount "$1" "$2";;
+    esac
+}
+# _d32f_fetched --attach|--cleanup: d32-content-fetch on the image it downloaded, when there is one; a failure is
+# logged and stops nothing
+_d32f_fetched() {
+    [ -f "$D32_FB_FETCHED" ] && [ -x "$D32_FB_FETCH" ] || return 0
+    "$D32_FB_FETCH" "$1" </dev/null >>"$D32_FB_LOG" 2>&1 || _d32f_log content "d32-content-fetch $1 stopped with status $?"
+    return 0
+}
 _d32f_probe() {
     local _d32dev _d32mounts _d32count=0
     D32_FB_DEVICE=
     _d32mounts=$(mount)
     mkdir -p "$D32_FB_DIR/probe" && chmod 0700 "$D32_FB_DIR/probe" || return 1
-    for _d32dev in $(d32_cd_devices); do
+    for _d32dev in $(_d32f_disc2_devices); do
         case $_d32mounts in *"/dev/$_d32dev"[a-p]' on '*|*"/dev/$_d32dev on "*) continue;; esac
-        if d32_cd_mount "$_d32dev" "$D32_FB_DIR/probe" >/dev/null 2>&1; then
+        if _d32f_disc2_mount "$_d32dev" "$D32_FB_DIR/probe" >/dev/null 2>&1; then
             if [ -f "$D32_FB_DIR/probe/MANIFEST.json" ] && [ -f "$D32_FB_DIR/probe/MANIFEST.json.asc" ] &&
                 [ -d "$D32_FB_DIR/probe/kb" ] && [ -d "$D32_FB_DIR/probe/corpus" ] && [ -d "$D32_FB_DIR/probe/library" ]; then
                 _d32count=$((_d32count + 1)); D32_FB_DEVICE=$_d32dev
@@ -202,7 +271,8 @@ _d32f_probe() {
         d32_cd_umount "$D32_FB_DIR/probe" >/dev/null 2>&1 || :
     done
     case $_d32count in
-    0) _d32f_waiting content waiting 'msg=attach disc 2 (content) to this machine'; return 1;;
+    0) _d32f_waiting content waiting 'msg=attach disc 2 (a disc or a USB stick), or get it over the network in First Start'
+       return 1;;
     1) c6_hold_stop || :
        c6_set content done "msg=disc 2 found on $D32_FB_DEVICE" && _d32f_mark content.done " $D32_FB_DEVICE";;
     *) _d32f_waiting content waiting 'msg=more than one disc 2 is attached: leave one'; return 1;;
@@ -231,10 +301,12 @@ _d32f_resume() {
     if [ -n "${D32_ROOT-}" ]; then
         _d32poll=${D32_FB_POLL:-2}; _d32probe=${D32_FB_PROBE:-10}; _d32limit=${D32_FB_MAXLOOPS:-0}
     fi
+    # disc 2 downloaded before a restart: attached again before the probe, so its import carries on
+    _d32f_fetched --attach
     while :; do
         _d32loops=$((_d32loops + 1))
         if [ "$D32S_NODE_transport" != loopback ] && [ ! -f "$D32_FB_DIR/tailnet.done" ]; then
-            _d32json=$({ tailscale status --json 2>/dev/null; _d32rc=$?; echo "d32_result=$_d32rc"; } |
+            _d32json=$({ tailscale status --json 2>/dev/null; _d32rc=$?; echo; echo "d32_result=$_d32rc"; } |
                 sed -n -e '/^d32_result=/p' \
                 -e 's/^[[:space:]]*"BackendState":[[:space:]]*"\([A-Za-z]*\)".*/state=\1/p' \
                 -e 's|^[[:space:]]*"AuthURL":[[:space:]]*"\(https://[^"]*\)".*|url=\1|p')
@@ -300,7 +372,12 @@ _d32f_resume() {
                 _d32before=$(c6_current 2>/dev/null) || _d32before=
                 "${D32_ROOT-}/usr/local/d32/libexec/d32-content-import" --device "$D32_FB_DEVICE" </dev/null >>"$D32_FB_LOG" 2>&1
                 _d32rc=$?
-                if [ "$_d32rc" = 0 ]; then _d32f_mark done; return $?; fi
+                if [ "$_d32rc" = 0 ]; then
+                    _d32f_mark done || return 1
+                    # a downloaded disc 2 has served: detached, deleted, the update area given back
+                    _d32f_fetched --cleanup
+                    return 0
+                fi
                 _d32after=$(c6_current 2>/dev/null) || _d32after=
                 if [ "$_d32after" != "$_d32before" ]; then
                     case $_d32after in *' state=failed '*) return 1;; esac

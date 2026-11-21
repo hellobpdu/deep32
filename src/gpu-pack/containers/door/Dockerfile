@@ -1,6 +1,6 @@
 ARG BASE_IMAGE
 FROM ${BASE_IMAGE}
 WORKDIR /app
-COPY door.py status-log.py /app/
+COPY door.py status-log.py LICENSE NOTICE /app/
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 CMD ["python", "/app/door.py"]

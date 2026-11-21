@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 Jeffrey A. Cummings */
 /* serve.c: e26-render's request loop (render.h): E26P frames read with recvmsg so that a request's descriptors
  * (SCM_RIGHTS, close-on-exec at once) arrive with it; LIB-PROTOCOL's envelopes; the helpers' argument checks and
  * result builders. */

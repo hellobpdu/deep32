@@ -1,0 +1,38 @@
+#!/usr/local/bin/python3.14 -IB
+"""Apply committed headend credentials, retaining the Workstation's local token.
+Usage: d32-gateway-enrol [PEER_ID | --firstboot]. Exit 0 applied; 6 enrolment failed.
+No argument refreshes the registry after removal, restarting a running gateway.
+--firstboot migrates credentials before services start, without restarting them.
+"""
+import os
+from pathlib import Path
+import subprocess
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from deep32net.enrol import enrol_gateway
+
+
+def main():
+    if len(sys.argv) > 2 or os.geteuid() != 0:
+        return 6
+    try:
+        firstboot = sys.argv[1:] == ['--firstboot']
+        peer = sys.argv[1] if len(sys.argv) == 2 and not firstboot else None
+        running = False
+        if not firstboot:
+            running = subprocess.run(['/usr/sbin/rcctl', 'check', 'd32edge'],
+                                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0
+        if running:
+            subprocess.run(['/usr/sbin/rcctl', 'stop', 'd32edge'], check=True,
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        enrol_gateway(Path('/var/db/d32/net'), peer)
+        if running or peer:
+            subprocess.run(['/usr/sbin/rcctl', 'start', 'd32edge'], check=True,
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        return 0
+    except Exception:
+        sys.stderr.write('d32-gateway-enrol: enrolment failed\n')
+        return 6
+
+
+raise SystemExit(main())

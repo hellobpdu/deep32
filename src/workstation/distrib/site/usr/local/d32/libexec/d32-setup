@@ -32,6 +32,7 @@ model_lines() {
 	print -r -- "text1	$D32UI_TEXT1"
 	print -r -- "text2	$D32UI_TEXT2"
 	[ -n "$D32UI_ADDR" ] && print -r -- "addr	$D32UI_ADDR"
+	[ -n "$D32UI_NET" ] && print -r -- "net	$D32UI_NET"
 	[ -n "$D32UI_CGRP" ] && print -r -- "code	$D32UI_CGRP" && print -r -- "spell	$D32UI_CSPELL" &&
 		print -r -- "left	$D32UI_CLEFT"
 	print -r -n -- "$D32UI_ROWS" | while IFS='|' read -r w s m; do print -r -- "row	$w	$s	$m"; done
@@ -107,6 +108,7 @@ refresh() {
 		fi
 		if [ -n "$D32UI_TEXT2" ]; then XtSetValues $TEXT2 labelString:"$(fold64 "$D32UI_TEXT2")"; XtManageChild $TEXT2
 		else XtUnmanageChild $TEXT2; fi
+		if [ "$D32UI_NET" = yes ]; then XtManageChild $NROW; else XtUnmanageChild $NROW; fi
 		D32UI_ADDR= D32UI_CGRP= D32UI_CSPELL= D32C6_signin= D32C6_pair=
 	fi
 	# a code is never shown past the five minutes it works for (contract C8), whatever the status file says
@@ -132,6 +134,8 @@ hide_code() {
 close_cb() { exit 0; }
 import_cb() { $R/usr/local/d32/libexec/d32-import-report & }
 pair_cb() { $R/usr/local/d32/libexec/d32-pair & }
+# Get Disc 2 over the Network: a small Terminal asks for the password and runs root's d32-content-fetch (Try Again's way)
+net_cb() { dtterm -sl 0 -title "$(say get.title)" -geometry 80x24 -e $R/usr/local/d32/libexec/d32-content-get & }
 help_cb() { DtkshDisplayInformationDialog "$(say setup.help.title)" "" "$(say setup.help)"; }
 
 TRANSPORT=$(transport)
@@ -165,6 +169,9 @@ XtCreateManagedWidget CODE code XmLabel $NRC alignment:ALIGNMENT_CENTER labelStr
 XtCreateManagedWidget SPELL spell XmLabel $NRC alignment:ALIGNMENT_BEGINNING labelString:" "
 XtCreateManagedWidget LEFT left XmLabel $NRC alignment:ALIGNMENT_BEGINNING labelString:" "
 XtCreateManagedWidget TEXT2 text2 XmLabel $NRC alignment:ALIGNMENT_BEGINNING labelString:" "
+XtCreateWidget NROW netRow XmRowColumn $NRC orientation:HORIZONTAL marginWidth:0 marginHeight:0 spacing:8
+XtCreateManagedWidget NETB netButton XmPushButton $NROW labelString:"$(say btn.fetch)"
+XtAddCallback $NETB activateCallback net_cb
 
 XtCreateManagedWidget SEP sep XmSeparator $FORM topAttachment:ATTACH_WIDGET topWidget:$NFRAME \
 	leftAttachment:ATTACH_FORM rightAttachment:ATTACH_FORM

@@ -1,6 +1,7 @@
 # deep32: the Deep32 gateway on your Workstation (MCP over streamable HTTP, reached on your own tailnet).
 # The installer appends this entry with the Workstation's address in place of {{WORKSTATION_MCP_URL}}. No token is
-# ever written here: Codex reads it from the DEEP32_MCP_TOKEN environment variable, which pairing sets.
+# ever written here: Codex reads it from the DEEP32_MCP_TOKEN environment variable. Static setup does not provide
+# a credential launcher or perform pairing; protected headend enrolment requires Phase B media.
 [mcp_servers.deep32]
 url = "{{WORKSTATION_MCP_URL}}"
 bearer_token_env_var = "DEEP32_MCP_TOKEN"

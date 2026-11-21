@@ -22,6 +22,7 @@ safe_path() {
 release=''
 key_id=''
 dry_run=false
+legacy_split=false
 seen_release=false
 seen_key=false
 while (( $# )); do
@@ -35,7 +36,10 @@ while (( $# )); do
         --dry-run)
             [[ $dry_run == false ]] || die 'Supply --dry-run at most once.'
             dry_run=true; shift ;;
-        *) die 'Usage: bash sign-release.sh --release-dir DIR --key-id VALUE [--dry-run]' ;;
+        --legacy-split)
+            [[ $legacy_split == false ]] || die 'Supply --legacy-split at most once.'
+            legacy_split=true; shift ;;
+        *) die 'Usage: bash sign-release.sh --release-dir DIR --key-id VALUE [--dry-run] [--legacy-split]' ;;
     esac
 done
 [[ $seen_release == true && $seen_key == true ]] || die 'Both --release-dir and --key-id are required.'
@@ -43,6 +47,12 @@ safe_path "$release"
 [[ -d $release && ! -L $release ]] || die 'The release directory must exist and must not be a link.'
 release=$(cd -P -- "$release" && pwd)
 [[ -f $release/SHA256SUMS && ! -L $release/SHA256SUMS ]] || die 'The root SHA256SUMS file is missing.'
+if [[ $legacy_split == false ]]; then
+    script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
+    "${DEEP32_PYTHON:-python3}" -I -B "$script_dir/deep32_get_manifest.py" sign-preflight --release-dir "$release" || die 'Whole-image signing preflight failed.'
+elif [[ -e $release/MIRRORS.json || -L $release/MIRRORS.json ]]; then
+    die 'Whole-image metadata cannot use legacy signing compatibility.'
+fi
 declare -a children=() checksums=()
 declare -A roles=()
 for path in "$release"/*-SHA256SUMS; do

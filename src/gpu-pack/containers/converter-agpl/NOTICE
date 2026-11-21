@@ -18,9 +18,15 @@ PURPOSE. See the GNU Affero General Public License for more details.
 The full licence text is in AGPL-3.0.txt beside this file. This folder is the
 complete corresponding source of the converter.
 
-The rest of the Deep32 project code is also under AGPL-3.0-or-later and does not
-include, import or link any file in this folder. The Deep32 builder starts these
-programs as separate processes and reads only the files they write.
+The converter is under AGPL-3.0-or-later because it uses PyMuPDF and MuPDF,
+which are AGPL. The rest of the Deep32 project code is under the Apache License
+2.0 (see the repository LICENSE and NOTICE), except the Library renderer
+e26-render, which links MuPDF and so is also under AGPL-3.0-or-later. No other
+Deep32 code includes, imports or links any file in this folder. The builder
+keeps its own copy of the helper code in document-styles/vendor_common.py, at
+../builder/kb-tools/vendor_common.py, and that copy is under the Apache License
+2.0. The Deep32 builder starts these programs as separate processes and reads
+only the files they write.
 
 PyMuPDF, MuPDF, MinerU, vLLM, the model weights and the other dependencies keep their
 own licences and notices. Their licence texts and source offers are in

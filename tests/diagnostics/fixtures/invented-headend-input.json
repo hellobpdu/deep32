@@ -1,0 +1,161 @@
+{
+  "fixture_kind": "invented diagnostic observations; not host evidence",
+  "platform": "linux",
+  "public_identities": [
+    "1111111111111111111111111111111111111111",
+    "2222222222222222222222222222222222222222",
+    "3333333333333333333333333333333333333333333333333333333333333333",
+    "invented-generation",
+    "invented/embeddings",
+    "invented/reranker"
+  ],
+  "rows": [
+    {
+      "id": "installation",
+      "state": "OK",
+      "observed": {
+        "matched": true,
+        "present": true,
+        "version": "0.1.0-alpha.2"
+      }
+    },
+    {
+      "id": "tailscale-installed",
+      "state": "OK",
+      "observed": {
+        "present": true,
+        "version": "1.92.1"
+      }
+    },
+    {
+      "id": "tailscale-running",
+      "state": "OK",
+      "observed": {
+        "present": true,
+        "state": "Running"
+      }
+    },
+    {
+      "id": "tailscale-signin",
+      "state": "OK",
+      "observed": {
+        "online": true,
+        "expired": false,
+        "state": "Running"
+      }
+    },
+    {
+      "id": "magicdns",
+      "state": "OK",
+      "observed": {
+        "matched": true,
+        "present": true
+      }
+    },
+    {
+      "id": "https-available",
+      "state": "OK",
+      "observed": {
+        "matched": true,
+        "present": true,
+        "http_status": 200
+      }
+    },
+    {
+      "id": "serve-routes",
+      "state": "SKIP",
+      "observed": {}
+    },
+    {
+      "id": "pairing",
+      "state": "OK",
+      "observed": {
+        "matched": true,
+        "present": true,
+        "state": "committed",
+        "peer_role": "workstation"
+      }
+    },
+    {
+      "id": "peer-reachability",
+      "state": "OK",
+      "observed": {
+        "online": true,
+        "http_status": 200,
+        "peer_role": "workstation"
+      }
+    },
+    {
+      "id": "tailnet-path.workstation",
+      "state": "OK",
+      "observed": {
+        "peer_role": "workstation",
+        "state": "direct"
+      }
+    },
+    {
+      "id": "peer-clock",
+      "state": "OK",
+      "observed": {
+        "peer_role": "workstation",
+        "offset_lower_ms": -100,
+        "offset_upper_ms": 100,
+        "rtt_ms": 200
+      }
+    },
+    {
+      "id": "first-start",
+      "state": "SKIP",
+      "observed": {}
+    },
+    {
+      "id": "agent-profile",
+      "state": "OK",
+      "observed": {
+        "agent": "codex",
+        "matched": true
+      }
+    },
+    {
+      "id": "agent-connector",
+      "state": "OK",
+      "observed": {
+        "agent": "codex",
+        "matched": true
+      }
+    },
+    {
+      "id": "agent-installed",
+      "state": "OK",
+      "observed": {
+        "agent": "codex",
+        "present": true,
+        "version": "1.0.0"
+      }
+    },
+    {
+      "id": "agent-signin",
+      "state": "OK",
+      "observed": {
+        "agent": "codex",
+        "matched": true
+      }
+    },
+    {
+      "id": "gateway-auth",
+      "state": "FAIL",
+      "observed": {
+        "http_status": 401,
+        "matched": false
+      }
+    },
+    {
+      "id": "mcp-rag-status",
+      "state": "SKIP",
+      "observed": {},
+      "blocked_by": [
+        "gateway-auth"
+      ]
+    }
+  ]
+}

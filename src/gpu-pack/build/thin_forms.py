@@ -10,23 +10,56 @@ LIMIT = 1024 ** 3
 # The WSL form is Canonical's clean Ubuntu base (about 1.13 GiB unpacked for 24.04.5) plus the runtime kit, so it
 # gets its own ceiling; both limits still refuse any form that carries payload images (lead fix 2026-11-16).
 WSL_LIMIT = 2 * 1024 ** 3
+PAIRING_MODULES = ('__init__', '__main__', 'cli', 'codes', 'discovery', 'errors', 'files',
+                   'identity', 'p256', 'pairing', 'pairlock', 'spake2', 'store', 'tokens',
+                   'transport', 'window', 'wire')
+
+
+def runtime_mode(path):
+    return 0o755 if path.suffix == '.sh' or path.name in ('deep32-pair', 'pairing-helper') else 0o644
+
+
+def pairing_files(kit):
+    """The complete pairing runtime, without reference tests or vectors."""
+    names = ['pairing/bin/deep32-pair', 'pairing/bin/pairing-helper']
+    names += ['pairing/deep32net/' + name + '.py' for name in PAIRING_MODULES]
+    paths = [kit / name for name in names]
+    for path in paths:
+        if (not path.is_file() or path.is_symlink() or path.is_junction()
+                or any(p.is_symlink() or p.is_junction() for p in path.parents)):
+            raise ValueError('missing or unsafe pairing runtime: ' + path.relative_to(kit).as_posix())
+    return paths
 
 
 def runtime_files(kit):
-    paths = []
-    for name in ('autoinstall', 'firstboot', 'forms', 'import'):
+    paths = pairing_files(kit)
+    # licenses/ holds third-party license texts that travel with the kit (MinerU's, for the converter).
+    for name in ('autoinstall', 'firstboot', 'import', 'licenses'):
         paths.extend(p for p in (kit / name).rglob('*') if p.is_file())
+    paths.extend(p for p in (kit / 'forms').rglob('*') if p.is_file() and p.suffix in ('.py', '.sh'))
     if (kit / 'containers').is_dir():
         paths.extend(p for p in (kit / 'containers').iterdir() if p.is_file())
-    paths.extend(kit / name for name in ('pins.json', 'build/provenance.py'))
+        # Runtime helpers only; Dockerfiles and staged engine source belong to
+        # offline image build contexts, never to a second payload in the form.
+        full = kit / 'containers/full'
+        if full.is_dir():
+            paths.extend(p for p in full.rglob('*.py') if p.is_file())
+    # LICENSE and NOTICE are the Apache-2.0 terms for Deep32's own code; every copy of the kit carries both.
+    paths.extend(kit / name for name in ('LICENSE', 'NOTICE', 'pins.json', 'build/provenance.py', 'build/thin_forms.py'))
     loader = kit / 'firstboot/installed-inputs.py'
     if loader.is_file() and 'image_binding' in loader.read_text(encoding='ascii'):
         paths.append(kit / 'build/image_binding.py')
     if (kit / 'build/release_profile.py').exists():
         paths.append(kit / 'build/release_profile.py')
-    result = sorted(set(paths), key=lambda p: p.relative_to(kit).as_posix())
+    for name in ('release-key.gpg', 'release-key.fingerprint'):
+        public = kit / 'release' / name
+        if public.exists():
+            paths.append(public)
+    # Interpreter caches are generated state, never media inputs or runtime identity.
+    result = sorted({p for p in paths if '__pycache__' not in p.parts and p.suffix != '.pyc'},
+                    key=lambda p: p.relative_to(kit).as_posix())
     for path in result:
-        if path.is_symlink() or not path.is_file() or '.env' in path.name:
+        if path.is_symlink() or path.is_junction() or not path.is_file() or '.env' in path.name:
             raise ValueError('unsafe runtime file: ' + path.name)
     return result
 
@@ -77,7 +110,7 @@ def docker(kit, output, epoch, pins=None):
             entry = tarfile.TarInfo(name)
             entry.size = path.stat().st_size
             entry.mtime = epoch
-            entry.mode = 0o755 if path.suffix == '.sh' else 0o644
+            entry.mode = runtime_mode(path)
             with path.open('rb') as stream:
                 target.addfile(entry, stream)
     if output.stat().st_size >= LIMIT:

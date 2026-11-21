@@ -8,5 +8,7 @@ run() {
 	as_build "sh /build/lanes/nodegen/src/build.sh" >"$o" 2>&1 || { cat "$o"; die "node/build.sh failed"; }
 	cat "$o"
 	grep -q '^FMA/AVX instructions in libd32vec.so: 0$' "$o" || die "node/build.sh did not report 0 FMA/AVX instructions"
-	sh /build/lanes/shims/tree/install.sh || die "node/shims/install.sh failed"
+	need_file "$T/model-bridge/d32_model_bridge.py"
+	D32_MODEL_BRIDGE_SOURCE="$T/model-bridge/d32_model_bridge.py" \
+		sh /build/lanes/shims/tree/install.sh || die "node/shims/install.sh failed"
 }

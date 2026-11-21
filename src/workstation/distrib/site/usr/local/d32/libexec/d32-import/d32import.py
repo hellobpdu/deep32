@@ -21,9 +21,9 @@ from types import SimpleNamespace
 import imp_paths
 import imp_fs
 from imp_fs import ImportFailure, Interrupted, log
-from imp_journal import Journal, Registry, Lock, LockBusy
+from imp_journal import Journal, Registry, Lock, LockBusy, prepare
 from imp_report import Report
-from imp_c6 import Strings, C6Workstation, C6Forge
+from imp_c6 import Strings, C6Forge
 import imp_disc
 import imp_manifest
 import imp_files
@@ -32,7 +32,7 @@ import imp_switch
 
 
 USAGE = {
-    'workstation': 'usage: d32-content-import --device cdN | --resume | --report',
+    'workstation': 'usage: d32-content-import --device cdN|sdN|vndN | --resume | --report',
     'forge': 'usage: d32-content-import (--device srN | --folder DIR | --resume) [--qdrant-url URL] | --report'}
 STDERR = {
     'root': 'd32-content-import: run as root',
@@ -40,8 +40,10 @@ STDERR = {
     'resume': 'd32-content-import: there is no import to carry on',
     'report': 'd32-content-import: there is no import report',
     'busy': 'd32-content-import: another import is running'}
-STAGES = ('disc', 'signature', 'files', 'space', 'kb', 'library', 'blocks',
+STAGES = ('fetch', 'disc', 'signature', 'files', 'space', 'kb', 'library', 'blocks',
           'switch', 'check', 'finish')
+# d32-content-fetch's record of the disc 2 image it downloaded and attached (stage fetch).
+FETCH_RECORD = '/var/db/d32/fetch/state.json'
 
 
 class UsageError(Exception):
@@ -85,7 +87,7 @@ def parse_args(argv):
     if result['node'] is None or result['mode'] is None:
         raise UsageError(node)
     if result['mode'] == 'device' and not re.fullmatch(
-            r'cd[0-9]' if node == 'workstation' else r'sr[0-9]', result['device']):
+            r'(cd|sd)[0-9]{1,2}|vnd[0-9]' if node == 'workstation' else r'sr[0-9]', result['device']):
         raise UsageError(node)
     if result['mode'] == 'folder':
         if node != 'forge' or not Path(result['folder']).is_absolute() or not Path(result['folder']).is_dir():
@@ -205,6 +207,38 @@ def _resume_engine(ctx, old):
     ctx.options['qdrant_url'] = stored
 
 
+def _fetch_record(paths, device):
+    """d32-content-fetch's record when `device` is the disc 2 image it downloaded and attached, else None. Only the
+    times and the size are used, for the report's first stage; the disc itself is checked as any other."""
+    if paths.node != 'workstation' or not isinstance(device, str) or not re.fullmatch(r'vnd[0-9]', device):
+        return None
+    try:
+        with imp_fs.open_regular(imp_paths.rp(FETCH_RECORD)) as stream:
+            raw = stream.read(65537)
+        record = json.loads(raw.decode('ascii'))
+    except (OSError, ValueError, UnicodeError):
+        return None
+    when = r'[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z'
+    if (len(raw) > 65536 or not isinstance(record, dict) or record.get('format') != 'deep32-content-fetch' or
+            record.get('complete') is not True or record.get('unit') != device or
+            type(record.get('size')) is not int or record['size'] < 1 or
+            not all(isinstance(record.get(key), str) and re.fullmatch(when, record[key])
+                    for key in ('started', 'finished'))):
+        return None
+    return record
+
+
+def _fetch_row(ctx):
+    """Stage fetch (Download disc 2) is d32-content-fetch's, and finished before the import began: done when this disc
+    is the image it downloaded, else skipped. The importer never downloads; the journal does not record it."""
+    record = _fetch_record(ctx.p, getattr(getattr(ctx, 'disc', None), 'device', None))
+    if record is None:
+        ctx.report.end_stage('fetch', state='skipped', write=False)
+    else:
+        ctx.report.stage('fetch').update(state='done', started=record['started'], finished=record['finished'],
+                                         done_bytes=record['size'], total_bytes=record['size'])
+
+
 def _identity(ctx, old, resume, disc_started):
     _history_before_identity(ctx.p)
     ctx.import_id = imp_paths.new_import_id()
@@ -237,6 +271,7 @@ def _identity(ctx, old, resume, disc_started):
     ctx.journal.save()
     ctx.report = Report(ctx.p, ctx.import_id, ctx.disc.device,
                         attempt=ctx.journal.data['attempt'], resumed_from=previous, started=disc_started)
+    _fetch_row(ctx)
     if resume:
         ctx.report.add_warning('IMPORT_RESUMED', 'disc', args={'from': previous}, write=False)
     ctx.report.data['source']['manifest_sha256'] = getattr(ctx, 'manifest_sha256', None)
@@ -274,11 +309,13 @@ def _run_stage(ctx, stage, function):
 def _carry_units(ctx, stage, old):
     kinds = {'kb': ('kb',), 'library': ('library', 'cisco'), 'blocks': ('block',)}
     wanted = [row for row in ctx.desired if row['unit_kind'] in kinds[stage]]
-    active = (ctx.registry.active or {}).get('pointers', {})
+    active = ctx.registry.active or {}
     amount = 0
     count = 0
     for desired in wanted:
-        active_target = active.get(desired['pointer'], '').split('/')[0]
+        active_target = (desired['target'] if desired['pointer'] is None and
+                         desired['target'] in active.get('targets', []) else
+                         active.get('pointers', {}).get(desired['pointer'], '').split('/')[0])
         active_row = ctx.registry.generation(active_target)
         current = active_row is not None and active_row['content_key'] == desired['content_key']
         for unit in desired['units']:
@@ -309,8 +346,10 @@ def _carry_units(ctx, stage, old):
     ctx.report.write()
 
 
-def _restore_report(ctx, old):
-    """Restore verified identity for a switch resume without reading the disc."""
+def _restore_report(ctx, old, kb_only=False):
+    """Restore verified identity for a switch resume without reading the disc. kb_only: the switch was the
+    knowledge base's alone, so only the stages before its kb stage are carried and only the knowledge base was
+    installed."""
     manifest = old.get('manifest')
     if not manifest:
         manifest = json.loads((ctx.p.journal / 'manifest.json').read_text(encoding='ascii'))
@@ -325,9 +364,11 @@ def _restore_report(ctx, old):
     ctx.report.data['kb'].update(generation=kb['generation'], fingerprint=kb['fingerprint'], created=kb['created'],
                                counts={key: kb[key] for key in ('documents', 'chunks', 'points')})
     imp_manifest.build_units(ctx)
+    if ctx.p.node == 'workstation':
+        imp_files.add_unit_times(ctx)
     for unit in ctx.report.data['units']:
         saved = old.get('units', {}).get(unit['id'], {})
-        if unit['state'] != 'skipped':
+        if unit['state'] != 'skipped' and not (kb_only and unit['kind'] != 'kb'):
             unit['state'] = 'kept' if ctx.p.node == 'forge' and unit['kind'] in ('kb', 'block') else 'installed'
             unit['parts_checked'] = unit['parts']
     bundle_row = next(row for row in ctx.desired if row['unit_kind'] == 'kb')
@@ -337,7 +378,7 @@ def _restore_report(ctx, old):
     ctx.report.data['progress']['total_bytes'] = manifest['counts']['bytes'] + sum(
         unit['bytes'] for unit in ctx.report.data['units'] if unit['state'] != 'skipped')
     ctx.report.data['progress']['done_bytes'] = ctx.report.data['progress']['total_bytes']
-    for stage in STAGES[:8]:
+    for stage in STAGES[STAGES.index('disc'):STAGES.index('kb' if kb_only else 'check')]:
         if stage == 'library' and ctx.p.node == 'forge' or stage == 'blocks' and ctx.p.node == 'workstation':
             _skip(ctx, stage)
         else:
@@ -346,25 +387,138 @@ def _restore_report(ctx, old):
 
 
 def _switch_recovery(ctx, old, started):
+    """Finish a switch that a stop interrupted, without reading the disc: forward and check, or the rollback that
+    had begun. On the Workstation the switch is the knowledge base's alone (part kb; only its rollback comes here,
+    see _run) or, once the knowledge base is in use (kb_live), the Library's; a failure then leaves the knowledge
+    base in use."""
     _resume_engine(ctx, old)
     ctx.disc = imp_disc.Disc(ctx.p.mount, old['device'], mounted=(ctx.p.journal / 'mounted').exists())
     ctx.manifest_sha256 = old['manifest_sha256']
     _identity(ctx, old, True, started)
-    _restore_report(ctx, old)
+    kb_only = old['switch'].get('part') == 'kb'
+    ctx.kb_live = ctx.p.node == 'workstation' and _kb_live(old)
+    _restore_report(ctx, old, kb_only)
+    if ctx.kb_live:
+        ctx.report.data['kb']['engine_ok'] = True
     log(ctx.p, ctx.import_id, 'reconcile', phase=old['switch']['phase'])
     rollback_pending = old['switch']['phase'] == 'rollback-begun'
     imp_switch.reconcile_switch(ctx)
+    if ctx.kb_live and not rollback_pending:
+        imp_files.keep_way_back(ctx)
     if rollback_pending:
         error = old.get('error')
         if not error:
-            raise ImportFailure('IMPORT_INTERNAL', stage='check')
-        ctx.current_stage = 'check'
-        ctx.report.begin_stage('check')
+            raise ImportFailure('IMPORT_INTERNAL', stage='kb' if kb_only else 'check')
+        ctx.current_stage = 'kb' if kb_only else 'check'
+        ctx.report.begin_stage(ctx.current_stage)
         restored_error = ctx.report.add_error(error['code'], error['stage'], error['unit'], error['path'], error['args'])
         ctx.journal.data['error'] = copy.deepcopy(restored_error)
         ctx.journal.save()
+        if ctx.kb_live:
+            _kb_only(ctx, ctx.current_stage)
+            return imp_switch.finish(ctx, 'failed', False)
         return imp_switch.finish(ctx, 'rolled-back', False)
-    _run_stage(ctx, 'check', imp_switch.run_check)
+    _run_stage(ctx, 'check', imp_files.run_check if ctx.kb_live else imp_switch.run_check)
+    ctx.begin('finish')
+    ctx.end('finish')
+    return imp_switch.finish(ctx, 'imported')
+
+
+def _kb_live(journal_data):
+    """True when this import's knowledge base went into use in an earlier attempt (imp_files.run_kb)."""
+    live, manifest = journal_data.get('kb_live'), journal_data.get('manifest_sha256')
+    return manifest is not None and isinstance(live, dict) and live.get('manifest_sha256') == manifest
+
+
+def _kb_only(ctx, stage):
+    """The import failed after its knowledge base went into use: the report says the knowledge base is in use."""
+    ctx.outcome = 'failed'
+    if not any(row['code'] == 'IMPORT_KB_ONLY' for row in ctx.report.data['warnings']):
+        ctx.report.add_warning('IMPORT_KB_ONLY', stage)
+
+
+def _mark_current(ctx):
+    """The disc is the one in use: every unit is current and the install stages have nothing to do."""
+    for unit in ctx.report.data['units']:
+        if unit['state'] != 'skipped':
+            unit['state'] = 'current'
+    for stage in ('space', 'kb', 'library', 'blocks', 'switch'):
+        if stage == 'library' and ctx.p.node == 'forge' or stage == 'blocks' and ctx.p.node == 'workstation':
+            _skip(ctx, stage)
+        else:
+            ctx.report.stage(stage).update(state='done', started=imp_paths.iso(), finished=imp_paths.iso())
+            if stage in ('kb', 'library', 'blocks'):
+                ctx.report.stage(stage).update(done_bytes=0, total_bytes=0, done_items=0, total_items=0)
+            ctx.journal.set_stage(stage, 'done', started=ctx.report.stage(stage)['started'],
+                                  finished=ctx.report.stage(stage)['finished'])
+    ctx.report.write()
+
+
+def _carried(ctx, old, resume, stage):
+    """On a resume, carry an install stage an earlier attempt finished when all its units are placed."""
+    if not (resume and stage in ('kb', 'library', 'blocks') and
+            old.get('stages', {}).get(stage, {}).get('state') == 'done'):
+        return False
+    stage_kinds = {'kb': ('kb',), 'library': ('library', 'cisco'), 'blocks': ('block',)}
+    desired = [row for row in ctx.desired if row['unit_kind'] in stage_kinds[stage]]
+    if all(all(ctx.journal.data['units'].get(unit['id'], {}).get('state') in
+               ('placed', 'current', 'kept') for unit in row['units']) for row in desired):
+        _carry_units(ctx, stage, old)
+        return True
+    return False
+
+
+def _carry_kb(ctx, old):
+    """A resumed import whose knowledge base went into use in an earlier attempt: that part is not done again."""
+    for stage in ('files', 'space'):
+        _carry_stage(ctx, stage, old)
+    desired = next(row for row in ctx.desired if row['unit_kind'] == 'kb')
+    ctx.bundle = json.loads((ctx.p.cr / desired['value'] / 'BUNDLE.json').read_text(encoding='ascii'))
+    ctx.report.data['kb'].update(embedding={key: ctx.bundle['embedding'][key]
+                                            for key in ('model_id', 'revision', 'dimension')}, engine_ok=True)
+    row = ctx.report.unit('kb')
+    current = ctx.journal.data.get('units', {}).get('kb', {}).get('state') == 'current'
+    row.update(state='current' if current else 'installed', parts_checked=row['parts'])
+    _carry_stage(ctx, 'kb', old)
+    imp_files.initialise_progress(ctx)
+    ctx.report.data['progress']['done_bytes'] = sum(item['size'] for item in imp_files.kb_members(ctx.manifest))
+    imp_switch.meaning_search(ctx)
+    ctx.report.write()
+    imp_files.kb_in_use(ctx)
+
+
+def _run_workstation(ctx, old, resume):
+    """Read disc 2 once, in two parts: the knowledge base first, then the Library (imp_files).
+
+    The files, space and kb stages are the knowledge base part: free space for its copies, its members read once
+    and checked, the knowledge base installed from the copies, put in use on its own and checked. Search and Ask use
+    it from then on. The library, switch and check stages are the Library part: the same for every other member,
+    then the Library put in use in one step and checked. A resume hashes the copies already staged instead of
+    reading them from the disc, and does not do a part again that an earlier attempt finished. A disc whose
+    knowledge base and Library are both in use is read once and checked, and nothing is installed."""
+    imp_files.add_unit_times(ctx)
+    ctx.current = (imp_switch.already_current(ctx) and
+                   not (ctx.registry.active or {}).get('library_pending'))
+    if ctx.current:
+        _run_stage(ctx, 'files', imp_files.run_files)
+        _mark_current(ctx)
+        _run_stage(ctx, 'check', imp_switch.run_check)
+        ctx.begin('finish')
+        ctx.end('finish')
+        return imp_switch.finish(ctx, 'already-current')
+    if resume and _kb_live(ctx.journal.data):
+        _carry_kb(ctx, old)
+    else:
+        for stage, function in (('files', imp_files.run_files), ('space', imp_files.run_space),
+                                ('kb', imp_files.run_kb)):
+            _run_stage(ctx, stage, function)
+    if _carried(ctx, old, resume, 'library'):
+        ctx.report.data['progress']['done_bytes'] += sum(item['size'] for item in imp_files.library_members(ctx.manifest))
+    else:
+        _run_stage(ctx, 'library', imp_files.run_library)
+    _skip(ctx, 'blocks')
+    _run_stage(ctx, 'switch', imp_files.run_switch)
+    _run_stage(ctx, 'check', imp_files.run_check)
     ctx.begin('finish')
     ctx.end('finish')
     return imp_switch.finish(ctx, 'imported')
@@ -374,6 +528,11 @@ def _run(ctx):
     old = copy.deepcopy(ctx.journal.data or {})
     started = imp_paths.iso()
     switch = old.get('switch')
+    if switch and switch.get('part') == 'kb' and switch.get('phase') in ('begun', 'done'):
+        # Whatever the outcome recorded: a resume would drop this record, and another disc must not meet it.
+        imp_files.undo_kb_switch(ctx)
+        old = copy.deepcopy(ctx.journal.data)
+        switch = None
     if switch and switch.get('phase') in ('begun', 'done', 'rollback-begun') and old.get('outcome') is None:
         return _switch_recovery(ctx, old, started)
     ctx.current_stage = 'disc'
@@ -394,6 +553,8 @@ def _run(ctx):
         raise disc_error
     ctx.end('disc')
     _run_stage(ctx, 'signature', imp_manifest.run_signature)
+    if ctx.p.node == 'workstation':
+        return _run_workstation(ctx, old, resume)
     if resume and old.get('stages', {}).get('files', {}).get('state') == 'done':
         _carry_stage(ctx, 'files', old)
         amount = ctx.manifest['counts']['bytes']
@@ -407,22 +568,10 @@ def _run(ctx):
                 unit['parts_checked'] = unit['parts']
         ctx.report.write()
     else:
-        _run_stage(ctx, 'files', imp_files.run_files)
+        _run_stage(ctx, 'files', imp_files.check_files)
     ctx.current = imp_switch.already_current(ctx)
     if ctx.current:
-        for unit in ctx.report.data['units']:
-            if unit['state'] != 'skipped':
-                unit['state'] = 'current'
-        for stage in ('space', 'kb', 'library', 'blocks', 'switch'):
-            if stage == 'library' and ctx.p.node == 'forge' or stage == 'blocks' and ctx.p.node == 'workstation':
-                _skip(ctx, stage)
-            else:
-                ctx.report.stage(stage).update(state='done', started=imp_paths.iso(), finished=imp_paths.iso())
-                if stage in ('kb', 'library', 'blocks'):
-                    ctx.report.stage(stage).update(done_bytes=0, total_bytes=0, done_items=0, total_items=0)
-                ctx.journal.set_stage(stage, 'done', started=ctx.report.stage(stage)['started'],
-                                      finished=ctx.report.stage(stage)['finished'])
-        ctx.report.write()
+        _mark_current(ctx)
     else:
         if hasattr(imp_units, 'reconcile_placing'):
             imp_units.reconcile_placing(ctx)
@@ -432,16 +581,11 @@ def _run(ctx):
             if stage == 'library' and ctx.p.node == 'forge' or stage == 'blocks' and ctx.p.node == 'workstation':
                 _skip(ctx, stage)
                 continue
-            if resume and stage in ('space', 'kb', 'library', 'blocks') and old.get('stages', {}).get(stage, {}).get('state') == 'done':
-                stage_kinds = {'kb': ('kb',), 'library': ('library', 'cisco'), 'blocks': ('block',)}
-                desired = [row for row in ctx.desired if row['unit_kind'] in stage_kinds.get(stage, ())]
-                if stage == 'space':
-                    _carry_stage(ctx, stage, old)
-                    continue
-                if all(all(ctx.journal.data['units'].get(unit['id'], {}).get('state') in
-                           ('placed', 'current', 'kept') for unit in row['units']) for row in desired):
-                    _carry_units(ctx, stage, old)
-                    continue
+            if resume and stage == 'space' and old.get('stages', {}).get(stage, {}).get('state') == 'done':
+                _carry_stage(ctx, stage, old)
+                continue
+            if _carried(ctx, old, resume, stage):
+                continue
             _run_stage(ctx, stage, function)
     _run_stage(ctx, 'check', imp_switch.run_check)
     ctx.begin('finish')
@@ -451,6 +595,14 @@ def _run(ctx):
 
 def _failure(ctx, exc):
     stage = exc.stage or ctx.current_stage
+    if ctx.report is None or ctx.journal is None or ctx.journal.data is None:
+        # preserve the original failure before durable reporting exists.
+        sys.stderr.buffer.write(('d32-content-import: ' + exc.code + '\n').encode('ascii'))
+        try:
+            imp_disc.unmount(ctx)
+        except Exception:
+            pass
+        return 2
     args = getattr(exc, 'arguments', {})
     if not (ctx.report.data['errors'] and (getattr(exc, 'recorded', False) or
             ctx.report.data['errors'][-1]['code'] == exc.code and ctx.report.data['errors'][-1]['stage'] == stage)):
@@ -462,6 +614,12 @@ def _failure(ctx, exc):
                                              if ctx.journal.data.get('units', {}).get(unit['id'], {}).get('state')
                                              in ('checked', 'placed', 'current', 'kept')]
     log(ctx.p, ctx.import_id, 'stage-failed', stage=stage, code=error['code'])
+    switch = ctx.journal.data.get('switch') or {}
+    if switch.get('part') == 'kb' and switch.get('phase') in ('begun', 'done'):
+        # The knowledge base was switched and not yet checked: the one in use before goes back now.
+        imp_files.undo_kb_switch(ctx)
+    if getattr(ctx, 'kb_live', False):
+        _kb_only(ctx, stage)
     return imp_switch.finish(ctx, getattr(ctx, 'outcome', 'failed'), exc.resumable)
 
 
@@ -485,6 +643,8 @@ def main(argv=None):
         return 0
     try:
         strings = Strings()
+        if options['node'] == 'workstation':
+            imp_files.check_strings(strings)
     except ValueError:
         _stderr('strings')
         return 1
@@ -510,7 +670,7 @@ def main(argv=None):
         return 1
     ctx = SimpleNamespace(p=paths, paths=paths, options=options, journal=journal,
                           registry=registry, report=None, import_id='-', current_stage='disc',
-                          desired=[], bundle=None, current=False)
+                          desired=[], bundle=None, current=False, kb_live=False)
     _children(ctx)
     lock = Lock(paths)
     try:
@@ -518,25 +678,35 @@ def main(argv=None):
     except LockBusy:
         _stderr('busy')
         return 3
+    except (ImportFailure, OSError) as exc:
+        try:
+            lock.release()
+        except (ImportFailure, OSError):
+            pass
+        failure = exc if isinstance(exc, ImportFailure) else ImportFailure('IMPORT_WRITE', stage='disc')
+        return _failure(ctx, failure)
     try:
-        paths.tmp.mkdir(parents=True, exist_ok=True)
-        paths.mount.mkdir(parents=True, exist_ok=True)
-        paths.history.mkdir(parents=True, exist_ok=True)
-        if paths.node == 'forge':
-            paths.cr.mkdir(parents=True, exist_ok=True)
-            paths.status_file.parent.mkdir(parents=True, exist_ok=True)
-        for folder, group, mode in ((paths.state, paths.state_group, paths.state_mode),
-                                    (paths.journal, 'wheel' if paths.node == 'workstation' else 'root', 0o700),
-                                    (paths.tmp, 'wheel' if paths.node == 'workstation' else 'root', 0o700),
-                                    (paths.mount, 'wheel' if paths.node == 'workstation' else 'root', 0o700),
-                                    (paths.history, paths.state_group, paths.state_mode)):
-            imp_fs.set_owner_mode(folder, 'root', group, mode)
-        ctx.c6 = (C6Workstation if paths.node == 'workstation' else C6Forge)(ctx, strings=strings)
-        imp_fs.install_signal_handlers()
+        try:
+            prepare(paths)
+            if paths.history.is_symlink():
+                raise ImportFailure('IMPORT_WRITE')
+            paths.history.mkdir(parents=True, exist_ok=True)
+            if not paths.history.is_mount():
+                imp_fs.set_owner_mode(paths.history, 'root', paths.state_group, paths.state_mode)
+            if paths.node == 'forge':
+                paths.cr.mkdir(parents=True, exist_ok=True)
+                paths.status_file.parent.mkdir(parents=True, exist_ok=True)
+            ctx.c6 = (imp_files.Status if paths.node == 'workstation' else C6Forge)(ctx, strings=strings)
+            imp_fs.install_signal_handlers()
+        except ImportFailure as exc:
+            return _failure(ctx, exc)
+        except OSError:
+            return _failure(ctx, ImportFailure('IMPORT_WRITE', stage='disc'))
         try:
             if load_error is not None:
                 ctx.import_id = imp_paths.new_import_id()
                 ctx.report = Report(paths, ctx.import_id, options['device'] or 'folder')
+                _fetch_row(ctx)
                 ctx.report.begin_stage('disc')
                 ctx.report.add_error('IMPORT_INTERNAL', 'disc')
                 log(paths, ctx.import_id, 'error', exception=type(load_error).__name__)

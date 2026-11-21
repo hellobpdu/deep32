@@ -1,0 +1,140 @@
+{
+  "components": [
+    {
+      "base_inventory": null,
+      "dependencies": [],
+      "id": "fixture-source",
+      "licence": "Apache-2.0",
+      "licence_evidence": [
+        {
+          "path": "inputs/LICENSE.txt",
+          "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      ],
+      "name": "invented-source",
+      "purpose": "SOURCE",
+      "scope": "source",
+      "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "source_url": "NOASSERTION",
+      "version": "1.0"
+    }
+  ],
+  "exceptions": [],
+  "excluded_metadata": [
+    "sbom/disc1.contents.spdx.json",
+    "SHA256SUMS"
+  ],
+  "format": "deep32-sbom-input",
+  "format_version": 1,
+  "generator_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "input_roots": [
+    {
+      "id": "sealed",
+      "manifest": {
+        "path": "inputs/manifest.json",
+        "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "path": "inputs"
+    }
+  ],
+  "release": "v0.1.0-alpha.2",
+  "source_commit": "0000000000000000000000000000000000000000",
+  "source_date_epoch": 946684800,
+  "subjects": [
+    {
+      "aliases": [],
+      "components": [
+        "fixture-source"
+      ],
+      "contents_sboms": [],
+      "input_manifests": [
+        {
+          "path": "inputs/manifest.json",
+          "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      ],
+      "kind": "disc",
+      "path": "deep32-0.1.0-alpha.2-disc1-workstation-amd64.img",
+      "sha256": "cd389f69edebba3b206857c8baf77bc2b248d5c102123aa39ab64ec2e66583dc",
+      "size": 26
+    },
+    {
+      "aliases": [],
+      "components": [
+        "fixture-source"
+      ],
+      "contents_sboms": [],
+      "input_manifests": [
+        {
+          "path": "inputs/manifest.json",
+          "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      ],
+      "kind": "disc",
+      "path": "deep32-0.1.0-alpha.2-disc2-content.iso",
+      "sha256": "1fe5fabf26b93afbd0a9d2a4cba3651380b397046b075296c1f1096c74f795a3",
+      "size": 26
+    },
+    {
+      "aliases": [],
+      "components": [
+        "fixture-source"
+      ],
+      "contents_sboms": [],
+      "input_manifests": [
+        {
+          "path": "inputs/manifest.json",
+          "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      ],
+      "kind": "disc",
+      "path": "deep32-0.1.0-alpha.2-disc3-gpu-pack.iso",
+      "sha256": "ef20d2113f484125ec6f95fc2c2c2cb95e6036341c44bc27c30674b0624a93f1",
+      "size": 26
+    },
+    {
+      "aliases": [],
+      "components": [
+        "fixture-source"
+      ],
+      "contents_sboms": [],
+      "input_manifests": [
+        {
+          "path": "inputs/manifest.json",
+          "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      ],
+      "kind": "runtime",
+      "path": "forge-docker.tar",
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "size": 16
+    },
+    {
+      "aliases": [
+        {
+          "path": "payload/images/full.tar",
+          "role": "full"
+        },
+        {
+          "path": "payload/images/full.tar",
+          "role": "model-bridge"
+        }
+      ],
+      "components": [
+        "fixture-source"
+      ],
+      "contents_sboms": [],
+      "input_manifests": [
+        {
+          "path": "inputs/manifest.json",
+          "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      ],
+      "kind": "container",
+      "path": "payload/images/full.tar",
+      "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "size": 8
+    }
+  ],
+  "unknown_field": true
+}

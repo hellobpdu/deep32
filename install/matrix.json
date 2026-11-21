@@ -72,7 +72,7 @@
     {"id": "11", "min_gb": 10.5, "runs": "both models; the PDF converter one job at a time"},
     {"id": "8", "min_gb": 7.5, "runs": "both models expected to fit (to be measured); a full build is unproven"},
     {"id": "6", "min_gb": 5.5, "runs": "embeddings only; reranking off or on the processor"},
-    {"id": "0", "min_gb": 0, "runs": "keyword search only: without the GPU disc nothing embeds the query, so the stored vectors are not searched (a Forge in processor mode might, untested); building is slow"}
+    {"id": "0", "min_gb": 0, "runs": "keyword search only: use discs 1 and 2; meaning search needs a separately paired NVIDIA Forge; no local CPU Forge is released"}
   ],
   "hw_profiles": [
     {"id": "latitude-5430", "when": [["hw.model", "re", "(^| )latitude 5430$"]], "text": "Dell Latitude 5430, the tested laptop"}
@@ -223,7 +223,7 @@
   },
   "adapters": {
     "hyperv": "experimental until built",
-    "wsl": "experimental until built",
+    "wsl": "deprecated separate distro; retained pending removal decision",
     "libvirt": "experimental until built",
     "proxmox": "experimental until built",
     "docker": "experimental until built",
@@ -233,7 +233,7 @@
     "esxi": "experimental"
   },
   "hosts_and_guests": [
-    {"software": "Windows 11 Pro, Enterprise or Education with Hyper-V and WSL2", "target": "reference"},
+    {"software": "Windows 11 Pro, Enterprise or Education with Hyper-V and Docker Desktop's WSL2 backend", "target": "reference"},
     {"software": "Proxmox VE with GPU passthrough", "target": "reference"},
     {"software": "Linux with KVM and Docker", "target": "supported"},
     {"software": "Windows 11 Home, VirtualBox, VMware, ESXi", "target": "experimental"},
@@ -242,12 +242,12 @@
   ],
   "profiles": [
     {"id": "win-nvidia", "name": "Windows with an NVIDIA card", "target": "reference", "status": "planned", "last_tested": null, "rank": 10, "machines": 1,
-     "found": "Windows 11 Pro, Enterprise or Education, an NVIDIA card, Hyper-V, WSL2",
+     "found": "Windows 11 Pro, Enterprise or Education, an NVIDIA card, Hyper-V, Docker Desktop's WSL2 backend",
      "match": [["os.family", "eq", "windows"], ["os.edition", "in", ["pro", "enterprise", "education"]], ["os.arch", "eq", "x64"]],
      "requires": ["cpu-supported", "virt-slat", "virt-firmware", "size-both", "gpu-cuda", "gpu-mem", "win11", "hyperv", "wsl2", "disk-both", "ports-relay", "ports-forge", "agent", "tailscale"],
      "size": "both",
-     "parts": {"workstation": "Hyper-V VM from disc 1", "forge": "disc 3 imported into WSL2", "relay": "on the same PC"},
-     "adapters": ["hyperv", "wsl"],
+     "parts": {"workstation": "Hyper-V VM from disc 1", "forge": "disc 3 Linux containers through Docker Desktop with its WSL2 backend", "relay": "on the same PC"},
+     "adapters": ["hyperv", "docker"],
      "human": ["firmware-virt", "admin-prompt", "tailscale-signin", "github-signin", "pairing-confirm", "agent-signin"],
      "steps": [], "bench_reference": null},
     {"id": "proxmox-passthrough", "name": "Proxmox VE with GPU passthrough", "target": "reference", "status": "planned", "last_tested": null, "rank": 10, "machines": 1,
@@ -255,7 +255,7 @@
      "match": [["os.family", "eq", "linux"], ["hyp.proxmox", "eq", true]],
      "requires": ["cpu-supported", "virt-slat", "virt-firmware", "kvm", "iommu", "size-both", "gpu-cuda", "gpu-mem", "disk-both", "headend-elsewhere"],
      "size": "both",
-     "parts": {"workstation": "VM from disc 1", "forge": "VM booted from disc 3 with the card passed through", "relay": "on the person's own PC"},
+     "parts": {"workstation": "VM from disc 1", "forge": "disc 3 Linux containers in a Linux Docker guest with the card passed through", "relay": "on the person's own PC"},
      "adapters": ["proxmox"],
      "human": ["firmware-virt", "firmware-iommu", "gpu-passthrough-prep", "tailscale-signin", "github-signin", "pairing-confirm"],
      "steps": [], "bench_reference": null},
@@ -273,8 +273,8 @@
      "match": [["os.family", "eq", "windows"], ["os.edition", "eq", "home"], ["os.arch", "eq", "x64"]],
      "requires": ["cpu-supported", "virt-slat", "virt-firmware", "type2-hypervisor", "size-ws", "disk-ws", "tailscale"],
      "size": "ws",
-     "parts": {"workstation": "VM in VirtualBox or VMware from disc 1", "forge": "disc 3 imported into WSL2 where possible", "relay": "on the same PC"},
-     "adapters": ["virtualbox", "vmware", "wsl"],
+     "parts": {"workstation": "VM in VirtualBox or VMware from disc 1", "forge": "disc 3 Linux containers through Docker Desktop with its WSL2 backend", "relay": "on the same PC"},
+     "adapters": ["virtualbox", "vmware", "docker"],
      "human": ["firmware-virt", "admin-prompt", "tailscale-signin", "github-signin", "pairing-confirm", "agent-signin"],
      "steps": [], "bench_reference": null},
     {"id": "no-gpu", "name": "Workstation with no Forge here", "target": "supported", "status": "planned", "last_tested": null, "rank": 30, "machines": 1,
@@ -282,7 +282,7 @@
      "match": [{"any": [["os.family", "eq", "linux"], {"all": [["os.family", "eq", "windows"], ["os.edition", "in", ["pro", "enterprise", "education"]]]}]}, ["os.arch", "eq", "x64"], ["gpu.usable", "nottrue"]],
      "requires": ["cpu-supported", "virt-slat", "virt-firmware", "hypervisor", "size-ws", "disk-ws", "tailscale"],
      "size": "ws",
-     "parts": {"workstation": "VM from disc 1", "forge": "none, or disc 3 in processor mode", "relay": "on this PC if it is Windows"},
+     "parts": {"workstation": "VM from disc 1", "forge": "none; omit disc 3", "relay": "on this PC if it is Windows"},
      "adapters": ["hyperv", "libvirt"],
      "human": ["firmware-virt", "admin-prompt", "tailscale-signin", "github-signin", "pairing-confirm"],
      "steps": [], "bench_reference": null},
@@ -291,8 +291,8 @@
      "match": [["os.family", "in", ["windows", "linux"]], ["os.arch", "eq", "x64"]],
      "requires": ["cpu-supported", "one-side", "second-machine", "tailscale"],
      "size": "each",
-     "parts": {"workstation": "VM or real install from disc 1, on one machine", "forge": "the other machine booted from disc 3, or disc 3 imported into its WSL2 or Docker", "relay": "on either"},
-     "adapters": ["hyperv", "libvirt", "wsl", "docker", "baremetal"],
+     "parts": {"workstation": "VM or real install from disc 1, on one machine", "forge": "disc 3 Linux containers on the other machine's Docker Engine or Docker Desktop", "relay": "on either"},
+     "adapters": ["hyperv", "libvirt", "docker", "baremetal"],
      "human": ["firmware-virt", "admin-prompt", "tailscale-signin", "github-signin", "pairing-confirm"],
      "steps": [], "bench_reference": null},
     {"id": "headless", "name": "Headless Linux with an NVIDIA card", "target": "supported", "status": "planned", "last_tested": null, "rank": 50, "machines": 1,

@@ -170,8 +170,7 @@ def build(base, payload, output, epoch, kit=None):
                 raise ValueError('WSL base package is newer than its pin (would need a downgrade): ' + name)
         additions = {}
         for relative, path in runtime_members(kit, pins_path).items():
-            additions['opt/deep32-forge/' + relative] = (path,
-                                                       0o755 if path.suffix == '.sh' else 0o644)
+            additions['opt/deep32-forge/' + relative] = (path, _thin.runtime_mode(path))
         additions['etc/wsl.conf'] = (b'[boot]\nsystemd=true\n[user]\ndefault=root\n', 0o644)
         additions['etc/deep32-forge/form'] = (b'wsl\n', 0o644)
         additions['etc/systemd/system/deep32-forge-firstboot.service'] = ((kit / 'firstboot/deep32-forge-firstboot.service').read_bytes(), 0o644)

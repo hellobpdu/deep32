@@ -1,0 +1,262 @@
+{
+  "$comment": "Not release authority. Requires verified root binding and independent inventory/content comparison. Semantic checks enforce supported role/platform, unique aliases and byte budgets.",
+  "$id": "urn:deep32:doctor-install:1:provisional-dg",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "content": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "fingerprint": {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            "generation": {
+              "pattern": "^[A-Za-z0-9._+-]{1,128}$",
+              "type": "string"
+            }
+          },
+          "required": [
+            "generation",
+            "fingerprint"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "inventory": {
+      "additionalProperties": false,
+      "properties": {
+        "credential_slots": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "alias": {
+                "pattern": "^[a-z][a-z0-9-]{0,63}$",
+                "type": "string"
+              },
+              "slot": {
+                "enum": [
+                  "headend-bearer",
+                  "forge-bearer",
+                  "local-status"
+                ]
+              }
+            },
+            "required": [
+              "alias",
+              "slot"
+            ],
+            "type": "object"
+          },
+          "maxItems": 64,
+          "type": "array"
+        },
+        "filesystems": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "alias": {
+                "pattern": "^[a-z][a-z0-9-]{0,63}$",
+                "type": "string"
+              },
+              "required_bytes": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "safe_running_bytes": {
+                "minimum": 0,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "alias",
+              "required_bytes",
+              "safe_running_bytes"
+            ],
+            "type": "object"
+          },
+          "maxItems": 64,
+          "type": "array"
+        },
+        "models": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "alias": {
+                "pattern": "^[a-z][a-z0-9-]{0,63}$",
+                "type": "string"
+              },
+              "id": {
+                "maxLength": 128,
+                "pattern": "^(?!\\.{1,2}/)(?![^/]+/\\.{1,2}$)[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$",
+                "type": "string"
+              },
+              "revision": {
+                "pattern": "^[0-9a-f]{40}$",
+                "type": "string"
+              }
+            },
+            "required": [
+              "alias",
+              "id",
+              "revision"
+            ],
+            "type": "object"
+          },
+          "maxItems": 64,
+          "type": "array"
+        },
+        "ports": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "alias": {
+                "pattern": "^[a-z][a-z0-9-]{0,63}$",
+                "type": "string"
+              },
+              "port": {
+                "maximum": 65535,
+                "minimum": 1,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "alias",
+              "port"
+            ],
+            "type": "object"
+          },
+          "maxItems": 64,
+          "type": "array"
+        },
+        "routes": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "alias": {
+                "pattern": "^[a-z][a-z0-9-]{0,63}$",
+                "type": "string"
+              },
+              "port": {
+                "maximum": 65535,
+                "minimum": 1,
+                "type": "integer"
+              },
+              "route": {
+                "enum": [
+                  "/mcp",
+                  "/info",
+                  "/embed",
+                  "/rerank",
+                  "/pair"
+                ]
+              }
+            },
+            "required": [
+              "alias",
+              "port",
+              "route"
+            ],
+            "type": "object"
+          },
+          "maxItems": 64,
+          "type": "array"
+        },
+        "services": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "active_job": {
+                "type": "boolean"
+              },
+              "alias": {
+                "pattern": "^[a-z][a-z0-9-]{0,63}$",
+                "type": "string"
+              },
+              "image": {
+                "pattern": "^sha256:[0-9a-f]{64}$",
+                "type": "string"
+              },
+              "required": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "alias",
+              "image",
+              "required",
+              "active_job"
+            ],
+            "type": "object"
+          },
+          "maxItems": 64,
+          "type": "array"
+        }
+      },
+      "required": [
+        "services",
+        "models",
+        "ports",
+        "routes",
+        "filesystems",
+        "credential_slots"
+      ],
+      "type": "object"
+    },
+    "platform": {
+      "enum": [
+        "openbsd",
+        "linux",
+        "windows",
+        "macos"
+      ]
+    },
+    "release": {
+      "additionalProperties": false,
+      "properties": {
+        "manifest_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "signer_fingerprint": {
+          "const": "B205B406548627AABF5250D8A078C5F25D025DD6"
+        },
+        "version": {
+          "const": "0.1.0-alpha.2"
+        }
+      },
+      "required": [
+        "version",
+        "manifest_sha256",
+        "signer_fingerprint"
+      ],
+      "type": "object"
+    },
+    "role": {
+      "enum": [
+        "workstation",
+        "forge",
+        "headend"
+      ]
+    },
+    "schema": {
+      "const": "deep32.doctor-install.v1"
+    }
+  },
+  "required": [
+    "schema",
+    "role",
+    "platform",
+    "release",
+    "inventory",
+    "content"
+  ],
+  "title": "PROVISIONAL doctor-install receipt; T-0203 owns the frozen shared schema",
+  "type": "object"
+}

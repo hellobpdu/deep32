@@ -1,0 +1,189 @@
+Deep32 Workstation VM guide (demo: no hypervisor is asked and nothing changes)
+The wizard only reads: it never creates, changes, starts or stops a VM.
+
+Which hypervisor runs the Workstation VM?
+  1) Proxmox VE, boot-tested
+  2) VMware ESXi, not boot-tested yet
+  3) VMware Workstation, not boot-tested yet
+  4) VirtualBox, not boot-tested yet, found on this PC
+  5) Hyper-V, not boot-tested yet
+  6) KVM / libvirt, not boot-tested yet, found on this PC
+  7) Other hypervisor or bare metal, not boot-tested yet
+Number [4]: 1
+A Proxmox VE node. This is the recipe the Deep32 lab boots (VM 929, Proxmox VE 9.1.11).
+
+The network, read on this PC:
+  This PC                192.168.1.20/24 on enp3s0, from DHCP
+  Gateway                192.168.1.1
+  DNS                    192.168.1.1
+  VirtualBox bridged     enp3s0
+  VirtualBox host-only   vboxnet0
+  libvirt networks       default
+  Tailscale here         signed in to example.com, MagicDNS suffix tail4c2e.ts.net, HTTPS certificates on
+How the Workstation VM connects:
+  Proxmox VE connects VMs to your LAN through a bridge, so the Workstation is bridged.
+  Bridged: the Workstation gets an address on your LAN from the router's DHCP, like any other machine there. Tailscale usually connects directly between machines on the same LAN, which is the fastest path. Recommended.
+  Host-only, internal and private networks do not work: the Workstation has no internet there, so its Tailscale sign-in cannot finish.
+
+Tailscale, here and across sites:
+  - Deep32 machines talk over your tailnet, so the Workstation, the Forge and the agent PC can be in different places. At home on one LAN the connections are direct. Across sites they still work; the speed depends on whether Tailscale gets a direct path or relays.
+  - The Workstation signs in to Tailscale at its first boot. It shows the sign-in address on its console.
+  - Publication (d32-publish publish --accept-ct) gives the gateway an HTTPS name on your tailnet. That name appears in public certificate-transparency logs. Only the name: the gateway is still reachable only inside your tailnet.
+  - Tailscale access rules (ACLs) must let the agent PC and the Forge reach the Workstation. If your tailnet has custom rules, allow them; the default policy allows everything.
+
+The VM's settings (Enter keeps the value in brackets):
+  The system host name you give the Workstation installer. The wizard waits for this name to join your tailnet.
+Workstation name [deep32]: 
+  The ID for the new VM. The node's Create VM wizard suggests the next free one on its General tab.
+VM ID [100]: 
+  The name the web UI shows.
+VM name [deep32-workstation]: 
+  Where the two disks go. An LVM install has local-lvm, a ZFS install local-zfs; pvesm status on the node lists them.
+Disk storage [local-lvm]: 
+  The node's bridge to your LAN. The Proxmox VE installer creates vmbr0.
+Bridge [vmbr0]: 
+  The node's name in the web UI's tree.
+Node name [pve]: 
+  For scp and the web UI (https://ADDRESS:8006).
+Node address []: 
+Type the node's address or name on your LAN.
+Node address []: 192.168.1.10
+  Leave it empty to confirm each step yourself. To let the wizard read the VM's settings, on the node run pveum user token add root@pam deep32-audit --privsep 1 (it shows the secret once) and pveum acl modify /vms/VMID --tokens 'root@pam!deep32-audit' --roles PVEAuditor, then type root@pam!deep32-audit here.
+API token (optional) []: root@pam!deep32-audit
+
+Proxmox VE, boot-tested: 7 steps. The steps file is steps-proxmox.txt in the kit folder (the demo writes no file).
+
+Step 1 of 7: The verified disc 1 image
+Where: This PC
+  1) deep32-get checked this image against the signed release:
+         /home/you/deep32-downloads/deep32-0.1.0-alpha.2-disc1-workstation-amd64.img
+  2) Its SHA-256 is 5c1b0e47d9a2f8c3604e8b1d7f2a9c5e3b08d4f61a7c2e9b5d3f0a8c6e4b1d97 and its size 1876951040 bytes. Every copy you make must keep both.
+Enter checks this step; s skips it, b goes back, q stops: 
+Result: OK
+  ok     Disc 1 image: /home/you/deep32-downloads/deep32-0.1.0-alpha.2-disc1-workstation-amd64.img, 1876951040 bytes
+  ok     SHA-256: 5c1b0e47d9a2f8c3604e8b1d7f2a9c5e3b08d4f61a7c2e9b5d3f0a8c6e4b1d97 (checked by deep32-get)
+
+Step 2 of 7: Copy disc 1 to the node
+Where: This PC, then a shell on the node
+  1) Copy the image to /var/tmp on the node:
+         scp "/home/you/deep32-downloads/deep32-0.1.0-alpha.2-disc1-workstation-amd64.img" root@192.168.1.10:/var/tmp/
+  2) On the node, check the copy:
+         sha256sum /var/tmp/deep32-0.1.0-alpha.2-disc1-workstation-amd64.img
+Enter checks this step; s skips it, b goes back, q stops: 
+Look for: sha256sum on the node printed 5c1b0e47d9a2f8c3604e8b1d7f2a9c5e3b08d4f61a7c2e9b5d3f0a8c6e4b1d97
+Did you see it? [y/N] y
+Result: YOU CONFIRMED
+  note   You saw: sha256sum on the node printed 5c1b0e47d9a2f8c3604e8b1d7f2a9c5e3b08d4f61a7c2e9b5d3f0a8c6e4b1d97
+
+Step 3 of 7: Create the VM
+Where: A shell on the node, as root
+  1) Create the VM:
+         qm create 100 --name deep32-workstation --ostype other --bios seabios --cpu host --sockets 1 --cores 6 --memory 12288 --balloon 0 --scsihw virtio-scsi-single --net0 virtio,bridge=vmbr0 --vga std --serial0 socket
+  2) Import the installer as its first disk (a copy on local-lvm; the image file is only read):
+         qm set 100 --scsi0 local-lvm:0,import-from=/var/tmp/deep32-0.1.0-alpha.2-disc1-workstation-amd64.img,discard=on,iothread=1,ssd=1
+  3) Add the empty 200 GB target disk:
+         qm set 100 --scsi1 local-lvm:200,discard=on,iothread=1,ssd=1
+  4) Boot the installer first:
+         qm set 100 --boot order=scsi0
+  5) The same values in the web UI's Create VM wizard: OS, Do not use any media; System, BIOS SeaBIOS, SCSI Controller VirtIO SCSI single, Graphic card Default (std); CPU, Sockets 1, Cores 6, Type host; Memory, Memory (MiB) 12288, Ballooning Device off; Network, Bridge vmbr0, Model VirtIO (paravirtualized). The installer disk still comes from the import line above. Check it with
+         qm config 100
+Enter checks this step; s skips it, b goes back, q stops: 
+The node's certificate at https://192.168.1.10:8006 has this SHA-256 fingerprint:
+  3A:9F:12:C4:7B:E0:55:D1:08:6C:AF:21:93:4E:B7:0D:6A:F2:1C:88:E5:4B:30:9D:C7:12:5E:A0:F3:68:2B:D4
+Compare it with the node: in the web UI, the node, Certificates; or on the node: pvenode cert info (pve-ssl.pem).
+Does it match? [y/N] y
+Pinned for this session.
+Secret of root@pam!deep32-audit (kept in memory for this session only; not shown, logged or saved): 
+Result: ERROR VM_DISK_SMALL
+  ok     Firmware: bios: seabios
+  ok     Display: vga: std
+  ok     vCPUs: cores: 6, sockets: 1
+  ok     Memory (MiB): memory: 12288 MiB
+  ERROR  Target disk: scsi1, 171.8 GB (171798691840 bytes) (VM_DISK_SMALL)
+  ok     Installer disk: scsi0, 1.9 GB
+  ok     Boots from: boot: order=scsi0
+  ok     Network card: net0: virtio on vmbr0
+  ok     OS type: ostype: other
+  ok     CPU type: cpu: host
+  ok     SCSI controller: scsihw: virtio-scsi-single
+What it means: The VM's largest disk is smaller than 200 GB. The guided install needs an empty target disk of at least 200 GB.
+What to do:
+  1) Give the VM an empty disk of at least 200 GB. On a VM with no scsi1:
+         qm set 100 --scsi1 local-lvm:200,discard=on,iothread=1,ssd=1
+  2) Check the step again
+Enter checks this step; s skips it, b goes back, q stops: 
+Result: OK
+  ok     Firmware: bios: seabios
+  ok     Display: vga: std
+  ok     vCPUs: cores: 6, sockets: 1
+  ok     Memory (MiB): memory: 12288 MiB
+  ok     Target disk: scsi1, 214.7 GB (214748364800 bytes)
+  ok     Installer disk: scsi0, 1.9 GB
+  ok     Boots from: boot: order=scsi0
+  ok     Network card: net0: virtio on vmbr0
+  ok     OS type: ostype: other
+  ok     CPU type: cpu: host
+  ok     SCSI controller: scsihw: virtio-scsi-single
+
+Step 4 of 7: Install the Workstation
+Where: The node's web UI: the VM's Console
+  1) Start the VM:
+         qm start 100
+  2) Open its Console in the web UI. The guided installer starts.
+  3) Install to the empty 200 GB disk, never to the installer disk. When it asks for the system host name, type deep32.
+  4) When the install has finished, the installer halts the VM.
+Enter checks this step; s skips it, b goes back, q stops: 
+Look for: the installer said the install finished, and the VM is stopped
+Did you see it? [y/N] y
+Result: YOU CONFIRMED
+  note   You saw: the installer said the install finished, and the VM is stopped
+
+Step 5 of 7: Boot the installed disk; attach disc 2
+Where: This PC, then a shell on the node
+  1) Copy disc 2 to the node's ISO folder:
+         scp "/home/you/deep32-downloads/deep32-0.1.0-alpha.2-disc2-content.iso" root@192.168.1.10:/var/lib/vz/template/iso/
+  2) Boot from the target disk:
+         qm set 100 --boot order=scsi1
+  3) Attach disc 2 as a CD drive:
+         qm set 100 --sata1 local:iso/deep32-0.1.0-alpha.2-disc2-content.iso,media=cdrom
+  4) The installer disk scsi0 can stay; the boot order passes over it.
+Enter checks this step; s skips it, b goes back, q stops: 
+Result: OK
+  ok     Boots from: boot: order=scsi1
+  ok     CD/DVD: deep32-0.1.0-alpha.2-disc2-content.iso
+
+Step 6 of 7: First boot and Tailscale
+Where: The VM's Console, then this PC
+  1) Start the VM:
+         qm start 100
+  2) On its console, set the passwords the first boot asks for.
+  3) It then shows a Tailscale sign-in address. Open it on any device and sign in to your tailnet.
+  4) If the sign-in stalls: The Workstation checks DNSSEC through the DNS server DHCP gives it. A few routers' DNS breaks that and the sign-in stalls. Then give the VM's network another DNS server.
+Enter checks this step; s skips it, b goes back, q stops: 
+Waiting for deep32 to join your tailnet (this PC looks every 1 s, for up to 10 minutes).
+Result: OK
+  ok     Tailscale: deep32 is on your tailnet (example.com) and online
+
+Step 7 of 7: The disc 2 import
+Where: The Workstation
+  1) The import starts by itself. Search works once the knowledge base is in; the Library carries on in the background.
+  2) Import Report shows how far it is. From a terminal:
+         /usr/local/d32/libexec/d32-import-report
+  3) If it stopped, resume it:
+         doas /usr/local/d32/sbin/d32-import-resume
+Enter checks this step; s skips it, b goes back, q stops: 
+Look for: Import Report shows the knowledge base in use
+Did you see it? [y/N] y
+Result: YOU CONFIRMED
+  note   You saw: Import Report shows the knowledge base in use
+
+Where it stands:
+  1. The verified disc 1 image                    OK
+  2. Copy disc 1 to the node                      YOU CONFIRMED
+  3. Create the VM                                OK
+  4. Install the Workstation                      YOU CONFIRMED
+  5. Boot the installed disk; attach disc 2       OK
+  6. First boot and Tailscale                     OK
+  7. The disc 2 import                            YOU CONFIRMED
+
+Next: pair the Forge and the agent PC with the Workstation (the wizard's What's next, or INSTALL.md).

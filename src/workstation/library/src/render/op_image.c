@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 Jeffrey A. Cummings */
 /* op_image.c: e26-render's decode_fit (W1-IMAGE, plan R3 and W10; LIB-PROTOCOL "e26-render named operations").
  * A picture arrives as a read-only descriptor with its declared MIME type; its first bytes must agree with that
  * type. WebP is decoded by libwebp, PNG, JPEG and GIF by MuPDF's image loaders, SVG drawn by MuPDF's SVG document at

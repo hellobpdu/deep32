@@ -1,0 +1,1284 @@
+#!/usr/local/bin/python3.14 -IB
+"""d32-content-fetch: disc 2 over the network, for a Workstation without an optical drive.
+
+  d32-content-fetch                          the plain-text screens in a Terminal; First Start's Get Disc 2 over the
+                                             Network opens them through doas (d32-content-get)
+  d32-content-fetch --peer NAME --code CODE  download disc 2 from that PC on the tailnet: the Deep32 wizard's Send
+                                             disc 2 shows its name and the code
+  d32-content-fetch --mirror                 download disc 2 from the release mirror (the Internet Archive)
+  d32-content-fetch --attach                 attach a complete download again after a restart (the first start runs
+                                             this before it looks for disc 2); an image whose import has finished
+                                             (the import report says so) is removed instead
+  d32-content-fetch --cleanup                detach the download, delete it and give the update area back
+  d32-content-fetch --status                 print what is downloaded, as key=value lines; change nothing
+
+Where it goes: the INACTIVE system slot, the one /d32/active does not name (at the first start, the empty update
+slot), in its folder d32-disc2. That slot is mounted read-only; it is made writable only while this program writes
+or deletes the image there, with d32upd's own remount (mount -u, keeping the slot's options), and read-only again
+after. The active slot is never written. While the image is there this program holds d32upd's lock
+(/var/db/d32upd/.lock, pid 1, owner d32-content-fetch), so no update can be staged; it refuses to start while an
+update waits for the boot window or one is running. Free space must be the image's size and 1 GiB more.
+
+Nothing about the transport is trusted: the image is accepted as downloaded only when its size is the one the source
+announced and its ISO 9660 volume descriptor is in place, and then the importer checks the signature and every file
+against the signed manifest, as for a disc. A download that stops carries on from where it stopped (HTTP Range).
+The firewall opens only while a download runs: pf table <d32_fetch> holds the source's addresses and is emptied after.
+
+Progress goes to the terminal, to the import report (stage fetch, /var/db/d32/import/report.json) and, during the
+first start, to the console status line (C6, stage content).
+
+Exit: 0 done; 1 the download or the attach failed; 2 usage; 3 not root; 4 refused (an update is staged or running,
+too little space, the update area cannot be used); 5 busy (another download, or an import of disc 2, is running).
+Test hooks, read only when D32_ROOT is set: the D32_TEST_* settings of d32-import/imp_paths.py and
+D32_FETCH_TEST_ORIGIN (http://127.0.0.1:PORT takes every request in place of the source's address, without TLS).
+"""
+import sys
+sys.dont_write_bytecode = True
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / 'libexec' / 'd32-import'))
+
+import http.client
+import ipaddress
+import json
+import os
+import posixpath
+import re
+import signal
+import socket
+import ssl
+import stat
+import subprocess
+import time
+import urllib.parse
+
+import imp_fs
+import imp_paths
+from imp_journal import Lock, LockBusy
+from imp_report import Report
+
+
+PORT = 9447
+PEER_URL = 'https://{host}:{port}/d32-disc2-{code}/deep32-{version}-disc2-content.iso'
+MIRROR_URL = 'https://archive.org/download/deep32-{version}/deep32-{version}-disc2-content.iso'
+IMAGE = 'deep32-{version}-disc2-content.iso'
+FOLDER = 'd32-disc2'
+STATE_DIR = '/var/db/d32/fetch'
+UPD_DB = '/var/db/d32upd'
+PENDING = ('/d32/var/pending', '/d32/var/pending.running')
+FIRSTBOOT = '/var/db/d32/firstboot'
+STRINGS = '/usr/local/share/d32/setup/strings.tsv'
+COMMANDS = {'mount': '/sbin/mount', 'umount': '/sbin/umount', 'vnconfig': '/sbin/vnconfig', 'pfctl': '/sbin/pfctl',
+            'tailscale': '/usr/local/bin/tailscale', 'd32-c6': '/usr/local/d32/sbin/d32-c6',
+            'd32-firstboot': '/usr/local/d32/sbin/d32-firstboot',
+            'd32-content-import': '/usr/local/d32/libexec/d32-content-import'}
+TABLE = 'd32_fetch'
+OWNER = 'd32-content-fetch'
+# d32upd's lock is a directory with the pid of its holder; d32upd takes it over when that pid is gone. The image
+# outlives this program and restarts, so the pid is init's, which is always there: d32upd refuses to stage, verify or
+# revert until --cleanup removes the lock. The owner file says whose it is.
+LOCK_PID = 1
+KEEP_OPTIONS = ('nodev', 'nosuid', 'noexec', 'noatime', 'wxallowed', 'softdep', 'sync', 'async')
+CODE = re.compile(r'[A-Z2-7]{10}\Z')
+VERSION = re.compile(r'[0-9A-Za-z][0-9A-Za-z._+-]{0,63}\Z')
+PEER_NAME = re.compile(r'[A-Za-z0-9][A-Za-z0-9-]{0,62}(\.[A-Za-z0-9][A-Za-z0-9-]{0,62})*\Z')
+DNS_NAME = re.compile(r'[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+\Z')
+MIRROR_HOST = re.compile(r'(?:[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)*archive\.org\Z')
+IMAGE_NAME = re.compile(r'deep32-[0-9A-Za-z][0-9A-Za-z._+-]{0,63}-disc2-content\.iso(\.part)?\Z')
+UNIT = re.compile(r'vnd[0-9]\Z')
+MOUNT_LINE = re.compile(r'(\S+) on (/\S*) type (\S+) \(([^)]*)\)\Z')
+VND_LINE = re.compile(r'(vnd[0-9]+): (?:covering (/.*) on \S+, inode [0-9]+|not in use)\Z')
+RANGE = re.compile(r'bytes ([0-9]{1,15})-([0-9]{1,15})/([0-9]{1,15})\Z')
+TAILNET = ipaddress.IPv4Network('100.64.0.0/10')
+GIB = 1 << 30
+SPARE = GIB
+MAX_IMAGE = 64 * GIB
+DESCRIPTOR = 32768          # sector 16 of 2048 bytes: the first ISO 9660 volume descriptor, "CD001" at offset 1
+CHUNK = 1 << 20
+RETRIES = 3
+RETRY_PAUSE = 5
+CONNECT_TIMEOUT = 20
+READ_TIMEOUT = 60
+OK, FAILED, USAGE, NOT_ROOT, REFUSED, BUSY = 0, 1, 2, 3, 4, 5
+USAGE_TEXT = 'usage: d32-content-fetch [--peer NAME --code CODE | --mirror | --attach | --cleanup | --status]'
+STATE_KEYS = ('format', 'format_version', 'version', 'slot', 'image', 'size', 'complete', 'source', 'unit',
+              'started', 'finished')
+
+
+class Stop(Exception):
+    """The download, attach or cleanup stops: an exit status, a string id with its values, and for a download that
+    had begun, the reason the import report records (IMPORT_FETCH)."""
+
+    def __init__(self, status, text, reason=None, **values):
+        super().__init__(text)
+        self.status, self.text, self.reason, self.values = status, text, reason, values
+
+
+class Interrupt(BaseException):
+    """Ctrl+C, a closed Terminal or a shutdown."""
+
+
+def _interrupt(signum=None, frame=None):
+    raise Interrupt()
+
+
+# ---------------------------------------------------------------------------------------------- words and numbers
+
+class Words:
+    """The strings table of the Workstation screens (id TAB text), as d32-uijson reads it."""
+
+    def __init__(self):
+        self.t = {}
+        try:
+            with open(imp_paths.rp(STRINGS), encoding='ascii') as stream:
+                for line in stream.read().split('\n'):
+                    if '\t' in line:
+                        key, value = line.split('\t', 1)
+                        self.t[key] = value.split('\t', 1)[0]
+        except (OSError, UnicodeError):
+            pass
+
+    def __call__(self, string_id, **values):
+        text = self.t.get(string_id, string_id)
+        for key, value in values.items():
+            text = text.replace('{' + key + '}', str(value))
+        return text.replace('{nl}', '\n')
+
+
+def size(n):
+    """850 MB below 1 GB, else 26.8 GB (binary units, as the Import Report counts)."""
+    if n < GIB:
+        return '%d MB' % ((n + 524288) // 1048576)
+    tenths = (n * 10 + 536870912) // GIB
+    return '%d.%d GB' % (tenths // 10, tenths % 10)
+
+
+def duration(seconds):
+    minutes = max(1, -(-int(seconds) // 60))
+    return '%d min' % minutes if minutes < 60 else '%d h %d min' % (minutes // 60, minutes % 60)
+
+
+def normal_code(text):
+    """A code as typed (spaces and dashes, small letters, 0 1 8 for O I B) in its standard form, or None."""
+    if not isinstance(text, str) or len(text) > 64:
+        return None
+    swap = {'0': 'O', '1': 'I', '8': 'B'}
+    value = ''.join(swap.get(c, c) for c in text.upper() if c not in ' \t-')
+    return value if CODE.fullmatch(value) else None
+
+
+# ---------------------------------------------------------------------------------------------- the sources
+
+def system_version():
+    """The release this disc 1 carries: the first word of /etc/d32/release, as the importer reads it."""
+    try:
+        with imp_fs.open_regular(imp_paths.rp('/etc/d32/release')) as stream:
+            line = stream.read(4096).decode('ascii').splitlines()[0]
+        version = line.split()[0]
+    except (OSError, UnicodeError, IndexError):
+        raise Stop(REFUSED, 'fetch.refuse.version') from None
+    if not VERSION.fullmatch(version):
+        raise Stop(REFUSED, 'fetch.refuse.version')
+    return version
+
+
+def peer_url(dns_name, code, version):
+    if not DNS_NAME.fullmatch(dns_name) or not CODE.fullmatch(code) or not VERSION.fullmatch(version):
+        raise ValueError('peer url')
+    return PEER_URL.format(host=dns_name, port=PORT, code=code, version=version)
+
+
+def mirror_url(version):
+    if not VERSION.fullmatch(version):
+        raise ValueError('mirror url')
+    return MIRROR_URL.format(version=version)
+
+
+def tailnet_ipv4(value):
+    try:
+        return isinstance(value, str) and ipaddress.IPv4Address(value) in TAILNET
+    except ValueError:
+        return False
+
+
+def parse_peers(obj):
+    """The online peers of `tailscale status --json`: name (the first label of the tailnet name), host, DNS name and
+    tailnet IPv4 address. The field names are the ones deep32net/discovery.py reads."""
+    if not isinstance(obj, dict):
+        raise Stop(FAILED, 'fetch.peers.status')
+    if obj.get('BackendState') != 'Running':
+        raise Stop(FAILED, 'fetch.peers.signin')
+    peers = obj.get('Peer')
+    peers = {} if peers is None else peers
+    if not isinstance(peers, dict):
+        raise Stop(FAILED, 'fetch.peers.status')
+    found = []
+    for peer in peers.values():
+        if not isinstance(peer, dict) or peer.get('Online') is not True or peer.get('Expired') is True:
+            continue
+        dns = peer.get('DNSName')
+        dns = dns.rstrip('.').lower() if isinstance(dns, str) else ''
+        address = next((a for a in peer.get('TailscaleIPs') or [] if tailnet_ipv4(a)), None)
+        if not DNS_NAME.fullmatch(dns) or address is None:
+            continue
+        host = peer.get('HostName')
+        host = host if isinstance(host, str) and PEER_NAME.fullmatch(host) else dns.split('.')[0]
+        found.append({'name': dns.split('.')[0], 'host': host, 'dns': dns, 'ipv4': address})
+    found.sort(key=lambda p: (p['name'], p['dns']))
+    return found
+
+
+def list_peers():
+    result = run('tailscale', ['status', '--json'], timeout=30)
+    if result.returncode:
+        raise Stop(FAILED, 'fetch.peers.status')
+    try:
+        return parse_peers(json.loads(result.stdout))
+    except ValueError:
+        raise Stop(FAILED, 'fetch.peers.status') from None
+
+
+def pick_peer(peers, name):
+    """The one peer NAME names: its first label, its tailnet name or its host name."""
+    wanted = name.rstrip('.').lower()
+    hits = [p for p in peers if wanted in (p['name'], p['dns'], p['host'].lower())]
+    if len(hits) != 1:
+        raise Stop(FAILED, 'fetch.peer.unknown' if not hits else 'fetch.peer.many', name=name)
+    return hits[0]
+
+
+class Source:
+    """Where the image comes from: a URL, its kind and, for a tailnet PC, the address its name has."""
+
+    def __init__(self, kind, url, label, address=None):
+        self.kind, self.url, self.label, self.address = kind, url, label, address
+
+
+# ---------------------------------------------------------------------------------------------- the system
+
+def run(name, args, timeout=120):
+    """A fixed program with checked arguments; never a shell."""
+    if imp_paths.test_mode():
+        argv = [sys.executable, '-I', '-B', str(Path(imp_paths.hooks()['D32_STUBS']) / (name + '.py'))]
+        env = dict(os.environ)
+    else:
+        argv = [COMMANDS[name]]
+        env = {'PATH': '/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin', 'LC_ALL': 'C'}
+    try:
+        return subprocess.run(argv + [str(a) for a in args], stdin=subprocess.DEVNULL, capture_output=True, text=True,
+                              encoding='ascii', errors='replace', timeout=timeout, env=env, check=False)
+    except (OSError, subprocess.TimeoutExpired):
+        return subprocess.CompletedProcess(argv, 127, '', '')
+
+
+def spawn(name, args, wait=False):
+    """Start a program on its own, detached from this Terminal (the first start's follower), or run it here."""
+    if imp_paths.test_mode():
+        argv = [sys.executable, '-I', '-B', str(Path(imp_paths.hooks()['D32_STUBS']) / (name + '.py'))]
+        env = dict(os.environ)
+    else:
+        argv = [COMMANDS[name]]
+        env = {'PATH': '/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin', 'LC_ALL': 'C'}
+    try:
+        if wait:
+            return subprocess.run(argv + list(args), stdin=subprocess.DEVNULL, env=env, check=False).returncode
+        subprocess.Popen(argv + list(args), stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                         stderr=subprocess.DEVNULL, env=env, start_new_session=True)
+        return 0
+    except OSError:
+        return 127
+
+
+def read_active():
+    """The target of /d32/active, the link to the active system slot (ISO 4.1; rc.securelevel flips it)."""
+    return os.readlink(imp_paths.rp('/d32/active'))
+
+
+def mount_table():
+    """Mount point: {device, type, options} from mount(8)."""
+    result = run('mount', [])
+    if result.returncode:
+        raise Stop(REFUSED, 'fetch.refuse.slot', why='fetch.slot.mount')
+    table = {}
+    for line in result.stdout.splitlines():
+        match = MOUNT_LINE.fullmatch(line.strip())
+        if match:
+            table[match.group(2)] = {'device': match.group(1), 'type': match.group(3),
+                                     'options': [o.strip() for o in match.group(4).split(',')]}
+    return table
+
+
+def slots(table):
+    """(active, inactive): the slot /d32/active names, and the other of the pair. Both must be mounted file systems
+    of their own, on different devices, or nothing is written."""
+    try:
+        target = read_active()
+    except OSError:
+        raise Stop(REFUSED, 'fetch.refuse.slot', why='fetch.slot.unknown') from None
+    name = {'a': 'a', 'b': 'b', '/d32/a': 'a', '/d32/b': 'b'}.get(target)
+    if name is None:
+        raise Stop(REFUSED, 'fetch.refuse.slot', why='fetch.slot.unknown')
+    active, inactive = '/d32/' + name, '/d32/' + {'a': 'b', 'b': 'a'}[name]
+    one, other = table.get(active), table.get(inactive)
+    if (one is None or other is None or other['type'] != 'ffs' or not other['device'].startswith('/dev/') or
+            other['device'] == one['device']):
+        raise Stop(REFUSED, 'fetch.refuse.slot', why='fetch.slot.mount')
+    return active, inactive
+
+
+def image_path(inactive, version):
+    return inactive + '/' + FOLDER + '/' + IMAGE.format(version=version)
+
+
+def check_path(path, active, inactive):
+    """Refuse any path but a file directly in the d32-disc2 folder of the inactive slot: never one in the active
+    slot, never one through a link."""
+    folder = inactive + '/' + FOLDER
+    if (not isinstance(path, str) or posixpath.normpath(path) != path or posixpath.dirname(path) != folder or
+            not IMAGE_NAME.fullmatch(posixpath.basename(path)) or path.startswith(active + '/') or
+            path.startswith('/d32/active/')):
+        raise Stop(REFUSED, 'fetch.refuse.slot', why='fetch.slot.path')
+    for item in (inactive, folder, path):
+        try:
+            mode = os.lstat(imp_paths.rp(item)).st_mode
+        except FileNotFoundError:
+            continue
+        except OSError:
+            raise Stop(REFUSED, 'fetch.refuse.slot', why='fetch.slot.path') from None
+        if stat.S_ISLNK(mode) or (item != path and not stat.S_ISDIR(mode)) or (item == path and not stat.S_ISREG(mode)):
+            raise Stop(REFUSED, 'fetch.refuse.slot', why='fetch.slot.path')
+    if not imp_paths.test_mode():
+        # one file system with the inactive slot, another than the active one's
+        here = os.stat(imp_paths.rp(inactive)).st_dev
+        if here == os.stat(imp_paths.rp(active)).st_dev or (
+                os.path.isdir(imp_paths.rp(folder)) and os.stat(imp_paths.rp(folder)).st_dev != here):
+            raise Stop(REFUSED, 'fetch.refuse.slot', why='fetch.slot.path')
+
+
+def remount(point, table, writable):
+    """d32upd's remount (restore_do): mount -u -o rw|ro with the options the slot keeps."""
+    keep = ''.join(',' + o for o in table[point]['options'] if o in KEEP_OPTIONS)
+    result = run('mount', ['-u', '-o', ('rw' if writable else 'ro') + keep, point])
+    if result.returncode:
+        raise Stop(REFUSED, 'fetch.refuse.slot', why='fetch.slot.rw' if writable else 'fetch.slot.ro')
+
+
+def read_only(table, point):
+    return 'read-only' in table[point]['options']
+
+
+class Writable:
+    """The inactive slot writable for the body of a with, read-only again after (only when it was read-only)."""
+
+    def __init__(self, table, point):
+        self.table, self.point, self.made = table, point, False
+
+    def __enter__(self):
+        if read_only(self.table, self.point):
+            remount(self.point, self.table, True)
+            self.made = True
+        return self
+
+    def __exit__(self, kind, value, traceback):
+        if self.made:
+            imp_fs.sync()
+            try:
+                remount(self.point, self.table, False)
+            except Stop:
+                if kind is None:
+                    raise
+        return False
+
+
+def vnd_units():
+    """Unit: the file it covers (None when it is not in use), from vnconfig -l."""
+    result = run('vnconfig', ['-l'])
+    units = {}
+    for line in result.stdout.splitlines():
+        match = VND_LINE.fullmatch(line.strip())
+        if match:
+            units[match.group(1)] = match.group(2)
+    return units
+
+
+def covering(path):
+    return sorted(unit for unit, file in vnd_units().items() if file == path)
+
+
+# ---------------------------------------------------------------------------------------------- locks and records
+
+def _path(node_path):
+    return imp_paths.rp(node_path)
+
+
+def _write_new(path, text):
+    descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, 'O_NOFOLLOW', 0), 0o600)
+    with os.fdopen(descriptor, 'w', encoding='ascii', newline='\n') as stream:
+        stream.write(text)
+
+
+def _read_small(path):
+    try:
+        with imp_fs.open_regular(path) as stream:
+            return stream.read(4096).decode('ascii')
+    except (OSError, UnicodeError):
+        return None
+
+
+def update_lock():
+    """free, ours, stale, or update (held by a d32upd that runs)."""
+    lock = _path(UPD_DB + '/.lock')
+    if not os.path.lexists(lock):
+        return 'free'
+    if os.path.islink(lock) or not os.path.isdir(lock):
+        return 'update'
+    if (_read_small(lock / 'owner') or '').strip() == OWNER:
+        return 'ours'
+    pid = (_read_small(lock / 'pid') or '').strip()
+    return 'update' if pid.isdecimal() and imp_paths.alive(int(pid)) else 'stale'
+
+
+def take_update_lock():
+    """d32upd's lock, so no update starts while the image is on its slot; refused while an update runs or waits."""
+    holder = update_lock()
+    if holder == 'update':
+        raise Stop(REFUSED, 'fetch.refuse.running')
+    if holder != 'ours':
+        db = _path(UPD_DB)
+        if os.path.islink(db):
+            raise Stop(REFUSED, 'fetch.refuse.running')
+        if not db.is_dir():
+            db.mkdir(mode=0o700, parents=True)
+            imp_fs.set_owner_mode(db, 'root', 'wheel', 0o700)
+        if holder == 'stale':
+            imp_fs.remove_tree(db / '.lock')
+        try:
+            (db / '.lock').mkdir(mode=0o700)
+        except FileExistsError:
+            raise Stop(BUSY, 'fetch.refuse.running') from None
+        _write_new(db / '.lock' / 'pid', '%d\n' % LOCK_PID)
+        _write_new(db / '.lock' / 'owner', OWNER + '\n')
+    if any(os.path.lexists(_path(p)) for p in PENDING):
+        if holder != 'ours':
+            release_update_lock()
+        raise Stop(REFUSED, 'fetch.refuse.staged')
+
+
+def release_update_lock():
+    if update_lock() == 'ours':
+        imp_fs.remove_tree(_path(UPD_DB + '/.lock'))
+
+
+class RunLock:
+    """One d32-content-fetch at a time (the first start's --attach included)."""
+
+    def __init__(self):
+        self.path = _path(STATE_DIR + '/run.lock')
+        self.held = False
+
+    def __enter__(self):
+        state_dir()
+        try:
+            self.path.mkdir(mode=0o700)
+        except FileExistsError:
+            pid = (_read_small(self.path / 'pid') or '').strip()
+            if pid.isdecimal() and imp_paths.alive(int(pid)):
+                raise Stop(BUSY, 'fetch.refuse.busy') from None
+            imp_fs.remove_tree(self.path)
+            self.path.mkdir(mode=0o700)
+        self.held = True
+        _write_new(self.path / 'pid', '%d\n' % os.getpid())
+        return self
+
+    def __exit__(self, kind, value, traceback):
+        if self.held:
+            imp_fs.remove_tree(self.path)
+            self.held = False
+        return False
+
+
+def state_dir():
+    folder = _path(STATE_DIR)
+    if not folder.is_dir():
+        folder.mkdir(mode=0o700, parents=True)
+        imp_fs.set_owner_mode(folder, 'root', 'wheel', 0o700)
+    return folder
+
+
+def load_state():
+    """The record of the download, None when there is none; Stop when it is damaged."""
+    path = _path(STATE_DIR + '/state.json')
+    if not os.path.lexists(path):
+        return None
+    try:
+        with imp_fs.open_regular(path) as stream:
+            raw = stream.read(65537)
+        value = json.loads(raw.decode('ascii'))
+    except (OSError, ValueError, UnicodeError):
+        raise Stop(REFUSED, 'fetch.refuse.state') from None
+    when = re.compile(r'[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z\Z')
+    good = (isinstance(value, dict) and tuple(value) == STATE_KEYS and value['format'] == 'deep32-content-fetch' and
+            value['format_version'] == 1 and isinstance(value['version'], str) and
+            VERSION.fullmatch(value['version']) and value['slot'] in ('/d32/a', '/d32/b') and
+            isinstance(value['image'], str) and
+            value['image'] == image_path(value['slot'], value['version']) and
+            (value['size'] is None or type(value['size']) is int and 0 < value['size'] <= MAX_IMAGE) and
+            value['complete'] in (True, False) and (value['size'] is not None or not value['complete']) and
+            value['source'] in ('peer', 'mirror') and
+            (value['unit'] is None or isinstance(value['unit'], str) and UNIT.fullmatch(value['unit'])) and
+            isinstance(value['started'], str) and when.fullmatch(value['started']) and
+            (value['finished'] is None or isinstance(value['finished'], str) and when.fullmatch(value['finished'])))
+    if not good or len(raw) > 65536:
+        raise Stop(REFUSED, 'fetch.refuse.state')
+    return value
+
+
+def save_state(value):
+    state_dir()
+    data = (json.dumps({key: value[key] for key in STATE_KEYS}, indent=2) + '\n').encode('ascii')
+    imp_fs.atomic_write(_path(STATE_DIR + '/state.json'), data, 0o600, group='wheel')
+
+
+def forget_state():
+    for name in ('state.json', 'iso'):
+        path = _path(STATE_DIR + '/' + name)
+        if os.path.lexists(path):
+            os.unlink(path)
+
+
+def firstboot_done():
+    return os.path.lexists(_path(FIRSTBOOT + '/done'))
+
+
+def follower_alive():
+    pid = (_read_small(_path(FIRSTBOOT + '/follow.lock/pid')) or '').strip()
+    return pid.isdecimal() and imp_paths.alive(int(pid))
+
+
+# ---------------------------------------------------------------------------------------------- the console line
+
+def console(state, msg):
+    """C6 status line of the first start (stage content); nothing once the first start is done."""
+    if firstboot_done() or not os.path.lexists(_path('/var/run/d32/c6/boot')):
+        return
+    run('d32-c6', ['set', 'workstation', 'content', state, 'msg=' + msg], timeout=30)
+
+
+# ---------------------------------------------------------------------------------------------- HTTP
+
+def _origin():
+    """The test hook's origin (scheme, host, port), or None."""
+    if not imp_paths.test_mode():
+        return None
+    value = os.environ.get('D32_FETCH_TEST_ORIGIN', '')
+    match = re.fullmatch(r'http://127\.0\.0\.1:([0-9]{1,5})', value)
+    return ('127.0.0.1', int(match.group(1))) if match else None
+
+
+def resolve(host):
+    if _origin():
+        return ['127.0.0.1']
+    try:
+        found = socket.getaddrinfo(host, 443, socket.AF_INET, socket.SOCK_STREAM)
+    except OSError:
+        raise Stop(FAILED, 'fetch.stopped', reason='unreachable') from None
+    return sorted({item[4][0] for item in found})
+
+
+def firewall(addresses):
+    """Let root reach these addresses for the download (pf table <d32_fetch>, empty otherwise)."""
+    if addresses:
+        run('pfctl', ['-t', TABLE, '-T', 'add'] + list(addresses), timeout=30)
+
+
+def firewall_close():
+    run('pfctl', ['-t', TABLE, '-T', 'flush'], timeout=30)
+
+
+def connect(host, addresses, port):
+    """An HTTPS connection to one of `addresses`, its certificate checked against `host` with the system's CA file
+    (LibreSSL's default, /etc/ssl/cert.pem). The test hook makes it plain HTTP to 127.0.0.1."""
+    origin = _origin()
+    if origin:
+        connection = http.client.HTTPConnection(origin[0], origin[1], timeout=READ_TIMEOUT)
+        try:
+            connection.connect()
+        except OSError:
+            raise Stop(FAILED, 'fetch.stopped', reason='unreachable') from None
+        return connection
+    context = ssl.create_default_context()
+    for address in addresses:
+        try:
+            raw = socket.create_connection((address, port), timeout=CONNECT_TIMEOUT)
+        except OSError:
+            continue
+        try:
+            raw.settimeout(READ_TIMEOUT)
+            secure = context.wrap_socket(raw, server_hostname=host)
+        except ssl.SSLCertVerificationError:
+            raw.close()
+            raise Stop(FAILED, 'fetch.stopped', reason='tls') from None
+        except OSError:
+            raw.close()
+            continue
+        connection = http.client.HTTPSConnection(host, port, timeout=READ_TIMEOUT, context=context)
+        connection.sock = secure
+        return connection
+    raise Stop(FAILED, 'fetch.stopped', reason='unreachable')
+
+
+def request(source, offset):
+    """GET the image from `offset` on (Range): (connection, response, start, total). A tailnet PC answers itself;
+    the mirror may send the request on to one of its own servers (https, archive.org only, five times at most)."""
+    url = source.url
+    for _ in range(6):
+        parts = urllib.parse.urlsplit(url)
+        host = (parts.hostname or '').lower()
+        if parts.scheme != 'https' or parts.username or parts.password or not host:
+            raise Stop(FAILED, 'fetch.stopped', reason='server')
+        port = parts.port or 443
+        if source.kind == 'peer':
+            addresses = [source.address]
+        else:
+            if not MIRROR_HOST.fullmatch(host):
+                raise Stop(FAILED, 'fetch.stopped', reason='server')
+            addresses = resolve(host)
+        firewall(addresses)
+        connection = connect(host, addresses, port)
+        target = (parts.path or '/') + ('?' + parts.query if parts.query else '')
+        try:
+            connection.request('GET', target, headers={'Range': 'bytes=%d-' % offset, 'Accept-Encoding': 'identity',
+                                                      'User-Agent': 'Deep32-Workstation'})
+            response = connection.getresponse()
+        except (OSError, http.client.HTTPException):
+            connection.close()
+            raise Stop(FAILED, 'fetch.stopped', reason='dropped') from None
+        status = response.status
+        if status in (301, 302, 303, 307, 308) and source.kind == 'mirror':
+            location = response.getheader('Location') or ''
+            connection.close()
+            url = urllib.parse.urljoin(url, location)
+            continue
+        try:
+            start, total = _extent(response, offset)
+        except Stop:
+            connection.close()
+            raise
+        return connection, response, start, total
+    raise Stop(FAILED, 'fetch.stopped', reason='server')
+
+
+def _extent(response, offset):
+    """(start, total) of an answer: 206 from `offset`, 200 from 0, or 416 when the file is already whole."""
+    status = response.status
+    if status == 206:
+        match = RANGE.fullmatch(response.getheader('Content-Range') or '')
+        length = response.getheader('Content-Length')
+        if not match:
+            raise Stop(FAILED, 'fetch.stopped', reason='server')
+        start, end, total = (int(x) for x in match.groups())
+        if start != offset or end != total - 1 or (length is not None and length != str(total - start)):
+            raise Stop(FAILED, 'fetch.stopped', reason='server')
+        return start, total
+    if status == 200:
+        length = response.getheader('Content-Length') or ''
+        if not length.isdecimal():
+            raise Stop(FAILED, 'fetch.stopped', reason='server')
+        return 0, int(length)
+    if status == 416:
+        match = re.fullmatch(r'bytes \*/([0-9]{1,15})', response.getheader('Content-Range') or '')
+        if match and int(match.group(1)) == offset:
+            return offset, offset
+        raise Stop(FAILED, 'fetch.stopped', reason='server')
+    if status in (404, 410):
+        raise Stop(FAILED, 'fetch.stopped', reason='not-found')
+    if status in (401, 403):
+        raise Stop(FAILED, 'fetch.stopped', reason='refused')
+    raise Stop(FAILED, 'fetch.stopped', reason='server')
+
+
+# ---------------------------------------------------------------------------------------------- progress
+
+class Progress:
+    """Bytes done and total, rate and time left: on the terminal, in the import report and on the console."""
+
+    def __init__(self, words, report, start, total, out):
+        self.words, self.report, self.done, self.total, self.out = words, report, start, total, out
+        self.samples = [(time.monotonic(), start)]
+        self.shown = 0.0
+        self.decile = 10 * start // total if total else 0
+        self.tty = hasattr(out, 'isatty') and out.isatty()
+
+    def rate(self):
+        now = time.monotonic()
+        self.samples = [s for s in self.samples if s[0] >= now - 10] or self.samples[-1:]
+        first = self.samples[0]
+        return int((self.done - first[1]) / (now - first[0])) if now - first[0] >= 1 else None
+
+    def line(self):
+        pct = 100 * self.done // self.total if self.total else 100
+        rate = self.rate()
+        if rate:
+            return self.words('fetch.progress', done=size(self.done), total=size(self.total), pct=pct,
+                              rate=size(rate), left=duration((self.total - self.done) / rate)), pct, rate
+        return self.words('fetch.progress.start', done=size(self.done), total=size(self.total), pct=pct), pct, rate
+
+    def add(self, count):
+        self.done += count
+        self.samples.append((time.monotonic(), self.done))
+        self.report.progress(count, stage='fetch')
+        now = time.monotonic()
+        decile = 10 * self.done // self.total if self.total else 10
+        if self.tty and now - self.shown >= 0.5:
+            self.shown = now
+            self.out.write('\r  ' + self.line()[0] + '   ')
+            self.out.flush()
+        if decile > self.decile:
+            self.decile = decile
+            text, pct, rate = self.line()
+            if not self.tty:
+                self.out.write('  ' + text + '\n')
+                self.out.flush()
+            if decile < 10:
+                key = 'fetch.c6.progress.eta' if rate else 'fetch.c6.progress'
+                console('running', self.words(key, done=size(self.done), total=size(self.total), pct=pct,
+                                              left=duration((self.total - self.done) / rate) if rate else ''))
+
+    def finish(self):
+        if self.tty:
+            self.out.write('\r  ' + self.line()[0] + '   \n')
+            self.out.flush()
+
+
+# ---------------------------------------------------------------------------------------------- the download
+
+class Fetch:
+    """One download: the slot, the locks, the report and the file, each given back on every way out."""
+
+    def __init__(self, words, out):
+        self.words, self.out = words, out
+        self.paths = imp_paths.workstation()
+        self.report = None
+        self.progress = None
+
+    def say(self, string_id, **values):
+        self.out.write(self.words(string_id, **values) + '\n')
+        self.out.flush()
+
+    def run(self, source):
+        """Download, check and attach under the importer's lock (the report is the importer's file), then hand the
+        unit to the import once that lock is free again."""
+        version = system_version()
+        importer = Lock(self.paths)
+        try:
+            importer.acquire()
+        except LockBusy:
+            raise Stop(BUSY, 'fetch.refuse.busy') from None
+        try:
+            unit = self._run(source, version)
+        finally:
+            firewall_close()
+            importer.release()
+        return hand_over(self.words, self.out, unit)
+
+    def _run(self, source, version):
+        table = mount_table()
+        active, inactive = slots(table)
+        image = image_path(inactive, version)
+        state = load_state()
+        if state is not None:
+            check_path(state['image'], active, inactive)
+            if state['image'] != image:
+                raise Stop(REFUSED, 'fetch.refuse.other', version=state['version'])
+            if state['complete']:
+                self.say('fetch.kept.done', total=size(state['size']))
+                take_update_lock()
+                return attach(state, active, inactive)
+        part = image + '.part'
+        check_path(image, active, inactive)
+        check_path(part, active, inactive)
+        take_update_lock()
+        local = _path(part)
+        if state is None:
+            state = {'format': 'deep32-content-fetch', 'format_version': 1, 'version': version, 'slot': inactive,
+                     'image': image, 'size': None, 'complete': False, 'source': source.kind, 'unit': None,
+                     'started': imp_paths.iso(), 'finished': None}
+        state['source'] = source.kind
+        self.say('fetch.from.' + source.kind, name=source.label)
+        try:
+            self.download(source, table, inactive, state, local)
+            self.complete(table, inactive, state, local, image)
+            unit = attach(state, active, inactive)
+        except Stop as stop:
+            self.stopped(stop, state, local, image)
+            raise
+        except (Interrupt, KeyboardInterrupt):
+            stop = Stop(FAILED, 'fetch.stopped', reason='stopped')
+            self.stopped(stop, state, local, image)
+            raise stop from None
+        self.report.end_stage('fetch')
+        self.say('fetch.attached', unit=unit)
+        console('running', self.words('fetch.c6.done'))
+        return unit
+
+    def download(self, source, table, inactive, state, local):
+        """Every byte of the image into its part file, carried on from where it stops (Range), a few times over."""
+        offset = local.stat().st_size if local.exists() else 0
+        retries = 0
+        while True:
+            try:
+                connection, response, start, total = request(source, offset)
+            except Stop as stop:
+                if self.report is None or stop.reason not in ('unreachable', 'dropped') or retries >= RETRIES:
+                    raise
+                retries += 1
+                time.sleep(RETRY_PAUSE)
+                continue
+            try:
+                if not DESCRIPTOR + 6 <= total <= MAX_IMAGE:
+                    raise Stop(FAILED, 'fetch.stopped', reason='size')
+                if state['size'] not in (None, total):
+                    if self.report is not None:
+                        raise Stop(FAILED, 'fetch.stopped', reason='size')
+                    # the part kept is of another file than the source has now: it starts again from the beginning
+                    state['size'] = None
+                    if start:
+                        offset = 0
+                        continue
+                state['size'] = total
+                if self.report is None:
+                    self.begin(state, inactive, start, total)
+                if start != self.progress.done:
+                    # a source that sends the file whole again after a drop: counted from where it starts
+                    self.progress.done = start
+                    self.report.data['progress']['done_bytes'] = self.report.stage('fetch')['done_bytes'] = start
+                offset = self.receive(table, inactive, state, local, response, start, total)
+            finally:
+                connection.close()
+            if offset == total:
+                self.progress.finish()
+                return
+            retries += 1
+            if retries > RETRIES:
+                raise Stop(FAILED, 'fetch.stopped', reason='dropped')
+            time.sleep(RETRY_PAUSE)
+
+    def begin(self, state, inactive, start, total):
+        """The report's stage fetch, then the space the rest needs (the image and 1 GiB more)."""
+        self.report = Report(self.paths, imp_paths.new_import_id(), 'network')
+        self.report.data['progress'].update(total_bytes=total, done_bytes=start)
+        self.report.begin_stage('fetch', total_bytes=total, write=False)
+        self.report.stage('fetch')['done_bytes'] = start
+        # a download is carried on by Get Disc 2 over the Network, never by the importer's Try Again
+        self.report.data['resume']['resumable'] = False
+        self.report.write()
+        self.progress = Progress(self.words, self.report, start, total, self.out)
+        needed, free = total - start + SPARE, imp_fs.free_bytes(_path(inactive))
+        if free < needed:
+            raise Stop(REFUSED, 'fetch.refuse.space', needed=needed, free=free)
+        if start:
+            self.say('fetch.resume', done=size(start))
+        console('running', self.words('fetch.c6.progress', done=size(start), total=size(total),
+                                      pct=100 * start // total))
+
+    def stopped(self, stop, state, local, image):
+        """The report and the console say the download stopped; a partial file is kept with its record and the update
+        lock, and with no byte written nothing is kept."""
+        if self.progress is not None:
+            self.progress.finish()
+        if self.report is not None and self.report.data['state'] == 'running':
+            if stop.text == 'fetch.refuse.space':
+                self.report.add_error('IMPORT_SPACE', 'fetch', args={'needed_bytes': stop.values['needed'],
+                                                                     'free_bytes': stop.values['free']}, write=False)
+            else:
+                reason = stop.reason or ('attach' if stop.text == 'fetch.attach.fail' else 'write')
+                self.report.add_error('IMPORT_FETCH', 'fetch', args={'reason': reason}, write=False)
+            self.report.finish('failed', resumable=False)
+            console('waiting', self.words('fetch.c6.stopped'))
+        if any(_path(p).exists() and _path(p).stat().st_size for p in (image, image + '.part')):
+            save_state(state)
+        else:
+            forget_state()
+            release_update_lock()
+
+    def receive(self, table, inactive, state, local, response, start, total):
+        """Write the answer's bytes from `start` on; returns where the file ends. The slot is writable meanwhile."""
+        if start == total:
+            return total
+        with Writable(table, inactive):
+            folder = local.parent
+            if not folder.is_dir():
+                folder.mkdir(mode=0o700)
+                imp_fs.set_owner_mode(folder, 'root', 'wheel', 0o700)
+            save_state(state)
+            flags = os.O_RDWR | os.O_CREAT | getattr(os, 'O_NOFOLLOW', 0) | getattr(os, 'O_BINARY', 0)
+            try:
+                descriptor = os.open(local, flags, 0o600)
+            except OSError:
+                raise Stop(FAILED, 'fetch.stopped', reason='write') from None
+            with os.fdopen(descriptor, 'r+b') as stream:
+                if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):
+                    raise Stop(REFUSED, 'fetch.refuse.slot', why='fetch.slot.path')
+                stream.truncate(start)
+                stream.seek(start)
+                position = start
+                try:
+                    while position < total:
+                        try:
+                            chunk = response.read(min(CHUNK, total - position))
+                        except (OSError, http.client.HTTPException):
+                            break
+                        if not chunk:
+                            break
+                        try:
+                            stream.write(chunk)
+                        except OSError:
+                            raise Stop(FAILED, 'fetch.stopped', reason='write') from None
+                        position += len(chunk)
+                        self.progress.add(len(chunk))
+                finally:
+                    try:
+                        stream.flush()
+                        os.fsync(stream.fileno())
+                    except OSError:
+                        pass
+            return position
+
+    def complete(self, table, inactive, state, local, image):
+        """The whole file: its size and its ISO 9660 volume descriptor, then its own name, read-only."""
+        if local.stat().st_size != state['size']:
+            raise Stop(FAILED, 'fetch.stopped', reason='size')
+        with imp_fs.open_regular(local) as stream:
+            stream.seek(DESCRIPTOR)
+            head = stream.read(6)
+        with Writable(table, inactive):
+            if head[1:6] != b'CD001':
+                local.unlink()
+                raise Stop(FAILED, 'fetch.stopped', reason='not-disc')
+            os.replace(local, _path(image))
+            imp_fs.fsync_directory(local.parent)
+            state.update(complete=True, finished=imp_paths.iso())
+            save_state(state)
+        self.say('fetch.downloaded')
+
+
+def hand_over(words, out, unit):
+    """Let the import begin. During the first start its follower imports the unit (started here when it is not
+    running); after it, the import runs in this Terminal and the image is removed once it is in use."""
+    if not firstboot_done():
+        if not follower_alive():
+            spawn('d32-firstboot', ['resume'], wait=imp_paths.test_mode())
+        out.write(words('fetch.wait') + '\n')
+        return OK
+    out.write(words('fetch.import.run') + '\n')
+    out.flush()
+    if spawn('d32-content-import', ['--device', unit], wait=True) == 0:
+        cleanup(words, out, quiet=True)
+        out.write(words('fetch.import.done') + '\n')
+        return OK
+    out.write(words('fetch.import.fail') + '\n')
+    return FAILED
+
+
+def attach(state, active, inactive):
+    """The complete image as a vnd unit (vnconfig(8)): the one it already has, the one it had, or a free one. The
+    slot is read-only, so the kernel opens the file read-only."""
+    check_path(state['image'], active, inactive)
+    if not os.path.isfile(_path(state['image'])):
+        raise Stop(FAILED, 'fetch.refuse.state')
+    units = vnd_units()
+    have = sorted(unit for unit, file in units.items() if file == state['image'])
+    if have:
+        unit = have[0]
+    else:
+        wanted = state['unit'] if state['unit'] in units and units[state['unit']] is None else None
+        result = run('vnconfig', ([wanted] if wanted else []) + [state['image']])
+        unit = wanted or result.stdout.strip()
+        if result.returncode or not UNIT.fullmatch(unit or ''):
+            raise Stop(FAILED, 'fetch.attach.fail')
+    state['unit'] = unit
+    save_state(state)
+    imp_fs.atomic_write(_path(STATE_DIR + '/iso'), (state['image'] + '\n').encode('ascii'), 0o600, group='wheel')
+    return unit
+
+
+def imported(state):
+    """True when the newest import report is a finished import of this image (stage fetch done, its unit)."""
+    try:
+        with imp_fs.open_regular(imp_paths.workstation().report) as stream:
+            report = json.loads(stream.read(1 << 24).decode('ascii'))
+        return (report['state'] == 'done' and report['outcome'] in ('imported', 'already-current') and
+                report['stages'][0]['id'] == 'fetch' and report['stages'][0]['state'] == 'done' and
+                report['source']['device'] == state['unit'] and state['unit'] is not None)
+    except (OSError, ValueError, UnicodeError, KeyError, IndexError, TypeError):
+        return False
+
+
+def cleanup(words, out, quiet=False):
+    """Detach, delete the image and its part, give the update area back: refused while an import runs."""
+    paths = imp_paths.workstation()
+    importer = Lock(paths)
+    try:
+        importer.acquire()
+    except LockBusy:
+        raise Stop(BUSY, 'fetch.refuse.busy') from None
+    try:
+        table = mount_table()
+        active, inactive = slots(table)
+        try:
+            state = load_state()
+        except Stop:
+            state = None
+        if state is not None:
+            names = [state['image'], state['image'] + '.part']
+        else:
+            folder = _path(inactive + '/' + FOLDER)
+            names = sorted(inactive + '/' + FOLDER + '/' + item.name for item in folder.iterdir()
+                           if IMAGE_NAME.fullmatch(item.name)) if folder.is_dir() else []
+        for name in names:
+            check_path(name, active, inactive)
+        for unit, file in sorted(vnd_units().items()):
+            if file not in names:
+                continue
+            for point, row in sorted(table.items()):
+                if re.fullmatch('/dev/' + unit + '[a-p]', row['device']) and run('umount', [point]).returncode:
+                    raise Stop(FAILED, 'fetch.detach.fail')
+            if run('vnconfig', ['-u', unit]).returncode:
+                raise Stop(FAILED, 'fetch.detach.fail')
+        present = [name for name in names if os.path.lexists(_path(name))]
+        if present:
+            with Writable(table, inactive):
+                for name in present:
+                    os.unlink(_path(name))
+                folder = _path(inactive + '/' + FOLDER)
+                if folder.is_dir() and not any(folder.iterdir()):
+                    folder.rmdir()
+        forget_state()
+        firewall_close()
+        release_update_lock()
+        if not quiet:
+            out.write(words('fetch.deleted' if present or state else 'fetch.nothing') + '\n')
+        return OK
+    finally:
+        importer.release()
+
+
+def reattach(words, out):
+    """After a restart: attach a complete image again, so an import that stopped carries on. An image whose import
+    has finished has served and is removed; a partial download stays for the next Get Disc 2 over the Network."""
+    state = load_state()
+    if state is None or not state['complete']:
+        return OK
+    if imported(state):
+        return cleanup(words, out, quiet=True)
+    table = mount_table()
+    active, inactive = slots(table)
+    take_update_lock()
+    attach(state, active, inactive)
+    return OK
+
+
+def status(out):
+    try:
+        state = load_state()
+    except Stop:
+        out.write('state=damaged\n')
+        return OK
+    if state is None:
+        out.write('state=none\n')
+        return OK
+    part = _path(state['image'] + '.part')
+    done = state['size'] if state['complete'] else (part.stat().st_size if part.exists() else 0)
+    units = covering(state['image']) if state['complete'] else []
+    kind = 'attached' if units else 'complete' if state['complete'] else 'partial'
+    for key, value in (('state', kind), ('version', state['version']), ('source', state['source']),
+                       ('slot', state['slot']), ('done', done), ('size', state['size'] or 0),
+                       ('unit', units[0] if units else '-'), ('lock', update_lock())):
+        out.write('%s=%s\n' % (key, value))
+    return OK
+
+
+# ---------------------------------------------------------------------------------------------- the screens
+
+def ask(words, string_id, **values):
+    sys.stdout.write(words(string_id, **values))
+    sys.stdout.flush()
+    line = sys.stdin.readline()
+    if not line:
+        raise EOFError()
+    return line.strip()
+
+
+def kept_line(words):
+    try:
+        state = load_state()
+    except Stop:
+        return words('fetch.refuse.state')
+    if state is None:
+        return None
+    if state['complete']:
+        return words('fetch.kept.done', total=size(state['size']))
+    part = _path(state['image'] + '.part')
+    done = part.stat().st_size if part.exists() else 0
+    return words('fetch.kept.part', done=size(done), total=size(state['size'] or 0))
+
+
+def screens(words):
+    out = sys.stdout
+    try:
+        version = system_version()
+    except Stop as stop:
+        out.write(words(stop.text) + '\n')
+        version = None
+    while True:
+        out.write('\n' + words('fetch.head', version=version or '?') + '\n\n')
+        if version:
+            out.write(words('fetch.about', version=version) + '\n')
+        line = kept_line(words)
+        if line:
+            out.write(line + '\n')
+        out.write('\n')
+        for key, text in (('T', 'fetch.menu.peer'), ('M', 'fetch.menu.mirror'), ('S', 'fetch.menu.status'),
+                          ('D', 'fetch.menu.delete'), ('Q', 'fetch.menu.quit')):
+            out.write('  %s  %s\n' % (key, words(text)))
+        out.write('\n')
+        try:
+            choice = ask(words, 'fetch.choose').upper()
+        except EOFError:
+            return OK
+        if choice == 'Q':
+            break
+        if choice not in ('T', 'M', 'S', 'D'):
+            out.write(words('fetch.choose.again') + '\n')
+            continue
+        try:
+            with RunLock():
+                if choice == 'S':
+                    shown = kept_line(words)
+                    out.write((shown or words('fetch.nothing')) + '\n')
+                elif choice == 'D':
+                    if ask(words, 'fetch.delete.ask').upper() == 'Y':
+                        cleanup(words, out)
+                elif version:
+                    source = choose_source(words, choice, version)
+                    if source is not None:
+                        Fetch(words, out).run(source)
+        except Stop as stop:
+            explain(words, out, stop)
+        except (Interrupt, KeyboardInterrupt):
+            out.write('\n')
+        except EOFError:
+            return OK
+    try:
+        ask(words, 'fetch.close')
+    except EOFError:
+        pass
+    return OK
+
+
+def choose_source(words, choice, version):
+    out = sys.stdout
+    if choice == 'M':
+        return Source('mirror', mirror_url(version), 'archive.org')
+    out.write(words('fetch.peers.look') + '\n')
+    peers = list_peers()
+    if not peers:
+        out.write(words('fetch.peers.none') + '\n')
+        return None
+    for index, peer in enumerate(peers, 1):
+        out.write('  ' + words('fetch.peers.row', n=index, name=peer['name']) + '\n')
+    while True:
+        answer = ask(words, 'fetch.peers.pick', n=len(peers)).upper()
+        if answer == 'Q':
+            return None
+        if answer.isdecimal() and 1 <= int(answer) <= len(peers):
+            peer = peers[int(answer) - 1]
+            break
+    out.write(words('fetch.code.ask') + '\n')
+    while True:
+        answer = ask(words, 'fetch.code.prompt')
+        if answer.upper() == 'Q':
+            return None
+        code = normal_code(answer)
+        if code:
+            return Source('peer', peer_url(peer['dns'], code, version), peer['name'], peer['ipv4'])
+        out.write(words('fetch.code.bad') + '\n')
+
+
+def explain(words, out, stop):
+    values = dict(stop.values)
+    if 'why' in values:
+        values['why'] = words(values['why'])
+    for key in ('needed', 'free'):
+        if isinstance(values.get(key), int):
+            values[key] = size(values[key])
+    if stop.text == 'fetch.stopped':
+        out.write('\n' + words('fetch.stopped', why=words('fetch.why.' + (stop.reason or 'stopped'))) + '\n')
+        if stop.reason in ('dropped', 'stopped', 'unreachable', 'write'):
+            out.write(words('fetch.stopped.kept') + '\n')
+    else:
+        out.write(words(stop.text, **values) + '\n')
+
+
+# ---------------------------------------------------------------------------------------------- arguments and main
+
+def parse_args(argv):
+    """The closed command line: nothing (the screens), or exactly one action."""
+    if not argv:
+        return {'action': 'screens'}
+    if argv in (['--mirror'], ['--attach'], ['--cleanup'], ['--status']):
+        return {'action': argv[0][2:]}
+    if len(argv) == 4 and sorted(argv[0::2]) == ['--code', '--peer']:
+        values = dict(zip(argv[0::2], argv[1::2]))
+        code = normal_code(values['--code'])
+        if code and PEER_NAME.fullmatch(values['--peer']) and len(values['--peer']) <= 253:
+            return {'action': 'peer', 'peer': values['--peer'], 'code': code}
+    raise ValueError('usage')
+
+
+def main(argv=None):
+    try:
+        options = parse_args(sys.argv[1:] if argv is None else argv)
+    except ValueError:
+        sys.stderr.write(USAGE_TEXT + '\n')
+        return USAGE
+    if not imp_paths.test_mode() and (not hasattr(os, 'geteuid') or os.geteuid() != 0):
+        sys.stderr.write('d32-content-fetch: run as root (doas /usr/local/d32/sbin/d32-content-fetch)\n')
+        return NOT_ROOT
+    os.umask(0o077)
+    if not imp_paths.test_mode():
+        # Ctrl+C, a closed Terminal or a shutdown end the download in order: the part is kept, the slot read-only
+        for name in ('SIGINT', 'SIGTERM', 'SIGHUP'):
+            signal.signal(getattr(signal, name), _interrupt)
+    words = Words()
+    out = sys.stdout
+    action = options['action']
+    if action == 'screens':
+        try:
+            return screens(words)
+        except (Interrupt, KeyboardInterrupt):
+            return OK
+    try:
+        if action == 'status':
+            return status(out)
+        with RunLock():
+            if action == 'attach':
+                return reattach(words, out)
+            if action == 'cleanup':
+                return cleanup(words, out)
+            version = system_version()
+            if action == 'mirror':
+                source = Source('mirror', mirror_url(version), 'archive.org')
+            else:
+                peer = pick_peer(list_peers(), options['peer'])
+                source = Source('peer', peer_url(peer['dns'], options['code'], version), peer['name'], peer['ipv4'])
+            return Fetch(words, out).run(source)
+    except Stop as stop:
+        explain(words, out, stop)
+        return stop.status
+    except (Interrupt, KeyboardInterrupt):
+        out.write('\n' + words('fetch.stopped', why=words('fetch.why.stopped')) + '\n')
+        return FAILED
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())

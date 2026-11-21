@@ -42,11 +42,6 @@
         "url": "file:///TO-PIN/AGPL-3.0.txt"
       },
       {
-        "path": "payload/bin/pairing-helper",
-        "sha256": "TO-PIN",
-        "url": "file:///TO-PIN/pairing-helper"
-      },
-      {
         "path": "payload/source/production-converter/adapter.py",
         "sha256": "TO-PIN",
         "url": "file:///TO-PIN/production-converter/adapter.py"
@@ -446,7 +441,6 @@
     "mineru_cuda_version": "TO-PIN",
     "mineru_minimum_driver": "TO-PIN",
     "nvidia_repository_key_fingerprint": "TO-PIN",
-    "pairing_helper_sha256": "TO-PIN",
     "production_converter_source_revision": "TO-PIN",
     "pymupdf_version": "TO-PIN",
     "python": "3.12.14",

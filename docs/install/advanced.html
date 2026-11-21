@@ -1,0 +1,503 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Advanced install: Deep32 0.1.0-alpha.2</title>
+<meta name="description" content="Install Deep32 0.1.0-alpha.2 by hand: each layout with deep32-get, disk budgets, ports, tailnet rules, the Forge on Docker Desktop or Docker Engine, bare metal, several sites, and what to do afterwards.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d1117" media="(prefers-color-scheme: dark)">
+<link rel="canonical" href="https://hellobpdu.github.io/deep32/install/advanced.html">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/site.css">
+<script>document.documentElement.className += ' js';</script>
+<script src="../assets/site.js" defer></script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="inner">
+    <a class="wordmark" href="../index.html" aria-label="Deep32 home"><span>DEEP<span class="n">32</span></span><span class="strip" aria-hidden="true"><i></i><i></i><i></i></span></a>
+    <nav class="site-nav" aria-label="Site">
+      <a href="index.html">Setup</a>
+      <a href="advanced.html" aria-current="page">Advanced</a>
+      <a href="../tr/d32-tr-1.html">Report</a>
+      <a href="https://github.com/hellobpdu/deep32">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<div class="guide">
+
+<nav class="stepnav" aria-label="On this page" data-unit="Section">
+  <p class="stepnav-head">On this page</p>
+  <div class="stepnav-bar">
+    <p class="stepnav-now" aria-live="polite"><b>Section 1 of 13</b> &middot; Before you start</p>
+    <button class="stepnav-toggle" type="button" aria-expanded="false" aria-controls="stepnav-list" hidden>Sections</button>
+    <div class="progress" aria-hidden="true"><i></i></div>
+  </div>
+  <ol id="stepnav-list">
+    <li><a href="#before"><span class="n">1</span><span class="t">Before you start</span></a></li>
+    <li><a href="#journeys"><span class="n">2</span><span class="t">Layouts</span></a></li>
+    <li><a href="#downloads"><span class="n">3</span><span class="t">Downloads</span></a></li>
+    <li><a href="#by-hand"><span class="n">4</span><span class="t">By hand, layout by layout</span></a></li>
+    <li><a href="#disk"><span class="n">5</span><span class="t">Disk space</span></a></li>
+    <li><a href="#ports"><span class="n">6</span><span class="t">Ports</span></a></li>
+    <li><a href="#tailnet"><span class="n">7</span><span class="t">Tailnet names and rules</span></a></li>
+    <li><a href="#docker"><span class="n">8</span><span class="t">Docker Desktop or Engine</span></a></li>
+    <li><a href="#bare-metal"><span class="n">9</span><span class="t">Bare metal</span></a></li>
+    <li><a href="#sites"><span class="n">10</span><span class="t">More than one site</span></a></li>
+    <li><a href="#afterwards"><span class="n">11</span><span class="t">Afterwards</span></a></li>
+    <li><a href="#errors"><span class="n">12</span><span class="t">Error codes</span></a></li>
+    <li><a href="#never-stored"><span class="n">13</span><span class="t">What is never stored</span></a></li>
+  </ol>
+  <div class="stepnav-side">
+    <p>The common case: <a href="index.html">General setup</a></p>
+    <p>Every procedure in full: <a href="https://github.com/hellobpdu/deep32/blob/main/INSTALL.md">INSTALL.md</a></p>
+    <p>Sizes and cards: <a href="https://github.com/hellobpdu/deep32/blob/main/docs/HARDWARE.md">HARDWARE.md</a></p>
+  </div>
+</nav>
+
+<main id="main">
+
+<header class="page-head">
+  <p class="kicker">Installation &middot; advanced</p>
+  <h1>Advanced install</h1>
+  <p class="lead">Each part by hand, layouts with more than one machine or site, and what to do once it runs.
+  <a href="https://github.com/hellobpdu/deep32/blob/main/INSTALL.md">INSTALL.md</a> has every procedure in full;
+  this page is the map, with the commands you'll need most and links to the detail.</p>
+  <p class="applies"><span>Applies to 0.1.0-alpha.2</span><span>For one PC with the wizard, see the <a href="index.html">general setup</a></span></p>
+</header>
+
+<!-- ================================================================================================ 1 -->
+<section class="sec" id="before" aria-labelledby="before-title">
+  <h2 id="before-title">1. Before you start</h2>
+  <p>The order is the same on every layout: check the machines, get and verify the source, download the images, install
+  the Forge, install the Workstation, sign every part in to Tailscale, pair the parts, and verify. INSTALL.md sections
+  2 to 9 follow that order.</p>
+  <p>The inventory reports what a machine can run and changes nothing. Run it on each machine with the role it will
+  play: <code>workstation-host</code>, <code>gpu-host</code>, <code>all</code> or <code>agent</code>.</p>
+  <div class="tabs">
+    <div class="tab-panel" data-os="linux">
+      <p class="tab-label">Linux</p>
+      <div class="code"><pre><code>bash install/deep32-inventory.sh --journey J4 --role all --check-prereqs</code></pre></div>
+    </div>
+    <div class="tab-panel" data-os="windows">
+      <p class="tab-label">Windows</p>
+      <div class="code"><pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File install\deep32-inventory.ps1 -Journey J1 -Role workstation-host -CheckPrereqs</code></pre></div>
+    </div>
+  </div>
+  <p>The report ends with a verdict for that role and, for a GPU host, the card class you'll pass to
+  <code>deep32-get</code>. Anything missing is listed with what to install. Get the source as in
+  <a href="index.html#step-2">step 2 of the general setup</a>: a clone at the release tag, its signature checked
+  (<a href="https://github.com/hellobpdu/deep32/blob/main/INSTALL.md#3-get-and-verify-the-source">INSTALL section 3</a>).</p>
+  <div class="callout tip" role="note">
+    <p class="callout-title"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1" y="2.25" width="14" height="11.5" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M4.25 6l2.5 2-2.5 2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="8" y="9.25" width="4" height="1.5" rx="0.75"/></svg>With an agent</p>
+    <p>On any layout, Claude Code's <code>/deep32-install</code> or Codex's <code>$deep32-install</code>, run in the
+    clone, works through the same steps on that machine following
+    <a href="https://github.com/hellobpdu/deep32/blob/main/AGENTS.md">AGENTS.md</a>. It asks before it changes
+    anything; passwords, sign-in clicks and pairing codes stay yours.</p>
+  </div>
+</section>
+
+<!-- ================================================================================================ 2 -->
+<section class="sec" id="journeys" aria-labelledby="journeys-title">
+  <h2 id="journeys-title">2. Layouts</h2>
+  <p>A deployment has three parts: the Workstation, the Forge and the headend (the PC where Claude Code or Codex
+  runs). They can share machines. The installers call each layout a journey:</p>
+  <div class="table-wrap">
+    <table class="stack">
+      <thead><tr><th scope="col">Journey</th><th scope="col">Machines</th><th scope="col">Workstation and Forge</th><th scope="col">In 0.1.0-alpha.2</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">J1</th><td data-label="Machines">Two Windows PCs</td><td data-label="Workstation and Forge">Hyper-V VM on the first; Docker Desktop on the second</td><td data-label="In 0.1.0-alpha.2">Not yet run end to end</td></tr>
+        <tr><th scope="row">J2</th><td data-label="Machines">A Windows PC and a Linux NVIDIA host</td><td data-label="Workstation and Forge">Hyper-V VM on the Windows PC; Docker on the Linux host</td><td data-label="In 0.1.0-alpha.2">The Linux Forge is tested; the Hyper-V Workstation isn't yet</td></tr>
+        <tr><th scope="row">J3</th><td data-label="Machines">One Linux NVIDIA host, no desktop</td><td data-label="Workstation and Forge">No Workstation: engine and gateway in Docker, with the Forge</td><td data-label="In 0.1.0-alpha.2">Not in this release: its image isn't among the downloads</td></tr>
+        <tr><th scope="row">J4</th><td data-label="Machines">One Linux NVIDIA host</td><td data-label="Workstation and Forge">KVM VM and Docker on the same host</td><td data-label="In 0.1.0-alpha.2">The tested parts: a KVM Workstation and a Docker Forge on Linux</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>What I have run is a Workstation in a KVM virtual machine on Proxmox, with a Forge on a separate Linux host. The
+  other rows put the same parts in different places. The headend can be any of these machines or another PC. The
+  general setup's one PC is J4 on Linux; on Windows it puts J1's two halves on one PC.</p>
+</section>
+
+<!-- ================================================================================================ 3 -->
+<section class="sec" id="downloads" aria-labelledby="downloads-title">
+  <h2 id="downloads-title">3. Downloads</h2>
+  <p><code>deep32-get</code> downloads an image, checks it against the release's signed metadata, and keeps it only if
+  every check passes. It tries the Internet Archive first and then each mirror in the signed list, and it resumes an
+  interrupted download from the last verified 64 MiB chunk.</p>
+  <div class="table-wrap">
+    <table class="stack">
+      <thead><tr><th scope="col">Image</th><th scope="col" class="num">Size</th><th scope="col">Needed for</th><th scope="col">Command</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">Disc 1, Workstation</th><td class="num" data-label="Size">1.9 GB</td><td data-label="Needed for">J1, J2, J4</td><td data-label="Command"><code>bash src/release-tools/deep32-get.sh disc1</code></td></tr>
+        <tr><th scope="row">Disc 2, content</th><td class="num" data-label="Size">19.6 GB</td><td data-label="Needed for">Every journey</td><td data-label="Command"><code>bash src/release-tools/deep32-get.sh disc2</code></td></tr>
+        <tr><th scope="row">Disc 3, Forge GPU pack</th><td class="num" data-label="Size">about 37.1 GB</td><td data-label="Needed for">Forge installs</td><td data-label="Command"><code>bash src/release-tools/deep32-get.sh disc3 --gpu-class CLASS --ingestion</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>On Windows use <code>src\release-tools\deep32-get.ps1</code> with the same arguments. Files go to
+  <code>./deep32-downloads</code> unless you give <code>--to DIR</code>. For disc 3 you get three images: the shared
+  core (18.6 GB), your card's embedder (3.1 to 3.3 GB) and ingestion (15.3 GB). The alpha.2 Forge installer needs all
+  three. Your card's class comes from its compute capability:</p>
+  <div class="code"><pre><code>nvidia-smi --query-gpu=compute_cap --format=csv,noheader</code></pre></div>
+  <div class="table-wrap">
+    <table class="stack">
+      <thead><tr><th scope="col">Compute capability</th><th scope="col">7.5</th><th scope="col">8.0</th><th scope="col">8.6, 8.7</th><th scope="col">8.9</th><th scope="col">9.0</th><th scope="col">10.0</th><th scope="col">12.0</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">Disc 3 class</th><td data-label="7.5"><code>turing</code></td><td data-label="8.0"><code>ampere80</code></td><td data-label="8.6, 8.7"><code>ampere86</code></td><td data-label="8.9"><code>ada</code></td><td data-label="9.0"><code>hopper</code></td><td data-label="10.0"><code>blackwell100</code></td><td data-label="12.0"><code>blackwell120</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>If every mirror fails, <code>deep32-get</code> prints the image's torrent address from the signed metadata.
+  Download it with any torrent client, then check it with <code>--from DIR</code>, which verifies files you already
+  have without downloading them. You don't have to trust <code>deep32-get</code>: the
+  <a href="https://github.com/hellobpdu/deep32#11-release-and-verification">README's section 11</a> shows how to check
+  an image by hand with <code>gpgv</code> and SHA-256.</p>
+  <p>Disc 2 can also reach the Workstation without a download on your side: the Workstation fetches it from a PC on
+  your tailnet or from the Internet Archive mirror (<a href="index.html#step-6">general setup, step 6</a>).</p>
+</section>
+
+<!-- ================================================================================================ 4 -->
+<section class="sec" id="by-hand" aria-labelledby="by-hand-title">
+  <h2 id="by-hand-title">4. By hand, layout by layout</h2>
+  <p>Run these from the verified clone. <code>CLASS</code> is your card's class from section 3. The VM commands that
+  <code>--prepare-vm</code> writes still make a 160 GB disk: change <code>160GB</code> (Hyper-V) or <code>160G</code>
+  (KVM) to <code>200GB</code> or <code>200G</code> before you run them.</p>
+
+  <div class="journey">
+    <h3><span class="tag">J4</span>One Linux NVIDIA host</h3>
+    <p>The Workstation in a KVM VM and the Forge in Docker, on the same Ubuntu 24.04 host.</p>
+    <div class="code"><pre><code>bash src/release-tools/deep32-get.sh disc1
+bash src/release-tools/deep32-get.sh disc1 --prepare-vm --hypervisor kvm
+bash src/release-tools/deep32-get.sh disc2
+bash src/release-tools/deep32-get.sh disc3 --gpu-class CLASS --ingestion
+sudo bash src/release-tools/deep32-get.sh disc3 --gpu-class CLASS --install --journey J4 --data-root /opt/deep32 --from ./deep32-downloads</code></pre></div>
+  </div>
+
+  <div class="journey">
+    <h3><span class="tag">J2</span>A Windows PC and a Linux NVIDIA host</h3>
+    <p>On the Windows PC, the Workstation's host:</p>
+    <div class="code"><pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File src\release-tools\deep32-get.ps1 disc1
+powershell -NoProfile -ExecutionPolicy Bypass -File src\release-tools\deep32-get.ps1 disc1 --prepare-vm --hypervisor hyper-v
+powershell -NoProfile -ExecutionPolicy Bypass -File src\release-tools\deep32-get.ps1 disc2</code></pre></div>
+    <p>On the Linux host, the Forge:</p>
+    <div class="code"><pre><code>bash src/release-tools/deep32-get.sh disc3 --gpu-class CLASS --ingestion
+sudo bash src/release-tools/deep32-get.sh disc3 --gpu-class CLASS --install --journey J2 --data-root /opt/deep32 --from ./deep32-downloads</code></pre></div>
+  </div>
+
+  <div class="journey">
+    <h3><span class="tag">J1</span>Two Windows PCs</h3>
+    <p>On the first PC, the Workstation's host: the same three lines as J2's Windows PC. On the second PC, the Forge,
+    from an elevated PowerShell with Docker Desktop running:</p>
+    <div class="code"><pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File src\release-tools\deep32-get.ps1 disc3 --gpu-class CLASS --ingestion
+powershell -NoProfile -ExecutionPolicy Bypass -File src\release-tools\deep32-get.ps1 disc3 --gpu-class CLASS --install --journey J1 --data-root C:\Deep32 --from .\deep32-downloads</code></pre></div>
+    <p>If Docker Desktop keeps its disk image somewhere other than its default, add <code>--docker-storage-path
+    DIR</code> so the space check looks at the right drive.</p>
+  </div>
+
+  <div class="journey">
+    <h3><span class="tag">J3</span>One Linux host, everything in Docker</h3>
+    <p>Not in this release: its image isn't among the downloads. A layout with everything in Docker on one Linux host,
+    with no VM, is on the roadmap.</p>
+  </div>
+
+  <p>The Forge installer wants the three images in one folder with the five signed files of the same release:
+  <code>SHA256SUMS</code>, <code>SHA256SUMS.sig</code>, <code>MIRRORS.json</code>, <code>CAPABILITIES.json</code> and
+  <code>FORGE-PREREQUISITES.json</code>. <code>deep32-get</code> already put them in <code>./deep32-downloads</code>,
+  the signed files in its <code>.deep32-v0.1.0-alpha.2/revision-*</code> snapshot. Before it changes anything the
+  installer checks the host recipe, the driver and memory floors, the Forge's ports and the free space, asks you to
+  confirm the tailnet and the Certificate Transparency agreement, and shows its plan. Type the plan digest to go on.</p>
+  <p>From there, INSTALL.md has each part in full:
+  <a href="https://github.com/hellobpdu/deep32/blob/main/INSTALL.md#5-install-the-forge">the Forge</a>,
+  <a href="https://github.com/hellobpdu/deep32/blob/main/INSTALL.md#6-install-the-workstation">the Workstation</a>
+  (VM settings, the guided install and first boot),
+  <a href="https://github.com/hellobpdu/deep32/blob/main/INSTALL.md#7-tailscale">Tailscale</a>,
+  <a href="https://github.com/hellobpdu/deep32/blob/main/INSTALL.md#8-pair-the-parts">pairing and Connect</a> and
+  <a href="https://github.com/hellobpdu/deep32/blob/main/INSTALL.md#9-verify">verification</a>.</p>
+</section>
+
+<!-- ================================================================================================ 5 -->
+<section class="sec" id="disk" aria-labelledby="disk-title">
+  <h2 id="disk-title">5. Disk space</h2>
+  <p><b>The Workstation</b> needs a disk of 200 GB or more. The guided layout sizes the Library partition from the
+  disk, and the disc 2 import needs about 20 GB free there. Its downloads are 21.5 GB.</p>
+  <p><b>The Forge</b> installer compares free space with the storage budget signed into the release. For 0.1.0-alpha.2
+  the budgets are declared upper bounds, computed from the sizes of the three images with a margin over what my test
+  runs used; the check line ends with <code>(declared upper bound; no measurement yet)</code>. The installer checks
+  twice, before it joins the images and again after it has written the joined copy (36.8 GB), each time against the
+  whole budget. So have the budget plus the joined copy free when you start:</p>
+  <div class="table-wrap">
+    <table class="stack">
+      <thead><tr><th scope="col">Where the Forge writes</th><th scope="col" class="num">Budget</th><th scope="col" class="num">Free at the start</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">Linux, data folder and Docker's storage on one filesystem</th><td class="num" data-label="Budget">244.0 GB</td><td class="num" data-label="Free at the start">280.8 GB</td></tr>
+        <tr><th scope="row">Linux or Windows, the data folder on a filesystem or volume of its own</th><td class="num" data-label="Budget">123.8 GB</td><td class="num" data-label="Free at the start">160.6 GB</td></tr>
+        <tr><th scope="row">Linux, Docker's storage on a filesystem of its own</th><td class="num" data-label="Budget">120.2 GB</td><td class="num" data-label="Free at the start">120.2 GB</td></tr>
+        <tr><th scope="row">Windows, data folder and Docker Desktop's disk image on one volume</th><td class="num" data-label="Budget">246.2 GB</td><td class="num" data-label="Free at the start">283.0 GB</td></tr>
+        <tr><th scope="row">Windows, Docker Desktop's disk image on a volume of its own</th><td class="num" data-label="Budget">122.5 GB</td><td class="num" data-label="Free at the start">122.5 GB</td></tr>
+        <tr><th scope="row">Windows, inside Docker Desktop's virtual disk</th><td class="num" data-label="Budget">176.8 GB</td><td class="num" data-label="Free at the start">176.8 GB</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <ul>
+    <li>The figures are for a <code>turing</code> card; the other classes need up to about 1 GB more.</li>
+    <li>GB here means 10<sup>9</sup> bytes. <code>df -h</code> and Windows count in GiB and show numbers about 7%
+    smaller.</li>
+    <li>The joined copy goes beside the data folder, in <code>/opt/deep32.deep32-media</code> for
+    <code>/opt/deep32</code>. If the data folder is a mount point of its own, the joined copy lands on the filesystem
+    above it.</li>
+  </ul>
+  <p><a href="https://github.com/hellobpdu/deep32/blob/main/INSTALL.md#5-install-the-forge">INSTALL section 5</a> has
+  the measured run behind these numbers.</p>
+</section>
+
+<!-- ================================================================================================ 6 -->
+<section class="sec" id="ports" aria-labelledby="ports-title">
+  <h2 id="ports-title">6. Ports</h2>
+  <p>Every part publishes its services inside your tailnet only, with Tailscale Serve. No port is opened to the
+  internet.</p>
+  <div class="table-wrap">
+    <table class="stack">
+      <thead><tr><th scope="col">Port</th><th scope="col">Part</th><th scope="col">Reached from</th><th scope="col">Used for</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">443, 8443 (HTTPS)</th><td data-label="Part">Forge</td><td data-label="Reached from">The tailnet</td><td data-label="Used for">The Forge's door. Without a token it answers <code>401</code></td></tr>
+        <tr><th scope="row">8081, 8082</th><td data-label="Part">Forge</td><td data-label="Reached from">The Forge itself (127.0.0.1)</td><td data-label="Used for">The embedding and reranking servers behind the door</td></tr>
+        <tr><th scope="row">7453</th><td data-label="Part">Forge</td><td data-label="Reached from">The Workstation, while a pairing window is open</td><td data-label="Used for">The pairing window</td></tr>
+        <tr><th scope="row">443 (HTTPS)</th><td data-label="Part">Workstation</td><td data-label="Reached from">The tailnet</td><td data-label="Used for">The published gateway, <code>https://&lt;workstation&gt;.&lt;tailnet&gt;.ts.net/mcp</code></td></tr>
+        <tr><th scope="row">7452 (TCP)</th><td data-label="Part">Agent PC</td><td data-label="Reached from">The Workstation, over the tailnet</td><td data-label="Used for">The Ask link to the relay. The Workstation's firewall allows only this relay port</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>The Forge installer checks that its ports are free, or already this Forge's, and refuses a port or route another
+  service already uses. The plan it shows lists the ports it will take. The inventory checks 8765, 8766, 8443, 8081,
+  8082 and 7452 on the machine it runs on and reports any that are busy.</p>
+</section>
+
+<!-- ================================================================================================ 7 -->
+<section class="sec" id="tailnet" aria-labelledby="tailnet-title">
+  <h2 id="tailnet-title">7. Tailnet names and rules</h2>
+  <ul>
+    <li><b>Your own tailnet.</b> Every part joins your tailnet with your own Tailscale account. No auth key is on any
+    image or in the repository, and the free plan is enough.</li>
+    <li><b>MagicDNS and HTTPS certificates</b> must be on. The installers check both and name the one that's off; they
+    never change tailnet settings themselves.</li>
+    <li><b>Names in public logs.</b> With HTTPS certificates on, machine names appear in the public Certificate
+    Transparency logs, so give your nodes names that say nothing about you. Publication asks you to agree to this once
+    (<code>--accept-ct</code>).</li>
+    <li><b>The <code>deep32-</code> prefix.</b> The Workstation offers only machines whose Tailscale name starts with
+    <code>deep32-</code>, for both the Forge and the Ask relay. Rename a machine on the admin console's Machines page or
+    with <code>sudo tailscale set --hostname deep32-forge</code>.</li>
+    <li><b>One tailnet.</b> The Workstation offers only machines in its own tailnet. A machine shared in from someone
+    else's tailnet is never offered for pairing.</li>
+    <li><b>Which node is the Forge.</b> A Forge in Docker Desktop uses its Windows host's node. A Forge in a WSL 2
+    distro runs Tailscale inside the distro and is a node of its own.</li>
+    <li><b>Key expiry.</b> Tailscale expires a device's sign-in after 180 days by default. Choose <b>Disable key
+    expiry</b> for these devices on the Machines page to avoid signing in again.</li>
+    <li><b>Access rules.</b> The default policy allows everything. With rules of your own, allow the agent PC to reach
+    the Workstation's gateway, the Workstation to reach the Forge, and the Workstation to reach the relay on TCP port
+    7452.</li>
+    <li><b>Serve on Linux.</b> The relay needs your user to manage Tailscale Serve:
+    <code>sudo tailscale set --operator=$USER</code>, once.</li>
+    <li><b>Device approval.</b> If your tailnet approves new devices by hand, approve each Deep32 machine on the
+    Machines page; the Forge's setup stops with <code>tailscale-approval</code> until you do.</li>
+  </ul>
+  <p><a href="https://github.com/hellobpdu/deep32/blob/main/INSTALL.md#7-tailscale">INSTALL section 7</a> has the
+  details.</p>
+</section>
+
+<!-- ================================================================================================ 8 -->
+<section class="sec" id="docker" aria-labelledby="docker-title">
+  <h2 id="docker-title">8. The Forge on Docker Desktop or Docker Engine</h2>
+  <p>The GPU pack is one Linux Docker form on every host. On Windows it runs through Docker Desktop or in an Ubuntu
+  24.04 WSL 2 distro.</p>
+  <div class="table-wrap">
+    <table class="stack">
+      <thead><tr><th scope="col"></th><th scope="col">Docker Engine (Linux or WSL 2)</th><th scope="col">Docker Desktop (Windows)</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">Host</th><td data-label="Docker Engine (Linux or WSL 2)">Ubuntu 24.04 on amd64, on the host or as a WSL 2 distro with systemd on</td><td data-label="Docker Desktop (Windows)">Windows 11 build 26100 or later: Home, Pro, Enterprise or Education</td></tr>
+        <tr><th scope="row">Software</th><td data-label="Docker Engine (Linux or WSL 2)">Docker Engine with the Compose v2 plugin and the NVIDIA Container Toolkit</td><td data-label="Docker Desktop (Windows)">Docker Desktop 4.99.0 or later with Docker Engine 29.0.0 or later, WSL 2 backend</td></tr>
+        <tr><th scope="row">Journeys, recipe</th><td data-label="Docker Engine (Linux or WSL 2)">J2, J4: <code>ubuntu-24.04-docker-engine-j2</code>, <code>-j4</code></td><td data-label="Docker Desktop (Windows)">J1: <code>windows-11-docker-desktop-wsl2-j1</code></td></tr>
+        <tr><th scope="row">Graphics driver</th><td data-label="Docker Engine (Linux or WSL 2)">NVIDIA 580.65.06 or newer</td><td data-label="Docker Desktop (Windows)">The Windows driver, 580.65.06 or newer, serves Docker Desktop; no Linux driver inside its WSL 2 backend</td></tr>
+        <tr><th scope="row">Classic image store</th><td data-label="Docker Engine (Linux or WSL 2)"><code>"features": {"containerd-snapshotter": false}</code> in <code>/etc/docker/daemon.json</code>, then restart Docker</td><td data-label="Docker Desktop (Windows)">Settings, General: turn off <b>Use containerd for pulling and storing images</b></td></tr>
+        <tr><th scope="row">Tailscale node</th><td data-label="Docker Engine (Linux or WSL 2)">The host's own; in WSL 2, the distro is a node of its own</td><td data-label="Docker Desktop (Windows)">The Windows host's node</td></tr>
+        <tr><th scope="row">Install from</th><td data-label="Docker Engine (Linux or WSL 2)"><code>sudo bash</code>, data folder <code>/opt/deep32</code> in INSTALL's examples</td><td data-label="Docker Desktop (Windows)">An elevated PowerShell with Docker Desktop running, data folder <code>C:\Deep32</code></td></tr>
+        <tr><th scope="row">Pairing code</th><td data-label="Docker Engine (Linux or WSL 2)"><code>sudo grep -o 'pair=[A-Z2-7]*' /opt/deep32/status/status</code></td><td data-label="Docker Desktop (Windows)">The helper <code>forge_pair_windows.py</code>; the code is in <code>C:\Deep32\status\windows-pair</code></td></tr>
+        <tr><th scope="row">Pairing helper's Python</th><td data-label="Docker Engine (Linux or WSL 2)">The host's <code>/usr/bin/python3</code>, 3.10 or newer with <code>ssl</code></td><td data-label="Docker Desktop (Windows)">Started with <code>python -I -B</code> from the clone</td></tr>
+        <tr><th scope="row">What has run</th><td data-label="Docker Engine (Linux or WSL 2)">On an RTX 2080 Ti in an Ubuntu 24.04 WSL 2 distro: the images and their join, both models, the Workstation's check of both models, and a one-page PDF converted with <code>--tier standard</code> in about 2 minutes 22 seconds</td><td data-label="Docker Desktop (Windows)">The images joined and loaded into Docker Desktop. No model has run there yet</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Both install under an owner waiver for this release, ahead of their full end-to-end runs, and the installer
+  prints a note that says so; <code>FORGE-PREREQUISITES.json</code> lists what wasn't run for each host type.
+  Appliance systems with a read-only root, such as Unraid, can't host an alpha.2 Forge, because the pairing helper
+  needs the host's own Python. <a href="https://github.com/hellobpdu/deep32/blob/main/docs/HARDWARE.md#5-graphics-card">HARDWARE
+  section 5</a> lists the cards.</p>
+</section>
+
+<!-- ================================================================================================ 9 -->
+<section class="sec" id="bare-metal" aria-labelledby="bare-metal-title">
+  <h2 id="bare-metal-title">9. A bare-metal Workstation</h2>
+  <p>For a physical install, the tested laptop is the Dell Latitude 5430; other machines run the Workstation as a VM.
+  In the wizard's VM guide, <span class="screen">Other hypervisor or bare metal</span> lists the settings
+  and has you confirm each step.</p>
+  <ul>
+    <li><b>Disc 1</b> is a disk image. Write it byte for byte to a USB stick of at least 2 GB, for example with
+    <code>dd</code>, or Rufus in DD image mode, and boot the machine from it.</li>
+    <li><b>The install disk</b> must be empty and at least 200 GB. The installer erases it and asks you to type its
+    name to confirm. It can encrypt it.</li>
+    <li><b>The network</b>: one wired network card on a network with DHCP and internet. OpenBSD drives Intel PRO/1000
+    (em), VirtIO (vio), VMXNET3 (vmx) and Hyper-V (hvn) network cards.</li>
+    <li><b>The processor</b>: 64-bit Intel or AMD. Low-power chips of the Atom, Celeron or Pentium Silver class are too
+    slow for the engine, gateway, desktop and Library together.</li>
+    <li><b>Disc 2</b>: a 25 GB BD-R in a Blu-ray drive, a USB stick of 32 GB or more, or over the network.</li>
+    <li><b>Administration</b> happens at the console. Maintenance over SSH is off unless you give the installer an
+    Ed25519 public key; with one, a separate SSH server accepts that key for root, only from the tailnet address of
+    the machine the Workstation is paired with.</li>
+  </ul>
+</section>
+
+<!-- ================================================================================================ 10 -->
+<section class="sec" id="sites" aria-labelledby="sites-title">
+  <h2 id="sites-title">10. More than one site</h2>
+  <p>The parts talk over your tailnet, so the Workstation, the Forge and the agent PC can be in different places. At
+  home on one LAN the connections are direct. Across sites they still work, and the speed depends on whether
+  Tailscale gets a direct path or relays.</p>
+  <ul>
+    <li><code>tailscale status</code> shows <code>direct</code> or <code>relay</code> for each peer. A relayed path adds
+    tens of milliseconds to every search: on my setup, latency between the parts was 70 to 157 ms through a relay and
+    1 to 2 ms direct.</li>
+    <li>Tailscale needs outbound UDP for direct paths. With UDP blocked it falls back to relays over HTTPS.</li>
+    <li>A Workstation VM on NAT works, but Tailscale may relay when it can't connect directly, which is slower for Ask,
+    the Library and the Forge. Bridged is the faster choice.</li>
+    <li>A remote Forge is the part most likely to be off or unreachable. After three failed calls in a row the engine
+    stops waiting on it and lets one trial call through every 30 seconds; meanwhile keyword search serves alone and
+    the response names the missing services in its <code>degraded</code> field.</li>
+    <li>Pairing works the same across sites. The five-minute code still applies, and every machine has to be in the
+    Workstation's own tailnet with a <code>deep32-</code> name where one is needed.</li>
+    <li>Disc 2 can reach a remote Workstation from any PC on your tailnet, or from the Internet Archive mirror.</li>
+    <li>If you use access rules of your own, allow the paths in <a href="#tailnet">section 7</a>.</li>
+  </ul>
+</section>
+
+<!-- ================================================================================================ 11 -->
+<section class="sec" id="afterwards" aria-labelledby="afterwards-title">
+  <h2 id="afterwards-title">11. Afterwards: start, stop, upgrade, uninstall</h2>
+  <p><b>Status.</b> <code>bash install/deep32-setup.sh check</code> can be run at any time; it never changes
+  anything.</p>
+  <p><b>The Forge on Linux</b> keeps the kit it was installed from under
+  <code>/opt/deep32/releases/RELEASE/kit</code>, and every later action runs from there.
+  <code>cat /opt/deep32/startup-hook-v1.sh</code> names the current RELEASE.</p>
+  <div class="code"><pre><code>K=/opt/deep32/releases/RELEASE/kit
+sudo bash $K/forms/load-docker.sh --status --docker-role forge --data-root /opt/deep32
+sudo bash $K/forms/load-docker.sh --start  --docker-role forge --data-root /opt/deep32
+sudo bash $K/forms/load-docker.sh --stop   --docker-role forge --data-root /opt/deep32
+sudo bash $K/forms/load-docker.sh --resume --docker-role forge --data-root /opt/deep32
+sudo python3 -I -B $K/forms/forge_docker_role.py uninstall --data-root /opt/deep32</code></pre></div>
+  <p><code>--status</code> prints one JSON line: whether the three services are healthy, whether the routes are
+  published, and the next step. Each start of an unpaired Forge opens a new five-minute pairing window.</p>
+  <div class="table-wrap">
+    <table class="stack">
+      <thead><tr><th scope="col">Task</th><th scope="col">What to do in 0.1.0-alpha.2</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">Upgrade the Forge</th><td data-label="What to do in 0.1.0-alpha.2">Its <code>--upgrade</code> action installs new GPU media over the old and keeps the Forge's data and pairing identity. A Forge installed fresh into an empty folder makes a new token and certificate, so pair it with the Workstation again afterwards</td></tr>
+        <tr><th scope="row">Upgrade the Workstation</th><td data-label="What to do in 0.1.0-alpha.2">In the alpha releases a Workstation is installed fresh. <a href="https://github.com/hellobpdu/deep32/blob/main/docs/UPGRADING.md">Upgrading</a> covers moving an install to a new release</td></tr>
+        <tr><th scope="row">Revoke a Workstation on the Forge</th><td data-label="What to do in 0.1.0-alpha.2">Revoking rotates the Forge's token, and the Forge then refuses to restart. Until 0.1.0-alpha.3, revoke by uninstalling the Forge and installing it into a new data folder, then pair again</td></tr>
+        <tr><th scope="row">Remove the Forge</th><td data-label="What to do in 0.1.0-alpha.2">Revoke it on the Workstation first. The <code>uninstall</code> action stops the Forge and takes off its Serve routes and startup launcher, and keeps the data folder, its keys and the loaded Docker images. Then delete the data folder and remove the <code>deep32-local/*</code> images yourself</td></tr>
+        <tr><th scope="row">Remove the Workstation</th><td data-label="What to do in 0.1.0-alpha.2">Remove its VM with the hypervisor</td></tr>
+        <tr><th scope="row">Remove a headend</th><td data-label="What to do in 0.1.0-alpha.2">Close its agent sessions, revoke it in the Workstation's <span class="screen">Pairing</span> by the install ID Connect printed, and delete its profile folder if it had one</td></tr>
+        <tr><th scope="row">Remove the Ask relay</th><td data-label="What to do in 0.1.0-alpha.2"><code>bash adapters/connect.sh --relay remove --relay-id '&lt;id&gt;' --agent claude --tailscale-binary "$(command -v tailscale)"</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Optional features that would contact anything ship off;
+  <a href="https://github.com/hellobpdu/deep32/blob/main/docs/OPTIONAL-FEATURES.md">Optional Features</a> lists each
+  one and what it would contact. <a href="https://github.com/hellobpdu/deep32/blob/main/INSTALL.md#10-afterwards">INSTALL
+  section 10</a> has the rest.</p>
+</section>
+
+<!-- ================================================================================================ 12 -->
+<section class="sec" id="errors" aria-labelledby="errors-title">
+  <h2 id="errors-title">12. Troubleshooting by error code</h2>
+  <p>When a step fails, the wizard shows a code, what happened and up to five fix steps, each saying where to do it.
+  Both wizards read the same table,
+  <a href="https://github.com/hellobpdu/deep32/blob/main/install/deep32-wizard-errors.tsv"><code>install/deep32-wizard-errors.tsv</code></a>.
+  Each row names the tool that prints the code: the setup script, <code>deep32-get</code>, the inventory, the Forge
+  installer, Connect, the relay, Docker, Tailscale, or the wizard's own VM checks. Search the table for the code you
+  see. Press <kbd>L</kbd> in the wizard for its log, which is kept in <code>~/.local/state/deep32-setup</code> or
+  <code>%LOCALAPPDATA%\Deep32-setup</code>.</p>
+  <div class="table-wrap">
+    <table class="stack">
+      <thead><tr><th scope="col">Code</th><th scope="col">From</th><th scope="col">What happened</th><th scope="col">Fix</th></tr></thead>
+      <tbody>
+        <tr><th scope="row"><code>VM_FIRMWARE_UEFI</code>, <code>VM_GENERATION</code></th><td data-label="From">VM guide</td><td data-label="What happened">The VM boots with UEFI</td><td data-label="Fix">Set BIOS firmware; on Hyper-V, create a Generation 1 VM</td></tr>
+        <tr><th scope="row"><code>VM_DISK_SMALL</code></th><td data-label="From">VM guide</td><td data-label="What happened">The largest disk is under 200 GB</td><td data-label="Fix">Give the VM an empty disk of at least 200 GB</td></tr>
+        <tr><th scope="row"><code>VM_DISPLAY_VIRTIO</code></th><td data-label="From">VM guide</td><td data-label="What happened">The VM has a virtio-gpu display</td><td data-label="Fix">Set a standard VGA display</td></tr>
+        <tr><th scope="row"><code>NET_HOSTONLY</code></th><td data-label="From">VM guide</td><td data-label="What happened">Host-only, internal or private network: no internet for the sign-in</td><td data-label="Fix">Use a bridged or NAT network</td></tr>
+        <tr><th scope="row"><code>KIT_MISSING</code></th><td data-label="From">VM guide</td><td data-label="What happened">No verified disc 1 with deep32-get's VM folder</td><td data-label="Fix">Run the <code>deep32-get disc1 --prepare-vm</code> line it shows, then the guide again</td></tr>
+        <tr><th scope="row"><code>TS_NOT_HERE</code>, <code>TS_PEER_MISSING</code></th><td data-label="From">VM guide</td><td data-label="What happened">The wizard can't see the Workstation join</td><td data-label="Fix">Finish the sign-in on the Workstation; if it stalls, give the VM another DNS server</td></tr>
+        <tr><th scope="row"><code>docker-store-containerd</code></th><td data-label="From">deep32-get</td><td data-label="What happened">Docker uses its containerd image store</td><td data-label="Fix">Switch to the classic store (<a href="#docker">section 8</a>)</td></tr>
+        <tr><th scope="row"><code>gpu.memory</code></th><td data-label="From">Inventory</td><td data-label="What happened">The card has less memory than the signed plan needs</td><td data-label="Fix">Use a card with 11 GB or more</td></tr>
+        <tr><th scope="row"><code>gpu.ports</code></th><td data-label="From">Inventory</td><td data-label="What happened">A Forge port is taken by another program</td><td data-label="Fix">Stop that program, or give the Forge other ports</td></tr>
+        <tr><th scope="row"><code>host.magicdns</code>, <code>host.https-certificates</code></th><td data-label="From">Inventory</td><td data-label="What happened">MagicDNS or HTTPS Certificates is off</td><td data-label="Fix">Turn it on in the admin console's DNS page</td></tr>
+        <tr><th scope="row"><code>windows.edition</code></th><td data-label="From">Inventory</td><td data-label="What happened">This Windows edition can't run the Workstation VM</td><td data-label="Fix">Hyper-V needs Pro, Enterprise or Education</td></tr>
+        <tr><th scope="row"><code>tailscale-approval</code></th><td data-label="From">Forge</td><td data-label="What happened">The device waits for approval in your tailnet</td><td data-label="Fix">Approve it on the Machines page</td></tr>
+        <tr><th scope="row"><code>expired</code>, <code>unreachable</code></th><td data-label="From">Connect</td><td data-label="What happened">The pairing code expired, or the Workstation's pairing service wasn't reachable</td><td data-label="Fix">Open a new Headend pairing and type the code within five minutes</td></tr>
+        <tr><th scope="row"><code>agent-sign-in-required</code></th><td data-label="From">Relay</td><td data-label="What happened">The relay's agent is signed out</td><td data-label="Fix">Sign the relay's profile in again</td></tr>
+        <tr><th scope="row"><code>IMPORT_SPACE</code>, <code>IMPORT_KB_ONLY</code></th><td data-label="From">Workstation import</td><td data-label="What happened">The Library didn't fit, or its part failed; the knowledge base stays in use</td><td data-label="Fix">Use a 200 GB disk; Import Report says what happened</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>INSTALL.md gives the recovery for each part where its procedure is, the
+  <a href="https://github.com/hellobpdu/deep32/blob/main/adapters/README.md#7-troubleshooting">Agent Adapters
+  troubleshooting table</a> covers Connect and the gateway, and the
+  <a href="https://github.com/hellobpdu/deep32/blob/main/CHANGELOG.md">release notes</a> list this release's known
+  issues.</p>
+</section>
+
+<!-- ================================================================================================ 13 -->
+<section class="sec" id="never-stored" aria-labelledby="never-stored-title">
+  <h2 id="never-stored-title">13. What is never stored</h2>
+  <p>No image, release file or file in the repository holds a secret key, token, password or sign-in. The only keys
+  that ship are public halves, such as the release key in <code>install/</code>. Each install makes its own:</p>
+  <ul>
+    <li>your Tailscale membership, at your sign-in on each node;</li>
+    <li>the Workstation's engine token, at its first boot, which never leaves it;</li>
+    <li>a gateway token for each agent, on the Workstation, when that agent pairs;</li>
+    <li>the Forge's token and bundle signing key, at its first boot. The token, and the public half of the key, go to
+    the Workstation at pairing;</li>
+    <li>the Ask link keys, on each side, with the pins exchanged at pairing.</li>
+  </ul>
+  <p>Your Claude Code, Codex and GitHub sign-ins stay in those tools' own stores.
+  <a href="https://github.com/hellobpdu/deep32/blob/main/INSTALL.md#11-what-is-never-stored">INSTALL section 11</a>
+  has the table.</p>
+</section>
+
+</main>
+</div>
+
+<footer class="site-footer">
+  <div class="inner">
+    <nav aria-label="Document set">
+      <ul class="docset">
+        <li><a href="https://github.com/hellobpdu/deep32#readme">Overview</a></li>
+        <li><a href="https://github.com/hellobpdu/deep32/blob/main/INSTALL.md">Installation</a></li>
+        <li><a href="https://github.com/hellobpdu/deep32/blob/main/docs/HARDWARE.md">Hardware</a></li>
+        <li><a href="https://github.com/hellobpdu/deep32/blob/main/docs/OPTIONAL-FEATURES.md">Optional features</a></li>
+        <li><a href="../tr/d32-tr-1.html">Design</a></li>
+        <li><a href="https://github.com/hellobpdu/deep32/blob/main/docs/DECISIONS.md">Decision record</a></li>
+        <li><a href="https://github.com/hellobpdu/deep32/blob/main/docs/contracts/README.md">Contracts</a></li>
+        <li><a href="https://github.com/hellobpdu/deep32/blob/main/adapters/README.md">Agent adapters</a></li>
+        <li><a href="https://github.com/hellobpdu/deep32/blob/main/SECURITY.md">Security</a></li>
+        <li><a href="https://github.com/hellobpdu/deep32/blob/main/CHANGELOG.md">Release notes</a></li>
+      </ul>
+    </nav>
+    <p>Copyright &copy; 2026 Jeffrey A. Cummings. Code under the Apache License 2.0, documentation under CC BY 4.0.</p>
+    <p class="fine">Personal work. Not affiliated with or endorsed by my employer. Cisco, IOS and Catalyst are trademarks of Cisco Systems, Inc. Other names belong to their owners and are used only to describe compatibility. This site loads nothing from other servers and sets no cookies.</p>
+  </div>
+</footer>
+</body>
+</html>

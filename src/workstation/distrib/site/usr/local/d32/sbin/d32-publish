@@ -1,0 +1,7 @@
+#!/usr/local/bin/python3.14 -IB
+"""Publish, unpublish, inspect or resume the owned Workstation MCP routes."""
+from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from publication import main
+raise SystemExit(main())

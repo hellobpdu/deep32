@@ -1,0 +1,60 @@
+{
+  "$id": "urn:deep32:release-metadata:v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "code_licence": {
+      "const": "Apache-2.0"
+    },
+    "concept_doi": {
+      "const": "10.5281/zenodo.24272647"
+    },
+    "documentation_licence": {
+      "const": "CC-BY-4.0"
+    },
+    "format": {
+      "const": "deep32-release-metadata"
+    },
+    "format_version": {
+      "const": 1
+    },
+    "model_licences": {
+      "additionalProperties": false,
+      "properties": {
+        "embedding": {
+          "const": "CC-BY-NC-4.0"
+        },
+        "reranker": {
+          "const": "CC-BY-NC-4.0"
+        }
+      },
+      "required": [
+        "embedding",
+        "reranker"
+      ],
+      "type": "object"
+    },
+    "release": {
+      "const": "v0.1.0-alpha.2"
+    },
+    "signer_fingerprint": {
+      "const": "B205B406548627AABF5250D8A078C5F25D025DD6"
+    },
+    "version": {
+      "const": "0.1.0-alpha.2"
+    }
+  },
+  "required": [
+    "format",
+    "format_version",
+    "release",
+    "version",
+    "concept_doi",
+    "code_licence",
+    "documentation_licence",
+    "model_licences",
+    "signer_fingerprint"
+  ],
+  "title": "Deep32 release-metadata version 1",
+  "type": "object"
+}

@@ -83,7 +83,10 @@ def _record(ctx, desired):
 
 def _active_record(ctx, desired):
     active = ctx.registry.data.get('active') or {}
-    value = active.get('pointers', {}).get(desired['pointer'])
+    if desired['pointer'] is None:
+        value = desired['target'] if desired['target'] in active.get('targets', []) else None
+    else:
+        value = active.get('pointers', {}).get(desired['pointer'])
     if not value:
         return None
     return next((row for row in ctx.registry.data['generations'] if row['target'] == value.split('/')[0]), None)
@@ -113,7 +116,8 @@ def _failure(ctx, desired, code, stage=None, path=None, args=None):
 
 
 def _generation_refs(record):
-    return {value.split('/')[0] for value in (record or {}).get('pointers', {}).values()}
+    return ({value.split('/')[0] for value in (record or {}).get('pointers', {}).values()} |
+            set((record or {}).get('targets', [])))
 
 
 def _registry_add(ctx, desired):
@@ -448,7 +452,8 @@ def _prepare(ctx, desired, stage):
     _validate_target(ctx, desired, stage)
     if _current(ctx, desired):
         active = _active_record(ctx, desired)
-        value = ctx.registry.data['active']['pointers'][desired['pointer']]
+        value = (active['target'] if desired['pointer'] is None else
+                 ctx.registry.data['active']['pointers'][desired['pointer']])
         desired['target'], desired['value'] = active['target'], value
         _validate_target(ctx, desired, stage)
         _state(ctx, desired, 'current')
@@ -710,7 +715,9 @@ def _record_checks(ctx, desired, entry, metadata, record_bytes):
         if manifest_raw.startswith(b'\xef\xbb\xbf') or b'\r' in manifest_raw or not manifest_raw.endswith(b'\n'):
             raise ValueError('record form')
         lines = manifest_raw.decode('utf-8').splitlines()
-        covered = [x for x in metadata if not x['name'].endswith('/MANIFEST.tsv')]
+        # Only the pack's own record manifest is outside its coverage; a content file may also be named MANIFEST.tsv.
+        record_manifest = 'var/db/d32/packs/' + entry['pack'] + '/MANIFEST.tsv'
+        covered = [x for x in metadata if x['name'] != record_manifest]
         if len(lines) != len(covered):
             raise ValueError('coverage')
         for line, member in zip(lines, covered):
@@ -733,6 +740,10 @@ def _record_checks(ctx, desired, entry, metadata, record_bytes):
         required = {'name', 'class', 'release', 'rights', 'files', 'bytes', 'made'}
         optional = {'generation', 'kb_generation', 'kb_fingerprint'}
         content = metadata[:-2]
+        map_name = entry['install_prefix'] + '/cite-map.tsv'
+        has_cite_map = any(member['name'] == map_name for member in content)
+        if has_cite_map != entry['has_cite_map']:
+            raise ValueError('cite map inventory')
         if (not required <= set(info) or set(info) - required - optional or info['name'] != entry['pack'] or
                 info['class'] != 'library' or info['release'] != entry['release'] or not info['rights'] or
                 not info['files'].isdecimal() or int(info['files']) != len(content) or
@@ -742,6 +753,8 @@ def _record_checks(ctx, desired, entry, metadata, record_bytes):
                 (('kb_generation' in info) != ('kb_fingerprint' in info))):
             raise ValueError('info values')
         generation, fingerprint = info.get('kb_generation'), info.get('kb_fingerprint')
+        if has_cite_map:
+            _binding(ctx, desired, generation, fingerprint, unit=entry['pack'])
         if entry['kb_generation'] is None:
             if (generation, fingerprint) not in ((None, None), ('UNBOUND', 'UNBOUND')):
                 raise ValueError('unexpected binding')
@@ -886,9 +899,6 @@ def run_library(ctx):
         else:
             entry = ctx.manifest['cisco_public']
             _binding(ctx, desired, entry['kb_generation'], entry['kb_fingerprint'])
-    for desired in desired_list:
-        if desired['pointer'] is None:
-            raise _failure(ctx, desired, 'IMPORT_PACK_FORM')
     _setup_stage(ctx, 'library', desired_list)
     first_stream = True
     first_group = True

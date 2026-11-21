@@ -1,8 +1,9 @@
 ASK DEEP32
 
-Ask runs on this workstation. Claude Code or Codex runs on the PC you pair it
-with (the headend) and searches this workstation's RAG through that PC's
-relay. The relay chooses the actual model.
+Ask runs on this workstation. The relay on the PC you pair it with (the
+headend) runs Claude Code or Codex, which searches this workstation's RAG
+through that relay. The relay picks the engine and offers the models and
+strengths you can choose from.
 
 Connect
 
@@ -20,52 +21,62 @@ More in /usr/local/share/doc/d32/LINK.txt.
 
 Pair once
 
-On the PC, install the relay and follow its pairing steps: sign in to Claude
-Code or Codex there, choose the allowed model on that PC, and open a pairing
-window. Choose a pairing password of at least 12 characters or four words and
-type it twice at its masked prompts. The password stays in memory for that
-five-minute window only.
+On the PC, install the relay, sign in to Claude Code or Codex there and open
+the relay's pairing window, all with the relay's own steps.
 
-On the workstation, open a normal Terminal as your desktop user and run:
+On the workstation, switch to the text console (Ctrl+Alt+F1), log in as
+your desktop user and run:
 
-  doas /usr/local/d32/sbin/d32-chatctl pair home
+  doas /usr/local/d32/sbin/d32-chatctl pair work
 
-Enter your login password for doas, then the SAME pairing password at the
-separate Pairing password prompt. It does not echo. The command reports when
-it connects and verifies the password and the relay's identity. Wait for the
-paired result on both screens. A second relay pairs as "pair work".
+Pairing changes what this workstation trusts, so the command runs only at
+the text console, not in a Terminal window. Enter your login password for
+doas. The pairing window on each side stays open for five minutes and allows
+one connection attempt. When the relay connects, both screens show ten
+words. Check that they are the same, type this workstation's words at the
+relay's prompt, then type the relay's words here without the numbers and
+press Enter. "PAIRED: pin stored; the link is active." means it worked.
+After a failure nothing is trusted: open a new pairing window on both sides
+and run the command again.
 
-There is one attempt per five-minute window. A failure closes it; open a new
-window on the PC and repeat the command to retry. Three failed windows within
-30 minutes lock pairing for 15 minutes. The password is never saved or logged.
-Never send the pairing password or private keys to an assistant. Existing
-pairings remain valid. An old relay must be updated before a new pairing.
+Ask's link to the relay is named "work"; this workstation has no other. A
+link that already holds a relay's pin has to be unpaired before it pairs
+again. Never give the pairing words or private keys to an assistant.
 
 Use Ask
 
 Open the Library subpanel of the front panel and select Ask Deep32, or type
-/usr/local/d32/bin/d32-ask in a terminal.
+/usr/local/d32/bin/d32-ask in a terminal. Ask in the Deep32 Library opens
+the Ask window.
 
 Type a question and press Return. The answer appears as it arrives. Ctrl+C
 interrupts the current answer. Ctrl+D or /quit closes this conversation.
 
-  /engine claude    choose Claude Code for the NEXT session
-  /engine codex     choose Codex for the NEXT session
-  /new              start that fresh session
-  /status           check the link and pairing
+  /new              start a fresh session
+  /status           show the link, the pairing, and the models and
+                    strengths the relay offers
+  /engine codex     label only: the relay on the paired PC picks the engine
   /ledger           show this session's RAG call names, outcomes, bytes and times
   /refs             list the last answer's numbered Library references
   /open             list those references again
   /open 2           open reference 2 in the Deep32 Encyclopedia
   /mods             show the question modifier key
+  /history on       save questions and answers; off by default
   /help             show all commands
 
-Every launch starts with Codex unless --engine selects another engine. An
-/engine selection applies to the next session only; later sessions use Codex.
-The engine switch does not change a conversation already open. The model is
-selected on the paired PC. If an interrupted Claude Code session cannot
-continue, use /new. History is off; /history on enables a private history
-file on the workstation. Leave it off for material you should not save.
+The relay on the paired PC picks the engine, Claude Code or Codex, and this
+workstation can't change it: /engine and --engine only change the label in
+the header, which shows "relay" unless you set one. The models and strengths
+also come from the relay. In the Ask window, choose them from the Model and
+Strength menus. In a terminal, /status lists them, and
+
+  /usr/local/d32/bin/d32-ask --model MODEL --effort STRENGTH
+
+uses that choice for every session it opens. Without a choice the relay
+uses its default; a choice it doesn't offer is refused. If an interrupted
+session cannot continue, use /new. History is off; /history on enables a
+private history file on the workstation. Leave it off for material you
+should not save.
 
 Modifiers
 
@@ -102,11 +113,10 @@ Finish or unpair
 Close Ask when finished. To revoke trust, log in as root at the text console
 and run:
 
-  /usr/local/d32/sbin/d32-chatctl unpair home
+  /usr/local/d32/sbin/d32-chatctl unpair work
 
 Also remove this workstation's pairing on the PC with the relay's own steps.
-A changed relay certificate needs a deliberate unpair and a new password
-pairing.
+A changed relay certificate needs a deliberate unpair and a new pairing.
 
 If it does not connect
 

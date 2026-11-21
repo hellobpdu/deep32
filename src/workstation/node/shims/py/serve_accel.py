@@ -28,6 +28,8 @@ are forwarded; GET /d32/status answers the verification state; anything else is 
 Runs as _d32gpu with the system python3.14, stdlib only; pledge "stdio rpath inet unix prot_exec" after start-up
 (rpath: the setting file and lazy imports; inet: the hub; unix: accept on the sockets). The hub is reached by
 address (GPU_EXT_ADDR, the tailnet IP) with the TLS name GPU_EXT_HOST checked against GPU_EXT_CA, so no DNS.
+GPU_EXT_TRANSPORT=loopback instead reaches the authenticated local doors over HTTP at 127.0.0.1:8081/8082;
+only GPU_EXT_HOST=localhost and that exact address and port pair are accepted in loopback mode (C8).
 No query text, vector or passage is ever logged: one line per request with path, status, milliseconds and bytes.
 """
 from __future__ import annotations
@@ -39,13 +41,16 @@ import json
 import logging
 import math
 import os
+import re
 import socket
 import socketserver
 import ssl
+import stat
 import struct
 import sys
 import threading
 import time
+from urllib.parse import urlsplit
 
 HERE = os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(0, HERE)
@@ -55,9 +60,83 @@ import d32svc  # noqa: E402
 log = logging.getLogger("d32svc")
 
 ROUTES = {"embed": "/v1/embeddings", "rerank": "/v1/rerank"}
-FORWARD_REQUEST_HEADERS = ("content-type", "accept", "authorization", "user-agent")
+FORWARD_REQUEST_HEADERS = ("content-type", "accept", "user-agent")
 FORWARD_RESPONSE_HEADERS = ("content-type",)
 MAX_BODY = 8 * 1024 * 1024
+FORGE_TOKEN_FILE = "/etc/d32/private/forge.token"
+UNPAIRED = "d32accel: Forge is not paired; pair this Workstation with a Forge"
+BAD_CREDENTIAL = "d32accel: Forge credential is unavailable; re-pair this Workstation with a Forge"
+
+
+class ForgeCredentialError(ValueError):
+    """A fixed, nonsecret diagnostic suitable for the service's startup error."""
+
+
+class ForgeAuthRejected(ValueError):
+    pass
+
+
+def _not_link(st) -> bool:
+    return not (stat.S_ISLNK(st.st_mode) or
+                getattr(st, "st_file_attributes", 0) & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0))
+
+
+def _credential_permissions(parent, token, gpu_gid: int, wheel_gid: int) -> bool:
+    """The shared private directory permits traversal; each credential has its own service group."""
+    return (parent.st_uid == token.st_uid == 0 and token.st_gid == gpu_gid and
+            stat.S_IMODE(token.st_mode) == 0o440 and
+            (parent.st_gid, stat.S_IMODE(parent.st_mode)) in ((gpu_gid, 0o750), (wheel_gid, 0o711)))
+
+
+def load_forge_token(path: str) -> str:
+    """Read one bounded credential before confinement. Never include its value or path in an error.
+
+    Production calls this only with FORGE_TOKEN_FILE. A Python caller may supply a synthetic test path;
+    environment settings cannot change the approved installed location.
+    """
+    parent_fd = token_fd = None
+    try:
+        parent_path, name = os.path.split(path)
+        parent = os.lstat(parent_path)
+        before = os.lstat(path)
+        if not _not_link(parent) or not stat.S_ISDIR(parent.st_mode) or not _not_link(before):
+            raise ForgeCredentialError(BAD_CREDENTIAL)
+        flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0)
+        if os.name == "posix":
+            import grp  # read the group database before confinement
+
+            gpu_gid = grp.getgrnam("_d32gpu").gr_gid
+            wheel_gid = grp.getgrnam("wheel").gr_gid
+            # The private directory is 0711 for its consumers: they may traverse it but not open or list it, so the
+            # credential is opened by path (O_NOFOLLOW) and the directory is checked with lstat.
+            token_fd = os.open(path, flags | os.O_NONBLOCK)
+            parent = os.lstat(parent_path)
+            if not _not_link(parent) or not stat.S_ISDIR(parent.st_mode):
+                raise ForgeCredentialError(BAD_CREDENTIAL)
+        else:  # offline source tests on platforms without POSIX owner/group/mode semantics
+            token_fd = os.open(path, flags | getattr(os, "O_BINARY", 0))
+        token = os.fstat(token_fd)
+        if (not stat.S_ISREG(token.st_mode) or not _not_link(token) or
+                (before.st_dev, before.st_ino) != (token.st_dev, token.st_ino) or
+                token.st_size not in (64, 65)):
+            raise ForgeCredentialError(BAD_CREDENTIAL)
+        if os.name == "posix" and not _credential_permissions(parent, token, gpu_gid, wheel_gid):
+            raise ForgeCredentialError(BAD_CREDENTIAL)
+        data = os.read(token_fd, 66)
+        if re.fullmatch(rb"[0-9a-f]{64}\n?", data) is None:
+            raise ForgeCredentialError(BAD_CREDENTIAL)
+        return data.rstrip(b"\n").decode("ascii")
+    except FileNotFoundError:
+        raise ForgeCredentialError(UNPAIRED) from None
+    except (OSError, KeyError, ValueError) as exc:
+        if isinstance(exc, ForgeCredentialError):
+            raise
+        raise ForgeCredentialError(BAD_CREDENTIAL) from None
+    finally:
+        if token_fd is not None:
+            os.close(token_fd)
+        if parent_fd is not None:
+            os.close(parent_fd)
 
 
 def _yes(value: str) -> bool:
@@ -65,11 +144,44 @@ def _yes(value: str) -> bool:
 
 
 class Settings:
-    def __init__(self, env: dict[str, str]) -> None:
+    def __init__(self, env: dict[str, str], *, token_path: str | None = None) -> None:
+        self.transport = env.get("GPU_EXT_TRANSPORT", "tailnet")
+        if self.transport not in ("tailnet", "loopback"):
+            raise SystemExit("d32accel: GPU_EXT_TRANSPORT must be tailnet or loopback")
         self.host = env.get("GPU_EXT_HOST", "")
         self.addr = env.get("GPU_EXT_ADDR", "")
-        self.ports = {"embed": int(env.get("GPU_EXT_EMBED_PORT", "443")),
-                      "rerank": int(env.get("GPU_EXT_RERANK_PORT", "8443"))}
+        default_ports = {"embed": 8081, "rerank": 8082} if self.transport == "loopback" else {"embed": 443, "rerank": 8443}
+        try:
+            self.ports = {kind: int(env.get(f"GPU_EXT_{kind.upper()}_PORT", str(port)))
+                          for kind, port in default_ports.items()}
+        except ValueError:
+            raise SystemExit("d32accel: Forge ports must be integers from 1 to 65535") from None
+        if any(not 1 <= port <= 65535 for port in self.ports.values()):
+            raise SystemExit("d32accel: Forge ports must be integers from 1 to 65535")
+        self.model_endpoints = {}
+        endpoint_keys = {"embed": "GPU_EXT_EMBED_URL", "rerank": "GPU_EXT_RERANK_URL"}
+        if any(key in env for key in endpoint_keys.values()):
+            try:
+                if self.transport != "tailnet" or any(key not in env for key in endpoint_keys.values()):
+                    raise ValueError()
+                for kind, key in endpoint_keys.items():
+                    value = env[key]
+                    match = re.fullmatch(r'https://([a-z0-9](?:[a-z0-9.-]{0,245}[a-z0-9])?\.ts\.net)(?::([1-9][0-9]{0,4}))?', value)
+                    if (not match or match[1] != self.host or
+                            any(not re.fullmatch(r'[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?', label)
+                                for label in match[1].split('.'))):
+                        raise ValueError()
+                    port = urlsplit(value).port or 443
+                    if (not 1 <= port <= 65535 or
+                            f"GPU_EXT_{kind.upper()}_PORT" in env and port != self.ports[kind]):
+                        raise ValueError()
+                    self.model_endpoints[kind] = value
+                    self.ports[kind] = port
+            except (TypeError, ValueError):
+                raise SystemExit("d32accel: Forge endpoints must be path-free HTTPS URLs on the paired Forge DNS name") from None
+        if self.transport == "loopback" and (self.host != "localhost" or self.addr != "127.0.0.1" or
+                                             self.ports != default_ports):
+            raise SystemExit("d32accel: loopback requires localhost at 127.0.0.1 on ports 8081 and 8082")
         self.ca = env.get("GPU_EXT_CA", "/etc/ssl/cert.pem")
         self.state_file = env.get("GPU_EXT_STATE", "/var/d32/run/gpu_ext")
         self.recheck = float(env.get("GPU_EXT_RECHECK_SECONDS", "60"))
@@ -86,324 +198,29 @@ class Settings:
         self.rerank_probe_file = env.get("GPU_EXT_RERANK_PROBE", "")
         if not self.host or not self.embed_model or not self.rerank_model:
             raise SystemExit("d32accel: GPU_EXT_HOST, GPU_EXT_EMBED_MODEL_ID and GPU_EXT_RERANK_MODEL_ID are required")
-
-
-def setting_on(path: str) -> bool:
-    try:
-        with open(path, encoding="ascii") as f:
-            return f.read(16).strip().lower() == "on"
-    except OSError:
-        return False
-
-
-class Upstream:
-    """A small pool of kept-alive TLS connections to one hub port, connecting by address, verifying by name."""
-
-    POOL = 8
-
-    def __init__(self, s: Settings, ctx: ssl.SSLContext, port: int) -> None:
-        self.s, self.ctx, self.port = s, ctx, port
-        self.idle: list[http.client.HTTPConnection] = []
-        self.lock = threading.Lock()
-        self.host_header = s.host if port == 443 else f"{s.host}:{port}"
-
-    def _connect(self) -> http.client.HTTPConnection:
-        conn = http.client.HTTPConnection(self.s.addr, self.port, timeout=self.s.read_timeout)
-        conn.auto_open = 0  # never a silent plain-text reconnect to the hub: a closed connection is an error
-        # a numeric address only: no resolver, so no /etc/resolv.conf read and no "dns" promise after pledge
-        family, stype, proto, _, sockaddr = socket.getaddrinfo(self.s.addr, self.port, type=socket.SOCK_STREAM,
-                                                               flags=socket.AI_NUMERICHOST)[0]
-        raw = socket.socket(family, stype, proto)
-        raw.settimeout(self.s.connect_timeout)
+        self.token_file = env.get("GPU_EXT_TOKEN_FILE", "")
+        if not self.token_file:
+            raise SystemExit(UNPAIRED)
+        if self.token_file != FORGE_TOKEN_FILE or "GPU_EXT_TOKEN" in env:
+            raise SystemExit(BAD_CREDENTIAL)
         try:
-            raw.connect(sockaddr)
-        except BaseException:
-            raw.close()
-            raise
-        raw.settimeout(self.s.read_timeout)
-        conn.sock = self.ctx.wrap_socket(raw, server_hostname=self.s.host)
-        return conn
-
-    def _take(self) -> tuple[http.client.HTTPConnection, bool]:
-        with self.lock:
-            if self.idle:
-                return self.idle.pop(), False
-        return self._connect(), True
-
-    def _give(self, conn: http.client.HTTPConnection) -> None:
-        with self.lock:
-            if len(self.idle) < self.POOL:
-                self.idle.append(conn)
-                return
-        conn.close()
-
-    def request(self, method: str, path: str, body: bytes | None, headers: dict[str, str]):
-        """(status, headers, body). A reused connection the hub closed is retried once on a new one; every call
-        here is a read (an embedding or a ranking), so repeating it changes nothing."""
-        for attempt in (0, 1):
-            conn, fresh = self._take()
-            try:
-                conn.putrequest(method, path, skip_host=True, skip_accept_encoding=True)
-                conn.putheader("Host", self.host_header)
-                for k, v in headers.items():
-                    conn.putheader(k, v)
-                if body is not None:
-                    conn.putheader("Content-Length", str(len(body)))
-                conn.endheaders(body)
-                resp = conn.getresponse()
-                data = resp.read()
-            except (http.client.RemoteDisconnected, http.client.NotConnected, BrokenPipeError,
-                    ConnectionResetError) as exc:
-                conn.close()
-                if fresh or attempt:
-                    raise
-                log.info("hub closed a kept-alive connection (%s); retrying once", type(exc).__name__)
-                continue
-            except BaseException:
-                conn.close()
-                raise
-            if resp.will_close or conn.sock is None:
-                conn.close()
-            else:
-                self._give(conn)
-            return resp.status, resp.headers, data
-        raise RuntimeError("unreachable")
+            self.forge_token = load_forge_token(self.token_file if token_path is None else token_path)
+        except ForgeCredentialError as exc:
+            raise SystemExit(str(exc)) from None
 
 
-class Attestor:
-    """The identity check, before first use and every `recheck` seconds after."""
-
-    def __init__(self, s: Settings, up: dict[str, Upstream]) -> None:
-        self.s, self.up = s, up
-        self.lock = threading.Lock()
-        self.state = {k: {"verified": False, "reason": "not checked yet", "checked_at": None} for k in ROUTES}
-        self.enabled = False
-        self.rerank_probe = None
-        if s.rerank_probe_file:
-            try:
-                with open(s.rerank_probe_file, encoding="utf-8") as f:  # read before confinement
-                    self.rerank_probe = json.load(f)
-            except FileNotFoundError:
-                log.warning("GPU_EXT: no reranker golden probe at %s (record it: tools/record_gpu_probes.py)",
-                            s.rerank_probe_file)
-
-    def ok(self, kind: str) -> tuple[bool, str]:
-        with self.lock:
-            if not self.enabled:
-                return False, "GPU_EXT is off"
-            st = self.state[kind]
-            return st["verified"], st["reason"]
-
-    def snapshot(self) -> dict:
-        with self.lock:
-            return {"gpu_ext": "on" if self.enabled else "off", "hub": self.s.host,
-                    **{k: dict(v) for k, v in self.state.items()}}
-
-    def _get_json(self, kind: str, path: str):
-        status, _, data = self.up[kind].request("GET", path, None, {"Accept": "application/json"})
-        if status != 200:
-            raise ValueError(f"GET {path} answered {status}")
-        return json.loads(data)
-
-    def _post_json(self, kind: str, path: str, payload: dict):
-        body = json.dumps(payload).encode()
-        status, _, data = self.up[kind].request("POST", path, body, {"Content-Type": "application/json",
-                                                                       "Accept": "application/json"})
-        if status != 200:
-            raise ValueError(f"POST {path} answered {status}")
-        return json.loads(data)
-
-    def check_embed(self) -> tuple[bool, str]:
-        s = self.s
-        info = self._get_json("embed", "/info")
-        if info.get("model_id") != s.embed_model:
-            return False, f"embedder model {info.get('model_id')!r}, expected {s.embed_model!r}"
-        reported = info.get("model_sha")
-        if reported:
-            if s.embed_revision and reported != s.embed_revision:
-                return False, f"embedder revision {reported!r}, expected {s.embed_revision!r}"
-            if s.embed_revision:
-                return True, f"model and revision {reported[:12]} as expected"
-        if s.embed_probe_input and s.embed_probe_sha256:
-            payload = {"input": [s.embed_probe_input]}
-            if s.embed_probe_model:
-                payload["model"] = s.embed_probe_model
-            out = self._post_json("embed", ROUTES["embed"], payload)
-            vec = out["data"][0]["embedding"]
-            digest = hashlib.sha256(struct.pack(f"<{len(vec)}f", *vec)).hexdigest()
-            if digest != s.embed_probe_sha256:
-                return False, f"embedder golden probe differs (sha256 {digest[:16]}...)"
-            return True, f"model as expected; golden probe equal ({len(vec)} dims)"
-        if s.require_revision:
-            return False, "embedder revision neither reported nor proven by a golden probe"
-        return True, "model as expected; revision NOT checked (GPU_EXT_REQUIRE_REVISION=no)"
-
-    def check_rerank(self) -> tuple[bool, str]:
-        s = self.s
-        health = self._get_json("rerank", "/health")
-        if health.get("status") != "ok":
-            return False, f"reranker status {health.get('status')!r}"
-        if health.get("model") != s.rerank_model:
-            return False, f"reranker model {health.get('model')!r}, expected {s.rerank_model!r}"
-        reported = health.get("revision")
-        if reported and s.rerank_revision:
-            if reported != s.rerank_revision:
-                return False, f"reranker revision {reported!r}, expected {s.rerank_revision!r}"
-            return True, f"model and revision {reported[:12]} as expected"
-        p = self.rerank_probe
-        if p:
-            out = self._post_json("rerank", ROUTES["rerank"], {"model": p["model"], "query": p["query"],
-                                                               "documents": p["documents"],
-                                                               "top_n": len(p["documents"])})
-            got = [(int(r["index"]), float(r["relevance_score"])) for r in out["results"]]
-            want = [(int(i), float(sc)) for i, sc in zip(p["order"], p["scores"])]
-            tol = float(p.get("tolerance", 1e-4))
-            if [i for i, _ in got] != [i for i, _ in want]:
-                return False, "reranker golden probe: a different order"
-            worst = max((abs(a - b) for (_, a), (_, b) in zip(got, want)), default=0.0)
-            if not worst <= tol or any(math.isnan(a) for _, a in got):
-                return False, f"reranker golden probe: a score differs by {worst:.2e} (tolerance {tol:.0e})"
-            return True, f"model as expected; golden probe equal (max diff {worst:.1e})"
-        if s.require_revision:
-            return False, "reranker revision neither reported nor proven by a golden probe"
-        return True, "model as expected; revision NOT checked (GPU_EXT_REQUIRE_REVISION=no)"
-
-    def run_once(self) -> None:
-        enabled = setting_on(self.s.state_file)
-        results = {}
-        for kind, fn in (("embed", self.check_embed), ("rerank", self.check_rerank)):
-            if not enabled:
-                results[kind] = (False, "GPU_EXT is off")
-                continue
-            t0 = time.monotonic()
-            try:
-                ok, reason = fn()
-            except Exception as exc:  # unreachable hub, TLS failure, bad JSON: not verified
-                ok, reason = False, f"check failed: {type(exc).__name__}: {str(exc)[:160]}"
-            results[kind] = (ok, reason + f" [{(time.monotonic() - t0) * 1000:.0f} ms]")
-        with self.lock:
-            changed = enabled != self.enabled
-            self.enabled = enabled
-            for kind, (ok, reason) in results.items():
-                st = self.state[kind]
-                if st["verified"] != ok or changed:
-                    log.warning("GPU_EXT %s: %s (%s)", kind, "VERIFIED" if ok else "REFUSED", reason)
-                st.update(verified=ok, reason=reason, checked_at=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()))
-
-    def loop(self, stop: threading.Event) -> None:
-        while not stop.is_set():
-            self.run_once()
-            stop.wait(self.s.recheck)
+# Installed beside this wrapper. Source-only tests use the repository's canonical module.
+shared_source = os.path.realpath(os.path.join(HERE, "../../../../model-bridge"))
+if os.path.isfile(os.path.join(shared_source, "d32_model_bridge.py")):
+    sys.path.insert(0, shared_source)
+from d32_model_bridge import (Upstream, Attestor as PortableAttestor, Server, make_handler,
+                              ForgeAuthRejected, setting_on)
 
 
-def make_handler(kind: str, att: Attestor, up: Upstream):
-    route = ROUTES[kind]
-
-    class Handler(http.server.BaseHTTPRequestHandler):
-        protocol_version = "HTTP/1.1"
-        server_version = "d32accel"
-        sys_version = ""
-        timeout = 330  # idle kept-alive connection from deep32-engine (it keeps them up to 300 s)
-
-        def address_string(self) -> str:
-            return "local"
-
-        def log_message(self, fmt, *args):  # never the request line's query or any body
-            pass
-
-        def _send(self, status: int, body: bytes, ctype: str = "application/json") -> None:
-            self.send_response(status)
-            self.send_header("Content-Type", ctype)
-            self.send_header("Content-Length", str(len(body)))
-            self.end_headers()
-            self.wfile.write(body)
-
-        def _json(self, status: int, payload: dict) -> None:
-            self._send(status, json.dumps(payload).encode())
-
-        def do_GET(self):
-            if self.path == "/d32/status":
-                self._json(200, att.snapshot())
-            elif self.path == route:
-                self._json(405, {"error": "method not allowed"})
-            else:
-                self._json(404, {"error": "not found"})
-
-        def do_POST(self):
-            t0 = time.monotonic()
-            if self.path != route:
-                self._drain()
-                self._json(404, {"error": "not found"})
-                return
-            length = self.headers.get("Content-Length")
-            if length is None or self.headers.get("Transfer-Encoding"):
-                self._json(411, {"error": "Content-Length required"})
-                self.close_connection = True
-                return
-            n = int(length)
-            if n < 0 or n > MAX_BODY:
-                self._json(413, {"error": "request too large"})
-                self.close_connection = True
-                return
-            body = self.rfile.read(n)
-            ok, reason = att.ok(kind)
-            if not ok:
-                self._json(503, {"error": "GPU_EXT not available", "reason": reason})
-                log.info("%s %s -> 503 (not verified) in %.0f ms", kind, route, (time.monotonic() - t0) * 1000)
-                return
-            headers = {k: v for k, v in self.headers.items() if k.lower() in FORWARD_REQUEST_HEADERS}
-            try:
-                status, rheaders, data = up.request("POST", route, body, headers)
-            except (socket.timeout, TimeoutError):
-                self._json(504, {"error": "hub timed out"})
-                return
-            except (OSError, http.client.HTTPException, ssl.SSLError) as exc:
-                self._json(502, {"error": f"hub unreachable: {type(exc).__name__}"})
-                return
-            self.send_response(status)
-            for k in FORWARD_RESPONSE_HEADERS:
-                v = rheaders.get(k)
-                if v:
-                    self.send_header(k.title(), v)
-            self.send_header("Content-Length", str(len(data)))
-            self.end_headers()
-            self.wfile.write(data)
-            log.info("%s %s -> %d, %d bytes in %.0f ms", kind, route, status, len(data),
-                     (time.monotonic() - t0) * 1000)
-
-        def _drain(self):
-            n = int(self.headers.get("Content-Length") or 0)
-            if 0 < n <= MAX_BODY:
-                self.rfile.read(n)
-
-    return Handler
-
-
-class Server(socketserver.ThreadingMixIn, socketserver.BaseServer):
-    """A threaded HTTP server on an inherited, already listening socket (UNIX or TCP)."""
-    daemon_threads = True
-
-    def __init__(self, sock: socket.socket, handler) -> None:
-        super().__init__(sock.getsockname(), handler)
-        self.socket = sock
-        sock.setblocking(True)
-
-    def fileno(self) -> int:
-        return self.socket.fileno()
-
-    def get_request(self):
-        conn, addr = self.socket.accept()
-        return conn, addr or ("local", 0)
-
-    def shutdown_request(self, request):
-        try:
-            request.shutdown(socket.SHUT_WR)
-        except OSError:
-            pass
-        request.close()
-
-    def close_request(self, request):
-        request.close()
+class Attestor(PortableAttestor):
+    def __init__(self, s, up):
+        super().__init__(s, up)
+        self.is_enabled = lambda: setting_on(self.s.state_file)
 
 
 def main() -> None:
@@ -414,8 +231,10 @@ def main() -> None:
         raise SystemExit(f"d32accel: listeners {missing} not inherited (start it through rc.d/d32accel)")
     if not s.addr:  # resolve once, before confinement (no "dns" promise afterwards)
         s.addr = socket.getaddrinfo(s.host, s.ports["embed"], socket.AF_INET, socket.SOCK_STREAM)[0][4][0]
-    ctx = ssl.create_default_context(cafile=s.ca)
-    ctx.minimum_version = ssl.TLSVersion.TLSv1_2
+    ctx = None
+    if s.transport == "tailnet":
+        ctx = ssl.create_default_context(cafile=s.ca)
+        ctx.minimum_version = ssl.TLSVersion.TLSv1_2
     up = {k: Upstream(s, ctx, s.ports[k]) for k in ROUTES}
     att = Attestor(s, up)
     servers = {k: Server(svc.listeners[k], make_handler(k, att, up[k])) for k in ROUTES}

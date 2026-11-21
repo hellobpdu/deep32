@@ -1,13 +1,17 @@
-# TEST MEDIA ONLY: after an unattended install, power off instead of rebooting when /d32-halt-after-install exists
-# in the ramdisk, so a VM does not boot the installer again. Against OpenBSD 8.0 install.sub (65,074 bytes; its
-# sha256 is checked by release/mkimage.sh). The real installer front end (d32setup) halts or reboots itself.
+# After a guided install, or on test media carrying /d32-halt-after-install,
+# power off so the next start can use the installed system. Against OpenBSD 8.0
+# install.sub (65,074 bytes; its sha256 is checked by release/mkimage.sh).
 --- install.sub
 +++ install.sub
-@@ -2463,6 +2463,7 @@
+@@ -2463,6 +2463,11 @@
  
  	prep_root_mail /tmp/ai/ai.log "$(hostname) $AI_MODE log"
  
-+	[[ -f /d32-halt-after-install ]] && exec halt -p
++	if [[ -f /d32-halt-after-install || -f ${D32_ROOT-}/tmp/ai/d32-guided-disk ]]; then
++		# install completion, before the first start.
++		print -r -- 'Remove the install medium before starting the installed system.'
++		exec halt -p
++	fi
  	exec reboot
  }
  

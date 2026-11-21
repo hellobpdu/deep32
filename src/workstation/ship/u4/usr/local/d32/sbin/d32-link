@@ -4,7 +4,7 @@
 # The laptop's one way out, up by itself whenever a cable is in: DHCP on the wired port that has a carrier (em0,
 # or the dock's ure0; no Wi-Fi), unbound forwarding to the lease's resolvers (d32-dnsup), and Tailscale (tailscaled
 # with --no-logs-no-support; no MagicDNS, no routes, no exit node, no Tailscale SSH). Over the tailnet, to the hub
-# named in link.conf only (set at pairing; none by default): Ask's relay (:7450), GPU_EXT (Tailscale Serve :443 and
+# named in link.conf only (set at pairing; none by default): Ask's relay (:7452), GPU_EXT (Tailscale Serve :443 and
 # :8443) and time (NTP). /etc/pf.conf decides what may leave (<ts_infra>, the
 # tailnet group, <gpu_hub>, <relay_hub>, <ntp>); this script edits tables and interface groups, never rules.
 #
@@ -202,7 +202,8 @@ infra() {	# base|full: <ts_infra> = the shipped list + the control plane's addre
 	t=$(mktemp /tmp/d32-link.XXXXXXXXXX) || return 1
 	{
 		grep -v '^#' $TSI 2>/dev/null
-		for n in controlplane.tailscale.com login.tailscale.com controlplane.tailscale.com; do
+		# acme-v02.api.letsencrypt.org: tailscaled (root) fetches and renews the gateway's HTTPS certificate there
+		for n in controlplane.tailscale.com login.tailscale.com acme-v02.api.letsencrypt.org; do
 			dig +short +time=2 +tries=1 A $n @127.0.0.1 2>/dev/null
 		done
 		[ $1 = full ] && tailscale debug derp-map 2>/dev/null | grep -Eo '"IPv4": *"[0-9.]+"' | sed 's/.*"\([0-9.]*\)"$/\1/'
@@ -339,7 +340,7 @@ finish() {	# Tailscale runs: the tailnet group, the infra table, GPU_EXT, time
 		mark ntp
 	fi
 	[ "$(cat $RUN/link.ts 2>/dev/null)" = "$ip" ] || mark ts "$ip"
-	once ts "tailnet up: $TSHOST $ip on $tun; hub ${HUB:-(none set)} for Ask :7450, GPU_EXT :443/:8443 and time"
+	once ts "tailnet up: $TSHOST $ip on $tun; hub ${HUB:-(none set)} for Ask :7452, GPU_EXT :443/:8443 and time"
 	return 0
 }
 

@@ -145,6 +145,10 @@ def _validate_active(record):
     for pointer, value in record['pointers'].items():
         if not _safe_pointer_name(pointer) or not _safe_pointer_value(value):
             raise imp_fs.ImportFailure('IMPORT_INTERNAL')
+    targets = record.get('targets', [])
+    if (not isinstance(targets, list) or any(not _safe_target(target) for target in targets) or
+            len(set(targets)) != len(targets)):
+        raise imp_fs.ImportFailure('IMPORT_INTERNAL')
 
 
 def _validate_journal(value):
@@ -160,7 +164,11 @@ def _validate_journal(value):
         raise imp_fs.ImportFailure('IMPORT_INTERNAL')
     for unit in desired:
         if (not isinstance(unit, dict) or not _safe_target(unit.get('target')) or
-                not _safe_pointer_name(unit.get('pointer')) or not _safe_pointer_value(unit.get('value'))):
+                not _safe_pointer_value(unit.get('value'))):
+            raise imp_fs.ImportFailure('IMPORT_INTERNAL')
+        pointer = unit.get('pointer')
+        if not (_safe_pointer_name(pointer) or
+                pointer is None and unit.get('unit_kind') == 'library' and unit['value'] == unit['target']):
             raise imp_fs.ImportFailure('IMPORT_INTERNAL')
         _validate_desired_records(unit)
     if value.get('registry_before') is not None:
@@ -193,7 +201,8 @@ def prepare(paths):
         if folder.is_symlink():
             raise imp_fs.ImportFailure('IMPORT_WRITE')
         folder.mkdir(parents=True, exist_ok=True)
-        imp_fs.set_owner_mode(folder, 'root', folder_group, mode)
+        if not folder.is_mount():
+            imp_fs.set_owner_mode(folder, 'root', folder_group, mode)
 
 
 class Journal:

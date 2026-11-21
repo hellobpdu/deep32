@@ -1,0 +1,94 @@
+[
+  {
+    "id": "ubuntu-24.04-docker-engine-j2",
+    "accepted_on": "2026-11-18",
+    "os_id": "ubuntu",
+    "os_version": "24.04",
+    "architecture": "amd64",
+    "journey": "J2",
+    "recipe_file": "prerequisites.json",
+    "waiver": {
+      "granted_by": "release-owner",
+      "granted_on": "2026-11-18",
+      "release": "0.1.0-alpha.2",
+      "recipe_id": "ubuntu-24.04-docker-engine-j2",
+      "not_run": [
+        "The full lifecycle from the signed 0.1.0-alpha.2 release on this kind of host: guided install, pairing, both models, a PDF conversion, a restart from the retained kit, and removal.",
+        "The guided installer's own prerequisite check against this signed file on a real host.",
+        "Any run from the rebuilt disc 3 images as signed. The cited run used the earlier images of this release.",
+        "A PDF conversion with the converter image as shipped. The cited conversion ran the earlier converter image with a temporary overlay that supplied a missing mount point, GL libraries and Accelerate.",
+        "Any run on Ubuntu 24.04 outside WSL 2. The cited run used an Ubuntu 24.04 distribution in WSL 2.",
+        "Any GPU class other than turing. The cited run used one RTX 2080 Ti."
+      ],
+      "evidence": [
+        "LINUX-MINERU-R3-EVIDENCE.md"
+      ]
+    }
+  },
+  {
+    "id": "ubuntu-24.04-docker-engine-j4",
+    "accepted_on": "2026-11-18",
+    "os_id": "ubuntu",
+    "os_version": "24.04",
+    "architecture": "amd64",
+    "journey": "J4",
+    "recipe_file": "prerequisites.json",
+    "waiver": {
+      "granted_by": "release-owner",
+      "granted_on": "2026-11-18",
+      "release": "0.1.0-alpha.2",
+      "recipe_id": "ubuntu-24.04-docker-engine-j4",
+      "not_run": [
+        "The full lifecycle from the signed 0.1.0-alpha.2 release on this kind of host: guided install, pairing, both models, a PDF conversion, a restart from the retained kit, and removal.",
+        "The guided installer's own prerequisite check against this signed file on a real host.",
+        "Any run from the rebuilt disc 3 images as signed. The cited run used the earlier images of this release.",
+        "A PDF conversion with the converter image as shipped. The cited conversion ran the earlier converter image with a temporary overlay that supplied a missing mount point, GL libraries and Accelerate.",
+        "Any run on Ubuntu 24.04 outside WSL 2. The cited run used an Ubuntu 24.04 distribution in WSL 2.",
+        "Any GPU class other than turing. The cited run used one RTX 2080 Ti.",
+        "Any run with the Workstation as a virtual machine on the same Linux host. The cited run paired with a Workstation on another machine."
+      ],
+      "evidence": [
+        "LINUX-MINERU-R3-EVIDENCE.md"
+      ]
+    }
+  },
+  {
+    "id": "windows-11-docker-desktop-wsl2-j1",
+    "accepted_on": "2026-11-18",
+    "os_id": "windows",
+    "os_version": "26100+",
+    "architecture": "amd64",
+    "journey": "J1",
+    "recipe_file": "prerequisites.json",
+    "desktop": {
+      "backend": "wsl2",
+      "editions": [
+        "education",
+        "enterprise",
+        "home",
+        "pro"
+      ],
+      "version_min": "4.99.0",
+      "engine_version_min": "29.0.0"
+    },
+    "waiver": {
+      "granted_by": "release-owner",
+      "granted_on": "2026-11-18",
+      "release": "0.1.0-alpha.2",
+      "recipe_id": "windows-11-docker-desktop-wsl2-j1",
+      "not_run": [
+        "The full lifecycle from the signed 0.1.0-alpha.2 release on this kind of host: guided install, pairing, both models, a PDF conversion, a restart from the retained kit, and removal.",
+        "The guided installer's own prerequisite check against this signed file on a real host.",
+        "Any run from the rebuilt disc 3 images as signed. The cited runs used the earlier images of this release.",
+        "On Windows: pairing, embedding, reranking, a PDF conversion, or any other GPU workload. The cited Windows run joined the three disc 3 images, loaded all six container images into Docker Desktop and ran nvidia-smi in one of them.",
+        "Any Windows setup other than the one cited: Windows 11 build 26200.9974 Pro with Docker Desktop 4.99.0, Docker Engine 29.9.3 and one RTX 2080 Ti.",
+        "This recipe accepts by its floors, without a run: any Windows 11 build from 26100 on with any update revision, the Home, Pro, Enterprise and Education editions, Docker Desktop 4.99.0 or later, Docker Engine 29.0.0 or later and any WSL 2 kernel version.",
+        "Any GPU class other than turing. The cited runs used one RTX 2080 Ti."
+      ],
+      "evidence": [
+        "WINDOWS-RAW-QUALIFICATION.md",
+        "LINUX-MINERU-R3-EVIDENCE.md"
+      ]
+    }
+  }
+]

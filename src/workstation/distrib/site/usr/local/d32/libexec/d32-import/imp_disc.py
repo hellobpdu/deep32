@@ -90,7 +90,10 @@ def run_disc(ctx):
             parts = [m.group(1) for line in text.splitlines()
                      if (m := re.match(r'^  ([a-p]): ', line)) and
                      'swap' not in line and 'unused' not in line]
-            if 'c' in parts:
+            if device.startswith(('sd', 'vnd')) or 'c' in parts:
+                # A USB stick holds the disc 2 image from its first sector: c, the whole disk, whatever the label
+                # the kernel made from it says. So does a vnd unit attached to the downloaded image (vnconfig(8):
+                # mount -t cd9660 /dev/vnd0c).
                 part = 'c'
             elif len(parts) == 1:
                 part = parts[0]

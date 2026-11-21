@@ -7,6 +7,8 @@
 set -eu
 S=$(cd "$(dirname "$0")" && pwd)
 D=/usr/local/d32
+bridge_source=${D32_MODEL_BRIDGE_SOURCE:-$S/../../../model-bridge/d32_model_bridge.py}
+[ -f "$bridge_source" ] || { echo "install.sh: shared model bridge source is missing; stage src/model-bridge and set D32_MODEL_BRIDGE_SOURCE" >&2; exit 1; }
 [ "$(id -u)" = 0 ] || { echo "install.sh: run as root" >&2; exit 1; }
 
 # ids (BASE's table: never renumber)
@@ -39,6 +41,7 @@ install -d -o root -g wheel -m 0755 $D/node/shims
 for f in pledge.py d32svc.py node_layers.py serve_core.py serve_edge.py serve_accel.py; do
 	install -o root -g wheel -m 0444 "$S/py/$f" $D/node/shims/$f
 done
+install -o root -g wheel -m 0444 "$bridge_source" $D/node/shims/d32_model_bridge.py
 rm -rf $D/node/shims/__pycache__
 $D/venv/deep32-engine/bin/python3.12 -I -m compileall -q --invalidation-mode unchecked-hash $D/node/shims
 /usr/local/bin/python3.14 -I -m compileall -q --invalidation-mode unchecked-hash $D/node/shims

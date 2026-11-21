@@ -1,0 +1,21 @@
+# Bandit configuration for Deep32.
+#
+#   bandit -c bandit.yaml -r . -b bandit-baseline.json    only findings that aren't in the reviewed baseline
+#   bandit -c bandit.yaml -r .                            every finding
+#
+# Bandit only reads; it never changes a file. It scans *.py files; the Python programs without a suffix (listed in
+# ruff.toml) can be named on the command line as well. docs/BUILDING.md section 3 has the commands and the findings
+# recorded for the current release.
+
+# Test code is left out: it asserts, writes fixtures under temporary folders and builds fake shells on purpose.
+exclude_dirs:
+  - tests
+  - adapters/tests
+  - src/gpu-pack/tests
+  - src/kb-tools/linux-line/tests
+
+skips:
+  # Importing subprocess, and calling it with an argument list and no shell. The installers, the release tools and
+  # the build scripts exist to run host commands, and an argument list without a shell is the safe way to do it.
+  - B404
+  - B603

@@ -9,6 +9,7 @@ import re
 import shutil
 import subprocess
 import sys
+sys.dont_write_bytecode = True
 
 KIT = Path('/opt/deep32-forge')
 PAYLOAD = Path('/opt/deep32-payload')
@@ -86,8 +87,11 @@ def payload_identity():
     # Installed payload is immutable. Detect a replacement by its small inventory
     # and pins; do not rehash tens of GB on every service restart.
     value = hashlib.sha256()
-    for path in (MANIFEST, KIT / 'pins.json', Path(__file__), KIT / 'containers/compose.yaml',
-                 KIT / 'build/image_binding.py'):
+    spec = importlib.util.spec_from_file_location('installed_runtime', KIT / 'build/thin_forms.py')
+    runtime = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(runtime)
+    paths = (MANIFEST, *runtime.runtime_files(KIT))
+    for path in paths:
         value.update(path.read_bytes())
     return value.hexdigest()
 
@@ -199,7 +203,10 @@ def load_images(config, status, form, identity):
             except (ValueError, subprocess.CalledProcessError):
                 pass
         if actual is None:
-            subprocess.run(['docker', 'image', 'load', '--input', str(PAYLOAD / row['path'])], check=True, stdout=subprocess.DEVNULL)
+            from status import command
+            status.update('firstboot', 'waiting', msg='Loading verified image ' + row['role']
+                          + '; restore the same verified media and resume if it fails')
+            command(['docker', 'image', 'load', '--input', str(PAYLOAD / row['path'])], status, 600)
             actual = binding.resolve_loaded(entry)
         chosen[row['role']] = actual
     values = {'TEI_CLASS': selection, 'TEI_IMAGE': chosen['tei-' + selection], 'RERANKER_IMAGE': chosen['reranker'],

@@ -5,7 +5,7 @@ set -euo pipefail
 source "$(dirname -- "${BASH_SOURCE[0]}")/common.sh"
 parse_build "$@"
 if $dry_run; then
-  echo 'Would verify builder pins, complete engine hash lock, wheels, git/age Debian closure, absence of embedded eval data and local base/Qdrant archives; docker build --network none --pull=false; save and record both image ids. Quality validation accepts an operator-provided --eval-root at runtime. Downloads: none.'
+  echo 'Would verify builder pins, complete engine hash lock, wheels, git/age Debian closure, absence of embedded eval data and local base/Qdrant archives; DOCKER_BUILDKIT=1 docker build --network none --pull=false; save and record both image ids. Quality validation accepts an operator-provided --eval-root at runtime. Downloads: none.'
   exit 0
 fi
 [[ -d "$stage_dir/payload" && -n "$out_dir" && ! -e "$out_dir" && "${SOURCE_DATE_EPOCH:-}" =~ ^[0-9]+$ ]] || exit 2
@@ -23,7 +23,8 @@ docker tag "$qdrant_id" deep32-local/qdrant:locked
 find "$out_dir/context" -type f -exec chmod 0644 {} +
 find "$out_dir/context" -type d -exec chmod 0755 {} +
 find "$out_dir/context" -exec touch -h -d "@$SOURCE_DATE_EPOCH" {} +
-docker build --network none --pull=false --build-arg BASE_IMAGE=deep32-builder-base:locked \
+# Requires the local BuildKit frontend; no frontend image is fetched.
+DOCKER_BUILDKIT=1 docker build --network none --pull=false --build-arg BASE_IMAGE=deep32-builder-base:locked \
   --build-arg "SOURCE_DATE_EPOCH=$SOURCE_DATE_EPOCH" --tag deep32-local/builder:locked "$out_dir/context"
 docker image save --output "$out_dir/images/builder.tar" deep32-local/builder:locked
 cp -- "$stage_dir/builder/qdrant.tar" "$out_dir/images/qdrant.tar"

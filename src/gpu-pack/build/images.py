@@ -3,6 +3,7 @@
 import json
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import sys
 
@@ -11,6 +12,112 @@ _sys.path.insert(0, str(Path(__file__).resolve().parent))  # siblings (image_bin
 from provenance import canonical, digest, members
 from distributions import canonical_name, lock_requirements
 from image_binding import archive_binding, check_archive, resolve_loaded
+
+
+CONVERTER_DEB_FORMAT = 'deep32-converter-debian-closure/1'
+SHA256 = r'[0-9a-f]{64}'
+PACKAGE = r'[a-z0-9][a-z0-9+.-]*'
+DEB_VERSION = r'[A-Za-z0-9.:+~_-]+'
+APT_INSTALL = re.compile(
+    r'^Inst (' + PACKAGE + r')(?::amd64)? \((' + DEB_VERSION + r') .+ \[(amd64|all)\]\)$')
+APT_SUMMARY = re.compile(r'^0 upgraded, ([0-9]+) newly installed, 0 to remove and [0-9]+ not upgraded\.$')
+
+
+def _plain(path, directory=False):
+    if any(part.is_symlink() or part.is_junction() for part in (path, *path.parents)):
+        raise ValueError('linked converter build input')
+    if not (path.is_dir() if directory else path.is_file()):
+        raise ValueError('missing converter build input: ' + path.name)
+
+
+def _unique_keys(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError('duplicate converter input field')
+        result[key] = value
+    return result
+
+
+def _apt_packages(plan):
+    installed = set()
+    summaries = []
+    for line in plan.splitlines():
+        summary = APT_SUMMARY.fullmatch(line)
+        if summary:
+            summaries.append(int(summary[1]))
+        if line.startswith(('Remv ', 'Purg ')):
+            raise ValueError('converter APT plan removes an existing package')
+        if line.startswith('Inst '):
+            match = APT_INSTALL.fullmatch(line)
+            if not match or match.groups() in installed:
+                raise ValueError('converter APT plan has an upgrade, duplicate or unexpected package line')
+            installed.add(match.groups())
+    if not installed or summaries != [len(installed)]:
+        raise ValueError('converter APT plan must be a complete install-only simulation')
+    return installed
+
+
+def stage_converter_debs(stage, context):
+    """Verify pinned Bookworm resolver and package bytes before staging bind mounts."""
+    source = stage / 'converter'
+    pins_path = stage / 'pins.json'
+    manifest = source / 'debs.json'
+    plan = source / 'apt-plan.txt'
+    packages = source / 'debs'
+    _plain(context, directory=True)
+    _plain(packages, directory=True)
+    for path in (pins_path, manifest, plan):
+        _plain(path)
+    runtime = json.loads(pins_path.read_text(encoding='ascii'), object_pairs_hook=_unique_keys)['runtime']
+    if digest(manifest) != runtime.get('converter_debian_closure_sha256'):
+        raise ValueError('converter Debian closure manifest hash differs from its pin')
+    closure = json.loads(manifest.read_text(encoding='ascii'), object_pairs_hook=_unique_keys)
+    fields = {'format', 'suite', 'architecture', 'base_image', 'base_dpkg_status_sha256',
+              'apt_plan_sha256', 'packages'}
+    if (not isinstance(closure, dict) or set(closure) != fields
+            or closure['format'] != CONVERTER_DEB_FORMAT or closure['suite'] != 'bookworm'
+            or closure['architecture'] != 'amd64' or closure['base_image'] != runtime['base_image']
+            or any(not isinstance(closure[key], str) or not re.fullmatch(SHA256, closure[key])
+                   for key in ('base_dpkg_status_sha256', 'apt_plan_sha256'))
+            or not isinstance(closure['packages'], list)):
+        raise ValueError('invalid pinned Bookworm converter Debian closure')
+    if digest(plan) != closure['apt_plan_sha256']:
+        raise ValueError('converter APT simulation hash differs from its pin')
+    expected = _apt_packages(plan.read_text(encoding='ascii'))
+    by_filename, names, actual = {}, set(), set()
+    for row in closure['packages']:
+        if (not isinstance(row, dict) or set(row) != {'name', 'version', 'architecture', 'file', 'size', 'sha256'}
+                or any(not isinstance(row[key], str) for key in ('name', 'version', 'architecture', 'file', 'sha256'))
+                or not re.fullmatch(PACKAGE, row['name']) or not re.fullmatch(DEB_VERSION, row['version'])
+                or row['architecture'] not in ('amd64', 'all') or not re.fullmatch(r'[A-Za-z0-9.+_~%-]+\.deb', row['file'])
+                or type(row['size']) is not int or row['size'] <= 0 or not re.fullmatch(SHA256, row['sha256'])):
+            raise ValueError('invalid converter Debian package record')
+        identity = (row['name'], row['version'], row['architecture'])
+        if row['name'] in names or row['file'].casefold() in by_filename:
+            raise ValueError('duplicate converter Debian package')
+        names.add(row['name'])
+        actual.add(identity)
+        by_filename[row['file'].casefold()] = row
+    if actual != expected or ('libgl1', '1.6.0-1', 'amd64') not in actual:
+        raise ValueError('converter Debian packages differ from the full APT simulation')
+    if {path.name for path in packages.iterdir()} != {row['file'] for row in by_filename.values()}:
+        raise ValueError('missing or unlisted converter Debian archive')
+    for row in by_filename.values():
+        path = packages / row['file']
+        _plain(path)
+        if path.stat().st_size != row['size'] or digest(path) != row['sha256']:
+            raise ValueError('converter Debian archive differs from its pin: ' + path.name)
+    destination = context / 'debs'
+    destination.mkdir()
+    for row in by_filename.values():
+        output = destination / row['file']
+        shutil.copyfile(packages / row['file'], output, follow_symlinks=False)
+        _plain(output)
+        if output.stat().st_size != row['size'] or digest(output) != row['sha256']:
+            raise ValueError('converter Debian archive changed during context staging: ' + output.name)
+    (destination / 'base-dpkg.sha256').write_text(
+        closure['base_dpkg_status_sha256'] + '  /var/lib/dpkg/status\n', encoding='ascii', newline='\n')
 
 
 def checked_base(stage, pins):
@@ -52,6 +159,9 @@ def main():
     stage = Path(stage_name)
     if action == 'backend-lock':
         write_build_backend_lock(stage / 'requirements.lock', stage / 'build-backend.lock')
+        return
+    if action == 'converter-debs':
+        stage_converter_debs(stage, Path(rest[0]))
         return
     pins = json.loads((stage / 'pins.json').read_text(encoding='ascii'))
     if action == 'verify-base':

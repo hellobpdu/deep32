@@ -176,6 +176,10 @@ class NodePaths:
     def packs(self):
         return self.state / 'packs'
 
+    @property
+    def content_compatible_versions(self):
+        return rp('/etc/d32/content-compatible-versions') if self.node == 'workstation' else None
+
     def command(self, name):
         return command(name, self)
 

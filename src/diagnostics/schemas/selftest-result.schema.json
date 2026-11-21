@@ -1,0 +1,304 @@
+{
+  "$id": "https://example.invalid/deep32/selftest-result.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "else": {
+        "properties": {
+          "measured": {
+            "additionalProperties": false,
+            "properties": {
+              "hit_at_1": {
+                "maximum": 1,
+                "minimum": 0,
+                "type": "number"
+              },
+              "hit_at_3": {
+                "maximum": 1,
+                "minimum": 0,
+                "type": "number"
+              },
+              "hit_at_8": {
+                "maximum": 1,
+                "minimum": 0,
+                "type": "number"
+              },
+              "mrr_at_10": {
+                "maximum": 1,
+                "minimum": 0,
+                "type": "number"
+              }
+            },
+            "required": [
+              "hit_at_1",
+              "hit_at_3",
+              "hit_at_8",
+              "mrr_at_10"
+            ],
+            "type": "object"
+          }
+        }
+      },
+      "if": {
+        "properties": {
+          "status": {
+            "const": "INCOMPLETE"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "details": {
+            "maxItems": 0
+          },
+          "exit_code": {
+            "const": 2
+          },
+          "measured": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "PASS"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "exit_code": {
+            "const": 0
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "FAIL"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "exit_code": {
+            "const": 1
+          }
+        }
+      }
+    }
+  ],
+  "properties": {
+    "bundle_id": {
+      "maxLength": 96,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+      "type": "string"
+    },
+    "checks": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "check": {
+            "maxLength": 96,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+            "type": "string"
+          },
+          "detail": {
+            "maxLength": 500,
+            "minLength": 0,
+            "type": "string"
+          },
+          "fix": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              }
+            ]
+          },
+          "state": {
+            "enum": [
+              "OK",
+              "WARN",
+              "FAIL",
+              "SKIP"
+            ]
+          }
+        },
+        "required": [
+          "check",
+          "state",
+          "detail",
+          "fix"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "completed_questions": {
+      "maximum": 64,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "details": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "first_relevant_rank": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "maximum": 10,
+                "minimum": 1,
+                "type": "integer"
+              }
+            ]
+          },
+          "id": {
+            "maxLength": 96,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "first_relevant_rank"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "exit_code": {
+      "enum": [
+        0,
+        1,
+        2
+      ]
+    },
+    "fixture_only": {
+      "type": "boolean"
+    },
+    "measured": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "hit_at_1": {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            "hit_at_3": {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            "hit_at_8": {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            "mrr_at_10": {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            }
+          },
+          "required": [
+            "hit_at_1",
+            "hit_at_3",
+            "hit_at_8",
+            "mrr_at_10"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "question_count": {
+      "maximum": 64,
+      "minimum": 1,
+      "type": "integer"
+    },
+    "reference": {
+      "additionalProperties": false,
+      "properties": {
+        "hit_at_1": {
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        },
+        "hit_at_3": {
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        },
+        "hit_at_8": {
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        },
+        "mrr_at_10": {
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        }
+      },
+      "required": [
+        "hit_at_1",
+        "hit_at_3",
+        "hit_at_8",
+        "mrr_at_10"
+      ],
+      "type": "object"
+    },
+    "release": {
+      "maxLength": 96,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "status": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "INCOMPLETE"
+      ]
+    }
+  },
+  "required": [
+    "schema_version",
+    "bundle_id",
+    "release",
+    "fixture_only",
+    "status",
+    "exit_code",
+    "completed_questions",
+    "question_count",
+    "checks",
+    "measured",
+    "reference",
+    "details"
+  ],
+  "type": "object"
+}

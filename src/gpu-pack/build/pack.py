@@ -8,8 +8,13 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
+
+# Resolve trusted build siblings when verification runs with -I.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from provenance import digest, members, verify_manifest
+from model_cache import reference_files, write_references
 
 _spec = importlib.util.spec_from_file_location('pack_thin_forms', Path(__file__).with_name('thin_forms.py'))
 _thin = importlib.util.module_from_spec(_spec)
@@ -50,7 +55,11 @@ def prepare(stage, kit, docker, wsl, output, epoch):
     if type(epoch) is not int or epoch < 0:
         raise ValueError('SOURCE_DATE_EPOCH must be a non-negative integer')
     dt.datetime.fromtimestamp(epoch, dt.timezone.utc)
-    pack_pins(stage / 'pins.json')
+    pins = pack_pins(stage / 'pins.json')
+    # A pack whose pins name no models carries no model caches and so no resolver pointers.
+    has_models = 'models' in pins
+    if has_models:
+        reference_files(pins)
     if output.exists() or output.is_symlink():
         raise ValueError('pack media output must be new')
     for source in (stage, kit):
@@ -74,9 +83,20 @@ def prepare(stage, kit, docker, wsl, output, epoch):
     copy_file(readme, output / 'README.txt')
     if (kit / 'PACK.md').exists():
         copy_file(kit / 'PACK.md', output / 'PACK.md')
-    shutil.copytree(stage / 'payload', output / 'deep32/payload')
-    copy_file(stage / 'PAYLOAD.json', output / 'deep32/PAYLOAD.json')
+    if (kit / 'FULL.md').exists():
+        copy_file(kit / 'FULL.md', output / 'FULL.md')
+    # Copy only the exact sealed inventory, never recursively acquire new files.
+    # Runtime component stages are produced separately by runtime_stage.py;
+    # capability-aware release assembly owns their final media composition.
     rows = json.loads((stage / 'PAYLOAD.json').read_text(encoding='ascii'))
+    for row in rows:
+        copy_file(stage / 'payload' / row['path'], output / 'deep32/payload' / row['path'])
+    # Add resolver pointers to the media copy, never the sealed input.
+    if has_models:
+        write_references(output / 'deep32/payload', pins)
+    rows = members(output / 'deep32/payload')
+    (output / 'deep32/PAYLOAD.json').write_text(
+        json.dumps(rows, sort_keys=True, indent=2) + '\n', encoding='ascii', newline='\n')
     (output / 'deep32/PAYLOAD.SHA256').write_text(
         ''.join(row['sha256'] + '  ' + row['path'] + '\n' for row in rows),
         encoding='ascii', newline='\n')
@@ -90,7 +110,7 @@ def prepare(stage, kit, docker, wsl, output, epoch):
     for path in sorted(output.rglob('*'), reverse=True) + [output]:
         if 'autoinstall' in path.relative_to(output).parts or path.name.upper() == 'CIDATA':
             raise ValueError('ISO installer member is not allowed in a pack')
-        path.chmod(0o755 if path.is_dir() or path.suffix == '.sh' or path.name == 'pairing-helper' else 0o644)
+        path.chmod(0o755 if path.is_dir() else _thin.runtime_mode(path))
         # Every member was created here from regular files; there are no links.
         os.utime(path, (epoch, epoch))
     return rows

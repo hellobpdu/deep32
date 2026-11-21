@@ -1,0 +1,16 @@
+{
+    "requirements_sha256":  "c1c8f1251c1bb0462cf29a7250a5726d16944aaccaadabf5fbacb944191921b4",
+    "packages":  {
+                     "typing-extensions":  "4.16.0",
+                     "pycparser":  "3.12",
+                     "cffi":  "2.1.1",
+                     "cryptography":  "50.0.2",
+                     "pyOpenSSL":  "26.4.0"
+                 },
+    "approval":  "R15",
+    "schema":  "deep32.relay-tls-lock.v2",
+    "python_minimum":  "3.11",
+    "status":  "approved",
+    "requirements":  "requirements.lock",
+    "hashes":  165
+}

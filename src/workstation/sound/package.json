@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "description": "Deep32 Workstation sounds: original FM and sine synthesis rendered to 16-bit WAV and Sun .au for OpenBSD sndio/aucat",
-  "license": "AGPL-3.0-or-later",
+  "license": "Apache-2.0",
   "engines": { "node": ">=20" },
   "scripts": {
     "render": "node render.js",

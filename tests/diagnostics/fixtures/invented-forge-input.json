@@ -1,0 +1,287 @@
+{
+  "fixture_kind": "invented diagnostic observations; not host evidence",
+  "platform": "linux",
+  "public_identities": [
+    "1111111111111111111111111111111111111111",
+    "2222222222222222222222222222222222222222",
+    "3333333333333333333333333333333333333333333333333333333333333333",
+    "invented-generation",
+    "invented/embeddings",
+    "invented/reranker"
+  ],
+  "rows": [
+    {
+      "id": "installation",
+      "state": "OK",
+      "observed": {
+        "matched": true,
+        "present": true,
+        "version": "0.1.0-alpha.2"
+      }
+    },
+    {
+      "id": "tailscale-installed",
+      "state": "OK",
+      "observed": {
+        "present": true,
+        "version": "1.92.1"
+      }
+    },
+    {
+      "id": "tailscale-running",
+      "state": "OK",
+      "observed": {
+        "present": true,
+        "state": "Running"
+      }
+    },
+    {
+      "id": "tailscale-signin",
+      "state": "OK",
+      "observed": {
+        "online": true,
+        "expired": false,
+        "state": "Running"
+      }
+    },
+    {
+      "id": "magicdns",
+      "state": "OK",
+      "observed": {
+        "matched": true,
+        "present": true
+      }
+    },
+    {
+      "id": "https-available",
+      "state": "OK",
+      "observed": {
+        "matched": true,
+        "present": true,
+        "http_status": 200
+      }
+    },
+    {
+      "id": "serve-routes",
+      "state": "OK",
+      "observed": {
+        "routes": 3,
+        "matched": true,
+        "owner_verified": true,
+        "state": "committed"
+      }
+    },
+    {
+      "id": "pairing",
+      "state": "OK",
+      "observed": {
+        "matched": true,
+        "present": true,
+        "state": "committed",
+        "peer_role": "workstation"
+      }
+    },
+    {
+      "id": "peer-reachability",
+      "state": "OK",
+      "observed": {
+        "online": true,
+        "http_status": 200,
+        "peer_role": "workstation"
+      }
+    },
+    {
+      "id": "tailnet-path.workstation",
+      "state": "WARN",
+      "observed": {
+        "peer_role": "workstation",
+        "state": "relayed"
+      }
+    },
+    {
+      "id": "peer-clock",
+      "state": "OK",
+      "observed": {
+        "peer_role": "workstation",
+        "offset_lower_ms": -100,
+        "offset_upper_ms": 100,
+        "rtt_ms": 200
+      }
+    },
+    {
+      "id": "first-start",
+      "state": "OK",
+      "observed": {
+        "stage": "READY",
+        "state": "ready",
+        "version": "0.1.0-alpha.2"
+      }
+    },
+    {
+      "id": "driver",
+      "state": "OK",
+      "observed": {
+        "version": "590.10",
+        "minimum_version": "590.00"
+      }
+    },
+    {
+      "id": "docker-engine",
+      "state": "OK",
+      "observed": {
+        "present": true,
+        "matched": true,
+        "version": "28.0.0"
+      }
+    },
+    {
+      "id": "docker-compose",
+      "state": "OK",
+      "observed": {
+        "version": "2.30.0",
+        "minimum_version": "2.24.0"
+      }
+    },
+    {
+      "id": "gpu-runtime",
+      "state": "OK",
+      "observed": {
+        "present": true
+      }
+    },
+    {
+      "id": "gpu-visible.embeddings",
+      "state": "OK",
+      "observed": {
+        "device_kind": "gpu"
+      }
+    },
+    {
+      "id": "gpu-visible.reranker",
+      "state": "OK",
+      "observed": {
+        "device_kind": "gpu"
+      }
+    },
+    {
+      "id": "container.embeddings",
+      "state": "OK",
+      "observed": {
+        "service": "embeddings",
+        "state": "running",
+        "healthy": true,
+        "matched": true
+      }
+    },
+    {
+      "id": "container.reranker",
+      "state": "OK",
+      "observed": {
+        "service": "reranker",
+        "state": "running",
+        "healthy": true,
+        "matched": true
+      }
+    },
+    {
+      "id": "container.door",
+      "state": "OK",
+      "observed": {
+        "service": "door",
+        "state": "running",
+        "healthy": true,
+        "matched": true
+      }
+    },
+    {
+      "id": "container.converter",
+      "state": "SKIP",
+      "observed": {}
+    },
+    {
+      "id": "container.builder",
+      "state": "SKIP",
+      "observed": {}
+    },
+    {
+      "id": "container.qdrant",
+      "state": "SKIP",
+      "observed": {}
+    },
+    {
+      "id": "model.embeddings",
+      "state": "OK",
+      "observed": {
+        "model": "invented/embeddings",
+        "revision": "1111111111111111111111111111111111111111",
+        "matched": true,
+        "age_seconds": 2
+      }
+    },
+    {
+      "id": "model.reranker",
+      "state": "OK",
+      "observed": {
+        "model": "invented/reranker",
+        "revision": "2222222222222222222222222222222222222222",
+        "matched": true,
+        "age_seconds": 2
+      }
+    },
+    {
+      "id": "port.embeddings",
+      "state": "OK",
+      "observed": {
+        "port": 8081,
+        "present": true,
+        "owner_verified": true
+      }
+    },
+    {
+      "id": "port.reranker",
+      "state": "OK",
+      "observed": {
+        "port": 8082,
+        "present": true,
+        "owner_verified": true
+      }
+    },
+    {
+      "id": "port.pairing",
+      "state": "OK",
+      "observed": {
+        "port": 7453,
+        "present": false,
+        "owner_verified": false
+      }
+    },
+    {
+      "id": "disk.data",
+      "state": "OK",
+      "observed": {
+        "free_bytes": 90000000000,
+        "required_bytes": 10000000000
+      }
+    },
+    {
+      "id": "disk.docker",
+      "state": "OK",
+      "observed": {
+        "free_bytes": 80000000000,
+        "required_bytes": 20000000000
+      }
+    },
+    {
+      "id": "gpu-hold",
+      "state": "OK",
+      "observed": {
+        "present": false
+      }
+    },
+    {
+      "id": "windows-pairing",
+      "state": "SKIP",
+      "observed": {}
+    }
+  ]
+}

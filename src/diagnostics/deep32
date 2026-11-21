@@ -1,0 +1,19 @@
+#!/bin/sh
+# Launcher template. The owning installer binds and seals this interpreter.
+set -eu
+python='@DEEP32_DIAGNOSTIC_PYTHON@'
+case "$python" in
+    /*) ;;
+    *)
+        # runtime binding is an owning-installer requirement.
+        printf '%s\n' 'The Python diagnostic runtime could not start.' >&2
+        exit 2 ;;
+esac
+case "$0" in
+    */*) script_dir=$(CDPATH= cd -- "${0%/*}" && pwd -P) ;;
+    *)
+        # no path search can establish the sealed script origin.
+        printf '%s\n' 'The Python diagnostic runtime could not start.' >&2
+        exit 2 ;;
+esac
+exec "$python" -I -B "$script_dir/deep32_doctor.py" "$@"

@@ -1,0 +1,57 @@
+{
+  "format": "deep32-hash-graph",
+  "format_version": 1,
+  "nodes": [
+    {
+      "depends_on": [
+        "disc1.contents.spdx.json"
+      ],
+      "path": "inputs.json",
+      "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "size": 1
+    },
+    {
+      "depends_on": [
+        "inputs.json"
+      ],
+      "path": "disc1.contents.spdx.json",
+      "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "size": 1
+    },
+    {
+      "depends_on": [
+        "disc1.contents.spdx.json"
+      ],
+      "path": "deep32-0.1.0-alpha.2-disc1-workstation-amd64.img",
+      "sha256": "cd389f69edebba3b206857c8baf77bc2b248d5c102123aa39ab64ec2e66583dc",
+      "size": 26
+    },
+    {
+      "depends_on": [
+        "deep32-0.1.0-alpha.2-disc1-workstation-amd64.img",
+        "disc1.contents.spdx.json"
+      ],
+      "path": "disc1.spdx.json",
+      "sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "size": 1
+    },
+    {
+      "depends_on": [
+        "disc1.spdx.json"
+      ],
+      "path": "SBOM-INDEX.json",
+      "sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "size": 1
+    },
+    {
+      "depends_on": [
+        "SBOM-INDEX.json",
+        "deep32-0.1.0-alpha.2-disc1-workstation-amd64.img"
+      ],
+      "path": "SHA256SUMS",
+      "sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+      "size": 1
+    }
+  ],
+  "release": "v0.1.0-alpha.2"
+}

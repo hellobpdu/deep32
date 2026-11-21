@@ -1,0 +1,21 @@
+# SPDX-FileCopyrightText: 2026 Jeffrey A. Cummings
+# SPDX-License-Identifier: Apache-2.0
+# libFuzzer dictionary: address, mask, range and prefix-list syntax (ship/u10/src/netaddr).
+"::"
+"::ffff:"
+"%"
+"/"
+"-"
+".."
+"255.255.255.0"
+"0.0.0.255"
+"ffff:ffff::"
+"seq "
+" permit "
+" deny "
+" ge "
+" le "
+"\x0a"
+"\x0d\x0a"
+"0x"
+"010"

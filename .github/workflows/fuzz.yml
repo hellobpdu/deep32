@@ -1,0 +1,65 @@
+# Fuzzing of the Workstation's C parsers with libFuzzer, AddressSanitizer and UndefinedBehaviorSanitizer
+# (tests/fuzz/README.md). Each target builds from its sources in place under src/workstation, replays its seed
+# corpus, then fuzzes: two minutes on every push and pull request to main, thirty minutes in the weekly run, and as
+# long as asked for in a manual run (before a release, for example), within the job's 75-minute limit. A target that
+# crashes fails its job and prints the input in base64.
+name: Fuzz
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '17 3 * * 0'
+  workflow_dispatch:
+    inputs:
+      seconds:
+        description: Seconds of fuzzing per target (each job stops after 75 minutes)
+        required: true
+        default: '600'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fuzz-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  fuzz:
+    name: Fuzz ${{ matrix.target }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [appjson, asklink, b64, d32json, d32vec, d32ww, dib, e26j, e26p, imgscale, json8, kwaj, netaddr, pnm,
+                 rfctext, text8, wav]
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check for clang with libFuzzer
+        run: |
+          probe="$RUNNER_TEMP/probe.c"
+          printf 'int LLVMFuzzerTestOneInput(const unsigned char *d, unsigned long n) { (void)d; (void)n; return 0; }\n' > "$probe"
+          if ! clang -fsanitize=fuzzer,address,undefined "$probe" -o "$RUNNER_TEMP/probe"; then
+            sudo apt-get update
+            sudo apt-get install -y --no-install-recommends clang libclang-rt-dev
+          fi
+          clang --version
+      - name: Build
+        env:
+          TARGET: ${{ matrix.target }}
+        run: sh tests/fuzz/build.sh all "$TARGET"
+      - name: Replay the seed corpus
+        env:
+          TARGET: ${{ matrix.target }}
+        run: sh tests/fuzz/run.sh replay "$TARGET"
+      - name: Fuzz
+        env:
+          TARGET: ${{ matrix.target }}
+          FUZZ_SECONDS: ${{ github.event_name == 'schedule' && '1800' || github.event.inputs.seconds || '120' }}
+        run: sh tests/fuzz/run.sh fuzz "$FUZZ_SECONDS" "$TARGET"

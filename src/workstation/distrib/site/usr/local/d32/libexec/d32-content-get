@@ -1,0 +1,20 @@
+#!/bin/ksh
+# /usr/local/d32/libexec/d32-content-get: Get Disc 2 over the Network of the First Start window, run in a small
+# Terminal (Try Again's way). It asks for the user's password (doas) and opens root's d32-content-fetch, which
+# downloads disc 2 from a PC on the tailnet or from the release mirror and attaches it; the first start imports it.
+R=${D32_ROOT:-}
+. $R/usr/local/d32/libexec/d32-ui-lib.sh || exit 2
+DOAS=${D32_DOAS:-/usr/bin/doas}
+d32ui_say get.root
+echo ""
+# Ctrl+C belongs to the download (it stops it and keeps what is downloaded); this shell only waits
+trap ':' INT
+$DOAS $R/usr/local/d32/sbin/d32-content-fetch
+rc=$?
+if [ $rc -ne 0 ]; then
+	echo ""
+	d32ui_fmt pair.close
+	echo -n "$D32UI_T"
+	read x
+fi
+exit $rc

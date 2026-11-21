@@ -163,8 +163,9 @@ def _sources(ctx, owned):
             if _regular(candidate):
                 layers[str(candidate.resolve())] = candidate
 
-    active = (ctx.registry.active or {}).get('pointers', {})
-    targets = {value.split('/')[0] for value in active.values()}
+    active = ctx.registry.active or {}
+    targets = ({value.split('/')[0] for value in active.get('pointers', {}).values()} |
+               set(active.get('targets', [])))
     for record in ctx.registry.data.get('generations', []):
         if record['unit_kind'] != 'library' or record['target'] not in targets:
             continue

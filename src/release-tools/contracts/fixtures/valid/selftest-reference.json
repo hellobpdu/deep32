@@ -1,0 +1,73 @@
+{
+  "bundle_id": "fixture-beacons-v1",
+  "corpus_fingerprint": "0000000000000000000000000000000000000000000000000000000000000000",
+  "fixture_only": true,
+  "generation": "sample-generation",
+  "measurement": {
+    "complete_runs": 3,
+    "gateway_version": "fixture-only",
+    "hardware_class": "invented fixture; no hardware measurement",
+    "identical_ranks": true,
+    "search_p50_ms": 1,
+    "search_p95_ms": 2
+  },
+  "models": {
+    "embedding": {
+      "model": "fixture-embedding",
+      "revision": "1111111111111111111111111111111111111111"
+    },
+    "reranker": {
+      "model": "fixture-reranker",
+      "revision": "2222222222222222222222222222222222222222"
+    }
+  },
+  "numerators": {
+    "hit_at_1": 1,
+    "hit_at_3": 2,
+    "hit_at_8": 2,
+    "reciprocal_rank_sum_at_10": 1.5
+  },
+  "policy": {
+    "kind": "maximum-absolute-drop",
+    "tolerance": 0.02
+  },
+  "question_count": 2,
+  "questions_sha256": "36242b28c6bdd31cd94f0e525b5c602918368a3754ddb8ff751512ba2869f47a",
+  "reference": {
+    "hit_at_1": 0.5,
+    "hit_at_3": 1.0,
+    "hit_at_8": 1.0,
+    "mrr_at_10": 0.75
+  },
+  "release": "v0.1.0-alpha.2",
+  "request": {
+    "debug": true,
+    "deep": true,
+    "format": "json",
+    "max_chars": 2400,
+    "mode": "hybrid",
+    "rerank": "auto"
+  },
+  "schema_version": 1,
+  "settings": {
+    "fold_identical": false,
+    "grep": {
+      "regex_engine": "python"
+    },
+    "reranker": {
+      "candidates": 15,
+      "max_chars": 1600,
+      "search_many_candidates": 15,
+      "window": "head"
+    },
+    "search_many": {
+      "parallel": 0,
+      "rerank": "per_query"
+    },
+    "serving": {
+      "max_concurrent_searches": null,
+      "max_queued_searches": null
+    }
+  },
+  "settings_sha256": "d83fc3a8397bc266cfcd8ed2daa09f0281a5e45ab7cb4e6c22e371d830020d1e"
+}

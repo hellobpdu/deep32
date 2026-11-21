@@ -25,6 +25,9 @@ _layout_spec.loader.exec_module(_mineru_layout)
 _profile_spec = importlib.util.spec_from_file_location('forge_release_profile', Path(__file__).with_name('release_profile.py'))
 release_profile = importlib.util.module_from_spec(_profile_spec)
 _profile_spec.loader.exec_module(release_profile)
+_thin_spec = importlib.util.spec_from_file_location('validated_thin_forms', Path(__file__).with_name('thin_forms.py'))
+_thin = importlib.util.module_from_spec(_thin_spec)
+_thin_spec.loader.exec_module(_thin)
 
 
 def validate_mineru(payload, pins):
@@ -81,6 +84,8 @@ def validate_images(payload, pins):
     images = json.loads((payload / 'images/index.json').read_text(encoding='ascii'))
     roles = {row['role']: row for row in images}
     needed = {'reranker', 'converter', 'door', 'builder', 'qdrant'} | {'tei-' + name for name in pins['tei']['variants']}
+    if 'full' in pins:
+        needed.update(('full', 'model_bridge'))
     if len(roles) != len(images) or set(roles) != needed:
         raise ValueError('image roles must include all card classes and all application images')
     for role, row in roles.items():
@@ -104,6 +109,7 @@ def validate_images(payload, pins):
 
 
 def validate(stage, kit):
+    _thin.pairing_files(kit)
     pins = json.loads((stage / 'pins.json').read_text(encoding='ascii'))
     missing = release_profile.unresolved(pins)
     if missing:
@@ -131,14 +137,12 @@ def validate(stage, kit):
     required = ['models/tei', 'models/reranker', 'models/mineru-home/config.yaml', 'images', 'repos/ubuntu',
                 'repos/nvidia', 'repos/tailscale', 'wheelhouse/reranker', 'wheelhouse/converter',
                 'locks/reranker.lock', 'locks/converter.lock', 'licences/AGPL-3.0.txt',
-                'bin/pairing-helper', 'source/production-converter', 'evidence/input-attestation.json',
+                'source/production-converter', 'evidence/input-attestation.json',
                 'keyrings/nvidia.gpg', 'keyrings/tailscale.gpg']
     for relative in required:
         path = payload / relative
         if not path.exists() or (path.is_dir() and not any(path.iterdir())) or (path.is_file() and not path.stat().st_size):
             raise ValueError('missing input: ' + relative)
-    if digest(payload / 'bin/pairing-helper') != pins['runtime']['pairing_helper_sha256']:
-        raise ValueError('pairing helper hash differs')
     validate_mineru(payload, pins)
     for role in ('tei', 'reranker'):
         revision = pins['models'][role]['revision']

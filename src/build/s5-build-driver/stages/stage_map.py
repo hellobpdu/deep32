@@ -158,6 +158,8 @@ def main(argv):
     # installs only d32library, lab 2026-11-15); the writable source copies in BUILD_SOURCE_COPIES are skipped
     ap.add_argument("--builds", action="append", required=True)
     ap.add_argument("--allow-missing", action="store_true")
+    # CLI help for the additive runtime gate.
+    ap.add_argument("--alpha2", action="store_true", help="verify alpha.2 runtime additions")
     ap.add_argument("--assets", help="the tree's assets/SHA256SUMS: rows stage 68 lays in from the asset store")
     ap.add_argument("--site-src", help="the lane's writable source copy (stage.sh's S): rows delivered outside a pack "
                                        "that the site set carries get their final version in its ship/site or distrib/site")
@@ -367,6 +369,13 @@ def main(argv):
         pack = (r["pack"] if r and r["pack"] in PACKS else pack_by_prefix(p))
         st, src = place(p, pack, r, old or p)
         rows.append((p, pack, r["recipe"] if r else "-", st, src or ad["what"]))
+
+    if a.alpha2:
+        if not a.site_src:
+            ap.error("--alpha2 requires --site-src")
+        import runpy
+        helper = runpy.run_path(os.path.join(os.path.dirname(os.path.abspath(__file__)), "alpha2_stage.py"))
+        rows.extend(helper["audit_rows"](a.tree, a.stage, a.site_src, a.assets))
 
     counts = collections.Counter(x[3] for x in rows)
     os.makedirs(os.path.dirname(os.path.abspath(a.report)), exist_ok=True)

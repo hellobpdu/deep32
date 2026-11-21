@@ -1,0 +1,2990 @@
+{
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "https://github.com/hellobpdu/deep32/security/vex/deep32-0.1.0-alpha.2",
+  "author": "Deep32 (Jeffrey A. Cummings)",
+  "role": "Project maintainer",
+  "timestamp": "2026-11-19T20:30:06Z",
+  "version": 1,
+  "tooling": "OSV-Scanner 2.7.1; reachability checked by reading the Deep32 source and the installed packages (docs/security/README.md)",
+  "statements": [
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-2823-qmq8-rwvj",
+        "name": "CVE-2026-105756",
+        "aliases": [
+          "GHSA-2823-qmq8-rwvj",
+          "PYSEC-2026-4306"
+        ],
+        "description": "vLLM: Loose `cache_salt` validation lets a single request kill EngineCore on LMCache-MP deployments — uncaught downstream `ValueError` denial of service"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/vllm@0.28.0",
+              "identifiers": {
+                "purl": "pkg:pypi/vllm@0.28.0"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "vllm 0.28.0: cache_salt validation kills EngineCore on LMCache-MP. Carriers: converter. Runtime use: Executed in-process: MinerU 4.0.7 builds vllm.LLM / AsyncLLM (mineru/model/vlm/runtime.py) and calls generate() with PIL page images rendered from the PDF by PDFium (docvortex) and fixed MinerU prompts and sampling parameters. No OpenAI-compatible server, no Rust frontend, no KV connector, no disaggregated serving, no trust_remote_code. The container runs with network_mode: none, started per job by convert-job.sh. Model: the pinned MinerU 2.5 Pro VLM from the verified payload. No Ghostscript in the image.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "MinerU runs vLLM in-process (vllm.LLM / AsyncLLM); the OpenAI-compatible HTTP server and its request fields do not exist in the converter, which also has no network (network_mode: none). No LMCache."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-2phq-3phc-84px",
+        "name": "CVE-2026-105755",
+        "aliases": [
+          "GHSA-2phq-3phc-84px",
+          "PYSEC-2026-4198"
+        ],
+        "description": "vLLM: Flash late-interaction scoring caches query embeddings under a caller-controlled request id — cross-request integrity break and induced errors on `/score` and `/rerank`"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/vllm@0.28.0",
+              "identifiers": {
+                "purl": "pkg:pypi/vllm@0.28.0"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "vllm 0.28.0: late-interaction /score and /rerank query cache keyed by X-Request-Id. Carriers: converter. Runtime use: Executed in-process: MinerU 4.0.7 builds vllm.LLM / AsyncLLM (mineru/model/vlm/runtime.py) and calls generate() with PIL page images rendered from the PDF by PDFium (docvortex) and fixed MinerU prompts and sampling parameters. No OpenAI-compatible server, no Rust frontend, no KV connector, no disaggregated serving, no trust_remote_code. The container runs with network_mode: none, started per job by convert-job.sh. Model: the pinned MinerU 2.5 Pro VLM from the verified payload. No Ghostscript in the image.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "MinerU runs vLLM in-process (vllm.LLM / AsyncLLM); the OpenAI-compatible HTTP server and its request fields do not exist in the converter, which also has no network (network_mode: none)."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-542m-9234-8gvf",
+        "name": "CVE-2026-115911",
+        "aliases": [
+          "GHSA-542m-9234-8gvf",
+          "PYSEC-2026-4344"
+        ],
+        "description": "vLLM: DoS via unbounded chat_template Jinja2 rendering exhausts the renderer thread pool"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/vllm@0.28.0",
+              "identifiers": {
+                "purl": "pkg:pypi/vllm@0.28.0"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "vllm 0.28.0: unbounded chat_template Jinja rendering wedges the renderer pool. Carriers: converter. Runtime use: Executed in-process: MinerU 4.0.7 builds vllm.LLM / AsyncLLM (mineru/model/vlm/runtime.py) and calls generate() with PIL page images rendered from the PDF by PDFium (docvortex) and fixed MinerU prompts and sampling parameters. No OpenAI-compatible server, no Rust frontend, no KV connector, no disaggregated serving, no trust_remote_code. The container runs with network_mode: none, started per job by convert-job.sh. Model: the pinned MinerU 2.5 Pro VLM from the verified payload. No Ghostscript in the image.",
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "impact_statement": "The chat template comes from the pinned, hash-verified MinerU model files; no request-level template exists. MinerU runs vLLM in-process (vllm.LLM / AsyncLLM); the OpenAI-compatible HTTP server and its request fields do not exist in the converter, which also has no network (network_mode: none)."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-58v5-2m8f-94pr",
+        "name": "CVE-2026-105760",
+        "aliases": [
+          "GHSA-58v5-2m8f-94pr",
+          "PYSEC-2026-4307"
+        ],
+        "description": "vLLM: GLMGA video sampling permits request-driven CPU and memory exhaustion"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/vllm@0.28.0",
+              "identifiers": {
+                "purl": "pkg:pypi/vllm@0.28.0"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "vllm 0.28.0: GLMGA video sampler CPU/memory exhaustion via media_io_kwargs. Carriers: converter. Runtime use: Executed in-process: MinerU 4.0.7 builds vllm.LLM / AsyncLLM (mineru/model/vlm/runtime.py) and calls generate() with PIL page images rendered from the PDF by PDFium (docvortex) and fixed MinerU prompts and sampling parameters. No OpenAI-compatible server, no Rust frontend, no KV connector, no disaggregated serving, no trust_remote_code. The container runs with network_mode: none, started per job by convert-job.sh. Model: the pinned MinerU 2.5 Pro VLM from the verified payload. No Ghostscript in the image.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Model-specific code path; the converter serves only the MinerU 2.5 Pro VLM on page images. No video. MinerU runs vLLM in-process (vllm.LLM / AsyncLLM); the OpenAI-compatible HTTP server and its request fields do not exist in the converter, which also has no network (network_mode: none)."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-6757-hggm-hp2w",
+        "name": "CVE-2026-115912",
+        "aliases": [
+          "GHSA-6757-hggm-hp2w",
+          "PYSEC-2026-4345"
+        ],
+        "description": "vLLM: Public multimodal SHM handle forgery reaches worker-side `pickle.loads()` with insecure serialization disabled"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/vllm@0.28.0",
+              "identifiers": {
+                "purl": "pkg:pypi/vllm@0.28.0"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "vllm 0.28.0: SHM multimodal cache handle forgery reaches pickle.loads. Carriers: converter. Runtime use: Executed in-process: MinerU 4.0.7 builds vllm.LLM / AsyncLLM (mineru/model/vlm/runtime.py) and calls generate() with PIL page images rendered from the PDF by PDFium (docvortex) and fixed MinerU prompts and sampling parameters. No OpenAI-compatible server, no Rust frontend, no KV connector, no disaggregated serving, no trust_remote_code. The container runs with network_mode: none, started per job by convert-job.sh. Model: the pinned MinerU 2.5 Pro VLM from the verified payload. No Ghostscript in the image.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Needs --mm-processor-cache-type shm and the public scale-out request path; neither is used. MinerU runs vLLM in-process (vllm.LLM / AsyncLLM); the OpenAI-compatible HTTP server and its request fields do not exist in the converter, which also has no network (network_mode: none)."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-8397-8qf6-f2gm",
+        "name": "CVE-2026-115913",
+        "aliases": [
+          "GHSA-8397-8qf6-f2gm"
+        ],
+        "description": "vLLM: Phi-4 multimodal audio encoder materializes and retains full attention matrices: a single max-length audio OOM-crashes the vLLM engine"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/vllm@0.28.0",
+              "identifiers": {
+                "purl": "pkg:pypi/vllm@0.28.0"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "vllm 0.28.0: Phi-4 multimodal audio encoder OOM. Carriers: converter. Runtime use: Executed in-process: MinerU 4.0.7 builds vllm.LLM / AsyncLLM (mineru/model/vlm/runtime.py) and calls generate() with PIL page images rendered from the PDF by PDFium (docvortex) and fixed MinerU prompts and sampling parameters. No OpenAI-compatible server, no Rust frontend, no KV connector, no disaggregated serving, no trust_remote_code. The container runs with network_mode: none, started per job by convert-job.sh. Model: the pinned MinerU 2.5 Pro VLM from the verified payload. No Ghostscript in the image.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Model-specific code path; the converter serves only the MinerU 2.5 Pro VLM on page images."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-85xf-c7hm-whqw",
+        "name": "CVE-2026-105757",
+        "aliases": [
+          "GHSA-85xf-c7hm-whqw",
+          "PYSEC-2026-4199"
+        ],
+        "description": "vLLM: Structured-output request errors escape the request boundary and terminate the shared EngineCore — engine-fatal denial of service (3 sites)"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/vllm@0.28.0",
+              "identifiers": {
+                "purl": "pkg:pypi/vllm@0.28.0"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "vllm 0.28.0: structured-output request errors kill EngineCore. Carriers: converter. Runtime use: Executed in-process: MinerU 4.0.7 builds vllm.LLM / AsyncLLM (mineru/model/vlm/runtime.py) and calls generate() with PIL page images rendered from the PDF by PDFium (docvortex) and fixed MinerU prompts and sampling parameters. No OpenAI-compatible server, no Rust frontend, no KV connector, no disaggregated serving, no trust_remote_code. The container runs with network_mode: none, started per job by convert-job.sh. Model: the pinned MinerU 2.5 Pro VLM from the verified payload. No Ghostscript in the image.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "MinerU uses no structured output. MinerU runs vLLM in-process (vllm.LLM / AsyncLLM); the OpenAI-compatible HTTP server and its request fields do not exist in the converter, which also has no network (network_mode: none)."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-935w-9g4m-p28p",
+        "name": "CVE-2026-105752",
+        "aliases": [
+          "GHSA-935w-9g4m-p28p",
+          "PYSEC-2026-4308"
+        ],
+        "description": "vLLM: Harmony tool continuations drop `cache_salt` — restoring a cross-tenant prefix-cache membership oracle"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/vllm@0.28.0",
+              "identifiers": {
+                "purl": "pkg:pypi/vllm@0.28.0"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "vllm 0.28.0: Harmony tool continuations drop cache_salt (GPT-OSS /v1/responses). Carriers: converter. Runtime use: Executed in-process: MinerU 4.0.7 builds vllm.LLM / AsyncLLM (mineru/model/vlm/runtime.py) and calls generate() with PIL page images rendered from the PDF by PDFium (docvortex) and fixed MinerU prompts and sampling parameters. No OpenAI-compatible server, no Rust frontend, no KV connector, no disaggregated serving, no trust_remote_code. The container runs with network_mode: none, started per job by convert-job.sh. Model: the pinned MinerU 2.5 Pro VLM from the verified payload. No Ghostscript in the image.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Model-specific code path; the converter serves only the MinerU 2.5 Pro VLM on page images. MinerU runs vLLM in-process (vllm.LLM / AsyncLLM); the OpenAI-compatible HTTP server and its request fields do not exist in the converter, which also has no network (network_mode: none)."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-frvg-qw88-hww9",
+        "name": "CVE-2026-94624",
+        "aliases": [
+          "GHSA-frvg-qw88-hww9",
+          "PYSEC-2026-4006"
+        ],
+        "description": "vllm p2p never connected zmq_exhaustion"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/vllm@0.28.0",
+              "identifiers": {
+                "purl": "pkg:pypi/vllm@0.28.0"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "vllm 0.28.0: P2P OffloadingConnector ZeroMQ socket exhaustion. Carriers: converter. Runtime use: Executed in-process: MinerU 4.0.7 builds vllm.LLM / AsyncLLM (mineru/model/vlm/runtime.py) and calls generate() with PIL page images rendered from the PDF by PDFium (docvortex) and fixed MinerU prompts and sampling parameters. No OpenAI-compatible server, no Rust frontend, no KV connector, no disaggregated serving, no trust_remote_code. The container runs with network_mode: none, started per job by convert-job.sh. Model: the pinned MinerU 2.5 Pro VLM from the verified payload. No Ghostscript in the image.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Disaggregated prefill/decode and KV-transfer connectors are not configured; MinerU starts a single local engine."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-gq5q-89c7-vhvx",
+        "name": "CVE-2026-115914",
+        "aliases": [
+          "GHSA-gq5q-89c7-vhvx"
+        ],
+        "description": "vLLM DeepSeek-OCR image processing vulnerable to denial of service"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/vllm@0.28.0",
+              "identifiers": {
+                "purl": "pkg:pypi/vllm@0.28.0"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "vllm 0.28.0: DeepSeek-OCR image guard crashes the engine. Carriers: converter. Runtime use: Executed in-process: MinerU 4.0.7 builds vllm.LLM / AsyncLLM (mineru/model/vlm/runtime.py) and calls generate() with PIL page images rendered from the PDF by PDFium (docvortex) and fixed MinerU prompts and sampling parameters. No OpenAI-compatible server, no Rust frontend, no KV connector, no disaggregated serving, no trust_remote_code. The container runs with network_mode: none, started per job by convert-job.sh. Model: the pinned MinerU 2.5 Pro VLM from the verified payload. No Ghostscript in the image.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Model-specific code path; the converter serves only the MinerU 2.5 Pro VLM on page images."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-gx7p-2j49-hfq4",
+        "name": "CVE-2026-114055",
+        "aliases": [
+          "GHSA-gx7p-2j49-hfq4"
+        ],
+        "description": "vLLM : DoS via unvalidated mm_processor_kwargs in multimodal image processors (Isaac, InternVL, H2OVL, etc.)"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/vllm@0.28.0",
+              "identifiers": {
+                "purl": "pkg:pypi/vllm@0.28.0"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "vllm 0.28.0: unvalidated per-request mm_processor_kwargs cause OOM. Carriers: converter. Runtime use: Executed in-process: MinerU 4.0.7 builds vllm.LLM / AsyncLLM (mineru/model/vlm/runtime.py) and calls generate() with PIL page images rendered from the PDF by PDFium (docvortex) and fixed MinerU prompts and sampling parameters. No OpenAI-compatible server, no Rust frontend, no KV connector, no disaggregated serving, no trust_remote_code. The container runs with network_mode: none, started per job by convert-job.sh. Model: the pinned MinerU 2.5 Pro VLM from the verified payload. No Ghostscript in the image.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "MinerU passes no mm_processor_kwargs. MinerU runs vLLM in-process (vllm.LLM / AsyncLLM); the OpenAI-compatible HTTP server and its request fields do not exist in the converter, which also has no network (network_mode: none)."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-h3rc-6mm3-gc2m",
+        "name": "CVE-2026-114053",
+        "aliases": [
+          "GHSA-h3rc-6mm3-gc2m"
+        ],
+        "description": "vLLM: Request-controlled mm_processor_kwargs.code_revision allows remote code execution"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/vllm@0.28.0",
+              "identifiers": {
+                "purl": "pkg:pypi/vllm@0.28.0"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "vllm 0.28.0: request-controlled mm_processor_kwargs.code_revision RCE (needs --trust-remote-code). Carriers: converter. Runtime use: Executed in-process: MinerU 4.0.7 builds vllm.LLM / AsyncLLM (mineru/model/vlm/runtime.py) and calls generate() with PIL page images rendered from the PDF by PDFium (docvortex) and fixed MinerU prompts and sampling parameters. No OpenAI-compatible server, no Rust frontend, no KV connector, no disaggregated serving, no trust_remote_code. The container runs with network_mode: none, started per job by convert-job.sh. Model: the pinned MinerU 2.5 Pro VLM from the verified payload. No Ghostscript in the image.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "trust_remote_code is not enabled and no request kwargs exist. MinerU runs vLLM in-process (vllm.LLM / AsyncLLM); the OpenAI-compatible HTTP server and its request fields do not exist in the converter, which also has no network (network_mode: none)."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-h3rc-j82p-2c3h",
+        "name": "CVE-2026-115915",
+        "aliases": [
+          "GHSA-h3rc-j82p-2c3h",
+          "PYSEC-2026-4346"
+        ],
+        "description": "vLLM: Untrusted EPS inputs can trigger denial of service or Ghostscript RCE"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/vllm@0.28.0",
+              "identifiers": {
+                "purl": "pkg:pypi/vllm@0.28.0"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "vllm 0.28.0: ImageMediaIO lets EPS reach Ghostscript (DoS/RCE). Carriers: converter. Runtime use: Executed in-process: MinerU 4.0.7 builds vllm.LLM / AsyncLLM (mineru/model/vlm/runtime.py) and calls generate() with PIL page images rendered from the PDF by PDFium (docvortex) and fixed MinerU prompts and sampling parameters. No OpenAI-compatible server, no Rust frontend, no KV connector, no disaggregated serving, no trust_remote_code. The container runs with network_mode: none, started per job by convert-job.sh. Model: the pinned MinerU 2.5 Pro VLM from the verified payload. No Ghostscript in the image.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Images reach vLLM as decoded PIL objects, so ImageMediaIO is not used, and the converter image has no Ghostscript (429-package Debian closure checked). MinerU runs vLLM in-process (vllm.LLM / AsyncLLM); the OpenAI-compatible HTTP server and its request fields do not exist in the converter, which also has no network (network_mode: none)."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-p92p-rxj5-7p2x",
+        "name": "CVE-2026-114050",
+        "aliases": [
+          "GHSA-p92p-rxj5-7p2x"
+        ],
+        "description": "vLLM: Forged multimodal UUID + P0/P1 processor-cache eviction drift: unauthenticated remote crash of the whole vLLM engine"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/vllm@0.28.0",
+              "identifiers": {
+                "purl": "pkg:pypi/vllm@0.28.0"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "vllm 0.28.0: forged multimodal uuid plus processor-cache eviction drift crashes the engine. Carriers: converter. Runtime use: Executed in-process: MinerU 4.0.7 builds vllm.LLM / AsyncLLM (mineru/model/vlm/runtime.py) and calls generate() with PIL page images rendered from the PDF by PDFium (docvortex) and fixed MinerU prompts and sampling parameters. No OpenAI-compatible server, no Rust frontend, no KV connector, no disaggregated serving, no trust_remote_code. The container runs with network_mode: none, started per job by convert-job.sh. Model: the pinned MinerU 2.5 Pro VLM from the verified payload. No Ghostscript in the image.",
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "impact_statement": "MinerU supplies no multimodal uuids; cache identity is the content hash. Sampling parameters, prompts and multimodal inputs are fixed in MinerU code; a PDF can change page pixels only; it cannot set token ids, sampling fields or cache keys."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-ph72-cqr5-qpp7",
+        "name": "CVE-2026-105754",
+        "aliases": [
+          "GHSA-ph72-cqr5-qpp7",
+          "PYSEC-2026-4309"
+        ],
+        "description": "vLLM: Scale-out disaggregated multimodal transport trusts caller-supplied features"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/vllm@0.28.0",
+              "identifiers": {
+                "purl": "pkg:pypi/vllm@0.28.0"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "vllm 0.28.0: scale-out disaggregated multimodal transport trusts caller features. Carriers: converter. Runtime use: Executed in-process: MinerU 4.0.7 builds vllm.LLM / AsyncLLM (mineru/model/vlm/runtime.py) and calls generate() with PIL page images rendered from the PDF by PDFium (docvortex) and fixed MinerU prompts and sampling parameters. No OpenAI-compatible server, no Rust frontend, no KV connector, no disaggregated serving, no trust_remote_code. The container runs with network_mode: none, started per job by convert-job.sh. Model: the pinned MinerU 2.5 Pro VLM from the verified payload. No Ghostscript in the image.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Disaggregated prefill/decode and KV-transfer connectors are not configured; MinerU starts a single local engine. MinerU runs vLLM in-process (vllm.LLM / AsyncLLM); the OpenAI-compatible HTTP server and its request fields do not exist in the converter, which also has no network (network_mode: none)."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-q97c-p368-75c4",
+        "name": "CVE-2026-115916",
+        "aliases": [
+          "GHSA-q97c-p368-75c4",
+          "PYSEC-2026-4347"
+        ],
+        "description": "vLLM: Out-of-vocabulary prompt token id passes input validation and triggers a CUDA device-side assert (engine crash / DoS)"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/vllm@0.28.0",
+              "identifiers": {
+                "purl": "pkg:pypi/vllm@0.28.0"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "vllm 0.28.0: out-of-vocabulary pre-tokenized prompt id triggers a CUDA assert. Carriers: converter. Runtime use: Executed in-process: MinerU 4.0.7 builds vllm.LLM / AsyncLLM (mineru/model/vlm/runtime.py) and calls generate() with PIL page images rendered from the PDF by PDFium (docvortex) and fixed MinerU prompts and sampling parameters. No OpenAI-compatible server, no Rust frontend, no KV connector, no disaggregated serving, no trust_remote_code. The container runs with network_mode: none, started per job by convert-job.sh. Model: the pinned MinerU 2.5 Pro VLM from the verified payload. No Ghostscript in the image.",
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "impact_statement": "Prompts are tokenized by the model tokenizer from MinerU text; no pre-tokenized input. Sampling parameters, prompts and multimodal inputs are fixed in MinerU code; a PDF can change page pixels only; it cannot set token ids, sampling fields or cache keys."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-vvpg-rrww-wpmh",
+        "name": "CVE-2026-115917",
+        "aliases": [
+          "GHSA-vvpg-rrww-wpmh",
+          "PYSEC-2026-4348"
+        ],
+        "description": "vLLM: Permissive default CORS origins allow cross-origin requests to the vLLM HTTP server"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/vllm@0.28.0",
+              "identifiers": {
+                "purl": "pkg:pypi/vllm@0.28.0"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "vllm 0.28.0: permissive default CORS on the HTTP server. Carriers: converter. Runtime use: Executed in-process: MinerU 4.0.7 builds vllm.LLM / AsyncLLM (mineru/model/vlm/runtime.py) and calls generate() with PIL page images rendered from the PDF by PDFium (docvortex) and fixed MinerU prompts and sampling parameters. No OpenAI-compatible server, no Rust frontend, no KV connector, no disaggregated serving, no trust_remote_code. The container runs with network_mode: none, started per job by convert-job.sh. Model: the pinned MinerU 2.5 Pro VLM from the verified payload. No Ghostscript in the image.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "MinerU runs vLLM in-process (vllm.LLM / AsyncLLM); the OpenAI-compatible HTTP server and its request fields do not exist in the converter, which also has no network (network_mode: none)."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-x567-49g5-p4cf",
+        "name": "CVE-2026-115918",
+        "aliases": [
+          "GHSA-x567-49g5-p4cf",
+          "PYSEC-2026-4349"
+        ],
+        "description": "vLLM: Responses API bypasses trust_request_chat_template for chat_template_kwargs"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/vllm@0.28.0",
+              "identifiers": {
+                "purl": "pkg:pypi/vllm@0.28.0"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "vllm 0.28.0: Responses API bypasses trust_request_chat_template. Carriers: converter. Runtime use: Executed in-process: MinerU 4.0.7 builds vllm.LLM / AsyncLLM (mineru/model/vlm/runtime.py) and calls generate() with PIL page images rendered from the PDF by PDFium (docvortex) and fixed MinerU prompts and sampling parameters. No OpenAI-compatible server, no Rust frontend, no KV connector, no disaggregated serving, no trust_remote_code. The container runs with network_mode: none, started per job by convert-job.sh. Model: the pinned MinerU 2.5 Pro VLM from the verified payload. No Ghostscript in the image.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "MinerU runs vLLM in-process (vllm.LLM / AsyncLLM); the OpenAI-compatible HTTP server and its request fields do not exist in the converter, which also has no network (network_mode: none)."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-x6mc-67gf-chw4",
+        "name": "CVE-2026-105758",
+        "aliases": [
+          "GHSA-x6mc-67gf-chw4",
+          "PYSEC-2026-4310"
+        ],
+        "description": "vLLM: Qwen2-VL / Qwen3-VL video samplers bound on request-controlled max_frames, which the num_frames ceiling does not reach"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/vllm@0.28.0",
+              "identifiers": {
+                "purl": "pkg:pypi/vllm@0.28.0"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "vllm 0.28.0: Qwen2-VL/Qwen3-VL video sampler max_frames memory exhaustion. Carriers: converter. Runtime use: Executed in-process: MinerU 4.0.7 builds vllm.LLM / AsyncLLM (mineru/model/vlm/runtime.py) and calls generate() with PIL page images rendered from the PDF by PDFium (docvortex) and fixed MinerU prompts and sampling parameters. No OpenAI-compatible server, no Rust frontend, no KV connector, no disaggregated serving, no trust_remote_code. The container runs with network_mode: none, started per job by convert-job.sh. Model: the pinned MinerU 2.5 Pro VLM from the verified payload. No Ghostscript in the image.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "No video input. MinerU runs vLLM in-process (vllm.LLM / AsyncLLM); the OpenAI-compatible HTTP server and its request fields do not exist in the converter, which also has no network (network_mode: none)."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/PYSEC-2026-3996",
+        "name": "CVE-2026-93436",
+        "aliases": [
+          "PYSEC-2026-3996"
+        ],
+        "description": "P/D disaggregation leaks decode metadata for max_tokens=0 requests"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/vllm@0.28.0",
+              "identifiers": {
+                "purl": "pkg:pypi/vllm@0.28.0"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "vllm 0.28.0: P/D disaggregation leaks decode metadata for max_tokens=0 requests. Carriers: converter. Runtime use: Executed in-process: MinerU 4.0.7 builds vllm.LLM / AsyncLLM (mineru/model/vlm/runtime.py) and calls generate() with PIL page images rendered from the PDF by PDFium (docvortex) and fixed MinerU prompts and sampling parameters. No OpenAI-compatible server, no Rust frontend, no KV connector, no disaggregated serving, no trust_remote_code. The container runs with network_mode: none, started per job by convert-job.sh. Model: the pinned MinerU 2.5 Pro VLM from the verified payload. No Ghostscript in the image.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Disaggregated prefill/decode and KV-transfer connectors are not configured; MinerU starts a single local engine."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/PYSEC-2026-3998",
+        "name": "CVE-2026-93840",
+        "aliases": [
+          "PYSEC-2026-3998"
+        ],
+        "description": "allowed_token_ids validated against tokenizer length, corrupting logits state"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/vllm@0.28.0",
+              "identifiers": {
+                "purl": "pkg:pypi/vllm@0.28.0"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "vllm 0.28.0: allowed_token_ids validated against tokenizer length, corrupting logits state. Carriers: converter. Runtime use: Executed in-process: MinerU 4.0.7 builds vllm.LLM / AsyncLLM (mineru/model/vlm/runtime.py) and calls generate() with PIL page images rendered from the PDF by PDFium (docvortex) and fixed MinerU prompts and sampling parameters. No OpenAI-compatible server, no Rust frontend, no KV connector, no disaggregated serving, no trust_remote_code. The container runs with network_mode: none, started per job by convert-job.sh. Model: the pinned MinerU 2.5 Pro VLM from the verified payload. No Ghostscript in the image.",
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "impact_statement": "Sampling parameters, prompts and multimodal inputs are fixed in MinerU code; a PDF can change page pixels only; it cannot set token ids, sampling fields or cache keys."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/PYSEC-2026-3999",
+        "name": "CVE-2026-93841",
+        "aliases": [
+          "PYSEC-2026-3999"
+        ],
+        "description": "Triton _bincount_kernel out-of-bounds write from prompt token ids (audio requests)"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/vllm@0.28.0",
+              "identifiers": {
+                "purl": "pkg:pypi/vllm@0.28.0"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "vllm 0.28.0: Triton _bincount_kernel out-of-bounds write from prompt token ids (audio requests). Carriers: converter. Runtime use: Executed in-process: MinerU 4.0.7 builds vllm.LLM / AsyncLLM (mineru/model/vlm/runtime.py) and calls generate() with PIL page images rendered from the PDF by PDFium (docvortex) and fixed MinerU prompts and sampling parameters. No OpenAI-compatible server, no Rust frontend, no KV connector, no disaggregated serving, no trust_remote_code. The container runs with network_mode: none, started per job by convert-job.sh. Model: the pinned MinerU 2.5 Pro VLM from the verified payload. No Ghostscript in the image.",
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "impact_statement": "No audio; Sampling parameters, prompts and multimodal inputs are fixed in MinerU code; a PDF can change page pixels only; it cannot set token ids, sampling fields or cache keys."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/PYSEC-2026-4000",
+        "name": "CVE-2026-93989",
+        "aliases": [
+          "PYSEC-2026-4000"
+        ],
+        "description": "bad_words token indices not validated"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/vllm@0.28.0",
+              "identifiers": {
+                "purl": "pkg:pypi/vllm@0.28.0"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "vllm 0.28.0: bad_words token indices not validated. Carriers: converter. Runtime use: Executed in-process: MinerU 4.0.7 builds vllm.LLM / AsyncLLM (mineru/model/vlm/runtime.py) and calls generate() with PIL page images rendered from the PDF by PDFium (docvortex) and fixed MinerU prompts and sampling parameters. No OpenAI-compatible server, no Rust frontend, no KV connector, no disaggregated serving, no trust_remote_code. The container runs with network_mode: none, started per job by convert-job.sh. Model: the pinned MinerU 2.5 Pro VLM from the verified payload. No Ghostscript in the image.",
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "impact_statement": "Sampling parameters, prompts and multimodal inputs are fixed in MinerU code; a PDF can change page pixels only; it cannot set token ids, sampling fields or cache keys."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/PYSEC-2026-4004",
+        "name": "CVE-2026-94622",
+        "aliases": [
+          "PYSEC-2026-4004"
+        ],
+        "description": "NIXL connector incomplete kv_transfer_params KeyError"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/vllm@0.28.0",
+              "identifiers": {
+                "purl": "pkg:pypi/vllm@0.28.0"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "vllm 0.28.0: NIXL connector incomplete kv_transfer_params KeyError. Carriers: converter. Runtime use: Executed in-process: MinerU 4.0.7 builds vllm.LLM / AsyncLLM (mineru/model/vlm/runtime.py) and calls generate() with PIL page images rendered from the PDF by PDFium (docvortex) and fixed MinerU prompts and sampling parameters. No OpenAI-compatible server, no Rust frontend, no KV connector, no disaggregated serving, no trust_remote_code. The container runs with network_mode: none, started per job by convert-job.sh. Model: the pinned MinerU 2.5 Pro VLM from the verified payload. No Ghostscript in the image.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Disaggregated prefill/decode and KV-transfer connectors are not configured; MinerU starts a single local engine."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/PYSEC-2026-4005",
+        "name": "CVE-2026-94623",
+        "aliases": [
+          "PYSEC-2026-4005"
+        ],
+        "description": "NIXL prefix-caching block count assertion"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/vllm@0.28.0",
+              "identifiers": {
+                "purl": "pkg:pypi/vllm@0.28.0"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "vllm 0.28.0: NIXL prefix-caching block count assertion. Carriers: converter. Runtime use: Executed in-process: MinerU 4.0.7 builds vllm.LLM / AsyncLLM (mineru/model/vlm/runtime.py) and calls generate() with PIL page images rendered from the PDF by PDFium (docvortex) and fixed MinerU prompts and sampling parameters. No OpenAI-compatible server, no Rust frontend, no KV connector, no disaggregated serving, no trust_remote_code. The container runs with network_mode: none, started per job by convert-job.sh. Model: the pinned MinerU 2.5 Pro VLM from the verified payload. No Ghostscript in the image.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Disaggregated prefill/decode and KV-transfer connectors are not configured; MinerU starts a single local engine."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/PYSEC-2026-4007",
+        "name": "CVE-2026-94625",
+        "aliases": [
+          "PYSEC-2026-4007"
+        ],
+        "description": "MooncakeConnector ownerless transfer placeholders"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/vllm@0.28.0",
+              "identifiers": {
+                "purl": "pkg:pypi/vllm@0.28.0"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "vllm 0.28.0: MooncakeConnector ownerless transfer placeholders. Carriers: converter. Runtime use: Executed in-process: MinerU 4.0.7 builds vllm.LLM / AsyncLLM (mineru/model/vlm/runtime.py) and calls generate() with PIL page images rendered from the PDF by PDFium (docvortex) and fixed MinerU prompts and sampling parameters. No OpenAI-compatible server, no Rust frontend, no KV connector, no disaggregated serving, no trust_remote_code. The container runs with network_mode: none, started per job by convert-job.sh. Model: the pinned MinerU 2.5 Pro VLM from the verified payload. No Ghostscript in the image.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Disaggregated prefill/decode and KV-transfer connectors are not configured; MinerU starts a single local engine."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/PYSEC-2026-4008",
+        "name": "CVE-2026-94626",
+        "aliases": [
+          "PYSEC-2026-4008"
+        ],
+        "description": "unvalidated tp_size in kv_transfer_params"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/vllm@0.28.0",
+              "identifiers": {
+                "purl": "pkg:pypi/vllm@0.28.0"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "vllm 0.28.0: unvalidated tp_size in kv_transfer_params. Carriers: converter. Runtime use: Executed in-process: MinerU 4.0.7 builds vllm.LLM / AsyncLLM (mineru/model/vlm/runtime.py) and calls generate() with PIL page images rendered from the PDF by PDFium (docvortex) and fixed MinerU prompts and sampling parameters. No OpenAI-compatible server, no Rust frontend, no KV connector, no disaggregated serving, no trust_remote_code. The container runs with network_mode: none, started per job by convert-job.sh. Model: the pinned MinerU 2.5 Pro VLM from the verified payload. No Ghostscript in the image.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Disaggregated prefill/decode and KV-transfer connectors are not configured; MinerU starts a single local engine."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/PYSEC-2026-4184",
+        "name": "CVE-2026-100650",
+        "aliases": [
+          "GHSA-p6g9-7v3x-m8mv",
+          "PYSEC-2026-4184"
+        ],
+        "description": "remote/inline media fetched and decoded before size limits"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/vllm@0.28.0",
+              "identifiers": {
+                "purl": "pkg:pypi/vllm@0.28.0"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "vllm 0.28.0: remote/inline media fetched and decoded before size limits. Carriers: converter. Runtime use: Executed in-process: MinerU 4.0.7 builds vllm.LLM / AsyncLLM (mineru/model/vlm/runtime.py) and calls generate() with PIL page images rendered from the PDF by PDFium (docvortex) and fixed MinerU prompts and sampling parameters. No OpenAI-compatible server, no Rust frontend, no KV connector, no disaggregated serving, no trust_remote_code. The container runs with network_mode: none, started per job by convert-job.sh. Model: the pinned MinerU 2.5 Pro VLM from the verified payload. No Ghostscript in the image.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "No URL or base64 media; images are in-memory PIL objects and the container has no network. MinerU runs vLLM in-process (vllm.LLM / AsyncLLM); the OpenAI-compatible HTTP server and its request fields do not exist in the converter, which also has no network (network_mode: none)."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/PYSEC-2026-4319",
+        "name": "CVE-2026-105922",
+        "aliases": [
+          "PYSEC-2026-4319"
+        ],
+        "description": "penalty handler crash (get_token_bin_counts_and_mask) with prompt_embeds"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/vllm@0.28.0",
+              "identifiers": {
+                "purl": "pkg:pypi/vllm@0.28.0"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "vllm 0.28.0: penalty handler crash (get_token_bin_counts_and_mask) with prompt_embeds. Carriers: converter. Runtime use: Executed in-process: MinerU 4.0.7 builds vllm.LLM / AsyncLLM (mineru/model/vlm/runtime.py) and calls generate() with PIL page images rendered from the PDF by PDFium (docvortex) and fixed MinerU prompts and sampling parameters. No OpenAI-compatible server, no Rust frontend, no KV connector, no disaggregated serving, no trust_remote_code. The container runs with network_mode: none, started per job by convert-job.sh. Model: the pinned MinerU 2.5 Pro VLM from the verified payload. No Ghostscript in the image.",
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "impact_statement": "MinerU never sends prompt_embeds. Sampling parameters, prompts and multimodal inputs are fixed in MinerU code; a PDF can change page pixels only; it cannot set token ids, sampling fields or cache keys."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/PYSEC-2026-4325",
+        "name": "CVE-2026-105759",
+        "aliases": [
+          "GHSA-5fj9-pfhr-6j48",
+          "PYSEC-2026-4325"
+        ],
+        "description": "Rust frontend metrics label growth from arbitrary HTTP methods"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/vllm@0.28.0",
+              "identifiers": {
+                "purl": "pkg:pypi/vllm@0.28.0"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "vllm 0.28.0: Rust frontend metrics label growth from arbitrary HTTP methods. Carriers: converter. Runtime use: Executed in-process: MinerU 4.0.7 builds vllm.LLM / AsyncLLM (mineru/model/vlm/runtime.py) and calls generate() with PIL page images rendered from the PDF by PDFium (docvortex) and fixed MinerU prompts and sampling parameters. No OpenAI-compatible server, no Rust frontend, no KV connector, no disaggregated serving, no trust_remote_code. The container runs with network_mode: none, started per job by convert-job.sh. Model: the pinned MinerU 2.5 Pro VLM from the verified payload. No Ghostscript in the image.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "MinerU runs vLLM in-process (vllm.LLM / AsyncLLM); the OpenAI-compatible HTTP server and its request fields do not exist in the converter, which also has no network (network_mode: none)."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/PYSEC-2026-4353",
+        "name": "CVE-2026-116178",
+        "aliases": [
+          "GHSA-34qw-q2h2-jp3m",
+          "PYSEC-2026-4353"
+        ],
+        "description": "inconsistent mm_placeholders on /inference/v1/generate crash Qwen2.5-VL positions"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/vllm@0.28.0",
+              "identifiers": {
+                "purl": "pkg:pypi/vllm@0.28.0"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "vllm 0.28.0: inconsistent mm_placeholders on /inference/v1/generate crash Qwen2.5-VL positions. Carriers: converter. Runtime use: Executed in-process: MinerU 4.0.7 builds vllm.LLM / AsyncLLM (mineru/model/vlm/runtime.py) and calls generate() with PIL page images rendered from the PDF by PDFium (docvortex) and fixed MinerU prompts and sampling parameters. No OpenAI-compatible server, no Rust frontend, no KV connector, no disaggregated serving, no trust_remote_code. The container runs with network_mode: none, started per job by convert-job.sh. Model: the pinned MinerU 2.5 Pro VLM from the verified payload. No Ghostscript in the image.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Disaggregated prefill/decode and KV-transfer connectors are not configured; MinerU starts a single local engine. MinerU runs vLLM in-process (vllm.LLM / AsyncLLM); the OpenAI-compatible HTTP server and its request fields do not exist in the converter, which also has no network (network_mode: none)."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/PYSEC-2026-4361",
+        "name": "CVE-2026-114052",
+        "aliases": [
+          "GHSA-823j-m4cj-hmjf",
+          "PYSEC-2026-4361"
+        ],
+        "description": "MOSS-Audio processor cache per mm_processor_kwargs value"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/vllm@0.28.0",
+              "identifiers": {
+                "purl": "pkg:pypi/vllm@0.28.0"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "vllm 0.28.0: MOSS-Audio processor cache per mm_processor_kwargs value. Carriers: converter. Runtime use: Executed in-process: MinerU 4.0.7 builds vllm.LLM / AsyncLLM (mineru/model/vlm/runtime.py) and calls generate() with PIL page images rendered from the PDF by PDFium (docvortex) and fixed MinerU prompts and sampling parameters. No OpenAI-compatible server, no Rust frontend, no KV connector, no disaggregated serving, no trust_remote_code. The container runs with network_mode: none, started per job by convert-job.sh. Model: the pinned MinerU 2.5 Pro VLM from the verified payload. No Ghostscript in the image.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Model-specific code path; the converter serves only the MinerU 2.5 Pro VLM on page images."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/PYSEC-2026-4362",
+        "name": "CVE-2026-114054",
+        "aliases": [
+          "GHSA-rh6f-3x46-j33q",
+          "PYSEC-2026-4362"
+        ],
+        "description": "cache aliasing through EXIF ImageID or cache_salt"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/vllm@0.28.0",
+              "identifiers": {
+                "purl": "pkg:pypi/vllm@0.28.0"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "vllm 0.28.0: cache aliasing through EXIF ImageID or cache_salt. Carriers: converter. Runtime use: Executed in-process: MinerU 4.0.7 builds vllm.LLM / AsyncLLM (mineru/model/vlm/runtime.py) and calls generate() with PIL page images rendered from the PDF by PDFium (docvortex) and fixed MinerU prompts and sampling parameters. No OpenAI-compatible server, no Rust frontend, no KV connector, no disaggregated serving, no trust_remote_code. The container runs with network_mode: none, started per job by convert-job.sh. Model: the pinned MinerU 2.5 Pro VLM from the verified payload. No Ghostscript in the image.",
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "impact_statement": "Page images are PDFium renderings with no EXIF; no cache_salt or LoRA; one job, one owner, one process. Sampling parameters, prompts and multimodal inputs are fixed in MinerU code; a PDF can change page pixels only; it cannot set token ids, sampling fields or cache keys."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-jhr6-gm9c-rqjv",
+        "name": "CVE-2026-68770",
+        "aliases": [
+          "GHSA-jhr6-gm9c-rqjv",
+          "PYSEC-2026-4164"
+        ],
+        "description": "sentence-transformers local model loading bypasses trust_remote_code and executes custom Python"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/sentence-transformers@5.3.0",
+              "identifiers": {
+                "purl": "pkg:pypi/sentence-transformers@5.3.0"
+              }
+            }
+          ]
+        },
+        {
+          "@id": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/sentence-transformers@5.3.0",
+              "identifiers": {
+                "purl": "pkg:pypi/sentence-transformers@5.3.0"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "sentence-transformers 5.3.0: import_module_class trust gate bypassed when the model path exists locally (modules.json custom code runs with trust_remote_code=False). Carriers: builder; full/model_bridge (source only), kb-tools linux-line engine (build host). Runtime use: Imported (rag_core.orchestrator imports retrievers.colbert, which imports pylate, which imports sentence_transformers). Model load: pylate.models.ColBERT(model_name_or_path=\"lightonai/Agent-ModernColBERT\", trust_remote_code=False) from the root-owned image config. The ColBERT model is not on the alpha.2 media and the builder is offline, so the retriever reports itself degraded.",
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "impact_statement": "The bypass needs model_name_or_path to be an existing local directory an attacker can write. Deep32 passes the hub id \"lightonai/Agent-ModernColBERT\" from root-owned image config (cwd root-owned), the ColBERT model is not on the alpha.2 media, HF_HUB_OFFLINE=1 blocks fetching, and a config override is an owner action on the owner's data root."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-fgcw-684q-jj6r",
+        "name": "CVE-2026-5241",
+        "aliases": [
+          "GHSA-fgcw-684q-jj6r",
+          "PYSEC-2026-2290"
+        ],
+        "description": "huggingface/transformers: Arbitrary Code Execution During Model Initialization in the LightGlue Model Loading Path"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/transformers@5.3.0",
+              "identifiers": {
+                "purl": "pkg:pypi/transformers@5.3.0"
+              }
+            }
+          ]
+        },
+        {
+          "@id": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/transformers@5.3.0",
+              "identifiers": {
+                "purl": "pkg:pypi/transformers@5.3.0"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "transformers 5.3.0: LightGlue config overrides trust_remote_code during model init. Carriers: builder; full/model_bridge (source only), kb-tools linux-line engine (build host). Runtime use: Imported (sentence-transformers/pylate). Only an encoder model is loaded; no generate(), no save_pretrained(), no processor or LightGlue model.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "No LightGlue model is ever loaded; the only model path is the ColBERT encoder (not shipped in alpha.2), and model files are never supplied by a third party at runtime."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-x9r9-c232-4q39",
+        "name": "CVE-2026-80047",
+        "aliases": [
+          "GHSA-x9r9-c232-4q39",
+          "PYSEC-2026-4174"
+        ],
+        "description": "Hugging Face Transformers downloads custom generation code before trust consent"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/transformers@5.3.0",
+              "identifiers": {
+                "purl": "pkg:pypi/transformers@5.3.0"
+              }
+            }
+          ]
+        },
+        {
+          "@id": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/transformers@5.3.0",
+              "identifiers": {
+                "purl": "pkg:pypi/transformers@5.3.0"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "transformers 5.3.0: load_custom_generate writes remote code before trust consent. Carriers: builder; full/model_bridge (source only), kb-tools linux-line engine (build host). Runtime use: Imported (sentence-transformers/pylate). Only an encoder model is loaded; no generate(), no save_pretrained(), no processor or LightGlue model.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "No generate() or custom generation; encoder-only use, offline."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-xrqw-3rrv-vx5w",
+        "name": "CVE-2026-9856",
+        "aliases": [
+          "GHSA-xrqw-3rrv-vx5w",
+          "PYSEC-2026-3929"
+        ],
+        "description": "Transformers save_pretrained path traversal allows arbitrary file writes through chat template names"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/transformers@5.3.0",
+              "identifiers": {
+                "purl": "pkg:pypi/transformers@5.3.0"
+              }
+            }
+          ]
+        },
+        {
+          "@id": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/transformers@5.3.0",
+              "identifiers": {
+                "purl": "pkg:pypi/transformers@5.3.0"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "transformers 5.3.0: save_pretrained path traversal through chat_template keys. Carriers: builder; full/model_bridge (source only), kb-tools linux-line engine (build host). Runtime use: Imported (sentence-transformers/pylate). Only an encoder model is loaded; no generate(), no save_pretrained(), no processor or LightGlue model.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Neither Deep32 nor pylate calls save_pretrained on a tokenizer or processor."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-3j69-69wj-xqx2",
+        "name": "CVE-2026-54911",
+        "aliases": [
+          "GHSA-3j69-69wj-xqx2",
+          "PYSEC-2026-2294"
+        ],
+        "description": "UltraJSON: Malformed/Truncated UTF-8 Accepted and Silently Rewritten in ujson.dumps()"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/ujson@5.12.0",
+              "identifiers": {
+                "purl": "pkg:pypi/ujson@5.12.0"
+              }
+            }
+          ]
+        },
+        {
+          "@id": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/ujson@5.12.0",
+              "identifiers": {
+                "purl": "pkg:pypi/ujson@5.12.0"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "ujson 5.12.0: ujson.dumps(reject_bytes=False) accepts malformed UTF-8. Carriers: builder; full/model_bridge (source only), kb-tools linux-line engine (build host). Runtime use: Imported only by pylate.indexes.stanford_nlp (the legacy PLAID indexer), which calls ujson.load and ujson.dumps. Deep32 uses the fast-plaid index. No ujson.dump to a file object, no reject_bytes=False.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "No caller passes reject_bytes=False."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-c38f-wx89-p2xg",
+        "name": "CVE-2026-44660",
+        "aliases": [
+          "GHSA-c38f-wx89-p2xg",
+          "PYSEC-2026-2293"
+        ],
+        "description": "UltraJSON has a Memory Leak in ujson.dump() on Write Failure"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/ujson@5.12.0",
+              "identifiers": {
+                "purl": "pkg:pypi/ujson@5.12.0"
+              }
+            }
+          ]
+        },
+        {
+          "@id": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/ujson@5.12.0",
+              "identifiers": {
+                "purl": "pkg:pypi/ujson@5.12.0"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "ujson 5.12.0: memory leak in ujson.dump when the file write fails. Carriers: builder; full/model_bridge (source only), kb-tools linux-line engine (build host). Runtime use: Imported only by pylate.indexes.stanford_nlp (the legacy PLAID indexer), which calls ujson.load and ujson.dumps. Deep32 uses the fast-plaid index. No ujson.dump to a file object, no reject_bytes=False.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "ujson.dump is never called (pylate uses ujson.load and ujson.dumps)."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-rrmf-rvhw-rf47",
+        "name": "CVE-2025-3000",
+        "aliases": [
+          "BIT-pytorch-2025-3000",
+          "GHSA-rrmf-rvhw-rf47",
+          "PYSEC-2025-194"
+        ],
+        "description": "PyTorch is vulnerable to memory corruption through its torch.jit.script function"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/torch@2.11.0%2Bcpu",
+              "identifiers": {
+                "purl": "pkg:pypi/torch@2.11.0%2Bcpu"
+              }
+            }
+          ]
+        },
+        {
+          "@id": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/torch@2.11.0%2Bcpu",
+              "identifiers": {
+                "purl": "pkg:pypi/torch@2.11.0%2Bcpu"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "torch 2.11.0+cpu: memory corruption in torch.jit.script on crafted code (local). Carriers: builder; full/model_bridge (source only), kb-tools linux-line engine (build host). Runtime use: Imported (pylate, fast-plaid, sentence-transformers). torch.jit.script is never given code from outside the image.",
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "impact_statement": "Only library code ever reaches TorchScript; no input from documents, queries or models is compiled."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-h35f-9h28-mq5c",
+        "name": "CVE-2026-59890",
+        "aliases": [
+          "BIT-setuptools-2026-59890",
+          "GHSA-h35f-9h28-mq5c",
+          "PYSEC-2026-3447"
+        ],
+        "description": "setuptools: MANIFEST.in exclusion bypass in sdist via Unicode normalization collision (NFC/NFD) on macOS APFS/HFS+"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/setuptools@80.10.2",
+              "identifiers": {
+                "purl": "pkg:pypi/setuptools@80.10.2"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "setuptools 80.10.2: MANIFEST.in exclude bypass when building an sdist on macOS APFS/HFS+. Carriers: converter (disc 3 ingestion add-on). Runtime use: Installed; used only at image build time (the converter builds jieba from its sdist with --no-build-isolation). Never run at service runtime; no sdist is built and nothing runs on Windows.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "No sdist is ever built from these environments, and the build hosts use Linux and OpenBSD filesystems."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-xmj3-9gf7-h52w",
+        "name": "GHSA-xmj3-9gf7-h52w",
+        "aliases": [],
+        "description": "setuptools: Windows path escape via namespace_packages.txt during legacy wheel installation  Description"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-converter?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/setuptools@80.10.2",
+              "identifiers": {
+                "purl": "pkg:pypi/setuptools@80.10.2"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "setuptools 80.10.2: Windows path escape via namespace_packages.txt in legacy egg install. Carriers: converter (disc 3 ingestion add-on). Runtime use: Installed; used only at image build time (the converter builds jieba from its sdist with --no-build-isolation). Never run at service runtime; no sdist is built and nothing runs on Windows.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Windows-only legacy install path; images are Linux, the Workstation build env is OpenBSD, and pip installs wheels directly from a hash-locked wheelhouse."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-h35f-9h28-mq5c",
+        "name": "CVE-2026-59890",
+        "aliases": [
+          "BIT-setuptools-2026-59890",
+          "GHSA-h35f-9h28-mq5c",
+          "PYSEC-2026-3447"
+        ],
+        "description": "setuptools: MANIFEST.in exclusion bypass in sdist via Unicode normalization collision (NFC/NFD) on macOS APFS/HFS+"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/setuptools@81.0.0",
+              "identifiers": {
+                "purl": "pkg:pypi/setuptools@81.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "@id": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/setuptools@81.0.0",
+              "identifiers": {
+                "purl": "pkg:pypi/setuptools@81.0.0"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "setuptools 81.0.0: MANIFEST.in exclude bypass when building an sdist on macOS APFS/HFS+. Carriers: builder; full/model_bridge (source only), kb-tools linux-line engine (build host), Workstation wheel build env buildenv312 (disc 1 build host). Runtime use: Installed; used only at image build time (the converter builds jieba from its sdist with --no-build-isolation). Never run at service runtime; no sdist is built and nothing runs on Windows.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "No sdist is ever built from these environments, and the build hosts use Linux and OpenBSD filesystems."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-xmj3-9gf7-h52w",
+        "name": "GHSA-xmj3-9gf7-h52w",
+        "aliases": [],
+        "description": "setuptools: Windows path escape via namespace_packages.txt during legacy wheel installation  Description"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/setuptools@81.0.0",
+              "identifiers": {
+                "purl": "pkg:pypi/setuptools@81.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "@id": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/setuptools@81.0.0",
+              "identifiers": {
+                "purl": "pkg:pypi/setuptools@81.0.0"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "setuptools 81.0.0: Windows path escape via namespace_packages.txt in legacy egg install. Carriers: builder; full/model_bridge (source only), kb-tools linux-line engine (build host), Workstation wheel build env buildenv312 (disc 1 build host). Runtime use: Installed; used only at image build time (the converter builds jieba from its sdist with --no-build-isolation). Never run at service runtime; no sdist is built and nothing runs on Windows.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Windows-only legacy install path; images are Linux, the Workstation build env is OpenBSD, and pip installs wheels directly from a hash-locked wheelhouse."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-24c4-3p7v-29cm",
+        "name": "CVE-2026-128127",
+        "aliases": [
+          "GHSA-24c4-3p7v-29cm"
+        ],
+        "description": "AIOHTTP: Base64 multipart parts bypass client_max_size"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/aiohttp@3.14.3",
+              "identifiers": {
+                "purl": "pkg:pypi/aiohttp@3.14.3"
+              }
+            }
+          ]
+        },
+        {
+          "@id": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/aiohttp@3.14.3",
+              "identifiers": {
+                "purl": "pkg:pypi/aiohttp@3.14.3"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "aiohttp 3.14.3: server: base64 multipart parts bypass client_max_size. Carriers: builder (disc 3 ingestion add-on); full/model_bridge (source only), kb-tools linux-line engine (build host). Runtime use: Imported for one exception class only: sentence_transformers.model_card imports datasets, whose utils/file_utils.py imports aiohttp.client_exceptions for an exception class. No aiohttp server or ClientSession is created: the engine API is FastAPI on uvicorn, outbound calls use httpx and qdrant-client over plain HTTP on the internal Docker network, and HF_HUB_OFFLINE=1.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "aiohttp is imported only for an exception class; no aiohttp server or client is created in the image (see runtime note)."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-28qf-cpwq-vmc2",
+        "name": "CVE-2026-128130",
+        "aliases": [
+          "GHSA-28qf-cpwq-vmc2"
+        ],
+        "description": "AIOHTTP: Pure-Python parser request replay and buffer growth behind a declined upgrade"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/aiohttp@3.14.3",
+              "identifiers": {
+                "purl": "pkg:pypi/aiohttp@3.14.3"
+              }
+            }
+          ]
+        },
+        {
+          "@id": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/aiohttp@3.14.3",
+              "identifiers": {
+                "purl": "pkg:pypi/aiohttp@3.14.3"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "aiohttp 3.14.3: server, pure-Python parser: request replay behind a declined upgrade. Carriers: builder (disc 3 ingestion add-on); full/model_bridge (source only), kb-tools linux-line engine (build host). Runtime use: Imported for one exception class only: sentence_transformers.model_card imports datasets, whose utils/file_utils.py imports aiohttp.client_exceptions for an exception class. No aiohttp server or ClientSession is created: the engine API is FastAPI on uvicorn, outbound calls use httpx and qdrant-client over plain HTTP on the internal Docker network, and HF_HUB_OFFLINE=1.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "aiohttp is imported only for an exception class; no aiohttp server or client is created in the image (see runtime note)."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-2g87-pp6c-29x5",
+        "name": "CVE-2026-123817",
+        "aliases": [
+          "GHSA-2g87-pp6c-29x5",
+          "PYSEC-2026-4389"
+        ],
+        "description": "aiohttp: Multiple instances of excessive or unbounded memory/CPU use"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/aiohttp@3.14.3",
+              "identifiers": {
+                "purl": "pkg:pypi/aiohttp@3.14.3"
+              }
+            }
+          ]
+        },
+        {
+          "@id": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/aiohttp@3.14.3",
+              "identifiers": {
+                "purl": "pkg:pypi/aiohttp@3.14.3"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "aiohttp 3.14.3: WebSocket frame reassembly memory growth. Carriers: builder (disc 3 ingestion add-on); full/model_bridge (source only), kb-tools linux-line engine (build host). Runtime use: Imported for one exception class only: sentence_transformers.model_card imports datasets, whose utils/file_utils.py imports aiohttp.client_exceptions for an exception class. No aiohttp server or ClientSession is created: the engine API is FastAPI on uvicorn, outbound calls use httpx and qdrant-client over plain HTTP on the internal Docker network, and HF_HUB_OFFLINE=1.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "aiohttp is imported only for an exception class; no aiohttp server or client is created in the image (see runtime note)."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-3rp8-rxj8-mvjw",
+        "name": "CVE-2026-128128",
+        "aliases": [
+          "GHSA-3rp8-rxj8-mvjw"
+        ],
+        "description": "AIOHTTP: WebSocket max_msg_size bypass via integer overflow"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/aiohttp@3.14.3",
+              "identifiers": {
+                "purl": "pkg:pypi/aiohttp@3.14.3"
+              }
+            }
+          ]
+        },
+        {
+          "@id": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/aiohttp@3.14.3",
+              "identifiers": {
+                "purl": "pkg:pypi/aiohttp@3.14.3"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "aiohttp 3.14.3: WebSocket max_msg_size integer overflow. Carriers: builder (disc 3 ingestion add-on); full/model_bridge (source only), kb-tools linux-line engine (build host). Runtime use: Imported for one exception class only: sentence_transformers.model_card imports datasets, whose utils/file_utils.py imports aiohttp.client_exceptions for an exception class. No aiohttp server or ClientSession is created: the engine API is FastAPI on uvicorn, outbound calls use httpx and qdrant-client over plain HTTP on the internal Docker network, and HF_HUB_OFFLINE=1.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "aiohttp is imported only for an exception class; no aiohttp server or client is created in the image (see runtime note)."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-494j-54xm-rwp3",
+        "name": "CVE-2026-111063",
+        "aliases": [
+          "GHSA-494j-54xm-rwp3",
+          "PYSEC-2026-4365"
+        ],
+        "description": "AIOHTTP: Secure attribute not enforced for shared cookie"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/aiohttp@3.14.3",
+              "identifiers": {
+                "purl": "pkg:pypi/aiohttp@3.14.3"
+              }
+            }
+          ]
+        },
+        {
+          "@id": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/aiohttp@3.14.3",
+              "identifiers": {
+                "purl": "pkg:pypi/aiohttp@3.14.3"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "aiohttp 3.14.3: client: Secure attribute not enforced for shared cookie. Carriers: builder (disc 3 ingestion add-on); full/model_bridge (source only), kb-tools linux-line engine (build host). Runtime use: Imported for one exception class only: sentence_transformers.model_card imports datasets, whose utils/file_utils.py imports aiohttp.client_exceptions for an exception class. No aiohttp server or ClientSession is created: the engine API is FastAPI on uvicorn, outbound calls use httpx and qdrant-client over plain HTTP on the internal Docker network, and HF_HUB_OFFLINE=1.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "aiohttp is imported only for an exception class; no aiohttp server or client is created in the image (see runtime note)."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-5pv8-vvhc-h7jv",
+        "name": "CVE-2026-128125",
+        "aliases": [
+          "GHSA-5pv8-vvhc-h7jv"
+        ],
+        "description": "AIOHTTP: Unbounded cookie storage in client CookieJar"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/aiohttp@3.14.3",
+              "identifiers": {
+                "purl": "pkg:pypi/aiohttp@3.14.3"
+              }
+            }
+          ]
+        },
+        {
+          "@id": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/aiohttp@3.14.3",
+              "identifiers": {
+                "purl": "pkg:pypi/aiohttp@3.14.3"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "aiohttp 3.14.3: client: unbounded CookieJar storage. Carriers: builder (disc 3 ingestion add-on); full/model_bridge (source only), kb-tools linux-line engine (build host). Runtime use: Imported for one exception class only: sentence_transformers.model_card imports datasets, whose utils/file_utils.py imports aiohttp.client_exceptions for an exception class. No aiohttp server or ClientSession is created: the engine API is FastAPI on uvicorn, outbound calls use httpx and qdrant-client over plain HTTP on the internal Docker network, and HF_HUB_OFFLINE=1.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "aiohttp is imported only for an exception class; no aiohttp server or client is created in the image (see runtime note)."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-5rmc-48h2-hvcm",
+        "name": "CVE-2026-128132",
+        "aliases": [
+          "GHSA-5rmc-48h2-hvcm"
+        ],
+        "description": "AIOHTTP: WebSocket receive queue limits bypassed by small or compressed messages"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/aiohttp@3.14.3",
+              "identifiers": {
+                "purl": "pkg:pypi/aiohttp@3.14.3"
+              }
+            }
+          ]
+        },
+        {
+          "@id": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/aiohttp@3.14.3",
+              "identifiers": {
+                "purl": "pkg:pypi/aiohttp@3.14.3"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "aiohttp 3.14.3: WebSocket receive-queue limits bypassed. Carriers: builder (disc 3 ingestion add-on); full/model_bridge (source only), kb-tools linux-line engine (build host). Runtime use: Imported for one exception class only: sentence_transformers.model_card imports datasets, whose utils/file_utils.py imports aiohttp.client_exceptions for an exception class. No aiohttp server or ClientSession is created: the engine API is FastAPI on uvicorn, outbound calls use httpx and qdrant-client over plain HTTP on the internal Docker network, and HF_HUB_OFFLINE=1.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "aiohttp is imported only for an exception class; no aiohttp server or client is created in the image (see runtime note)."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-5wr8-gcqf-gqf3",
+        "name": "CVE-2026-111064",
+        "aliases": [
+          "GHSA-5wr8-gcqf-gqf3",
+          "PYSEC-2026-4366"
+        ],
+        "description": "aiohttp server lacks an initial request/header timeout"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/aiohttp@3.14.3",
+              "identifiers": {
+                "purl": "pkg:pypi/aiohttp@3.14.3"
+              }
+            }
+          ]
+        },
+        {
+          "@id": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/aiohttp@3.14.3",
+              "identifiers": {
+                "purl": "pkg:pypi/aiohttp@3.14.3"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "aiohttp 3.14.3: server: no initial request/header timeout. Carriers: builder (disc 3 ingestion add-on); full/model_bridge (source only), kb-tools linux-line engine (build host). Runtime use: Imported for one exception class only: sentence_transformers.model_card imports datasets, whose utils/file_utils.py imports aiohttp.client_exceptions for an exception class. No aiohttp server or ClientSession is created: the engine API is FastAPI on uvicorn, outbound calls use httpx and qdrant-client over plain HTTP on the internal Docker network, and HF_HUB_OFFLINE=1.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "aiohttp is imported only for an exception class; no aiohttp server or client is created in the image (see runtime note)."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-6cjc-53gc-5rqm",
+        "name": "CVE-2026-111065",
+        "aliases": [
+          "GHSA-6cjc-53gc-5rqm",
+          "PYSEC-2026-4367"
+        ],
+        "description": "AIOHTTP: Connector pool exhaustion via Max-Age overflow"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/aiohttp@3.14.3",
+              "identifiers": {
+                "purl": "pkg:pypi/aiohttp@3.14.3"
+              }
+            }
+          ]
+        },
+        {
+          "@id": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/aiohttp@3.14.3",
+              "identifiers": {
+                "purl": "pkg:pypi/aiohttp@3.14.3"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "aiohttp 3.14.3: client: connector pool exhaustion via Max-Age overflow. Carriers: builder (disc 3 ingestion add-on); full/model_bridge (source only), kb-tools linux-line engine (build host). Runtime use: Imported for one exception class only: sentence_transformers.model_card imports datasets, whose utils/file_utils.py imports aiohttp.client_exceptions for an exception class. No aiohttp server or ClientSession is created: the engine API is FastAPI on uvicorn, outbound calls use httpx and qdrant-client over plain HTTP on the internal Docker network, and HF_HUB_OFFLINE=1.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "aiohttp is imported only for an exception class; no aiohttp server or client is created in the image (see runtime note)."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-9xw5-w5jj-pvcg",
+        "name": "CVE-2026-111066",
+        "aliases": [
+          "GHSA-9xw5-w5jj-pvcg",
+          "PYSEC-2026-4368"
+        ],
+        "description": "AIOHTTP: File descriptor exhaustion in multipart requests"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/aiohttp@3.14.3",
+              "identifiers": {
+                "purl": "pkg:pypi/aiohttp@3.14.3"
+              }
+            }
+          ]
+        },
+        {
+          "@id": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/aiohttp@3.14.3",
+              "identifiers": {
+                "purl": "pkg:pypi/aiohttp@3.14.3"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "aiohttp 3.14.3: server: file-descriptor exhaustion in multipart Request.post(). Carriers: builder (disc 3 ingestion add-on); full/model_bridge (source only), kb-tools linux-line engine (build host). Runtime use: Imported for one exception class only: sentence_transformers.model_card imports datasets, whose utils/file_utils.py imports aiohttp.client_exceptions for an exception class. No aiohttp server or ClientSession is created: the engine API is FastAPI on uvicorn, outbound calls use httpx and qdrant-client over plain HTTP on the internal Docker network, and HF_HUB_OFFLINE=1.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "aiohttp is imported only for an exception class; no aiohttp server or client is created in the image (see runtime note)."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-f9xw-jh8m-3mwq",
+        "name": "CVE-2026-111748",
+        "aliases": [
+          "GHSA-f9xw-jh8m-3mwq",
+          "PYSEC-2026-4369"
+        ],
+        "description": "AIOHTTP: Absolute-form request targets can spoof Request.scheme"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/aiohttp@3.14.3",
+              "identifiers": {
+                "purl": "pkg:pypi/aiohttp@3.14.3"
+              }
+            }
+          ]
+        },
+        {
+          "@id": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/aiohttp@3.14.3",
+              "identifiers": {
+                "purl": "pkg:pypi/aiohttp@3.14.3"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "aiohttp 3.14.3: server: absolute-form targets spoof Request.scheme. Carriers: builder (disc 3 ingestion add-on); full/model_bridge (source only), kb-tools linux-line engine (build host). Runtime use: Imported for one exception class only: sentence_transformers.model_card imports datasets, whose utils/file_utils.py imports aiohttp.client_exceptions for an exception class. No aiohttp server or ClientSession is created: the engine API is FastAPI on uvicorn, outbound calls use httpx and qdrant-client over plain HTTP on the internal Docker network, and HF_HUB_OFFLINE=1.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "aiohttp is imported only for an exception class; no aiohttp server or client is created in the image (see runtime note)."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-gx76-c99x-2c96",
+        "name": "CVE-2026-111749",
+        "aliases": [
+          "GHSA-gx76-c99x-2c96",
+          "PYSEC-2026-4370"
+        ],
+        "description": "AIOHTTP: Cookie from subdomain can remove Host-Only Scope from existing cookies"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/aiohttp@3.14.3",
+              "identifiers": {
+                "purl": "pkg:pypi/aiohttp@3.14.3"
+              }
+            }
+          ]
+        },
+        {
+          "@id": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/aiohttp@3.14.3",
+              "identifiers": {
+                "purl": "pkg:pypi/aiohttp@3.14.3"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "aiohttp 3.14.3: client: subdomain cookie strips Host-Only scope. Carriers: builder (disc 3 ingestion add-on); full/model_bridge (source only), kb-tools linux-line engine (build host). Runtime use: Imported for one exception class only: sentence_transformers.model_card imports datasets, whose utils/file_utils.py imports aiohttp.client_exceptions for an exception class. No aiohttp server or ClientSession is created: the engine API is FastAPI on uvicorn, outbound calls use httpx and qdrant-client over plain HTTP on the internal Docker network, and HF_HUB_OFFLINE=1.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "aiohttp is imported only for an exception class; no aiohttp server or client is created in the image (see runtime note)."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-h4cc-hm5h-fmm9",
+        "name": "CVE-2026-128131",
+        "aliases": [
+          "GHSA-h4cc-hm5h-fmm9"
+        ],
+        "description": "AIOHTTP: Concatenated compressed streams cause excessive CPU use"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/aiohttp@3.14.3",
+              "identifiers": {
+                "purl": "pkg:pypi/aiohttp@3.14.3"
+              }
+            }
+          ]
+        },
+        {
+          "@id": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/aiohttp@3.14.3",
+              "identifiers": {
+                "purl": "pkg:pypi/aiohttp@3.14.3"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "aiohttp 3.14.3: concatenated compressed streams: quadratic decompression. Carriers: builder (disc 3 ingestion add-on); full/model_bridge (source only), kb-tools linux-line engine (build host). Runtime use: Imported for one exception class only: sentence_transformers.model_card imports datasets, whose utils/file_utils.py imports aiohttp.client_exceptions for an exception class. No aiohttp server or ClientSession is created: the engine API is FastAPI on uvicorn, outbound calls use httpx and qdrant-client over plain HTTP on the internal Docker network, and HF_HUB_OFFLINE=1.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "aiohttp is imported only for an exception class; no aiohttp server or client is created in the image (see runtime note)."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-jm3w-gw2p-xjfj",
+        "name": "CVE-2026-128124",
+        "aliases": [
+          "GHSA-jm3w-gw2p-xjfj"
+        ],
+        "description": "AIOHTTP: Event loop stall in add_domain() wildcard matching"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/aiohttp@3.14.3",
+              "identifiers": {
+                "purl": "pkg:pypi/aiohttp@3.14.3"
+              }
+            }
+          ]
+        },
+        {
+          "@id": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/aiohttp@3.14.3",
+              "identifiers": {
+                "purl": "pkg:pypi/aiohttp@3.14.3"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "aiohttp 3.14.3: server: Application.add_domain wildcard regex stall. Carriers: builder (disc 3 ingestion add-on); full/model_bridge (source only), kb-tools linux-line engine (build host). Runtime use: Imported for one exception class only: sentence_transformers.model_card imports datasets, whose utils/file_utils.py imports aiohttp.client_exceptions for an exception class. No aiohttp server or ClientSession is created: the engine API is FastAPI on uvicorn, outbound calls use httpx and qdrant-client over plain HTTP on the internal Docker network, and HF_HUB_OFFLINE=1.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "aiohttp is imported only for an exception class; no aiohttp server or client is created in the image (see runtime note)."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-pqxq-w44r-73xw",
+        "name": "CVE-2026-111750",
+        "aliases": [
+          "GHSA-pqxq-w44r-73xw",
+          "PYSEC-2026-4371"
+        ],
+        "description": "AIOHTTP: Pure-Python parser request smuggling"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/aiohttp@3.14.3",
+              "identifiers": {
+                "purl": "pkg:pypi/aiohttp@3.14.3"
+              }
+            }
+          ]
+        },
+        {
+          "@id": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/aiohttp@3.14.3",
+              "identifiers": {
+                "purl": "pkg:pypi/aiohttp@3.14.3"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "aiohttp 3.14.3: server, pure-Python parser: request smuggling. Carriers: builder (disc 3 ingestion add-on); full/model_bridge (source only), kb-tools linux-line engine (build host). Runtime use: Imported for one exception class only: sentence_transformers.model_card imports datasets, whose utils/file_utils.py imports aiohttp.client_exceptions for an exception class. No aiohttp server or ClientSession is created: the engine API is FastAPI on uvicorn, outbound calls use httpx and qdrant-client over plain HTTP on the internal Docker network, and HF_HUB_OFFLINE=1.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "aiohttp is imported only for an exception class; no aiohttp server or client is created in the image (see runtime note)."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-pw86-h8fm-j323",
+        "name": "CVE-2026-128129",
+        "aliases": [
+          "GHSA-pw86-h8fm-j323"
+        ],
+        "description": "AIOHTTP: Unbounded buffering of data received during an upgrade request"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/aiohttp@3.14.3",
+              "identifiers": {
+                "purl": "pkg:pypi/aiohttp@3.14.3"
+              }
+            }
+          ]
+        },
+        {
+          "@id": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/aiohttp@3.14.3",
+              "identifiers": {
+                "purl": "pkg:pypi/aiohttp@3.14.3"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "aiohttp 3.14.3: server: unbounded buffering during an upgrade request. Carriers: builder (disc 3 ingestion add-on); full/model_bridge (source only), kb-tools linux-line engine (build host). Runtime use: Imported for one exception class only: sentence_transformers.model_card imports datasets, whose utils/file_utils.py imports aiohttp.client_exceptions for an exception class. No aiohttp server or ClientSession is created: the engine API is FastAPI on uvicorn, outbound calls use httpx and qdrant-client over plain HTTP on the internal Docker network, and HF_HUB_OFFLINE=1.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "aiohttp is imported only for an exception class; no aiohttp server or client is created in the image (see runtime note)."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-xgw8-8ccx-rmqh",
+        "name": "CVE-2026-128126",
+        "aliases": [
+          "GHSA-xgw8-8ccx-rmqh"
+        ],
+        "description": "AIOHTTP: Too many URL-encoded form fields block the event loop"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/aiohttp@3.14.3",
+              "identifiers": {
+                "purl": "pkg:pypi/aiohttp@3.14.3"
+              }
+            }
+          ]
+        },
+        {
+          "@id": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/aiohttp@3.14.3",
+              "identifiers": {
+                "purl": "pkg:pypi/aiohttp@3.14.3"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "aiohttp 3.14.3: server: too many URL-encoded form fields block the event loop. Carriers: builder (disc 3 ingestion add-on); full/model_bridge (source only), kb-tools linux-line engine (build host). Runtime use: Imported for one exception class only: sentence_transformers.model_card imports datasets, whose utils/file_utils.py imports aiohttp.client_exceptions for an exception class. No aiohttp server or ClientSession is created: the engine API is FastAPI on uvicorn, outbound calls use httpx and qdrant-client over plain HTTP on the internal Docker network, and HF_HUB_OFFLINE=1.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "aiohttp is imported only for an exception class; no aiohttp server or client is created in the image (see runtime note)."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-567q-5qvw-pf92",
+        "name": "CVE-2026-112907",
+        "aliases": [
+          "GHSA-567q-5qvw-pf92"
+        ],
+        "description": "filelock: On Windows an oplock on a soft lock's marker holds SoftFileLock.acquire() past its timeout and blocks the stale break"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/filelock@3.32.3",
+              "identifiers": {
+                "purl": "pkg:pypi/filelock@3.32.3"
+              }
+            }
+          ]
+        },
+        {
+          "@id": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/filelock@3.32.3",
+              "identifiers": {
+                "purl": "pkg:pypi/filelock@3.32.3"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "filelock 3.32.3: Windows oplock holds SoftFileLock.acquire past its timeout. Carriers: builder; full/model_bridge (source only), kb-tools linux-line engine (build host). Runtime use: Imported by huggingface_hub, datasets, transformers and torch. Locks are taken only on cache writes and downloads; the images run offline (HF_HUB_OFFLINE=1) as one unprivileged user (uid 10032) in their own filesystem namespace. No ReadWriteLock or StrictSoftFileLock caller in the libraries checked.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Windows only; the images are Linux."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-6627-m3xw-93mp",
+        "name": "CVE-2026-112908",
+        "aliases": [
+          "GHSA-6627-m3xw-93mp"
+        ],
+        "description": "filelock: StrictSoftFileLock creates its claim directories without the lock mode, so another local user with a write bit on them can end a live hold"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/filelock@3.32.3",
+              "identifiers": {
+                "purl": "pkg:pypi/filelock@3.32.3"
+              }
+            }
+          ]
+        },
+        {
+          "@id": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/filelock@3.32.3",
+              "identifiers": {
+                "purl": "pkg:pypi/filelock@3.32.3"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "filelock 3.32.3: StrictSoftFileLock claim directories created without lock mode. Carriers: builder; full/model_bridge (source only), kb-tools linux-line engine (build host). Runtime use: Imported by huggingface_hub, datasets, transformers and torch. Locks are taken only on cache writes and downloads; the images run offline (HF_HUB_OFFLINE=1) as one unprivileged user (uid 10032) in their own filesystem namespace. No ReadWriteLock or StrictSoftFileLock caller in the libraries checked.",
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "impact_statement": "Needs another local user with write access to the lock directory; containers run one unprivileged user in a private filesystem and no StrictSoftFileLock caller exists in the libraries checked."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-69hj-f68j-2879",
+        "name": "CVE-2026-112909",
+        "aliases": [
+          "GHSA-69hj-f68j-2879"
+        ],
+        "description": "filelock: UnixFileLock truncates and chmods any regular file another user renames or hard-links onto the lock path"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/filelock@3.32.3",
+              "identifiers": {
+                "purl": "pkg:pypi/filelock@3.32.3"
+              }
+            }
+          ]
+        },
+        {
+          "@id": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/filelock@3.32.3",
+              "identifiers": {
+                "purl": "pkg:pypi/filelock@3.32.3"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "filelock 3.32.3: UnixFileLock truncates/chmods a file another user renames or links onto the lock path. Carriers: builder; full/model_bridge (source only), kb-tools linux-line engine (build host). Runtime use: Imported by huggingface_hub, datasets, transformers and torch. Locks are taken only on cache writes and downloads; the images run offline (HF_HUB_OFFLINE=1) as one unprivileged user (uid 10032) in their own filesystem namespace. No ReadWriteLock or StrictSoftFileLock caller in the libraries checked.",
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "impact_statement": "Needs a second local user who can rename or link files into the lock directory; none exists in the containers."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-8mx5-7m5m-r77g",
+        "name": "CVE-2026-112910",
+        "aliases": [
+          "GHSA-8mx5-7m5m-r77g"
+        ],
+        "description": "filelock: WindowsFileLock ignores mode: a 0o600 lock file and the ReadWriteLock database inherit the directory ACL"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/filelock@3.32.3",
+              "identifiers": {
+                "purl": "pkg:pypi/filelock@3.32.3"
+              }
+            }
+          ]
+        },
+        {
+          "@id": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/filelock@3.32.3",
+              "identifiers": {
+                "purl": "pkg:pypi/filelock@3.32.3"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "filelock 3.32.3: WindowsFileLock ignores mode. Carriers: builder; full/model_bridge (source only), kb-tools linux-line engine (build host). Runtime use: Imported by huggingface_hub, datasets, transformers and torch. Locks are taken only on cache writes and downloads; the images run offline (HF_HUB_OFFLINE=1) as one unprivileged user (uid 10032) in their own filesystem namespace. No ReadWriteLock or StrictSoftFileLock caller in the libraries checked.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Windows only."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-9c4x-gm8v-wgc4",
+        "name": "CVE-2026-112911",
+        "aliases": [
+          "GHSA-9c4x-gm8v-wgc4"
+        ],
+        "description": "filelock: StrictSoftFileLock and SoftReadWriteLock adopt a protocol directory another user created first, losing mutual exclusion"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/filelock@3.32.3",
+              "identifiers": {
+                "purl": "pkg:pypi/filelock@3.32.3"
+              }
+            }
+          ]
+        },
+        {
+          "@id": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/filelock@3.32.3",
+              "identifiers": {
+                "purl": "pkg:pypi/filelock@3.32.3"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "filelock 3.32.3: StrictSoftFileLock/SoftReadWriteLock adopt a directory another user created. Carriers: builder; full/model_bridge (source only), kb-tools linux-line engine (build host). Runtime use: Imported by huggingface_hub, datasets, transformers and torch. Locks are taken only on cache writes and downloads; the images run offline (HF_HUB_OFFLINE=1) as one unprivileged user (uid 10032) in their own filesystem namespace. No ReadWriteLock or StrictSoftFileLock caller in the libraries checked.",
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "impact_statement": "Needs a second local user in a shared directory; none exists in the containers."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-9vhv-jxww-xfm5",
+        "name": "CVE-2026-112913",
+        "aliases": [
+          "GHSA-9vhv-jxww-xfm5"
+        ],
+        "description": "filelock: ReadWriteLock on Windows acts on SQLite side files another local user places beside its database"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/filelock@3.32.3",
+              "identifiers": {
+                "purl": "pkg:pypi/filelock@3.32.3"
+              }
+            }
+          ]
+        },
+        {
+          "@id": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/filelock@3.32.3",
+              "identifiers": {
+                "purl": "pkg:pypi/filelock@3.32.3"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "filelock 3.32.3: ReadWriteLock on Windows acts on SQLite side files. Carriers: builder; full/model_bridge (source only), kb-tools linux-line engine (build host). Runtime use: Imported by huggingface_hub, datasets, transformers and torch. Locks are taken only on cache writes and downloads; the images run offline (HF_HUB_OFFLINE=1) as one unprivileged user (uid 10032) in their own filesystem namespace. No ReadWriteLock or StrictSoftFileLock caller in the libraries checked.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Windows only; ReadWriteLock unused."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-cwqr-hh33-gh44",
+        "name": "CVE-2026-112915",
+        "aliases": [
+          "GHSA-cwqr-hh33-gh44"
+        ],
+        "description": "filelock ReadWriteLock: a crafted lock database makes every acquire stall or hang regardless of timeout"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/filelock@3.32.3",
+              "identifiers": {
+                "purl": "pkg:pypi/filelock@3.32.3"
+              }
+            }
+          ]
+        },
+        {
+          "@id": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/filelock@3.32.3",
+              "identifiers": {
+                "purl": "pkg:pypi/filelock@3.32.3"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "filelock 3.32.3: crafted ReadWriteLock database stalls acquire. Carriers: builder; full/model_bridge (source only), kb-tools linux-line engine (build host). Runtime use: Imported by huggingface_hub, datasets, transformers and torch. Locks are taken only on cache writes and downloads; the images run offline (HF_HUB_OFFLINE=1) as one unprivileged user (uid 10032) in their own filesystem namespace. No ReadWriteLock or StrictSoftFileLock caller in the libraries checked.",
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "impact_statement": "Needs a local user able to place the lock database; ReadWriteLock is not used and no second user exists."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-fq56-3cx3-fjxp",
+        "name": "CVE-2026-112935",
+        "aliases": [
+          "GHSA-fq56-3cx3-fjxp"
+        ],
+        "description": "filelock: SoftFileLock stale-lock break removes a live lock file on a reused inode number and admits two holders"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/filelock@3.32.3",
+              "identifiers": {
+                "purl": "pkg:pypi/filelock@3.32.3"
+              }
+            }
+          ]
+        },
+        {
+          "@id": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/filelock@3.32.3",
+              "identifiers": {
+                "purl": "pkg:pypi/filelock@3.32.3"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "filelock 3.32.3: SoftFileLock stale-lock break on a reused inode admits two holders. Carriers: builder; full/model_bridge (source only), kb-tools linux-line engine (build host). Runtime use: Imported by huggingface_hub, datasets, transformers and torch. Locks are taken only on cache writes and downloads; the images run offline (HF_HUB_OFFLINE=1) as one unprivileged user (uid 10032) in their own filesystem namespace. No ReadWriteLock or StrictSoftFileLock caller in the libraries checked.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Soft locks are taken by huggingface_hub only while downloading into its cache; the images run with HF_HUB_OFFLINE=1 and never download."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-j8f7-rjxc-mr56",
+        "name": "CVE-2026-112936",
+        "aliases": [
+          "GHSA-j8f7-rjxc-mr56"
+        ],
+        "description": "filelock: ReadWriteLock follows a symlink at the lock path into SQLite"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/filelock@3.32.3",
+              "identifiers": {
+                "purl": "pkg:pypi/filelock@3.32.3"
+              }
+            }
+          ]
+        },
+        {
+          "@id": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/filelock@3.32.3",
+              "identifiers": {
+                "purl": "pkg:pypi/filelock@3.32.3"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "filelock 3.32.3: ReadWriteLock follows a symlink at the lock path into SQLite. Carriers: builder; full/model_bridge (source only), kb-tools linux-line engine (build host). Runtime use: Imported by huggingface_hub, datasets, transformers and torch. Locks are taken only on cache writes and downloads; the images run offline (HF_HUB_OFFLINE=1) as one unprivileged user (uid 10032) in their own filesystem namespace. No ReadWriteLock or StrictSoftFileLock caller in the libraries checked.",
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "impact_statement": "Needs a local user who can plant a symlink; ReadWriteLock unused; single-user containers."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-m462-7rxw-wvpg",
+        "name": "CVE-2026-112938",
+        "aliases": [
+          "GHSA-m462-7rxw-wvpg"
+        ],
+        "description": "filelock: StrictSoftFileLock follows a symbolic link swapped in at <path>.filelock and creates claim files in a directory another local user chooses"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/filelock@3.32.3",
+              "identifiers": {
+                "purl": "pkg:pypi/filelock@3.32.3"
+              }
+            }
+          ]
+        },
+        {
+          "@id": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/filelock@3.32.3",
+              "identifiers": {
+                "purl": "pkg:pypi/filelock@3.32.3"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "filelock 3.32.3: StrictSoftFileLock follows a swapped symlink at <path>.filelock. Carriers: builder; full/model_bridge (source only), kb-tools linux-line engine (build host). Runtime use: Imported by huggingface_hub, datasets, transformers and torch. Locks are taken only on cache writes and downloads; the images run offline (HF_HUB_OFFLINE=1) as one unprivileged user (uid 10032) in their own filesystem namespace. No ReadWriteLock or StrictSoftFileLock caller in the libraries checked.",
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "impact_statement": "Needs a second local user; StrictSoftFileLock unused."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-rfpc-qcw5-3pc4",
+        "name": "CVE-2026-112939",
+        "aliases": [
+          "GHSA-rfpc-qcw5-3pc4"
+        ],
+        "description": "filelock: SoftFileLock removes a live holder's marker when another user forges the PID in a writable marker"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/filelock@3.32.3",
+              "identifiers": {
+                "purl": "pkg:pypi/filelock@3.32.3"
+              }
+            }
+          ]
+        },
+        {
+          "@id": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/filelock@3.32.3",
+              "identifiers": {
+                "purl": "pkg:pypi/filelock@3.32.3"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "filelock 3.32.3: SoftFileLock removes a live marker when another user forges its PID. Carriers: builder; full/model_bridge (source only), kb-tools linux-line engine (build host). Runtime use: Imported by huggingface_hub, datasets, transformers and torch. Locks are taken only on cache writes and downloads; the images run offline (HF_HUB_OFFLINE=1) as one unprivileged user (uid 10032) in their own filesystem namespace. No ReadWriteLock or StrictSoftFileLock caller in the libraries checked.",
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "impact_statement": "Needs a second local user able to write the marker; none exists."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-v4x8-3wr5-3wq8",
+        "name": "CVE-2026-112940",
+        "aliases": [
+          "GHSA-v4x8-3wr5-3wq8"
+        ],
+        "description": "filelock ReadWriteLock: SQLite reopens the lock database by name, so a planted symlink or journal file makes the lock user's process overwrite or unlink its own files"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/filelock@3.32.3",
+              "identifiers": {
+                "purl": "pkg:pypi/filelock@3.32.3"
+              }
+            }
+          ]
+        },
+        {
+          "@id": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/filelock@3.32.3",
+              "identifiers": {
+                "purl": "pkg:pypi/filelock@3.32.3"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "filelock 3.32.3: ReadWriteLock SQLite reopens by name; planted symlink/journal overwrites files. Carriers: builder; full/model_bridge (source only), kb-tools linux-line engine (build host). Runtime use: Imported by huggingface_hub, datasets, transformers and torch. Locks are taken only on cache writes and downloads; the images run offline (HF_HUB_OFFLINE=1) as one unprivileged user (uid 10032) in their own filesystem namespace. No ReadWriteLock or StrictSoftFileLock caller in the libraries checked.",
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "impact_statement": "Needs a local user who can plant files beside the lock database; ReadWriteLock unused; single-user containers."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-6q48-6c7w-9gw2",
+        "name": "GHSA-6q48-6c7w-9gw2",
+        "aliases": [
+          "PYSEC-2026-4320"
+        ],
+        "description": "certifi bundles emSign root CAs with compromised intermediate CA keys"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:oci/deep32-builder?tag=0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/certifi@2026.7.22",
+              "identifiers": {
+                "purl": "pkg:pypi/certifi@2026.7.22"
+              }
+            }
+          ]
+        },
+        {
+          "@id": "pkg:generic/deep32-workstation@0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:generic/deep32-workstation@0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/certifi@2026.7.22",
+              "identifiers": {
+                "purl": "pkg:pypi/certifi@2026.7.22"
+              }
+            }
+          ]
+        },
+        {
+          "@id": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/certifi@2026.7.22",
+              "identifiers": {
+                "purl": "pkg:pypi/certifi@2026.7.22"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "certifi 2026.7.22: bundled emSign ECC Root CA - G3 trusted (compromised eMudhra intermediates). Carriers: builder; Workstation deep32-engine and deep32-gateway venvs (disc 1); full gateway (source only), kb-tools linux-line (build host), tests/engine and tests/gateway dev pins. Runtime use: Imported by httpx/requests; httpx loads the bundle into an SSL context when a client is built. No TLS connection is verified against it: Forge containers speak plain HTTP on internal Docker networks with no outside route; on the Workstation the engine reaches the Forge through the GPU forwarder over UNIX sockets (http://), and the forwarder (serve_accel.py) uses stdlib ssl with GPU_EXT_CA=/etc/ssl/cert.pem (the OpenBSD bundle); the gateway sits behind Tailscale Serve and calls the engine locally over HTTP.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "No component verifies a TLS connection against the certifi bundle at runtime (see runtime note). The Workstation's TLS connection to the Forge is made by the GPU forwarder with stdlib ssl and the OpenBSD bundle; the pairing and Ask links pin the certificate of the other end."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-mf5v-w3w3-f6cg",
+        "name": "CVE-2026-126360",
+        "aliases": [
+          "GHSA-mf5v-w3w3-f6cg"
+        ],
+        "description": "OpenTelemetry Python API: Denial of service through quadratic-time traceparent parsing"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:generic/deep32-workstation@0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:generic/deep32-workstation@0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/opentelemetry-api@1.45.0",
+              "identifiers": {
+                "purl": "pkg:pypi/opentelemetry-api@1.45.0"
+              }
+            }
+          ]
+        },
+        {
+          "@id": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/opentelemetry-api@1.45.0",
+              "identifiers": {
+                "purl": "pkg:pypi/opentelemetry-api@1.45.0"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "opentelemetry-api 1.45.0: traceparent extraction quadratic regex (CPU DoS); MCP _meta named as a path. Carriers: Workstation deep32-gateway venv (disc 1); full gateway (source only), kb-tools linux-line gateway (build host), tests/gateway dev pins. Runtime use: Executed per MCP request: mcp 2.2.0 (wheel sha256 bde98258..., equal to the lock hash) calls opentelemetry.propagate.extract(params._meta) in mcp/shared/_otel.py. The gateway mounts the MCP app behind its Guard middleware (tailnet address allow-list, then bearer-token check), with a 256 KiB request-body cap.",
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "impact_statement": "Same path as GHSA-xcq7-p3pf-p88h: only authenticated, allow-listed gateway clients reach extract()."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://osv.dev/vulnerability/GHSA-xcq7-p3pf-p88h",
+        "name": "CVE-2026-114603",
+        "aliases": [
+          "GHSA-xcq7-p3pf-p88h"
+        ],
+        "description": "OpenTelemetry Python: Unbounded tracestate parsing in opentelemetry-api"
+      },
+      "timestamp": "2026-11-19T20:30:06Z",
+      "products": [
+        {
+          "@id": "pkg:generic/deep32-workstation@0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:generic/deep32-workstation@0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/opentelemetry-api@1.45.0",
+              "identifiers": {
+                "purl": "pkg:pypi/opentelemetry-api@1.45.0"
+              }
+            }
+          ]
+        },
+        {
+          "@id": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2",
+          "identifiers": {
+            "purl": "pkg:github/hellobpdu/deep32@v0.1.0-alpha.2"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/opentelemetry-api@1.45.0",
+              "identifiers": {
+                "purl": "pkg:pypi/opentelemetry-api@1.45.0"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "opentelemetry-api 1.45.0: TraceState.from_header quadratic regex on a long tracestate (CPU DoS). Carriers: Workstation deep32-gateway venv (disc 1); full gateway (source only), kb-tools linux-line gateway (build host), tests/gateway dev pins. Runtime use: Executed per MCP request: mcp 2.2.0 (wheel sha256 bde98258..., equal to the lock hash) calls opentelemetry.propagate.extract(params._meta) in mcp/shared/_otel.py. The gateway mounts the MCP app behind its Guard middleware (tailnet address allow-list, then bearer-token check), with a 256 KiB request-body cap.",
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "impact_statement": "Reached only through MCP params._meta after the gateway Guard has accepted the tailnet address and the bearer token. Only the owner's enrolled agents hold tokens; a token holder could stall the gateway event loop for seconds per request, which is less than the read access the token already grants."
+    }
+  ]
+}
