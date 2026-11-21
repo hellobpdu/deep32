@@ -299,7 +299,8 @@ def prepare(manifest_path):
         asset('REPRODUCIBILITY.json', data, ['disc1', 'disc2', 'disc3'])
     for role, child in contracts.mirror_child_names(mirrors).items():
         name = child.removesuffix('-SHA256SUMS') + '-README.md'
-        text = 'This unsigned inventory requires release-owner review and signing.\n\n'
+        text = ('Image files of this disc: name, size in bytes and SHA-256. The signed SHA256SUMS of this release '
+                'covers this list.\n\n')
         for image in sorted(images.values(), key=lambda r: r['file']):
             if image['role'] == role:
                 text += '%s\t%d\t%s\n' % (image['file'], image['size'], image['sha256'])
