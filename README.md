@@ -624,6 +624,13 @@ my keys, logins or network settings.
 | Disc 3, embedder (one of seven) | 3.1 to 3.3 GB | The embedding server built for your card's generation |
 | Disc 3, ingestion | 15.3 GB | The PDF converter and the index builder |
 
+**Cisco documentation on disc 2.** Disc 2 includes 489 documents published by Cisco (TechNotes, configuration guides,
+command references, API guides, validated designs, white papers, MIBs and release notes), converted to text so they
+can be searched offline, each with its cisco.com source. They remain &copy; Cisco Systems, Inc. and are included for
+non-commercial reference; Deep32 is free and is not affiliated with or endorsed by Cisco. I am asking Cisco for
+permission to redistribute them, and if Cisco asks me to remove them I will take them off the mirror promptly.
+Questions or concerns: [jacummings@acm.org](mailto:jacummings@acm.org).
+
 <table>
   <tr>
     <td width="50%"><img alt="The Deep32 Library open at the Border Gateway Protocol article, with the article outline on the left and the Internet protocol suite navigation box." src="docs/screenshots/library-article.png"></td>
