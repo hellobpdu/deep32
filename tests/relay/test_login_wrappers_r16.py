@@ -57,7 +57,7 @@ class LoginWrappers(unittest.TestCase):
         completed = subprocess.run([str(bash), '--noprofile', '--norc',
             str(ROOT / 'adapters/connect.sh'), '--relay', 'login', '--agent', 'claude'],
             cwd=self.folder, env=self.env, stdin=subprocess.DEVNULL,
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30)
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=120)
         self.assertEqual(completed.returncode, 0, 'shell login wrapper failed')
         self.assertEqual(self.record(), ['--relay', 'login', '--agent', 'claude'])
 
@@ -73,6 +73,6 @@ class LoginWrappers(unittest.TestCase):
         completed = subprocess.run([str(powershell), '-NoProfile', '-NonInteractive',
             '-ExecutionPolicy', 'Bypass', '-File', str(ROOT / 'adapters/connect.ps1'),
             '-Relay', 'login', '-Agent', 'codex'], cwd=self.folder, env=self.env,
-            stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30)
+            stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=120)
         self.assertEqual(completed.returncode, 0, 'PowerShell login wrapper failed')
         self.assertEqual(self.record(), ['--relay', 'login', '--agent', 'codex'])

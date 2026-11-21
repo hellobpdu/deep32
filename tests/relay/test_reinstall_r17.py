@@ -248,6 +248,6 @@ class WrapperPortR17(unittest.TestCase):
                 completed = subprocess.run([str(powershell), '-NoProfile', '-NonInteractive',
                     '-ExecutionPolicy', 'Bypass', '-File', str(wrappers.ROOT / 'adapters/connect.ps1'),
                     '-Relay', 'install', '-Agent', 'codex', *extra], cwd=self.folder, env=self.env,
-                    stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30)
+                    stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=120)
                 self.assertEqual(completed.returncode, 0, 'PowerShell install wrapper failed')
                 self.assertEqual(self.record(), ['--relay', 'install', '--agent', 'codex', *forwarded])

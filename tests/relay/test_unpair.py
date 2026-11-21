@@ -317,7 +317,7 @@ class UnpairWrappers(unittest.TestCase):
         completed = subprocess.run([str(bash), '--noprofile', '--norc',
             str(wrappers.ROOT / 'adapters/connect.sh'), '--relay', 'unpair', '--relay-id', IDENT, '--agent', 'claude'],
             cwd=self.folder, env=self.env, stdin=subprocess.DEVNULL,
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30)
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=120)
         self.assertEqual(completed.returncode, 0, 'shell unpair wrapper failed')
         self.assertEqual(self.record(), ['--relay', 'unpair', '--relay-id', IDENT, '--agent', 'claude'])
 
@@ -333,7 +333,7 @@ class UnpairWrappers(unittest.TestCase):
         completed = subprocess.run([str(powershell), '-NoProfile', '-NonInteractive',
             '-ExecutionPolicy', 'Bypass', '-File', str(wrappers.ROOT / 'adapters/connect.ps1'),
             '-Relay', 'unpair', '-RelayId', IDENT, '-Agent', 'codex'], cwd=self.folder, env=self.env,
-            stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30)
+            stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=120)
         self.assertEqual(completed.returncode, 0, 'PowerShell unpair wrapper failed')
         self.assertEqual(self.record(), ['--relay', 'unpair', '--relay-id', IDENT, '--agent', 'codex'])
 

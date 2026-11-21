@@ -31,7 +31,11 @@ class RelayCLI(unittest.TestCase):
             output = folder / 'record.json'
             recorder = folder / 'recorder.py'
             recorder.write_text('import json,sys\nfrom pathlib import Path\nPath(sys.argv[1]).write_text(json.dumps(sys.argv[2:]),encoding="utf-8")\n', encoding='ascii')
-            env = {key: os.environ[key] for key in ('SystemRoot', 'WINDIR', 'COMSPEC', 'PATH', 'PATHEXT', 'TEMP', 'TMP') if key in os.environ}
+            # The profile folders let Windows PowerShell 5.1 use its module-analysis cache; without them a cold host
+            # (GitHub's runner) can rescan modules at start-up and pass a short timeout. Forwarding is what is tested.
+            env = {key: os.environ[key] for key in ('SystemRoot', 'WINDIR', 'COMSPEC', 'PATH', 'PATHEXT', 'TEMP', 'TMP',
+                                                    'USERPROFILE', 'APPDATA', 'LOCALAPPDATA', 'ProgramData')
+                   if key in os.environ}
             args = ['--relay', 'selftest', '--agent', 'claude', '--relay-id', 'a' * 32, '--live']
             bash = Path(os.environ.get('D32_GIT_BASH', 'C:/Program Files/Git/bin/bash.exe'))
             if not bash.is_file():
@@ -42,7 +46,7 @@ class RelayCLI(unittest.TestCase):
             fake.chmod(0o700)
             env['DEEP32_CONNECT_PYTHON'] = fake.as_posix()
             completed = subprocess.run([str(bash), '--noprofile', '--norc', str(ROOT / 'adapters/connect.sh'), *args], env=env,
-                stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30)
+                stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=120)
             self.assertEqual(completed.returncode, 0, 'shell wrapper failed')
             self.assertEqual(json.loads(output.read_text())[3:], args)
             if os.name == 'nt':
@@ -55,7 +59,7 @@ class RelayCLI(unittest.TestCase):
                 completed = subprocess.run([powershell, '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
                     '-File', str(ROOT / 'adapters/connect.ps1'), '-Relay', 'selftest', '-Agent', 'claude',
                     '-RelayId', 'a' * 32, '-Live'], env=env, stdin=subprocess.DEVNULL,
-                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30)
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=120)
                 self.assertEqual(completed.returncode, 0, 'PowerShell wrapper failed')
                 self.assertTrue(output.exists(), (completed.stdout + completed.stderr).decode('utf-8', errors='replace'))
                 forwarded = json.loads(output.read_text())[3:]
