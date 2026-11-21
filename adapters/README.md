@@ -223,14 +223,25 @@ the Workstation a question you already know the answer to. A successful turn str
 research line lists the searches the agent made. If the turn ends with `agent-start-failed`, use your agent directly
 through Connect. See the known issues in CHANGELOG.md.
 
+**One question at a time.** The relay answers one question at a time. A second question waits in a queue of two
+for up to 30 seconds and is then turned away, so ask again when the first answer is done. An answer has no time
+limit of its own: it runs until the agent is done, within the relay session's one hour, and a researched question
+at xhigh or max can take several minutes. If an answer seems stuck, press **Cancel** in the Ask window; the relay
+ends the agent and takes the next question. A conversation left idle for a minute closes, and `/new` starts
+another. The relay accepts at most 30 questions an hour.
+
 **Model and strength.** You can choose the model and the strength for each Ask conversation. When you install a Claude
 Code relay, its startup check records the model names Claude Code offers that profile (default, opus, fable, sonnet and
 haiku with Claude Code 2.1.326) and the effort levels all of them support (low, medium, high, xhigh and max). The relay
 offers those lists to the Workstation with `default` first. The Ask window shows them in its Model and Strength menus,
 and in a terminal `d32-ask --model opus --effort high` picks them. A conversation that names nothing gets `default`
 for both, which is the pair the relay checked at install. The relay turns away any other model or effort, and before
-each answer it checks that the agent started with the model you chose. A Codex relay still offers its one checked model
-and effort. `--relay status` lists what the relay offers and the model and effort of the last finished conversation.
+each answer it checks that the agent started with the model you chose. The names are Claude Code's own short names for
+the account the relay signed in with, so `opus` runs the newest Opus that account can use, and `sonnet`, `haiku` and
+`fable` work the same way. Any other model the account lists under a short name appears too. The list is taken when
+the relay is installed, so to pick up a new model, remove the relay and install it again with the same install ID. A
+Codex relay still offers its one checked model and effort: the model Codex used when the relay was installed.
+`--relay status` lists what the relay offers and the model and effort of the last finished conversation.
 
 To remove the relay, run `bash adapters/connect.sh --relay remove --relay-id '<id>' --agent claude --tailscale-binary "$(command -v tailscale)"`.
 It takes off the service, the Tailscale route and the files it installed, and lists anything it couldn't remove. A

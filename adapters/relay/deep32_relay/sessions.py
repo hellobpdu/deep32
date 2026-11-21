@@ -68,9 +68,9 @@ class Supervisor:
     scratch_factory(session) returns an owned context with .path and .cleanup().
     """
     def __init__(self, agent, gateway, emit, scratch_factory, *, clock=time.monotonic,
-                 turn_limit=170, queue_limit=2, queue_wait=30, idle_limit=60,
+                 turn_limit=3600, queue_limit=2, queue_wait=30, idle_limit=60,
                  lifetime=3600, on_close=None):
-        if (not 0 < turn_limit <= 170 or not 0 <= queue_limit <= 2 or
+        if (not 0 < turn_limit <= 3600 or not 0 <= queue_limit <= 2 or
             not 0 < queue_wait <= 30 or not 0 < idle_limit <= 60 or not 0 < lifetime <= 3600):
             raise SessionError("invalid-policy")
         self.agent, self.gateway, self.emit, self.scratch_factory = agent, gateway, emit, scratch_factory

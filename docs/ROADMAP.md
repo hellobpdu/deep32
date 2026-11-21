@@ -54,6 +54,7 @@ The next release with new Workstation and Forge images.
 | One installer on the PC | One command or download runs Connect and sets up the Ask relay together: it asks for the code once and handles the Linux linger setting, the Tailscale operator setting and the relay service | This page |
 | Relay pairing without service steps | The relay pauses its own service while pairing and starts it again afterwards; the ten-word comparison stays on the Workstation's text console | This page |
 | Reinstall-aware pairing | When a reinstalled Workstation pairs with a relay that still knows the old one, the relay offers to forget the old Workstation | This page |
+| Exact model choice in Ask | Ask lists exact model versions beside the agent's short names, and a Codex relay offers every model Codex lists for the account | [Agent adapters 5](../adapters/README.md#5-the-ask-relay) |
 
 ### 3.2 Fixes
 

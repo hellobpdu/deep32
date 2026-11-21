@@ -194,7 +194,9 @@ class Sessions(OfflineCase):
 
     def test_deadline_refuses_output_and_upstream(self):
         session=self.start(); cap=session.capability
-        self.clock.advance(170)
+        self.clock.advance(3500)
+        self.assertTrue(self.supervisor.output(1,session.epoch,{'type':'delta','text':'thinking long'}))
+        self.clock.advance(100)
         self.assertFalse(self.supervisor.output(1,session.epoch,{'type':'delta','text':'late'}))
         with self.assertRaises(ProxyError):
             self.gateway.call(cap,rpc('initialize'))

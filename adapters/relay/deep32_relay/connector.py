@@ -87,6 +87,8 @@ def _config(install_id, engine, transport='unconfigured', port=7452):
             'profile_alias': 'relay-' + engine, 'listener': '127.0.0.1', 'port': port,
             'transport': transport, 'intake_enabled': transport != 'unconfigured',
             'max_active_sessions': 1, 'max_queue': 2, 'queue_timeout_seconds': 30,
+            # Kept at 170: install receipts store this config and are compared whole, so a new value would block the
+            # remove-then-install upgrade. Nothing reads it; the turn limit is SessionManager.turn_limit (3600 s).
             'turn_timeout_seconds': 170, 'idle_timeout_seconds': 60,
             'session_timeout_seconds': 3600, 'turns_per_hour': 30}
 

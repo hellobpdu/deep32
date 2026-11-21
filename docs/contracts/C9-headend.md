@@ -103,7 +103,7 @@ An Ask session's agent may call the gateway's eleven search tools and nothing el
   plugins, hooks, apps, multi-agent, memories, image viewing and others), strict configuration. Before the first
   turn it checks the layered configuration, exactly one enabled MCP server and the features list.
 - Tool calls go to a per-session loopback proxy with a random bearer, which forwards them only while a verified
-  turn runs (deadline 170 s). The user's own skills and MCP entries are never used by an Ask session; the relay's
+  turn runs (deadline 3600 s, the session's lifetime). The user's own skills and MCP entries are never used by an Ask session; the relay's
   packaged skill is a cleaned copy of the research skill.
 
 Sources: `adapters/relay/deep32_relay/{native.py,engine.py,proxy.py,sessions.py}` and `adapters/relay/RESEARCH.md`.

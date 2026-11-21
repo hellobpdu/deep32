@@ -36,7 +36,10 @@ finish; INSTALL gives every step by hand as well.
 - A project site at https://hellobpdu.github.io/deep32/ with a step-by-step general setup and an advanced install guide.
 - Ask lets you choose the model and the strength for each conversation. A Claude Code relay offers the models Claude
   Code lists for its profile (default, opus, fable, sonnet and haiku with Claude Code 2.1.326) and the effort levels
-  low, medium, high, xhigh and max, with default first; a Codex relay offers its one checked model and effort.
+  low, medium, high, xhigh and max, with default first; a Codex relay offers its one checked model and effort. An
+  answer has no time limit of its own; it runs until the agent is done, within the relay session's one hour. The
+  limit was 170 seconds, and a researched question at xhigh ran past it. The relay answers one question at a time
+  ([adapters/README.md section 5](adapters/README.md#5-the-ask-relay)).
 - `install/deep32-setup.sh`: one command per machine that checks it, fixes what it safely can, downloads and installs
   its part, and stops only for a sign-in, the installer's plan and the pairing code. AGENTS.md tells Claude Code or
   Codex how to run it for you.
