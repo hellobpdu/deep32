@@ -223,6 +223,11 @@ the Workstation a question you already know the answer to. A successful turn str
 research line lists the searches the agent made. If the turn ends with `agent-start-failed`, use your agent directly
 through Connect. See the known issues in CHANGELOG.md.
 
+**What the agent follows.** Ask's agent follows the deep32 research skill that Connect installs for Claude Code,
+including its exam blueprint map, under the relay's own rules: only the eleven Deep32 tools, no files, commands
+or web access, and no other agents. The relay passes the skill with each question, so an answer starts with the
+same method as a Connect session.
+
 **One question at a time.** The relay answers one question at a time. A second question waits in a queue of two
 for up to 30 seconds and is then turned away, so ask again when the first answer is done. An answer has no time
 limit of its own: it runs until the agent is done, within the relay session's one hour, and a researched question

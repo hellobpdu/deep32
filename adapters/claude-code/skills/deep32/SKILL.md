@@ -71,8 +71,10 @@ The runtime first-session check requires Phase B media with published HTTPS and 
 ## 2. Method
 
 1. **Classify** the question: fact, mechanism, RFC vs Cisco, CLI or default, troubleshooting or design.
-2. **Scope.** Pin the release (section 0). Find the governing RFCs and Cisco documents with `lookup_id` on the
-   question's identifiers and, for an unfamiliar area, `list_documents` with `doc_type` `cisco` or `rfc`.
+2. **Scope.** Pin the release (section 0). Search `${CLAUDE_SKILL_DIR}/blueprint.md` for the topic, protocol or feature:
+   its entry names the exam topic, the governing RFCs and the Cisco doc_keys to search first. They are hints;
+   the evidence still comes from the tools. Then `lookup_id` on the question's identifiers and, for an unfamiliar
+   area, `list_documents` with `doc_type` `cisco` or `rfc`.
 3. **Identifiers.** `lookup_id(identifier)` for each one: `"RFC 4456 8"`, `"BGP attribute 9"`, `"LSA type 7"`,
    `"DSCP EF"`, a CLI command.
 4. **Recall.** One `search_many(queries=[{text, mode}, …])` with 3 to 6 queries: identifiers and exact CLI with
@@ -162,6 +164,8 @@ Put corpus gaps (a missing RFC or command reference, release drift) in the answe
 
 ## Reference files (read only when needed)
 
+- `${CLAUDE_SKILL_DIR}/blueprint.md`: the ENARSI 300-410 and CCIE Enterprise Infrastructure topics, each with its
+  RFCs, Cisco doc_keys and where to look. Search it for the topic; don't read it whole.
 - `${CLAUDE_SKILL_DIR}/expanded-answer.md`: the default answer layout, and the theory pass that feeds it.
 - `${CLAUDE_SKILL_DIR}/quick-default.md`: the bounded rounds of the default depth.
 - `${CLAUDE_SKILL_DIR}/query-planning.md`: turning a plain-English question into search terms the documents use.

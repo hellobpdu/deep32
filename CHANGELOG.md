@@ -40,6 +40,11 @@ finish; INSTALL gives every step by hand as well.
   answer has no time limit of its own; it runs until the agent is done, within the relay session's one hour. The
   limit was 170 seconds, and a researched question at xhigh ran past it. The relay answers one question at a time
   ([adapters/README.md section 5](adapters/README.md#5-the-ask-relay)).
+- Ask's agent follows the same research skill that Connect installs, inlined because it can't open files. Before,
+  it had a short summary of that skill, and its answers were much thinner than the same question through Connect.
+- The research skill has a map of the ENARSI 300-410 and CCIE Enterprise Infrastructure exam topics: each topic
+  with its RFCs, Cisco documents and where to look. The agent searches it first to find the governing documents.
+  The topic titles are Cisco's published exam topics; the mappings are mine.
 - `install/deep32-setup.sh`: one command per machine that checks it, fixes what it safely can, downloads and installs
   its part, and stops only for a sign-in, the installer's plan and the pairing code. AGENTS.md tells Claude Code or
   Codex how to run it for you.
@@ -158,6 +163,9 @@ finish; INSTALL gives every step by hand as well.
 - The First Start, Import Report and Pairing entries in the desktop's Application Manager open their windows. They
   were installed without the execute permission CDE needs to run an entry.
 - The Ask link service no longer prints `d32chat(failed)` at boot before an Ask relay is paired.
+- The Ask relay starts after a turn that ended while Claude Code was writing one of its built-in plugin records.
+  That left an empty lock folder in the relay's own profile, and the relay took it for a customised profile and
+  refused to start (`native-profile-customised`).
 - First Start's hint for a switched-off link gives the command with the full path that `doas` accepts:
   `doas /usr/local/d32/sbin/d32-link enable`.
 - The Forge's model servers start on an offline host. The alpha.1 GPU pack shipped both model caches without the

@@ -301,9 +301,11 @@ def _private_json(path, value):
 
 def _builtin_plugin_records_only(path):
     """Claude Code writes plugins/store/<name>_builtin-<hex>.json for its own built-in plugins on every start,
-    sign-in included. That is not a customisation; anything else under plugins/ (an installed plugin, a
-    marketplace, a symlink) still is."""
+    sign-in included. That is not a customisation, and neither is the empty <record>.json.lock folder Claude Code
+    leaves beside one when the relay ends it while it writes the record (seen after an Ask turn on the lab headend).
+    Anything else under plugins/ (an installed plugin, a marketplace, a symlink, a lock with content) still is."""
     import re
+    record = r"[A-Za-z0-9._-]{1,96}_builtin-[0-9a-f]{6,64}\.json"
     if path.is_symlink() or not path.is_dir():
         return False
     for item in path.rglob("*"):
@@ -312,8 +314,10 @@ def _builtin_plugin_records_only(path):
             return False
         if item.is_dir() and parts == ("store",):
             continue
-        if (item.is_file() and len(parts) == 2 and parts[0] == "store"
-                and re.fullmatch(r"[A-Za-z0-9._-]{1,96}_builtin-[0-9a-f]{6,64}\.json", parts[1])):
+        if (item.is_file() and len(parts) == 2 and parts[0] == "store" and re.fullmatch(record, parts[1])):
+            continue
+        if (item.is_dir() and len(parts) == 2 and parts[0] == "store" and re.fullmatch(record + r"\.lock", parts[1])
+                and next(item.iterdir(), None) is None):
             continue
         return False
     return True

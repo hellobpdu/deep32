@@ -1,6 +1,6 @@
 """sync_twins.py: keeps the Codex twin of the deep32 research skill in step with the Claude twin.
 
-The Claude twin (adapters/claude-code/skills/deep32) is the source for the nine shared reference files. Each is copied to the Codex twin
+The Claude twin (adapters/claude-code/skills/deep32) is the source for the ten shared reference files. Each is copied to the Codex twin
 (adapters/codex/skills/deep32) with one change: the path style. ${CLAUDE_SKILL_DIR} becomes ${CODEX_HOME}/skills/deep32,
 which the installer rewrites to the absolute path of the person's Codex home (as the old kit's setup.ps1 did).
 SKILL.md and deep-engine.md are each twin's own (Claude runs rounds as parallel tool calls, Codex as code-mode
@@ -15,7 +15,7 @@ import difflib
 import os
 import sys
 
-SHARED = ['citation-style.md', 'collections.md', 'expanded-answer.md', 'outline-check.md', 'query-planning.md',
+SHARED = ['blueprint.md', 'citation-style.md', 'collections.md', 'expanded-answer.md', 'outline-check.md', 'query-planning.md',
           'quick-default.md', 'release-drift.md', 'rfc-pitfalls.md', 'troubleshooting.md']
 OWN = ['SKILL.md', 'deep-engine.md']
 CLAUDE_DIR, CODEX_DIR = '${CLAUDE_SKILL_DIR}', '${CODEX_HOME}/skills/deep32'
