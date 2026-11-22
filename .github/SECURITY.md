@@ -1,9 +1,9 @@
 <div align="center">
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="../docs/figures/head-security-dark.svg">
-  <source media="(prefers-color-scheme: light)" srcset="../docs/figures/head-security-light.svg">
-  <img alt="Deep32 Security Policy, D32-SEC: reporting and supported releases." src="../docs/figures/head-security-light.svg" width="100%">
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/hellobpdu/deep32/main/docs/figures/head-security-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/hellobpdu/deep32/main/docs/figures/head-security-light.svg">
+  <img alt="Deep32 Security Policy, D32-SEC: reporting and supported releases." src="https://raw.githubusercontent.com/hellobpdu/deep32/main/docs/figures/head-security-light.svg" width="100%">
 </picture>
 <br>
 
