@@ -72,7 +72,7 @@ class Supervisor:
     """
     def __init__(self, agent, gateway, emit, scratch_factory, *, clock=time.monotonic,
                  turn_limit=3600, queue_limit=2, queue_wait=30, idle_limit=60,
-                 lifetime=3600, on_close=None, on_turn=None, checks="off", on_answer=None):
+                 lifetime=3600, on_close=None, on_turn=None, checks="off", on_answer=None, on_save=None):
         # An idle conversation may be kept for up to 15 minutes (the service passes DEEP32_RELAY_IDLE_SECONDS,
         # settings.py); the default here stays the 60 seconds every earlier release had.
         if (not 0 < turn_limit <= 3600 or not 0 <= queue_limit <= 2 or
@@ -83,7 +83,10 @@ class Supervisor:
         self.checks = checks
         # on_answer(turn) writes the optional answer record (record.py): what answered, on what, and the counts.
         self.on_answer = on_answer
-        self.capture = checks == "footer" or on_answer is not None      # keep each turn's tool calls for them
+        # on_save(turn) is given each finished answer's text to save in the operator's vault (vault.py).
+        self.on_save = on_save
+        # keep each turn's tool calls for them
+        self.capture = checks == "footer" or on_answer is not None or on_save is not None
         self.agent, self.gateway, self.emit, self.scratch_factory = agent, gateway, emit, scratch_factory
         self.clock = clock
         self.lock = threading.RLock()
@@ -340,22 +343,25 @@ class Supervisor:
         Never raises, never changes the answer, calls no model. The footer goes to the Ask window only: it is no
         part of the answer the session remembers for a follow-up question.
         """
-        if self.checks != "footer" and self.on_answer is None:
+        if self.checks != "footer" and self.on_answer is None and self.on_save is None:
             return
         result = events = None
-        try:
-            from . import answer_check
-            with self.gateway.lock:
-                events = list(getattr(s.capability, "events", None) or ())
-            # Claude's final text is the answer. Codex has none: its answer is its last message.
-            answer = s.final_text if s.final_seen else (s.delta_text[s.message_start:] or s.delta_text)
-            result = answer_check.check(answer, events, question=s.question)
-            text = answer_check.footer(result)
-            s.check_state = "done" if text else "failed"
-            if text and self.checks == "footer":
-                self._footer(s, text)
-        except Exception:
-            s.check_state = "failed"
+        if self.checks == "footer" or self.on_answer is not None:
+            try:
+                from . import answer_check
+                with self.gateway.lock:
+                    events = list(getattr(s.capability, "events", None) or ())
+                # Claude's final text is the answer. Codex has none: its answer is its last message.
+                answer = s.final_text if s.final_seen else (s.delta_text[s.message_start:] or s.delta_text)
+                result = answer_check.check(answer, events, question=s.question)
+                text = answer_check.footer(result)
+                s.check_state = "done" if text else "failed"
+                if text and self.checks == "footer":
+                    self._footer(s, text)
+            except Exception:
+                s.check_state = "failed"
+        if self.on_save is not None:
+            self._save(s, events)
         if self.on_answer is None:
             return
         try:
@@ -372,6 +378,23 @@ class Supervisor:
             turn = None         # a record that cannot be made never fails an answer
         if turn is not None:
             self._tell(self.on_answer, turn)
+
+    def _save(self, s, events):
+        """Hand the finished answer to the vault (on_save, vault.AnswerVault.submit, which only queues it): the
+        question, the answer as the Ask window received it (the streamed text, or the final text when nothing
+        streamed; the Checks footer is not part of it), what answered and the turn's tool calls."""
+        try:
+            if events is None:
+                with self.gateway.lock:
+                    events = list(getattr(s.capability, "events", None) or ())
+            describe = getattr(s.process, "describe", None)
+            about = dict(describe() if callable(describe) else {})
+            turn = {"question": s.question, "answer": s.delta_text or s.final_text,
+                    "model": str(about.get("model") or s.model), "effort": str(about.get("effort") or s.effort),
+                    "events": events}
+        except Exception:
+            return              # an answer that cannot be handed over is not saved; the turn goes on
+        self._tell(self.on_save, turn)
 
     def _footer(self, s, text):
         """Send the footer as answer text after everything the agent wrote. The Ask window shows streamed text and

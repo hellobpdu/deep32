@@ -13,8 +13,18 @@ the service with the reason invalid-relay-setting: the relay never runs with a s
     DEEP32_RELAY_EFFORT         an effort level; what the default effort choice runs (unset: the agent's own)
     DEEP32_RELAY_ANSWER_RECORD  on or off; on writes one record per answer (record.py): what answered, on which
                                 index, the tool calls' ids and the check's counts, never a text (off)
+    DEEP32_RELAY_SAVE_DIR       the absolute path of an existing folder, an Obsidian vault: every finished answer is
+                                saved there as a note (vault.py), and each turn asks the agent to end its answer
+                                with a Blueprint line naming its exam topic (unset: nothing is saved)
+    DEEP32_RELAY_SAVE_MAP       the absolute path of a map file (TSV: exam id, tab, folder under the vault); a note
+                                whose Blueprint id it maps to an existing folder is saved there, every other one in
+                                the vault's _inbox; needs DEEP32_RELAY_SAVE_DIR (unset: every note goes to _inbox)
+    DEEP32_RELAY_SAVE_HOOK      the absolute path of a program run after saving, with the vault folder as its only
+                                argument, no shell and at most 60 seconds; its failure is logged and never fails an
+                                answer; needs DEEP32_RELAY_SAVE_DIR (unset: none)
 """
 from dataclasses import dataclass
+import os
 import re
 
 from .state import StateError
@@ -33,6 +43,9 @@ class Settings:
     model: str = ""
     effort: str = ""
     answer_record: bool = False
+    save_dir: str = ""
+    save_folders: tuple = ()    # the map's ("<exam> <id>", folder under the vault) pairs (DEEP32_RELAY_SAVE_MAP)
+    save_hook: str = ""
 
 
 def load(environ, agent=None):
@@ -60,5 +73,20 @@ def load(environ, agent=None):
     record = text("DEEP32_RELAY_ANSWER_RECORD")
     if record not in ("", "on", "off"):
         raise StateError("invalid-relay-setting")
+    save_dir, save_map, save_hook = text("DEEP32_RELAY_SAVE_DIR"), text("DEEP32_RELAY_SAVE_MAP"), \
+        text("DEEP32_RELAY_SAVE_HOOK")
+    folders = ()
+    if save_dir or save_map or save_hook:
+        from . import vault
+        try:
+            # A map or a hook without the vault would do nothing: that is a setting written wrongly too.
+            if not save_dir or not os.path.isabs(save_dir) or not os.path.isdir(save_dir):
+                raise ValueError("invalid-save-dir")
+            folders = vault.read_map(save_map) if save_map else ()
+            if save_hook and not vault.runnable(save_hook):
+                raise ValueError("invalid-save-hook")
+        except (OSError, ValueError):
+            raise StateError("invalid-relay-setting") from None
     return Settings(idle_seconds=int(idle) if idle else IDLE_DEFAULT, checks=checks or CHECKS_DEFAULT,
-                    model=model, effort=effort, answer_record=record == "on")
+                    model=model, effort=effort, answer_record=record == "on", save_dir=save_dir,
+                    save_folders=folders, save_hook=save_hook)

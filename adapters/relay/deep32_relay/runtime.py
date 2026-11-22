@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import secrets
 import stat
+import threading
 import time
 
 
@@ -88,8 +89,10 @@ class Scratch:
         return True
 
 
+# answer-save and save-hook are the optional vault's (vault.py): a note written or not, the hook's outcome.
 EVENTS = frozenset(("service-check", "link-open", "link-close", "session-open",
-                   "session-close", "turn-start", "turn-end", "cleanup-failed", "answer-check"))
+                   "session-close", "turn-start", "turn-end", "cleanup-failed", "answer-check",
+                   "answer-save", "save-hook"))
 REASONS = frozenset(("none", "unavailable", "cancelled", "timeout", "protocol",
                     "auth", "limit", "cleanup"))
 
@@ -123,8 +126,13 @@ class EventLedger:
         if not 1024 <= max_bytes <= 1048576:
             raise RuntimeErrorCode("invalid-log-limit")
         self.max_bytes, self.sequence = max_bytes, 0
+        self.lock = threading.Lock()        # the vault's thread logs beside the turns
 
     def append(self, event, reason="none", **counts):
+        with self.lock:
+            self._append(event, reason, **counts)
+
+    def _append(self, event, reason="none", **counts):
         if event not in EVENTS or reason not in REASONS or set(counts) - {"count", "bytes", "duration_ms", "refused"}:
             raise RuntimeErrorCode("invalid-log-event")
         if any(type(v) is not int or not 0 <= v < 2**63 for v in counts.values()):

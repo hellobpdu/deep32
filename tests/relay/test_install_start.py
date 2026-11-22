@@ -340,6 +340,22 @@ class InstallStartsServiceAfterCommit(unittest.TestCase):
         self.assertEqual(self.options['on_answer'].__self__.__class__.__name__, 'AnswerRecords')
         self.assertFalse(self.root.path('logs/answers').exists())    # nothing is written before an answer
 
+    def test_answers_are_saved_and_the_blueprint_asked_for_only_with_a_vault(self):
+        from deep32_relay import vault
+        self.install(transport='loopback')
+        self.service({})
+        self.assertIsNone(self.options['on_save'])
+        self.assertEqual(getattr(self.agents[0], 'instruction_extra', ''), '')
+        folder = self.base / 'synthetic-vault'
+        folder.mkdir()
+        code, reasons, seen = self.service({'DEEP32_RELAY_SAVE_DIR': str(folder)})
+        self.assertEqual((code, seen[0].save_dir), (0, str(folder)))
+        self.assertEqual(self.options['on_save'].__self__.__class__.__name__, 'AnswerVault')
+        self.assertEqual(self.agents[0].instruction_extra, vault.INSTRUCTION)
+        self.assertEqual(list(folder.iterdir()), [])                 # nothing is written before an answer
+        code, reasons, seen = self.service({'DEEP32_RELAY_SAVE_DIR': str(folder / 'missing')})
+        self.assertEqual((code, reasons, self.agents), (10, ['invalid-relay-setting'], []))
+
     def test_a_setting_that_is_not_valid_stops_the_service_and_is_named(self):
         self.install(transport='loopback')
         code, reasons, seen = self.service({'DEEP32_RELAY_IDLE_SECONDS': 'soon'})

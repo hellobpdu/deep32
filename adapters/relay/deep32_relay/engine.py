@@ -103,6 +103,15 @@ class NativeAgent:
     pin_effort = ""
     # SHA-256 of the instruction file this agent is given (native_from_owned sets it; the answer record names it).
     instruction_sha256 = ""
+    # A sentence an operator setting adds after the instruction file on every turn: with DEEP32_RELAY_SAVE_DIR the
+    # service sets vault.INSTRUCTION, which asks for the answer's closing Blueprint line. Empty adds nothing.
+    instruction_extra = ""
+
+    def turn_instruction(self):
+        """The instruction a turn's agent gets: the instruction file, then the operator's added sentence."""
+        if not self.instruction_extra:
+            return self.instruction
+        return self.instruction.rstrip() + "\n\n" + self.instruction_extra + "\n"
 
     def __init__(self, agent, profile, *, executable=None, version="", platform=None,
                  qualification=None, gateway=None, model=None, effort=None,
@@ -174,7 +183,7 @@ class NativeAgent:
             endpoint.start()
             plan, protocol = self.launcher.prepare(self.executable, scratch, self.profile,
                 endpoint=endpoint.url, bearer=capability.bearer, model=model, effort=effort,
-                platform=self.platform, instruction=self.instruction, pinned=pinned)
+                platform=self.platform, instruction=self.turn_instruction(), pinned=pinned)
             tree = (self.tree_factory or native_tree)(self.platform)
             class GuardedTree:
                 def start(inner, *args, **kwargs):

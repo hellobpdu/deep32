@@ -120,10 +120,12 @@ class ResearchBridge:
         self.supervisor.disconnect()
 
 
-def make_bridge(link, agent, scratch_factory, *, clock, settings=None, on_turn=None, on_answer=None):
+def make_bridge(link, agent, scratch_factory, *, clock, settings=None, on_turn=None, on_answer=None,
+                on_save=None):
     """`settings` is the service's settings.Settings; without it the supervisor keeps its own defaults.
     `on_turn` receives each finished turn's numbers (runtime.log_turn writes them to the service's log);
-    `on_answer` receives each finished answer's record (record.AnswerRecords.write)."""
+    `on_answer` receives each finished answer's record (record.AnswerRecords.write);
+    `on_save` receives each finished answer's text for the operator's vault (vault.AnswerVault.submit)."""
     from .proxy import Gateway, ProxyError
     from .sessions import Supervisor
     def dispatch(session, envelope, deadline, guard):
@@ -135,7 +137,8 @@ def make_bridge(link, agent, scratch_factory, *, clock, settings=None, on_turn=N
                       on_revoke=link.cancel_requests)
     policy = {} if settings is None else {"idle_limit": settings.idle_seconds, "checks": settings.checks}
     supervisor = Supervisor(agent, gateway, lambda stream, event: None,
-                            scratch_factory, clock=clock, on_turn=on_turn, on_answer=on_answer, **policy)
+                            scratch_factory, clock=clock, on_turn=on_turn, on_answer=on_answer, on_save=on_save,
+                            **policy)
     return ResearchBridge(link, supervisor)
 
 

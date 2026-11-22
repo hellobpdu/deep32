@@ -22,12 +22,13 @@ from .wire import Error, ProtocolError
 class RelayReactor:
     def __init__(self, listener, agent, scratch_factory, *, clock=time.monotonic,
                  wall_clock=time.time, publish=None, install=None,
-                 identity_observer=process_identity, settings=None, on_turn=None, on_answer=None):
+                 identity_observer=process_identity, settings=None, on_turn=None, on_answer=None, on_save=None):
         self.listener, self.agent = listener, agent
         self.scratch_factory = scratch_factory
         self.settings = settings        # settings.Settings of the service; None keeps the supervisor's defaults
         self.on_turn = on_turn          # told each finished turn's numbers (the service's log)
         self.on_answer = on_answer      # given each finished answer's record, when the operator asked for records
+        self.on_save = on_save          # given each finished answer's text, when the operator named a vault
         self.clock, self.wall_clock = clock, wall_clock
         self.publish = publish or (lambda value: None)
         self.install = install
@@ -73,7 +74,7 @@ class RelayReactor:
                 self.cleanup_failed = True
                 raise ProtocolError(Error.SETTINGS_UNVERIFIED)
         bridge = make_bridge(link, self.agent, self.scratch_factory, clock=self.clock, settings=self.settings,
-                             on_turn=self.on_turn, on_answer=self.on_answer)
+                             on_turn=self.on_turn, on_answer=self.on_answer, on_save=self.on_save)
         # A reconnect does not reset the installation's hourly quota.
         bridge.supervisor.turns = self.turns
         with self.lock:
@@ -251,14 +252,22 @@ def stop_requested(owner, install_id):
     return True
 
 
-def turn_logger(owner):
-    """The service's turn log, logs/events.jsonl in the relay's own folder: one line of counts per turn
-    (runtime.log_turn). A log that cannot be set up or written is skipped; it never stops the relay or a turn."""
-    from .runtime import EventLedger, log_turn
+def event_ledger(owner):
+    """The service's event log, logs/events.jsonl in the relay's own folder, or None when it cannot be set up."""
+    from .runtime import EventLedger
     try:
         owner.mkdir("logs")
-        ledger = EventLedger(owner.path("logs/events.jsonl"), validate_owner=owner.validate)
+        return EventLedger(owner.path("logs/events.jsonl"), validate_owner=owner.validate)
     except Exception:
+        return None
+
+
+def turn_logger(owner, ledger=None):
+    """The service's turn log, logs/events.jsonl in the relay's own folder: one line of counts per turn
+    (runtime.log_turn). A log that cannot be set up or written is skipped; it never stops the relay or a turn."""
+    from .runtime import log_turn
+    ledger = ledger if ledger is not None else event_ledger(owner)
+    if ledger is None:
         return None
     return lambda numbers: log_turn(ledger, numbers)
 
@@ -298,13 +307,25 @@ def run_owned(owner, *, stop_event=None):
     if settings.answer_record:
         from .record import AnswerRecords
         records = AnswerRecords(owner, receipt, agent)
+    ledger = event_ledger(owner)
+    vault = None
+    if settings.save_dir:
+        # DEEP32_RELAY_SAVE_DIR: every answer is saved in the vault, and every turn asks for its Blueprint line.
+        from .vault import AnswerVault, INSTRUCTION
+        try:
+            vault = AnswerVault(settings.save_dir, settings.save_folders, settings.save_hook,
+                                log=ledger.append if ledger is not None else None)
+        except (OSError, ValueError):
+            raise StateError("invalid-relay-setting") from None
+        agent.instruction_extra = INSTRUCTION
     profiles = ({"name": "research", "models": list(agent.models),
                  "efforts": list(agent.efforts)},)
     listener = Listener(identity, peer, provider=provider, port=config["port"], profiles=profiles)
     reactor = RelayReactor(listener, agent,
         lambda ident: Scratch(owner.path("runtime/sessions"), validate_owner=owner.validate),
         publish=lambda value: publish_status(owner, value), install=receipt, settings=settings,
-        on_turn=turn_logger(owner), on_answer=records.write if records is not None else None)
+        on_turn=turn_logger(owner, ledger), on_answer=records.write if records is not None else None,
+        on_save=vault.submit if vault is not None else None)
     stopped = stop_event or threading.Event()
     try:
         reactor.start()
@@ -314,6 +335,8 @@ def run_owned(owner, *, stop_event=None):
                 break
     finally:
         clean = reactor.close()
+        if vault is not None:
+            vault.close()           # saves the answers already handed over, waiting a few seconds at most
     if not clean:
         raise StateError("cleanup-unconfirmed")
     return 0
