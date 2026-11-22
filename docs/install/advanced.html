@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Advanced install: Deep32 0.1.0-alpha.2</title>
-<meta name="description" content="Install Deep32 0.1.0-alpha.2 by hand: each layout with deep32-get, disk budgets, ports, tailnet rules, the Forge on Docker Desktop or Docker Engine, bare metal, several sites, and what to do afterwards.">
+<title>Advanced install: Deep32 0.1.0-alpha.3</title>
+<meta name="description" content="Install Deep32 0.1.0-alpha.3 by hand: each layout with deep32-get, disk budgets, ports, tailnet rules, the Forge on Docker Desktop or Docker Engine, bare metal, several sites, and what to do afterwards.">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#464d56" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1d2126" media="(prefers-color-scheme: dark)">
@@ -15,8 +15,8 @@
 <script src="../assets/site.js" defer></script>
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Deep32">
-<meta property="og:title" content="Advanced install: Deep32 0.1.0-alpha.2">
-<meta property="og:description" content="Install Deep32 0.1.0-alpha.2 by hand: each layout with deep32-get, disk budgets, ports, tailnet rules, the Forge on Docker Desktop or Docker Engine, bare metal, several sites, and what to do afterwards.">
+<meta property="og:title" content="Advanced install: Deep32 0.1.0-alpha.3">
+<meta property="og:description" content="Install Deep32 0.1.0-alpha.3 by hand: each layout with deep32-get, disk budgets, ports, tailnet rules, the Forge on Docker Desktop or Docker Engine, bare metal, several sites, and what to do afterwards.">
 <meta property="og:url" content="https://hellobpdu.github.io/deep32/install/advanced.html">
 <meta property="og:image" content="https://hellobpdu.github.io/deep32/assets/social-card.png">
 <meta property="og:image:type" content="image/png">
@@ -96,7 +96,7 @@
   <p class="lead">Each part by hand, layouts with more than one machine or site, and what to do once it runs.
   <a href="https://github.com/hellobpdu/deep32/blob/main/INSTALL.md">INSTALL.md</a> has every procedure in full;
   this page is the map, with the commands you'll need most and links to the detail.</p>
-  <p class="applies"><span>Applies to 0.1.0-alpha.2</span><span>For one PC with the wizard, see the <a href="index.html">general setup</a></span></p>
+  <p class="applies"><span>Applies to 0.1.0-alpha.3</span><span>For one PC with the wizard, see the <a href="index.html">general setup</a></span></p>
   </div>
 </header>
 
@@ -141,12 +141,12 @@
   runs). They can share machines. The installers call each layout a journey:</p>
   <div class="table-wrap">
     <table class="stack">
-      <thead><tr><th scope="col">Journey</th><th scope="col">Machines</th><th scope="col">Workstation and Forge</th><th scope="col">In 0.1.0-alpha.2</th></tr></thead>
+      <thead><tr><th scope="col">Journey</th><th scope="col">Machines</th><th scope="col">Workstation and Forge</th><th scope="col">In 0.1.0-alpha.3</th></tr></thead>
       <tbody>
-        <tr><th scope="row">J1</th><td data-label="Machines">Two Windows PCs</td><td data-label="Workstation and Forge">Hyper-V VM on the first; Docker Desktop on the second</td><td data-label="In 0.1.0-alpha.2">Not yet run end to end</td></tr>
-        <tr><th scope="row">J2</th><td data-label="Machines">A Windows PC and a Linux NVIDIA host</td><td data-label="Workstation and Forge">Hyper-V VM on the Windows PC; Docker on the Linux host</td><td data-label="In 0.1.0-alpha.2">The Linux Forge is tested; the Hyper-V Workstation isn't yet</td></tr>
-        <tr><th scope="row">J3</th><td data-label="Machines">One Linux NVIDIA host, no desktop</td><td data-label="Workstation and Forge">No Workstation: engine and gateway in Docker, with the Forge</td><td data-label="In 0.1.0-alpha.2">Not in this release: its image isn't among the downloads</td></tr>
-        <tr><th scope="row">J4</th><td data-label="Machines">One Linux NVIDIA host</td><td data-label="Workstation and Forge">KVM VM and Docker on the same host</td><td data-label="In 0.1.0-alpha.2">The tested parts: a KVM Workstation and a Docker Forge on Linux</td></tr>
+        <tr><th scope="row">J1</th><td data-label="Machines">Two Windows PCs</td><td data-label="Workstation and Forge">Hyper-V VM on the first; Docker Desktop on the second</td><td data-label="In 0.1.0-alpha.3">Not yet run end to end</td></tr>
+        <tr><th scope="row">J2</th><td data-label="Machines">A Windows PC and a Linux NVIDIA host</td><td data-label="Workstation and Forge">Hyper-V VM on the Windows PC; Docker on the Linux host</td><td data-label="In 0.1.0-alpha.3">The Linux Forge is tested; the Hyper-V Workstation isn't yet</td></tr>
+        <tr><th scope="row">J3</th><td data-label="Machines">One Linux NVIDIA host, no desktop</td><td data-label="Workstation and Forge">No Workstation: engine and gateway in Docker, with the Forge</td><td data-label="In 0.1.0-alpha.3">Not in this release: its image isn't among the downloads</td></tr>
+        <tr><th scope="row">J4</th><td data-label="Machines">One Linux NVIDIA host</td><td data-label="Workstation and Forge">KVM VM and Docker on the same host</td><td data-label="In 0.1.0-alpha.3">The tested parts: a KVM Workstation and a Docker Forge on Linux</td></tr>
       </tbody>
     </table>
   </div>
@@ -169,13 +169,14 @@
       <tbody>
         <tr><th scope="row">Disc 1, Workstation</th><td class="num" data-label="Size">1.9 GB</td><td data-label="Needed for">J1, J2, J4</td><td data-label="Command"><code>bash src/release-tools/deep32-get.sh disc1</code></td></tr>
         <tr><th scope="row">Disc 2, content</th><td class="num" data-label="Size">19.6 GB</td><td data-label="Needed for">Every journey</td><td data-label="Command"><code>bash src/release-tools/deep32-get.sh disc2</code></td></tr>
-        <tr><th scope="row">Disc 3, Forge GPU pack</th><td class="num" data-label="Size">about 37.1 GB</td><td data-label="Needed for">Forge installs</td><td data-label="Command"><code>bash src/release-tools/deep32-get.sh disc3 --gpu-class CLASS --ingestion</code></td></tr>
+        <tr><th scope="row">Disc 3, Forge GPU pack</th><td class="num" data-label="Size">21.7 to 21.9 GB; about 37.1 GB with ingestion</td><td data-label="Needed for">Forge installs</td><td data-label="Command"><code>bash src/release-tools/deep32-get.sh disc3 --gpu-class CLASS</code>, with <code>--ingestion</code> for the PDF converter and index builder</td></tr>
       </tbody>
     </table>
   </div>
   <p>On Windows use <code>src\release-tools\deep32-get.ps1</code> with the same arguments. Files go to
-  <code>./deep32-downloads</code> unless you give <code>--to DIR</code>. For disc 3 you get three images: the shared
-  core (18.6 GB), your card's embedder (3.1 to 3.3 GB) and ingestion (15.3 GB). The alpha.2 Forge installer needs all
+  <code>./deep32-downloads</code> unless you give <code>--to DIR</code>. For disc 3 you get the shared core (18.6 GB)
+  and your card's embedder (3.1 to 3.3 GB), and with <code>--ingestion</code> the ingestion image (15.3 GB), which you
+  need only to convert PDFs or build indexes of your own. <code>deep32-get.ps1</code> on Windows still downloads all
   three. Your card's class comes from its compute capability:</p>
   <div class="code"><pre><code>nvidia-smi --query-gpu=compute_cap --format=csv,noheader</code></pre></div>
   <div class="table-wrap">
@@ -201,8 +202,8 @@
   <h2 id="by-hand-title" class="tb">4. By hand, layout by layout</h2>
   <div class="pane">
   <p>Run these from the verified clone. <code>CLASS</code> is your card's class from section 3. The VM commands that
-  <code>--prepare-vm</code> writes still make a 160 GB disk: change <code>160GB</code> (Hyper-V) or <code>160G</code>
-  (KVM) to <code>200GB</code> or <code>200G</code> before you run them.</p>
+  <code>--prepare-vm</code> writes make a 200 GB disk. On Linux, leave out <code>--ingestion</code> if the Forge will
+  never convert a PDF or build an index.</p>
 
   <div class="journey">
     <h3><span class="tag">J4</span>One Linux NVIDIA host</h3>
@@ -210,7 +211,7 @@
     <div class="code"><pre><code>bash src/release-tools/deep32-get.sh disc1
 bash src/release-tools/deep32-get.sh disc1 --prepare-vm --hypervisor kvm
 bash src/release-tools/deep32-get.sh disc2
-bash src/release-tools/deep32-get.sh disc3 --gpu-class CLASS --ingestion
+bash src/release-tools/deep32-get.sh disc3 --gpu-class CLASS
 sudo bash src/release-tools/deep32-get.sh disc3 --gpu-class CLASS --install --journey J4 --data-root /opt/deep32 --from ./deep32-downloads</code></pre></div>
   </div>
 
@@ -221,7 +222,7 @@ sudo bash src/release-tools/deep32-get.sh disc3 --gpu-class CLASS --install --jo
 powershell -NoProfile -ExecutionPolicy Bypass -File src\release-tools\deep32-get.ps1 disc1 --prepare-vm --hypervisor hyper-v
 powershell -NoProfile -ExecutionPolicy Bypass -File src\release-tools\deep32-get.ps1 disc2</code></pre></div>
     <p>On the Linux host, the Forge:</p>
-    <div class="code"><pre><code>bash src/release-tools/deep32-get.sh disc3 --gpu-class CLASS --ingestion
+    <div class="code"><pre><code>bash src/release-tools/deep32-get.sh disc3 --gpu-class CLASS
 sudo bash src/release-tools/deep32-get.sh disc3 --gpu-class CLASS --install --journey J2 --data-root /opt/deep32 --from ./deep32-downloads</code></pre></div>
   </div>
 
@@ -241,10 +242,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File src\release-tools\deep32-get
     with no VM, is on the roadmap.</p>
   </div>
 
-  <p>The Forge installer wants the three images in one folder with the five signed files of the same release:
+  <p>The Forge installer wants the images in one folder with the five signed files of the same release:
   <code>SHA256SUMS</code>, <code>SHA256SUMS.sig</code>, <code>MIRRORS.json</code>, <code>CAPABILITIES.json</code> and
   <code>FORGE-PREREQUISITES.json</code>. <code>deep32-get</code> already put them in <code>./deep32-downloads</code>,
-  the signed files in its <code>.deep32-v0.1.0-alpha.2/revision-*</code> snapshot. Before it changes anything the
+  the signed files in its <code>.deep32-v0.1.0-alpha.3/revision-*</code> snapshot. Before it changes anything the
   installer checks the host recipe, the driver and memory floors, the Forge's ports and the free space, asks you to
   confirm the tailnet and the Certificate Transparency agreement, and shows its plan. Type the plan digest to go on.</p>
   <p>From there, INSTALL.md has each part in full:
@@ -263,26 +264,27 @@ powershell -NoProfile -ExecutionPolicy Bypass -File src\release-tools\deep32-get
   <div class="pane">
   <p><b>The Workstation</b> needs a disk of 200 GB or more. The guided layout sizes the Library partition from the
   disk, and the disc 2 import needs about 20 GB free there. Its downloads are 21.5 GB.</p>
-  <p><b>The Forge</b> installer compares free space with the storage budget signed into the release. For 0.1.0-alpha.2
-  the budgets are declared upper bounds, computed from the sizes of the three images with a margin over what my test
-  runs used; the check line ends with <code>(declared upper bound; no measurement yet)</code>. The installer checks
-  twice, before it joins the images and again after it has written the joined copy (36.8 GB), each time against the
-  whole budget. So have the budget plus the joined copy free when you start:</p>
+  <p><b>The Forge</b> installer compares free space with the storage budget signed into the release. For 0.1.0-alpha.3
+  the budgets are declared upper bounds, computed from the sizes of the images with a margin over what my test runs
+  used; the check line ends with <code>(declared upper bound; no measurement yet)</code>. The installer checks twice,
+  before it joins the images and again after it has written the joined copy, and from 0.1.0-alpha.3 the second check
+  counts the joined copy already on disk. So have the budget free when you start. With ingestion:</p>
   <div class="table-wrap">
     <table class="stack">
-      <thead><tr><th scope="col">Where the Forge writes</th><th scope="col" class="num">Budget</th><th scope="col" class="num">Free at the start</th></tr></thead>
+      <thead><tr><th scope="col">Where the Forge writes</th><th scope="col" class="num">Budget</th></tr></thead>
       <tbody>
-        <tr><th scope="row">Linux, data folder and Docker's storage on one filesystem</th><td class="num" data-label="Budget">244.0 GB</td><td class="num" data-label="Free at the start">280.8 GB</td></tr>
-        <tr><th scope="row">Linux or Windows, the data folder on a filesystem or volume of its own</th><td class="num" data-label="Budget">123.8 GB</td><td class="num" data-label="Free at the start">160.6 GB</td></tr>
-        <tr><th scope="row">Linux, Docker's storage on a filesystem of its own</th><td class="num" data-label="Budget">120.2 GB</td><td class="num" data-label="Free at the start">120.2 GB</td></tr>
-        <tr><th scope="row">Windows, data folder and Docker Desktop's disk image on one volume</th><td class="num" data-label="Budget">246.2 GB</td><td class="num" data-label="Free at the start">283.0 GB</td></tr>
-        <tr><th scope="row">Windows, Docker Desktop's disk image on a volume of its own</th><td class="num" data-label="Budget">122.5 GB</td><td class="num" data-label="Free at the start">122.5 GB</td></tr>
-        <tr><th scope="row">Windows, inside Docker Desktop's virtual disk</th><td class="num" data-label="Budget">176.8 GB</td><td class="num" data-label="Free at the start">176.8 GB</td></tr>
+        <tr><th scope="row">Linux, data folder and Docker's storage on one filesystem</th><td class="num" data-label="Budget">244.0 GB</td></tr>
+        <tr><th scope="row">Linux or Windows, the data folder on a filesystem or volume of its own</th><td class="num" data-label="Budget">123.8 GB</td></tr>
+        <tr><th scope="row">Linux, Docker's storage on a filesystem of its own</th><td class="num" data-label="Budget">120.2 GB</td></tr>
+        <tr><th scope="row">Windows, data folder and Docker Desktop's disk image on one volume</th><td class="num" data-label="Budget">246.2 GB</td></tr>
+        <tr><th scope="row">Windows, Docker Desktop's disk image on a volume of its own</th><td class="num" data-label="Budget">122.5 GB</td></tr>
+        <tr><th scope="row">Windows, inside Docker Desktop's virtual disk</th><td class="num" data-label="Budget">176.8 GB</td></tr>
       </tbody>
     </table>
   </div>
   <ul>
-    <li>The figures are for a <code>turing</code> card; the other classes need up to about 1 GB more.</li>
+    <li>The figures are for a <code>turing</code> card; the other classes need up to about 1 GB more. A Linux Forge
+    without ingestion needs less.</li>
     <li>GB here means 10<sup>9</sup> bytes. <code>df -h</code> and Windows count in GiB and show numbers about 7%
     smaller.</li>
     <li>The joined copy goes beside the data folder, in <code>/opt/deep32.deep32-media</code> for
@@ -366,19 +368,20 @@ powershell -NoProfile -ExecutionPolicy Bypass -File src\release-tools\deep32-get
         <tr><th scope="row">Software</th><td data-label="Docker Engine (Linux or WSL 2)">Docker Engine with the Compose v2 plugin and the NVIDIA Container Toolkit</td><td data-label="Docker Desktop (Windows)">Docker Desktop 4.99.0 or later with Docker Engine 29.0.0 or later, WSL 2 backend</td></tr>
         <tr><th scope="row">Journeys, recipe</th><td data-label="Docker Engine (Linux or WSL 2)">J2, J4: <code>ubuntu-24.04-docker-engine-j2</code>, <code>-j4</code></td><td data-label="Docker Desktop (Windows)">J1: <code>windows-11-docker-desktop-wsl2-j1</code></td></tr>
         <tr><th scope="row">Graphics driver</th><td data-label="Docker Engine (Linux or WSL 2)">NVIDIA 580.65.06 or newer</td><td data-label="Docker Desktop (Windows)">The Windows driver, 580.65.06 or newer, serves Docker Desktop; no Linux driver inside its WSL 2 backend</td></tr>
-        <tr><th scope="row">Classic image store</th><td data-label="Docker Engine (Linux or WSL 2)"><code>"features": {"containerd-snapshotter": false}</code> in <code>/etc/docker/daemon.json</code>, then restart Docker</td><td data-label="Docker Desktop (Windows)">Settings, General: turn off <b>Use containerd for pulling and storing images</b></td></tr>
+        <tr><th scope="row">Image store</th><td data-label="Docker Engine (Linux or WSL 2)">The default containerd store with the system's containerd running, or the classic store</td><td data-label="Docker Desktop (Windows)">The classic store: Settings, General, turn off <b>Use containerd for pulling and storing images</b></td></tr>
         <tr><th scope="row">Tailscale node</th><td data-label="Docker Engine (Linux or WSL 2)">The host's own; in WSL 2, the distro is a node of its own</td><td data-label="Docker Desktop (Windows)">The Windows host's node</td></tr>
         <tr><th scope="row">Install from</th><td data-label="Docker Engine (Linux or WSL 2)"><code>sudo bash</code>, data folder <code>/opt/deep32</code> in INSTALL's examples</td><td data-label="Docker Desktop (Windows)">An elevated PowerShell with Docker Desktop running, data folder <code>C:\Deep32</code></td></tr>
         <tr><th scope="row">Pairing code</th><td data-label="Docker Engine (Linux or WSL 2)"><code>sudo grep -o 'pair=[A-Z2-7]*' /opt/deep32/status/status</code></td><td data-label="Docker Desktop (Windows)">The helper <code>forge_pair_windows.py</code>; the code is in <code>C:\Deep32\status\windows-pair</code></td></tr>
-        <tr><th scope="row">Pairing helper's Python</th><td data-label="Docker Engine (Linux or WSL 2)">The host's <code>/usr/bin/python3</code>, 3.10 or newer with <code>ssl</code></td><td data-label="Docker Desktop (Windows)">Started with <code>python -I -B</code> from the clone</td></tr>
+        <tr><th scope="row">Pairing helper's Python</th><td data-label="Docker Engine (Linux or WSL 2)">The installer's own Python, 3.12 or newer</td><td data-label="Docker Desktop (Windows)">Started with <code>python -I -B</code> from the clone</td></tr>
         <tr><th scope="row">What has run</th><td data-label="Docker Engine (Linux or WSL 2)">On an RTX 2080 Ti in an Ubuntu 24.04 WSL 2 distro: the images and their join, both models, the Workstation's check of both models, and a one-page PDF converted with <code>--tier standard</code> in about 2 minutes 22 seconds</td><td data-label="Docker Desktop (Windows)">The images joined and loaded into Docker Desktop. No model has run there yet</td></tr>
       </tbody>
     </table>
   </div>
   <p>Both install under an owner waiver for this release, ahead of their full end-to-end runs, and the installer
   prints a note that says so; <code>FORGE-PREREQUISITES.json</code> lists what wasn't run for each host type.
-  Appliance systems with a read-only root, such as Unraid, can't host an alpha.2 Forge, because the pairing helper
-  needs the host's own Python. <a href="https://github.com/hellobpdu/deep32/blob/main/docs/HARDWARE.md#5-graphics-card">HARDWARE
+  A Forge in a WSL 2 distro shares the network stack of every distro in that WSL VM: if another Docker engine there
+  sets its <code>FORWARD</code> policy to <code>DROP</code>, run one engine or add <code>DOCKER-USER</code> accept
+  rules for the Forge's bridges. <a href="https://github.com/hellobpdu/deep32/blob/main/docs/HARDWARE.md#5-graphics-card">HARDWARE
   section 5</a> lists the cards.</p>
   </div>
 </section>
@@ -451,15 +454,15 @@ sudo python3 -I -B $K/forms/forge_docker_role.py uninstall --data-root /opt/deep
   published, and the next step. Each start of an unpaired Forge opens a new five-minute pairing window.</p>
   <div class="table-wrap">
     <table class="stack">
-      <thead><tr><th scope="col">Task</th><th scope="col">What to do in 0.1.0-alpha.2</th></tr></thead>
+      <thead><tr><th scope="col">Task</th><th scope="col">What to do in 0.1.0-alpha.3</th></tr></thead>
       <tbody>
-        <tr><th scope="row">Upgrade the Forge</th><td data-label="What to do in 0.1.0-alpha.2">Its <code>--upgrade</code> action installs new GPU media over the old and keeps the Forge's data and pairing identity. A Forge installed fresh into an empty folder makes a new token and certificate, so pair it with the Workstation again afterwards</td></tr>
-        <tr><th scope="row">Upgrade the Workstation</th><td data-label="What to do in 0.1.0-alpha.2">In the alpha releases a Workstation is installed fresh. <a href="https://github.com/hellobpdu/deep32/blob/main/docs/UPGRADING.md">Upgrading</a> covers moving an install to a new release</td></tr>
-        <tr><th scope="row">Revoke a Workstation on the Forge</th><td data-label="What to do in 0.1.0-alpha.2">Revoking rotates the Forge's token, and the Forge then refuses to restart. Until 0.1.0-alpha.3, revoke by uninstalling the Forge and installing it into a new data folder, then pair again</td></tr>
-        <tr><th scope="row">Remove the Forge</th><td data-label="What to do in 0.1.0-alpha.2">Revoke it on the Workstation first. The <code>uninstall</code> action stops the Forge and takes off its Serve routes and startup launcher, and keeps the data folder, its keys and the loaded Docker images. Then delete the data folder and remove the <code>deep32-local/*</code> images yourself</td></tr>
-        <tr><th scope="row">Remove the Workstation</th><td data-label="What to do in 0.1.0-alpha.2">Remove its VM with the hypervisor</td></tr>
-        <tr><th scope="row">Remove a headend</th><td data-label="What to do in 0.1.0-alpha.2">Close its agent sessions, revoke it in the Workstation's <span class="screen">Pairing</span> by the install ID Connect printed, and delete its profile folder if it had one</td></tr>
-        <tr><th scope="row">Remove the Ask relay</th><td data-label="What to do in 0.1.0-alpha.2"><code>bash adapters/connect.sh --relay remove --relay-id '&lt;id&gt;' --agent claude --tailscale-binary "$(command -v tailscale)"</code></td></tr>
+        <tr><th scope="row">Upgrade the Forge</th><td data-label="What to do in 0.1.0-alpha.3">Its <code>--upgrade</code> action installs new GPU media over the old and keeps the Forge's data and pairing identity. A Forge installed fresh into an empty folder makes a new token and certificate, so pair it with the Workstation again afterwards</td></tr>
+        <tr><th scope="row">Upgrade the Workstation</th><td data-label="What to do in 0.1.0-alpha.3">In the alpha releases a Workstation is installed fresh. <a href="https://github.com/hellobpdu/deep32/blob/main/docs/UPGRADING.md">Upgrading</a> covers moving an install to a new release</td></tr>
+        <tr><th scope="row">Revoke a Workstation on the Forge</th><td data-label="What to do in 0.1.0-alpha.3">Revoking rotates the Forge's token. From 0.1.0-alpha.3 the Forge starts again with the new token, and the revoked Workstation gets <code>401</code></td></tr>
+        <tr><th scope="row">Remove the Forge</th><td data-label="What to do in 0.1.0-alpha.3">Revoke it on the Workstation first. The <code>uninstall</code> action stops the Forge and takes off its Serve routes and startup launcher, and keeps the data folder, its keys and the loaded Docker images. Then delete the data folder and remove the <code>deep32-local/*</code> images yourself</td></tr>
+        <tr><th scope="row">Remove the Workstation</th><td data-label="What to do in 0.1.0-alpha.3">Remove its VM with the hypervisor</td></tr>
+        <tr><th scope="row">Remove a headend</th><td data-label="What to do in 0.1.0-alpha.3">Close its agent sessions, revoke it in the Workstation's <span class="screen">Pairing</span> by the install ID Connect printed, and delete its profile folder if it had one</td></tr>
+        <tr><th scope="row">Remove the Ask relay</th><td data-label="What to do in 0.1.0-alpha.3"><code>bash adapters/connect.sh --relay remove --relay-id '&lt;id&gt;' --agent claude --tailscale-binary "$(command -v tailscale)"</code></td></tr>
       </tbody>
     </table>
   </div>
@@ -491,7 +494,7 @@ sudo python3 -I -B $K/forms/forge_docker_role.py uninstall --data-root /opt/deep
         <tr><th scope="row"><code>NET_HOSTONLY</code></th><td data-label="From">VM guide</td><td data-label="What happened">Host-only, internal or private network: no internet for the sign-in</td><td data-label="Fix">Use a bridged or NAT network</td></tr>
         <tr><th scope="row"><code>KIT_MISSING</code></th><td data-label="From">VM guide</td><td data-label="What happened">No verified disc 1 with deep32-get's VM folder</td><td data-label="Fix">Run the <code>deep32-get disc1 --prepare-vm</code> line it shows, then the guide again</td></tr>
         <tr><th scope="row"><code>TS_NOT_HERE</code>, <code>TS_PEER_MISSING</code></th><td data-label="From">VM guide</td><td data-label="What happened">The wizard can't see the Workstation join</td><td data-label="Fix">Finish the sign-in on the Workstation; if it stalls, give the VM another DNS server</td></tr>
-        <tr><th scope="row"><code>docker-store-containerd</code></th><td data-label="From">deep32-get</td><td data-label="What happened">Docker uses its containerd image store</td><td data-label="Fix">Switch to the classic store (<a href="#docker">section 8</a>)</td></tr>
+        <tr><th scope="row"><code>docker-store-containerd</code></th><td data-label="From">deep32-get</td><td data-label="What happened">Docker Desktop uses its containerd image store</td><td data-label="Fix">Switch it to the classic store (<a href="#docker">section 8</a>)</td></tr>
         <tr><th scope="row"><code>gpu.memory</code></th><td data-label="From">Inventory</td><td data-label="What happened">The card has less memory than the signed plan needs</td><td data-label="Fix">Use a card with 11 GB or more</td></tr>
         <tr><th scope="row"><code>gpu.ports</code></th><td data-label="From">Inventory</td><td data-label="What happened">A Forge port is taken by another program</td><td data-label="Fix">Stop that program, or give the Forge other ports</td></tr>
         <tr><th scope="row"><code>host.magicdns</code>, <code>host.https-certificates</code></th><td data-label="From">Inventory</td><td data-label="What happened">MagicDNS or HTTPS Certificates is off</td><td data-label="Fix">Turn it on in the admin console's DNS page</td></tr>

@@ -258,6 +258,25 @@ class SetupBashUnchanged(unittest.TestCase):
             code, out, _ = run_bash(repo, bin_, ['--guess-role', '--events'], {})
             self.assertEqual(json.loads(out.splitlines()[0])['role'], 'forge')
 
+    def test_forge_journey_follows_a_local_workstation_vm(self):
+        with tempfile.TemporaryDirectory(prefix='wizard journey ') as tmp:
+            repo, bin_ = bash_sandbox(Path(tmp), (ROOT / 'install/deep32-setup.sh').read_bytes())
+            log = Path(tmp) / 'virsh.log'
+            write(bin_ / 'virsh', '#!/bin/sh\nprintf \'%s\\n\' "$*" >> "$VIRSH_LOG"\n'
+                                  'case "$*" in *"dominfo Deep32Workstation"*) exit 0 ;; esac\nexit 1\n')
+            env = {'VIRSH_LOG': posix(log)}
+            code, out, _ = run_bash(repo, bin_, ['forge', '--data-root', '@DATA@'], env)
+            self.assertEqual(code, 0)
+            self.assertIn(b'--install --journey J4 ', out)
+            self.assertIn('dominfo Deep32Workstation', log.read_text(encoding='ascii'))
+            log.unlink()
+            code, out, _ = run_bash(repo, bin_, ['forge', '--journey', 'J2', '--data-root', '@DATA@'], env)
+            self.assertEqual(code, 0)
+            self.assertIn(b'--install --journey J2 ', out)
+            self.assertFalse(log.exists(), 'virsh was consulted although --journey was given')
+            code, out, _ = run_bash(repo, bin_, ['forge', '--journey', 'J3'], env)
+            self.assertEqual((code, out.strip()), (64, b'[fail] unknown argument: --journey J3 (try --help)'))
+
 
 @unittest.skipUnless(WINDOWS and POWERSHELL.is_file(), 'Windows PowerShell 5.1 is not available')
 class SetupPowerShellUnchanged(unittest.TestCase):
@@ -1351,8 +1370,8 @@ class HvData(unittest.TestCase):
                         .replace('Deep32Workstation', '{vm}'))
                 with self.subTest(hv=hv, line=line):
                     self.assertIn(want, cmds)
-            self.assertIn('160', block)    # the getter still writes 160 GB; the steps say so and use 200
-            self.assertIn('still says 160', steps[(hv, 'create')])
+            self.assertIn('200', block)    # the getter writes 200 GB
+            self.assertNotIn('still says 160', steps[(hv, 'create')])
 
 
 VM_RULES_SH = r'''
@@ -1633,7 +1652,7 @@ class VmKitFiles(unittest.TestCase):
 # Tailscale or curl: stand-ins on PATH answer `status --json`, `debug prefs`, `serve status --json`, the foreground serve
 # (which records its process and sleeps until it is stopped) and its `off` form, and curl answers the self-check.
 
-SEND_ISO = 'deep32-0.1.0-alpha.2-disc2-content.iso'
+SEND_ISO = 'deep32-0.1.0-alpha.3-disc2-content.iso'   # the wizard names it from VERSION
 SEND_SIZE = 4096
 SEND_CODE_RE = re.compile(r'type ([A-Z2-7]{5})-([A-Z2-7]{5})$', re.M)
 
@@ -1964,7 +1983,7 @@ class SendDisc2Bash(unittest.TestCase):
             (base / 'deep32-downloads' / SEND_ISO).rename(base / 'deep32-downloads' / (SEND_ISO + '.download'))
 
         def wrong_size(base):
-            rev = base / 'deep32-downloads/.deep32-v0.1.0-alpha.2' / ('revision-1-' + 'a' * 64)
+            rev = base / 'deep32-downloads/.deep32-v0.1.0-alpha.3' / ('revision-1-' + 'a' * 64)
             rev.mkdir(parents=True)
             data = json.loads(FIXTURE.read_text(encoding='utf-8'))
             (rev / 'MIRRORS.json').write_text(json.dumps(data), encoding='utf-8')   # its disc 2 is 26 bytes

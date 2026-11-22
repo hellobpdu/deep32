@@ -387,7 +387,7 @@ class Lifecycle:
     def storage_image(self, images):
         return images['FULL_IMAGE']
 
-    def image_roles(self, selection, config):
+    def image_roles(self, selection, config, rows=None):
         return {'tei-' + selection, 'reranker', 'door', 'qdrant', 'full', 'model_bridge'}
 
     def images(self, payload, config, allow_load=True):
@@ -410,9 +410,9 @@ class Lifecycle:
             raise Refusal('Expose one supported NVIDIA GPU class matching the signed TEI selection and retry.') from None
         if selection == 'cpu':
             raise Refusal('The Docker GPU role needs an NVIDIA GPU; expose a supported GPU and retry.')
-        wanted = self.image_roles(selection, config)
-        self.selected_class = selection
         rows = read_json(payload / 'images/index.json')
+        wanted = self.image_roles(selection, config, rows)
+        self.selected_class = selection
         selected = [row for row in rows if row['role'] in wanted]
         if len(selected) != len(wanted) or {row['role'] for row in selected} != wanted:
             raise Refusal('The selected Docker role image payload is incomplete; use rebuilt signed disc 3 media.')
@@ -421,17 +421,28 @@ class Lifecycle:
         images = {}
         for row, entry in checked:
             def inspected():
-                measured = self.call(['docker', 'image', 'inspect', entry['config_digest']],
-                                     'loaded image identity', 'restore the matching signed image archive and retry.', 30)
-                try:
-                    info = json.loads(measured)
-                    actual = info[0]['Id']
-                    if (len(info) != 1 or actual != entry['config_digest'] or
-                            info[0]['Os'] != 'linux' or info[0]['Architecture'] != 'amd64'):
-                        raise ValueError('identity differs')
-                    return actual
-                except (ValueError, TypeError, KeyError, IndexError):
-                    raise Refusal('A loaded image differs from its signed identity; restore the matching verified archive.') from None
+                # The classic store reports the image config digest as Id; the containerd store reports the
+                # OCI root digest that the binding records as index_digest (image_binding.resolve_loaded).
+                allowed = list(dict.fromkeys(value for value in (entry['config_digest'], entry.get('index_digest'))
+                                             if value))
+                missing = None
+                for candidate in allowed:
+                    try:
+                        measured = self.call(['docker', 'image', 'inspect', candidate], 'loaded image identity',
+                                             'restore the matching signed image archive and retry.', 30)
+                    except Refusal as error:
+                        missing = error   # not loaded under this digest; report the inspect's own refusal
+                        continue
+                    try:
+                        info = json.loads(measured)
+                        actual = info[0]['Id']
+                        if (len(info) != 1 or actual not in allowed or
+                                info[0]['Os'] != 'linux' or info[0]['Architecture'] != 'amd64'):
+                            raise ValueError('identity differs')
+                        return actual
+                    except (ValueError, TypeError, KeyError, IndexError):
+                        raise Refusal('A loaded image differs from its signed identity; restore the matching verified archive.') from None
+                raise missing
             try:
                 actual = inspected()
             except Refusal:

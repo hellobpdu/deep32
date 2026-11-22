@@ -25,7 +25,7 @@
       "const": 1
     },
     "release": {
-      "const": "v0.1.0-alpha.2"
+      "const": "v0.1.0-alpha.3"
     },
     "revision": {
       "type": "integer",

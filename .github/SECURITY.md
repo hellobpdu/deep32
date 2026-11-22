@@ -11,13 +11,14 @@
 
 How to report a security problem in Deep32, and which release gets the fix.
 
-<sub>Applies to 0.1.0-alpha.2 · [1 Supported releases](#1-supported-releases) · [2 Reporting](#2-reporting-a-vulnerability) · [3 Scope](#3-scope) · [4 Security design](#4-security-design) · [5 Known limitations](#5-known-limitations) · [6 After a report](#6-what-happens-after-a-report) · [7 What to expect](#7-what-you-can-and-cannot-expect) · [8 Third-party components](#8-third-party-components) · [9 Maintainer accounts](#9-maintainer-accounts)</sub>
+<sub>Applies to 0.1.0-alpha.3 · [1 Supported releases](#1-supported-releases) · [2 Reporting](#2-reporting-a-vulnerability) · [3 Scope](#3-scope) · [4 Security design](#4-security-design) · [5 Known limitations](#5-known-limitations) · [6 After a report](#6-what-happens-after-a-report) · [7 What to expect](#7-what-you-can-and-cannot-expect) · [8 Third-party components](#8-third-party-components) · [9 Maintainer accounts](#9-maintainer-accounts)</sub>
 
 ## 1. Supported releases
 
 | Release | Status | Fixes |
 |---|---|---|
-| 0.1.0-alpha.2 | Current | Yes |
+| 0.1.0-alpha.3 | Current | Yes |
+| 0.1.0-alpha.2 | Superseded | No: upgrade to the current release |
 | 0.1.0-alpha.1 | Images withdrawn | No: upgrade to the current release |
 
 Fixes go into the current release only. [Upgrading](../docs/UPGRADING.md) says how to move each part of an install to a

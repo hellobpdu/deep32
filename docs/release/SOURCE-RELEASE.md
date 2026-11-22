@@ -1,16 +1,16 @@
-# Source release 0.1.0-alpha.2 (alpha)
+# Source release 0.1.0-alpha.3 (alpha)
 
-This is the source of Deep32 0.1.0-alpha.2. This page says what the source holds, which licenses apply, and how to
+This is the source of Deep32 0.1.0-alpha.3. This page says what the source holds, which licenses apply, and how to
 identify, verify and cite this version. docs/release/RELEASE.json records the same facts for tools.
 
 ## Identity
 
 | Field | Value |
 |---|---|
-| Version | 0.1.0-alpha.2 |
-| Git tag | v0.1.0-alpha.2 |
-| Release date | 20 November 2026 |
-| Release DOI | 10.5281/zenodo.24371692 |
+| Version | 0.1.0-alpha.3 |
+| Git tag | v0.1.0-alpha.3 |
+| Release date | 22 November 2026 |
+| Release DOI | Added after the release is archived; until then, cite the concept DOI |
 | Concept DOI, all versions | 10.5281/zenodo.24272647 |
 | Signing key fingerprint | B205 B406 5486 27AA BF52  50D8 A078 C5F2 5D02 5DD6 |
 
@@ -19,13 +19,13 @@ the tag in a clone:
 
 ```sh
 gpg --import install/release-key.asc
-git verify-tag v0.1.0-alpha.2
-git rev-parse "v0.1.0-alpha.2^{commit}"
+git verify-tag v0.1.0-alpha.3
+git rev-parse "v0.1.0-alpha.3^{commit}"
 ```
 
 The tag points to the release commit; the last command prints that commit's hash.
 
-Cite this version with its release DOI. The concept DOI always resolves to the newest version.
+Cite this version with its release DOI once it has one. The concept DOI always resolves to the newest version.
 
 ## Contents
 
@@ -71,4 +71,4 @@ and does not include their weights.
 
 ## Known issues
 
-The known issues for 0.1.0-alpha.2 are in CHANGELOG.md.
+The known issues for 0.1.0-alpha.3 are in CHANGELOG.md.

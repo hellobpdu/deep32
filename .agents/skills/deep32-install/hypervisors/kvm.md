@@ -51,7 +51,7 @@ Where: A shell as root, in the folder `{kit}`
 
 On screen, in order:
 
-1. These are commands.txt's lines with the target at 200G (commands.txt still says 160G): `qemu-img create -f qcow2 target.qcow2 200G` `virt-install --name {vm} --memory 12288 --vcpus 6 --os-variant generic --import --boot hd --disk path=installer.img,format=raw,bus=ide --disk path=target.qcow2,format=qcow2,bus=ide --network network=default,model=e1000 --graphics vnc,listen=127.0.0.1 --video vga --noautoconsole --print-xml > workstation.xml`
+1. These are commands.txt's lines with the target at 200G: `qemu-img create -f qcow2 target.qcow2 200G` `virt-install --name {vm} --memory 12288 --vcpus 6 --os-variant generic --import --boot hd --disk path=installer.img,format=raw,bus=ide --disk path=target.qcow2,format=qcow2,bus=ide --network network=default,model=e1000 --graphics vnc,listen=127.0.0.1 --video vga --noautoconsole --print-xml > workstation.xml`
 2. Read workstation.xml, then: `virsh define workstation.xml`
 
 What the wizard does on Enter: The wizard reads the VM's settings with the read-only tool above and applies the "create" checks. When it cannot read them, it shows "The VM's settings could not be read here, so confirm the step yourself." and the person confirms.

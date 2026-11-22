@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>General setup: Deep32 0.1.0-alpha.2</title>
-<meta name="description" content="Install Deep32 0.1.0-alpha.2 step by step: one PC with an NVIDIA card for the Forge and your agent, the Workstation as a VM, driven by the setup wizard.">
+<title>General setup: Deep32 0.1.0-alpha.3</title>
+<meta name="description" content="Install Deep32 0.1.0-alpha.3 step by step: one PC with an NVIDIA card for the Forge and your agent, the Workstation as a VM, driven by the setup wizard.">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#464d56" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1d2126" media="(prefers-color-scheme: dark)">
@@ -15,8 +15,8 @@
 <script src="../assets/site.js" defer></script>
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Deep32">
-<meta property="og:title" content="General setup: Deep32 0.1.0-alpha.2">
-<meta property="og:description" content="Install Deep32 0.1.0-alpha.2 step by step: one PC with an NVIDIA card for the Forge and your agent, the Workstation as a VM, driven by the setup wizard.">
+<meta property="og:title" content="General setup: Deep32 0.1.0-alpha.3">
+<meta property="og:description" content="Install Deep32 0.1.0-alpha.3 step by step: one PC with an NVIDIA card for the Forge and your agent, the Workstation as a VM, driven by the setup wizard.">
 <meta property="og:url" content="https://hellobpdu.github.io/deep32/install/">
 <meta property="og:image" content="https://hellobpdu.github.io/deep32/assets/social-card.png">
 <meta property="og:image:type" content="image/png">
@@ -94,7 +94,7 @@
   <p class="lead">This page sets up Deep32 the common way. One PC with an NVIDIA card runs the Forge and your agent, the
   Workstation runs as a VM on the same PC, and all of it joins one tailnet. The setup wizard drives each part and
   checks each step. Where your setup is different, the step says what changes.</p>
-  <p class="applies"><span>Applies to 0.1.0-alpha.2</span><span>Plan on an afternoon, most of it downloading</span><span>Every step by hand: <a href="https://github.com/hellobpdu/deep32/blob/main/INSTALL.md">INSTALL.md</a></span></p>
+  <p class="applies"><span>Applies to 0.1.0-alpha.3</span><span>Plan on an afternoon, most of it downloading</span><span>Every step by hand: <a href="https://github.com/hellobpdu/deep32/blob/main/INSTALL.md">INSTALL.md</a></span></p>
   <figure>
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset="../figures/parts-dark.svg">
@@ -135,13 +135,13 @@
       Ubuntu 24.04 on amd64 with KVM and libvirt, and Docker Engine with the Compose v2 plugin and the NVIDIA
       Container Toolkit.</label></li>
       <li><input type="checkbox" id="c-disk"><label for="c-disk">Disk space: an empty 200 GB virtual disk for the
-      Workstation; 21.5 GB for its two images (disc 1 is 1.9 GB, disc 2 is 19.6 GB); and for the Forge, about 281 to
-      284 GB free when its install starts, if its data folder and Docker's storage share one disk.
+      Workstation; 21.5 GB for its two images (disc 1 is 1.9 GB, disc 2 is 19.6 GB); and for the Forge, about 244 to
+      247 GB free when its install starts, with the ingestion image, if its data folder and Docker's storage share one
+      disk.
       <a href="advanced.html#disk">Other layouts</a> split that across disks.</label></li>
       <li><input type="checkbox" id="c-py"><label for="c-py">Python 3.12 or newer for the Forge installer (Ubuntu 24.04
-      ships it). On Linux the Forge's pairing helper also runs on the system's <code>/usr/bin/python3</code>, which must
-      be 3.10 or newer and able to import <code>ssl</code>. Git, and GnuPG for the signature checks; Git for Windows
-      provides <code>gpgv</code>.</label></li>
+      ships it); the Forge's pairing helper runs on the same Python. Git, and GnuPG for the signature checks; Git for
+      Windows provides <code>gpgv</code>.</label></li>
       <li><input type="checkbox" id="c-agent"><label for="c-agent">Claude Code or Codex installed and signed in on the
       PC, Python 3.11 or newer for Connect, and OpenSSL on <code>PATH</code>.</label></li>
       <li><input type="checkbox" id="c-ts"><label for="c-ts">A Tailscale account (the free plan is enough), and
@@ -155,8 +155,8 @@
         <summary>No NVIDIA card, or a card under 11 GB</summary>
         <div>
           <p>You can still install the Workstation and connect your agent. Search then works on keywords only: on my
-          test set a correct passage comes first for 0.710 of the questions that way, against 0.955 with a Forge. Skip
-          steps 7 and 8; a Forge can be added later. Cards with 8 to 10 GB aren't installable in alpha.2. Volta, the
+          test set a relevant passage comes first for 0.710 of the questions that way, against 0.955 with a Forge. Skip
+          steps 7 and 8; a Forge can be added later. Cards with 8 to 10 GB aren't installable yet. Volta, the
           GTX 10 series and older, and AMD or Intel graphics have no Forge form.</p>
         </div>
       </details>
@@ -172,9 +172,8 @@
       <details>
         <summary>Windows 10, Windows Server or another Linux distribution</summary>
         <div>
-          <p>The alpha.2 Forge installer accepts Windows 11 and Ubuntu 24.04 on amd64, and stops on any other system,
-          Windows 10 and Windows Server included. Put the Forge on one of those two. Appliance systems with a read-only
-          root, such as Unraid, can't host an alpha.2 Forge.</p>
+          <p>The Forge installer accepts Windows 11 and Ubuntu 24.04 on amd64, and stops on any other system, Windows
+          10 and Windows Server included. Put the Forge on one of those two.</p>
         </div>
       </details>
       <details>
@@ -243,18 +242,18 @@ nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits</code></pre></
         <div class="tabs">
           <div class="tab-panel" data-os="linux">
             <p class="tab-label">Linux</p>
-            <div class="code"><pre><code>git clone --branch v0.1.0-alpha.2 https://github.com/hellobpdu/deep32.git
+            <div class="code"><pre><code>git clone --branch v0.1.0-alpha.3 https://github.com/hellobpdu/deep32.git
 cd deep32
 gpg --import install/release-key.asc
-git verify-tag v0.1.0-alpha.2</code></pre></div>
+git verify-tag v0.1.0-alpha.3</code></pre></div>
           </div>
           <div class="tab-panel" data-os="windows">
             <p class="tab-label">Windows</p>
             <p>Clone in PowerShell:</p>
-            <div class="code"><pre><code>git clone --branch v0.1.0-alpha.2 https://github.com/hellobpdu/deep32.git; cd deep32</code></pre></div>
+            <div class="code"><pre><code>git clone --branch v0.1.0-alpha.3 https://github.com/hellobpdu/deep32.git; cd deep32</code></pre></div>
             <p>Then check the signature from the same folder in Git Bash, which comes with Git for Windows and includes GnuPG:</p>
             <div class="code"><pre><code>gpg --import install/release-key.asc
-git verify-tag v0.1.0-alpha.2</code></pre></div>
+git verify-tag v0.1.0-alpha.3</code></pre></div>
           </div>
         </div>
       </li>
@@ -488,7 +487,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File install\deep32-wizard.ps1 -V
       <li>Work through the guide's steps. Each one says what to do and where, with every value filled in. Press
       <kbd>Enter</kbd> and the wizard checks it: <b>OK</b>, an <b>ERROR</b> with its code and fix, or <b>YOU
       CONFIRMED</b> for a step it can't see. Its <span class="screen">Create the VM</span> step uses deep32-get's
-      commands with the target disk at 200 GB; the <code>commands.txt</code> file in the VM folder still says 160 GB.</li>
+      commands, which make the target disk 200 GB.</li>
       <li><span class="screen">Install the Workstation.</span> Start the VM and open its console. The guided installer
       asks for the keyboard layout, the machine name, whether to allow root maintenance over SSH with your own key (off
       unless you choose it), your user name, the disk to install on, whether to encrypt it, and your time zone.
@@ -729,13 +728,15 @@ virsh attach-disk Deep32Workstation "DISC2" hdc --type cdrom --mode readonly --c
       <li><b>The card.</b> Compute capability 7.5 or newer with at least 10.5 GB of graphics memory, and driver
       580.65.06 or newer. On Windows the host driver serves Docker Desktop; don't install a Linux graphics driver
       inside its WSL 2 backend. On Linux, the NVIDIA Container Toolkit.</li>
-      <li><b>Docker's classic image store</b> (<code>overlay2</code>). The alpha.2 Forge images load only into it, and
-      Docker Engine 29 and Docker Desktop keep images in containerd by default. Images and containers you keep in the
-      other store stay hidden until you switch back, so the installer never changes this for you. To switch:
+      <li><b>Docker's image store.</b> On Linux, Docker Engine can keep its default containerd store, with the
+      system's containerd running, or use the classic store (<code>overlay2</code>). Docker Desktop on Windows still
+      needs the classic store. Images and containers you keep in the other store stay hidden until you switch back, so
+      the installer never changes this for you. To switch:
         <div class="tabs">
           <div class="tab-panel" data-os="linux">
             <p class="tab-label">Linux</p>
-            <p>Add this key to <code>/etc/docker/daemon.json</code>, then restart Docker:</p>
+            <p>Nothing to switch. If you prefer the classic store, add this key to <code>/etc/docker/daemon.json</code>,
+            then restart Docker:</p>
             <div class="code"><pre><code>"features": {"containerd-snapshotter": false}</code></pre></div>
             <div class="code"><pre><code>sudo systemctl restart docker</code></pre></div>
           </div>
@@ -746,12 +747,10 @@ virsh attach-disk Deep32Workstation "DISC2" hdc --type cdrom --mode readonly --c
           </div>
         </div>
       </li>
-      <li><b>Python.</b> 3.12 or newer for the installer. On Linux the pairing helper runs on
-      <code>/usr/bin/python3</code>, which must be 3.10 or newer and able to import <code>ssl</code>.
-      <code>sh install/forge-host-python.sh</code> checks it, and <code>sudo sh install/forge-host-python.sh
-      --install</code> installs it with apt, dnf, zypper or pacman.</li>
-      <li><b>Free space.</b> About 281 to 284 GB when you start, if the data folder and Docker's storage share one
-      filesystem or volume (<a href="advanced.html#disk">other layouts</a>).</li>
+      <li><b>Python.</b> 3.12 or newer for the installer, and the pairing helper runs on that same Python.</li>
+      <li><b>Free space.</b> About 244 to 247 GB when you start, with the ingestion image, if the data folder and
+      Docker's storage share one filesystem or volume; less without it (<a href="advanced.html#disk">other
+      layouts</a>).</li>
       <li><b>Tailscale.</b> A machine name that starts with <code>deep32-</code>, in the same tailnet as the Workstation
       (step 1).</li>
     </ul>
@@ -788,9 +787,9 @@ virsh attach-disk Deep32Workstation "DISC2" hdc --type cdrom --mode readonly --c
       <li>On the wizard's <span class="screen">Done</span> screen, choose <span class="screen">Set up the Forge
       here</span>. Or start the wizard again and choose Forge.</li>
       <li>The checks run for the Forge: Python, the card and its class, the driver and its memory, Docker, Compose, the
-      classic image store, the Container Toolkit, the pairing helper's Python, and Tailscale.</li>
-      <li>The wizard downloads and verifies your card's three images from disc 3: the 18.6 GB shared core, your card's
-      3.1 to 3.3 GB embedder and the 15.3 GB ingestion image.</li>
+      image store, containerd, the Container Toolkit, and Tailscale.</li>
+      <li>The wizard downloads and verifies your card's images from disc 3: the 18.6 GB shared core and your card's
+      3.1 to 3.3 GB embedder, and the 15.3 GB ingestion image on Windows or when you ask for it.</li>
       <li>The installer checks the host before it changes anything. It asks you to confirm the tailnet the Forge will
       publish on, and to agree that the Forge's name goes into the public Certificate Transparency logs. Then it shows
       its plan: the folders, the ports, and the size and SHA-256 of each image.</li>
@@ -831,8 +830,8 @@ virsh attach-disk Deep32Workstation "DISC2" hdc --type cdrom --mode readonly --c
 
     <h3 class="part-label fix">If it doesn't</h3>
     <ul class="fixes">
-      <li><code>docker-store-containerd</code>: Docker still uses its containerd store. Switch it as shown above, then
-      run the wizard again.</li>
+      <li><code>docker-store-containerd</code>: Docker Desktop still uses its containerd store. Switch it as shown
+      above, then run the wizard again.</li>
       <li><code>gpu.memory</code>: the card has less memory than the signed plan needs.</li>
       <li><code>host.magicdns</code> or <code>host.https-certificates</code>: turn MagicDNS or HTTPS Certificates on
       in the admin console's DNS page, then run the wizard again.</li>
@@ -1183,9 +1182,9 @@ bash adapters/connect.sh --relay pair --relay-id '&lt;id&gt;' --agent claude</co
     <ul class="fixes">
       <li><code>rag_status</code> shows embeddings or reranking as degraded: the Forge isn't reachable, and searches
       fall back to keyword matching until it is. Go back to step 8.</li>
-      <li><code>deep32 doctor</code> and <code>deep32 selftest</code> are on the images, but in 0.1.0-alpha.2 doctor
+      <li><code>deep32 doctor</code> and <code>deep32 selftest</code> are on the images, but in 0.1.0-alpha.3 doctor
       can't read the install record and selftest has no signed reference values, so neither gives a useful result yet.
-      Fixes for both are planned for 0.1.0-alpha.3.</li>
+      Fixes for both are planned for 0.1.0-alpha.4.</li>
     </ul>
 
     <div class="done-box">

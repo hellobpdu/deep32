@@ -326,6 +326,17 @@ def check(form, payload, kit, root=Path('/'), run=subprocess.run,
     docker_root = info.get('DockerRootDir', '/var/lib/docker')
     if not isinstance(docker_root, str) or not PurePosixPath(docker_root).is_absolute():
         raise ValueError('Install Docker Engine with an absolute data-root path.')
+    # The containerd image store keeps images in containerd's root: the same rule as
+    # release-tools deep32_get_whole.forge_docker_root (test_whole_get keeps them equal).
+    status = info.get('DriverStatus')
+    if not windows and isinstance(status, list) and ['driver-type', 'io.containerd.snapshotter.v1'] in status:
+        containerd = info.get('Containerd')
+        address = containerd.get('Address') if isinstance(containerd, dict) else None
+        if address == '/run/containerd/containerd.sock':
+            docker_root = '/var/lib/containerd'
+        elif not (isinstance(address, str) and address.startswith('/var/run/docker/containerd/')):
+            raise ValueError('Install Docker Engine with its classic overlay2 store, or with the containerd store '
+                             'served by the system or the engine-managed containerd.')
     # Native Windows cannot stat the Linux daemon's data-root. Its backing
     # filesystem and the data destination are checked here; after offline image
     # load the same signed image performs a networkless daemon statvfs probe.

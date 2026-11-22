@@ -812,7 +812,7 @@ def prepare_vm(image, size, digest, hypervisor, destination):
 # Run from this directory in an elevated PowerShell session after prerequisite checks.
 $root = (Get-Location).Path
 $switch = Read-Host 'Existing external or NAT switch with DHCP'
-New-VHD -Path (Join-Path $root 'target.vhdx') -Dynamic -SizeBytes 160GB
+New-VHD -Path (Join-Path $root 'target.vhdx') -Dynamic -SizeBytes 200GB
 New-VM -Name Deep32Workstation -Generation 1 -MemoryStartupBytes 12GB -NoVHD -SwitchName $switch
 Set-VMProcessor -VMName Deep32Workstation -Count 6
 Add-VMHardDiskDrive -VMName Deep32Workstation -ControllerType IDE -ControllerNumber 0 -ControllerLocation 0 -Path (Join-Path $root 'installer.vhd')
@@ -824,7 +824,7 @@ Add-VMHardDiskDrive -VMName Deep32Workstation -ControllerType IDE -ControllerNum
         else:
             commands = """# Review this unqualified recipe on a disposable host before use.
 # Run from this directory after prerequisite checks; the existing default NAT network needs DHCP.
-qemu-img create -f qcow2 target.qcow2 160G
+qemu-img create -f qcow2 target.qcow2 200G
 virt-install --name Deep32Workstation --memory 12288 --vcpus 6 --os-variant generic --import --boot hd --disk path=installer.img,format=raw,bus=ide --disk path=target.qcow2,format=qcow2,bus=ide --network network=default,model=e1000 --graphics vnc,listen=127.0.0.1 --video vga --noautoconsole --print-xml > workstation.xml
 # Review workstation.xml before virsh define workstation.xml and virsh start Deep32Workstation.
 # Install to the empty second disk only. Shut down, detach installer.img, put target first, attach signed disc2 as a read-only CD-ROM.
@@ -833,7 +833,7 @@ virt-install --name Deep32Workstation --memory 12288 --vcpus 6 --os-variant gene
         (staging / "commands.txt").write_text(commands, encoding="ascii", newline="\n")
         (staging / "recipe.json").write_text(json.dumps({"schema": "deep32.vm-recipe.v1", "hypervisor": hypervisor,
             "maturity": "awaiting-clean-host-boot-test", "installer_sha256": digest,
-            "installer_bytes": int(size), "target_minimum_bytes": 160_000_000_000,
+            "installer_bytes": int(size), "target_minimum_bytes": 200_000_000_000,
             "firmware": "legacy-bios", "network": "wired-virtual-nic-with-dhcp",
             "content": "signed-disc2-read-only-optical-after-install", "starts_vm": False}, sort_keys=True, indent=2) + "\n", encoding="ascii")
         # mkdir without exist_ok prevents overwriting another completed recipe.

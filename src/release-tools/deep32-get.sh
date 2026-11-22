@@ -19,7 +19,7 @@ helper="$script_dir/deep32_get_manifest.py"
 whole_helper="$script_dir/deep32_get_whole.py"
 settings_helper="$script_dir/deep32_settings.py"
 join_helper="$script_dir/deep32_download.py"
-disc=''; to='./deep32-downloads'; release='v0.1.0-alpha.2'; repo=hellobpdu/deep32; install=0; source=''
+disc=''; to='./deep32-downloads'; release='v0.1.0-alpha.3'; repo=hellobpdu/deep32; install=0; source=''
 gpu_class=''; ingestion=0; full=0
 journey=''; form=docker; platform=linux; docker_role=forge; data_root=/opt/deep32; content=''; docker_storage_path=''; non_interactive=0; accept_plan=''; settings_args=()
 gpg=''; fingerprint=B205B406548627AABF5250D8A078C5F25D025DD6; prepare_vm=0; hypervisor=''
@@ -72,12 +72,13 @@ if [[ $install == 1 ]]; then
     if [[ "$release" != v0.1.0-alpha.1 ]]; then
         [[ "$docker_role" == forge && $full == 0 ]] || die 'Split Disc 3 installation supports the Forge role only'
         split_install=1
-        ingestion=1
-        printf '%s\n' 'Split Disc 3 installation includes the ingestion ISO required by the Forge loader.'
+        if [[ $ingestion == 0 ]]; then
+            printf '%s\n' 'Installing the Forge without the ingestion add-on (no PDF conversion or index builds); add --ingestion to include it.'
+        fi
     fi
 fi
 linux_forge_evidence=0
-if [[ $split_install == 1 && "$release" == v0.1.0-alpha.2 && -n "$source" ]]; then
+if [[ $split_install == 1 && "$release" == v0.1.0-alpha.3 && -n "$source" ]]; then
     linux_forge_evidence=1
 fi
 check_install_prerequisites() {
@@ -87,6 +88,7 @@ check_install_prerequisites() {
                       --forge-key "$key" --forge-fingerprint "$fingerprint")
         if [[ -n "$gpg" ]]; then storage_args+=(--forge-gpg "$gpg"); fi
         storage_args+=(--forge-plan "$1" --accept-plan "$accept_plan")
+        [[ $ingestion == 0 ]] || storage_args+=(--forge-ingestion)
     fi
     printf '%s\n' 'Checking read-only prerequisites for this GPU host'
     if ! bash -- "$script_dir/../../install/deep32-inventory.sh" --journey "$journey" --role gpu-host --check-prereqs "${storage_args[@]}"; then
@@ -115,6 +117,12 @@ fi
 py() { python3 -I -B "$helper" "$@"; }
 py path "$helper" file >/dev/null
 key=$(py path "$key" new)
+# Without a terminal, name every missing settings choice at once, before any media is read or verified.
+if [[ $install == 1 && $split_install == 1 && ( $non_interactive == 1 || ! -t 0 ) ]]; then
+    check_args=(--split)
+    [[ $linux_forge_evidence == 0 ]] || check_args+=(--linux-forge-tailnet)
+    python3 -I -B "$settings_helper" check-settings "${check_args[@]}" "${settings_args[@]}"
+fi
 meta=''; cache=''; mount_dir=''; mounted=0; retain_mount=0
 split_mounts=(); split_pending=''
 component_paths=(); component_sizes=(); component_hashes=(); component_plan_args=()
@@ -214,9 +222,10 @@ if [[ -n "$source" || "$release" != v0.1.0-alpha.1 ]]; then
         fi
     done <"$meta/selection"
     if [[ $split_install == 1 ]]; then
-        ((records == 3)) || die 'Signed installation selection must include core, the selected embedder and ingestion'
-        component_names=(core "embedder-$gpu_class" ingestion)
-        for ((i=0; i<3; i++)); do
+        component_names=(core "embedder-$gpu_class")
+        [[ $ingestion == 0 ]] || component_names+=(ingestion)
+        ((records == ${#component_names[@]})) || die 'Signed installation selection must include core and the selected embedder, and ingestion when --ingestion is given'
+        for ((i=0; i<${#component_names[@]}; i++)); do
             component_plan_args+=(--media-component "${component_names[$i]}" "${component_sizes[$i]}" "${component_hashes[$i]}")
         done
     elif [[ "$disc" == disc3 && "$release" != v0.1.0-alpha.1 ]]; then
@@ -342,9 +351,10 @@ elif [[ $install == 1 ]]; then
     if [[ $split_install == 1 ]]; then
         py path "$join_helper" file >/dev/null
         joined=$(python3 -I -B "$settings_helper" media-cache --plan "$meta/install-plan.json" --accept-plan "$accept_plan")
-        for ((i=0; i<3; i++)); do mount_split_image "$i"; done
-        python3 -I -B "$join_helper" --core "${split_mounts[0]}" --embedder "${split_mounts[1]}" \
-            --ingestion "${split_mounts[2]}" --gpu-class "$gpu_class" --output "$joined" --data-root "$data_root"
+        for ((i=0; i<${#component_names[@]}; i++)); do mount_split_image "$i"; done
+        join_args=(--core "${split_mounts[0]}" --embedder "${split_mounts[1]}")
+        [[ $ingestion == 0 ]] || join_args+=(--ingestion "${split_mounts[2]}")
+        python3 -I -B "$join_helper" "${join_args[@]}" --gpu-class "$gpu_class" --output "$joined" --data-root "$data_root"
         core_dir=${split_mounts[0]}
         payload_dir="$joined/payload"
     else

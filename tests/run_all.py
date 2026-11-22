@@ -174,10 +174,7 @@ SUITES = [
              needs=['unelevated'] if name in ('forge_pair_windows', 'getter_kit', 'settings', 'whole_get') else [])
       for name in 'capabilities forge_pair_windows forge_ports forge_preflight getter_kit gpg_discovery '
                   'settings whole_get'.split()],
-    script('release-tools/phase_a_helpers', f'{RT}/test_phase_a_helpers.py', '--scratch-root', known=[
-        ((3, 14), 'Helpers.test_split_backing_filesystems_are_budgeted_separately',
-         'before Python 3.14 Path.lstat goes through Path.stat, which this test replaces with a stat result that '
-         'has no st_file_attributes; src/release-tools/deep32_get_manifest.py line 62 then fails (alpha.3 backlog)')]),
+    script('release-tools/phase_a_helpers', f'{RT}/test_phase_a_helpers.py', '--scratch-root'),
     script('release-tools/disc3_join', f'{RT}/test_disc3_join.py', '--scratch-root', needs=['bash']),
     script('release-tools/docker_install', f'{RT}/test_docker_install.py', '--scratch-root',
            needs=['windows', 'bash', 'powershell', 'gpg']),
@@ -244,8 +241,8 @@ SUITES = [
     plain('hardening', ['tests/hardening/test_prerun_docs.py']),
     # The fuzz targets' seeds and CI matrix; the fuzzing itself needs clang on Linux (tests/fuzz/README.md)
     plain('fuzz/seeds', ['tests/fuzz/test_seeds.py']),
-    plain('workstation', files('tests/workstation', 'ask_cite_maps ask_protocol content_fetch diagnostics_placement '
-                                                    'firstboot_disc2_probe importer_content_compat '
+    plain('workstation', files('tests/workstation', 'ask_cite_maps ask_protocol content_fetch d32upd_lock '
+                                                    'diagnostics_placement firstboot_disc2_probe importer_content_compat '
                                                     'importer_mount_failure importer_single_pass installer_alpha2'),
           env={'D32_TEST_WORK': '{scratch}'}),
     Suite('diagnostics', ['{py}', '-B', '-m', 'unittest', 'discover', '-s', 'tests/diagnostics'],

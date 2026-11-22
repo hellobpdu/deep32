@@ -106,7 +106,9 @@ class ForgeTests(unittest.TestCase):
                 mock.patch.object(subprocess, 'Popen', return_value=process) as start:
             firstboot.pair(status, 'docker', {}, self.token, self.public)
         args, options = start.call_args
-        self.assertEqual(args[0], [str(Path('/opt/deep32-forge/pairing/bin/pairing-helper')), 'pair-forge'])
+        # The helper runs on the lifecycle's own interpreter, never through its #!/usr/bin/python3 line.
+        self.assertEqual(args[0], [sys.executable, '-I', '-B', str(Path('/opt/deep32-forge/pairing/bin/pairing-helper')),
+                                   'pair-forge'])
         self.assertEqual(options, dict(stdin=subprocess.PIPE, stdout=subprocess.DEVNULL,
                                        stderr=subprocess.DEVNULL))
         request = json.loads(process.stdin.saved)

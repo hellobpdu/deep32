@@ -7,8 +7,9 @@ The corpus grows, so **which RFCs are present is not recorded here**. `lookup_rf
 
 ## 1. Obsoleted RFCs
 
-Cite an obsoleted RFC only together with its successor, and say when the successor is not in the corpus
-(`lookup_rfc` reports the standing and whether the successor is present).
+Cite an obsoleted RFC only together with the current end of its chain: `lookup_rfc` names only the direct successor,
+so look that one up too, and so on (SKILL.md section 2, step 7). Say when the current RFC is not in the corpus (its
+own `lookup_rfc` shows `corpus: not included`).
 Chains from rfc-index.xml for the obsoleted RFCs in the corpus:
 
 | Obsoleted | Successor chain | Notes |

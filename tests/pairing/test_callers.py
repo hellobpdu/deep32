@@ -80,6 +80,7 @@ class CallerTests(unittest.TestCase):
 
         api.enrol_gateway = enrol
         api.enrol_forge = enrol
+        api.enrol_engine = lambda root: events.append(('engine', Path(root).as_posix()))
         files.atomic_write = lambda path, value: events.append(('write', str(path), bytes(value)))
 
         def command(argv, **kwargs):
@@ -198,7 +199,8 @@ for target do printf '%s\t%s\n' "$mode" "$target" >>"$D32_MODE_AUDIT"; done
     def test_gateway_firstboot_does_not_start_or_stop_services(self):
         code, events, _ = self.wrapper('d32-gateway-enrol', ['--firstboot'], running=True)
         self.assertEqual(code, 0)
-        self.assertEqual(events, [('enrol', '/var/db/d32/net', None)])
+        # The engine token moves first (only at first boot), then the gateway's own credentials.
+        self.assertEqual(events, [('engine', '/'), ('enrol', '/var/db/d32/net', None)])
 
     def test_gateway_refresh_restarts_running_service_after_enrol(self):
         code, events, _ = self.wrapper('d32-gateway-enrol', running=True)
@@ -278,7 +280,8 @@ clear() { :; }
                          hashlib.sha256(TWIN.read_bytes()).digest())
         source = FIRSTBOOT.read_text(encoding='ascii')
         token, second = '5c' * 32, '6d' * 32
-        for mode in ('legacy', 'file', 'mismatch', 'damaged'):
+        kept = ('legacy', 'file', 'files')
+        for mode in ('legacy', 'file', 'mismatch', 'damaged', 'files'):
             with self.subTest(mode=mode):
                 node = self.root / ('synthetic-firstboot-' + mode)
                 state = node / 'etc/d32/state'
@@ -287,10 +290,15 @@ clear() { :; }
                 edge = node / 'etc/d32/edge.env'
                 core_value = 'damaged' if mode == 'damaged' else token
                 edge_value = second if mode == 'mismatch' else core_value
-                core.write_text('RAG_CORE_API_TOKEN=' + core_value + '\n', encoding='ascii', newline='\n')
-                mcp = ('RAG_MCP_TOKENS_FILE=/etc/d32/private/mcp-tokens' if mode == 'file'
+                # files: the engine token already moved into its two protected files by an earlier enrolment
+                core_line = ('RAG_CORE_API_TOKEN_FILE=/etc/d32/private/engine-api.token' if mode == 'files'
+                             else 'RAG_CORE_API_TOKEN=' + core_value)
+                edge_line = ('RAG_CORE_API_TOKEN_FILE=/etc/d32/private/engine-client.token' if mode == 'files'
+                             else 'RAG_CORE_API_TOKEN=' + edge_value)
+                core.write_text(core_line + '\n', encoding='ascii', newline='\n')
+                mcp = ('RAG_MCP_TOKENS_FILE=/etc/d32/private/mcp-tokens' if mode in ('file', 'files')
                        else 'RAG_MCP_TOKENS=' + ('' if mode == 'damaged' else second))
-                edge.write_text('RAG_CORE_API_TOKEN=' + edge_value + '\n' + mcp + '\n', encoding='ascii', newline='\n')
+                edge.write_text(edge_line + '\n' + mcp + '\n', encoding='ascii', newline='\n')
                 if mode != 'damaged':
                     (state / 'mcp.token').write_text(second + '\n', encoding='ascii', newline='\n')
                 before = (core.read_bytes(), edge.read_bytes())
@@ -298,16 +306,17 @@ clear() { :; }
                                 'printf "%s\\n" "$*" >>"$D32_ROOT/synthetic-enrol-calls"\n')
                 body = '''
 D32_ROOT="$1"; export D32_ROOT
-c6_set() { :; }; _d32f_fail() { echo safe-failure; return 1; }
+c6_set() { echo "c6 $*"; }; _d32f_fail() { echo safe-failure; return 1; }
 openssl() { echo attempted >"$D32_ROOT/synthetic-reset-attempt"; return 1; }
 '''
                 body += function(source, '_d32f_token') + function(source, '_d32f_keys') + '\n_d32f_keys\n'
                 result = self.shell(body, shell_path(node))
-                self.assertEqual(result.returncode, 0 if mode in ('legacy', 'file') else 1)
+                self.assertEqual(result.returncode, 0 if mode in kept else 1)
                 self.assertFalse((node / 'synthetic-reset-attempt').exists(), 'existing credential state was regenerated')
                 self.assertTrue(before == (core.read_bytes(), edge.read_bytes()), 'existing credentials changed')
                 calls = node / 'synthetic-enrol-calls'
-                if mode in ('legacy', 'file'):
+                if mode in kept:
+                    self.assertIn('c6 keys done msg=tokens kept', result.stdout)
                     self.assertEqual(calls.read_text(encoding='ascii'), '--firstboot\n')
                 else:
                     self.assertFalse(calls.exists())

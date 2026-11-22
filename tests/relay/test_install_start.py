@@ -289,6 +289,66 @@ class InstallStartsServiceAfterCommit(unittest.TestCase):
         self.assertEqual(self.manager.state[self.unit], 'active')
         self.assert_started_after_commit()
 
+    def service(self, environ):
+        """One start of service.main with these DEEP32_RELAY_* settings: (exit code, printed reasons, settings)."""
+        import json
+        seen = []
+
+        self.agents = []
+
+        class Recording(Reactor):
+            def __init__(inner, *args, **kw):
+                super().__init__(*args, **kw)
+                seen.append(kw.get('settings'))
+                self.agents.append(args[1])
+                self.options = kw
+
+        kept = {key: value for key, value in os.environ.items()
+                if not key.startswith('DEEP32_RELAY_') or key == 'DEEP32_RELAY_TEST_ROOT'}
+        output = io.StringIO()
+        with patch.object(daemon, 'RelayReactor', Recording), patch.dict(os.environ, dict(kept, **environ), clear=True), \
+                redirect_stdout(output):
+            code = service.main(['--root', str(self.root.root)])
+        printed = output.getvalue().strip()
+        return code, (json.loads(printed)['reasons'] if printed else None), seen
+
+    def test_the_service_reads_its_settings_from_the_environment_at_start(self):
+        self.install(transport='loopback')
+        code, reasons, seen = self.service({})
+        self.assertEqual((code, reasons, [item.idle_seconds for item in seen]), (0, None, [900]))
+        code, reasons, seen = self.service({'DEEP32_RELAY_IDLE_SECONDS': '300'})
+        self.assertEqual((code, [item.idle_seconds for item in seen]), (0, [300]))
+        # the receipt and the recorded configuration are what they were: a setting is not part of them
+        self.assertEqual(self.root.read_json('config.json')['idle_timeout_seconds'], 60)
+        connector.validate_receipt(self.root)
+
+    def test_the_pin_reaches_the_agent_at_start(self):
+        self.install(transport='loopback')          # this fixture installs a Codex relay
+        code, reasons, seen = self.service({'DEEP32_RELAY_MODEL': 'gpt-synthetic-9', 'DEEP32_RELAY_EFFORT': 'high'})
+        self.assertEqual((code, self.agents[0].pin_model, self.agents[0].pin_effort), (0, 'gpt-synthetic-9', 'high'))
+        code, reasons, seen = self.service({})
+        self.assertEqual((code, self.agents[0].pin_model, self.agents[0].pin_effort), (0, '', ''))
+        code, reasons, seen = self.service({'DEEP32_RELAY_MODEL': '--model'})
+        self.assertEqual((code, reasons, self.agents), (10, ['invalid-relay-setting'], []))
+
+    def test_answer_records_are_written_only_when_asked_for(self):
+        self.install(transport='loopback')
+        self.service({})
+        self.assertIsNone(self.options['on_answer'])
+        self.assertTrue(callable(self.options['on_turn']))          # the turn log is always there
+        self.service({'DEEP32_RELAY_ANSWER_RECORD': 'on'})
+        self.assertEqual(self.options['on_answer'].__self__.__class__.__name__, 'AnswerRecords')
+        self.assertFalse(self.root.path('logs/answers').exists())    # nothing is written before an answer
+
+    def test_a_setting_that_is_not_valid_stops_the_service_and_is_named(self):
+        self.install(transport='loopback')
+        code, reasons, seen = self.service({'DEEP32_RELAY_IDLE_SECONDS': 'soon'})
+        self.assertEqual((code, reasons, seen), (10, ['invalid-relay-setting'], []))
+        output = io.StringIO()
+        with patch.dict(os.environ, {'DEEP32_RELAY_IDLE_SECONDS': '9000'}), redirect_stdout(output):
+            self.assertEqual(service.main(['--root', str(self.root.root), '--check']), 10)
+        self.assertIn('invalid-relay-setting', output.getvalue())
+
 
 if __name__ == '__main__':
     unittest.main()

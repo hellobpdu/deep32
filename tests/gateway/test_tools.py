@@ -432,6 +432,7 @@ class LookupToolsTest(ToolTest):
         self.assertIn("status: Historic\n", text)
         self.assertIn('</rfc>\n<section section="rfc3101#3.2"', text)
 
+    @unittest.skipIf(gateway_target.BUILDER, gateway_target.ALPHA3_ONLY)
     async def test_lookup_rfc_section_as_rag_core_sends_it(self):
         # /v2/rfc's section names heading and n_chars (not title and total_chars) and says whether it was found
         section = {"section_id": "rfc3101#3.1", "heading": "3.1 Type-7 Translator Election", "cite": "RFC 3101 §3.1",
@@ -443,7 +444,7 @@ class LookupToolsTest(ToolTest):
         lines = (await self.call("lookup_rfc", rfc=3101, section="3.1")).splitlines()
         self.assertIn("corpus: rfc3101", lines)
         self.assertEqual(lines[lines.index("</rfc>") + 1],
-                         '<section section="rfc3101#3.1" title="3.1 Type-7 Translator Election" '
+                         '<section section="rfc3101#3.1" cite="RFC 3101 §3.1" title="3.1 Type-7 Translator Election" '
                          'path="3.0 Details › 3.1 Type-7 Translator Election" local="rfc3101.txt:806-886" '
                          'chars="0-4000/4145">')
         self.assertEqual(lines[-1], '[more: get_section(ref="rfc3101#3.1", offset=4000)]')
@@ -1086,15 +1087,17 @@ class RetryTest(ToolTest):
         self.assertEqual(self.fake.sleeps, [2.0])
         self.assertEqual(len(self.fake.requests), 2)
 
-    async def test_missing_retry_after_waits_one_second(self):
+    @unittest.skipIf(gateway_target.BUILDER, gateway_target.ALPHA3_ONLY)
+    async def test_a_503_without_retry_after_is_not_retried(self):
+        # WP-C C4a: only a busy 503 says when to come back; one without Retry-After is final
         self.fake.routes[("POST", "/v2/search")] = [reply(503), reply(200, SEARCH)]
-        await self.call("search_rag", query="x")
-        self.assertEqual(self.fake.sleeps, [1.0])
+        await self.assert_tool_error("search_rag", "deep32-engine cannot answer (HTTP 503)", query="x")
+        self.assertEqual((len(self.fake.requests), self.fake.sleeps), (1, []))
 
     async def test_gives_up_after_one_retry(self):
         self.fake.routes[("POST", "/v2/search")] = reply(503, {"detail": "busy"}, {"Retry-After": "1"})
-        await self.assert_tool_error("search_rag", "deep32-engine is busy or degraded (HTTP 503); retry after 1 s",
-                                     query="x")
+        message = await self.assert_tool_error("search_rag", "(HTTP 503)", query="x")
+        self.assertIn("retry after 1 s", message)
         self.assertEqual(len(self.fake.requests), 2)
         self.assertEqual(self.fake.sleeps, [1.0])
 

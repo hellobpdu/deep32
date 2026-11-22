@@ -12,7 +12,7 @@
 How to connect Claude Code or Codex to your Workstation, install the research skill, and set up the optional Ask
 relay. This page is for the PC where your agent runs, which the rest of the documentation calls the headend.
 
-<sub>Applies to 0.1.0-alpha.2 · [1 Before you start](#1-before-you-start) · [2 Connect](#2-connect-an-agent) · [3 Separate profile](#3-use-a-separate-profile) · [4 Skills only](#4-install-the-skills-only) · [5 Ask relay](#5-the-ask-relay) · [6 First session](#6-first-session) · [7 Troubleshooting](#7-troubleshooting) · [8 Files](#8-what-connect-changes) · [9 Removal](#9-remove-a-headend)</sub>
+<sub>Applies to 0.1.0-alpha.3 · [1 Before you start](#1-before-you-start) · [2 Connect](#2-connect-an-agent) · [3 Separate profile](#3-use-a-separate-profile) · [4 Skills only](#4-install-the-skills-only) · [5 Ask relay](#5-the-ask-relay) · [6 First session](#6-first-session) · [7 Troubleshooting](#7-troubleshooting) · [8 Files](#8-what-connect-changes) · [9 Removal](#9-remove-a-headend)</sub>
 
 ## 1. Before you start
 
@@ -223,17 +223,56 @@ the Workstation a question you already know the answer to. A successful turn str
 research line lists the searches the agent made. If the turn ends with `agent-start-failed`, use your agent directly
 through Connect. See the known issues in CHANGELOG.md.
 
-**What the agent follows.** Ask's agent follows the deep32 research skill that Connect installs for Claude Code,
+**What the agent follows.** Ask's agent follows the deep32 research skill that Connect installs for the same agent,
 including its exam blueprint map, under the relay's own rules: only the eleven Deep32 tools, no files, commands
-or web access, and no other agents. The relay passes the skill with each question, so an answer starts with the
-same method as a Connect session.
+or web access, and no other agents. The relay gives the agent the whole skill in the order an answer needs it: the
+rules every default answer follows first, the deeper retrieval rules next, and the blueprint last. Claude Code gets
+it with each question; Codex gets its own skill once, as the conversation's base instructions. An answer starts with
+the same method as a Connect session. The skill comes with the relay, so a relay installed from an older clone keeps
+the skill of that clone: to get the current one, remove the relay and install it again from an updated clone with the
+same install ID.
 
 **One question at a time.** The relay answers one question at a time. A second question waits in a queue of two
 for up to 30 seconds and is then turned away, so ask again when the first answer is done. An answer has no time
 limit of its own: it runs until the agent is done, within the relay session's one hour, and a researched question
 at xhigh or max can take several minutes. If an answer seems stuck, press **Cancel** in the Ask window; the relay
-ends the agent and takes the next question. A conversation left idle for a minute closes, and `/new` starts
-another. The relay accepts at most 30 questions an hour.
+ends the agent and takes the next question. A conversation keeps its agent session for up to 15 minutes between
+questions, so a follow-up keeps its context, with the earlier questions and answers marked as such. While another
+conversation is waiting for the relay, an idle one closes after a minute. `/new` starts another conversation. The
+relay accepts at most 30 questions an hour.
+
+**Checks under an answer.** `adapters/relay/deep32_relay/answer_check.py` checks a finished answer against the tool
+calls of its turn, by script, with no model: each quotation against its `verify_quote` result, each cited RFC against
+a status lookup, a "not in the corpus" against an outline read, a degraded search against the answer's opening lines,
+and the numbers, releases and commands of the answer against the text the tools returned. What it can't confirm it
+lists as "to check"; it never changes or holds back an answer. With the setting `DEEP32_RELAY_CHECKS=footer` the relay
+adds that list under each answer, after a line `---` and `Checks (by script, no model):`. It is off by default. On
+the 12 answers graded in my November pilot it flagged 8 of the 19 unsupported claims, with 23 false alarms, and it
+can't see a wrong recommendation or inference, so treat a clean list as "nothing found by string matching" and a flag
+as something to look at. To check a saved answer and the turn's tool calls (one JSON object per call, with `tool`,
+`arguments`, `result` and `is_error`) from a clone:
+
+```sh
+python3 -I -B adapters/relay/deep32_relay/answer_check.py --events events.jsonl --answer answer.md
+```
+
+**Settings.** The relay reads these from its environment when the service starts. Each is optional, and a value that
+isn't valid stops the service with `invalid-relay-setting`.
+
+| Setting | Values | What it does |
+|---|---|---|
+| `DEEP32_RELAY_IDLE_SECONDS` | 60 to 900, default 900 | How long a conversation may sit idle before the relay closes it |
+| `DEEP32_RELAY_CHECKS` | `footer` or `off`, default `off` | `footer` adds the script's checks under each answer |
+| `DEEP32_RELAY_MODEL`, `DEEP32_RELAY_EFFORT` | a full model ID; an effort level | What a conversation that names no model or strength runs. The relay refuses a turn whose agent reports another model |
+| `DEEP32_RELAY_ANSWER_RECORD` | `on` or `off`, default `off` | `on` writes one small file per answer to `logs/answers/` in the relay's folder: the agent, model and effort, the hash of the instructions it got, the index generation, the IDs each tool returned, and the check's counts. It holds no question, answer, passage, query or quotation, and keeps the newest 200 |
+
+On Linux, put them in a drop-in file, `~/.config/systemd/user/deep32-relay-<id>.service.d/override.conf`, with a line
+`[Service]` and one `Environment=NAME=value` line per setting, then run `systemctl --user daemon-reload` and
+`systemctl --user restart deep32-relay-<id>.service`. On Windows, `setx NAME value` stores one for your user; sign out
+and in to restart the relay with it. On macOS, `launchctl setenv NAME value` sets one until you log out, then
+`launchctl kickstart -k gui/$(id -u)/org.deep32.distribution.deep32-relay-<id>` restarts the relay. Don't edit the
+service's own unit file, task or plist: the relay compares them with its install record and refuses to start when
+they differ. Restart only when no question is running.
 
 **Model and strength.** You can choose the model and the strength for each Ask conversation. When you install a Claude
 Code relay, its startup check records the model names Claude Code offers that profile (default, opus, fable, sonnet and

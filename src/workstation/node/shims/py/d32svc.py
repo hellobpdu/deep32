@@ -22,6 +22,7 @@ import os
 import pwd
 import re
 import socket
+import stat
 import sys
 import threading
 
@@ -128,6 +129,46 @@ def boot(name: str, class_keys: tuple[str, ...] = (), required: tuple[str, ...] 
 def realpath_dir(path: str) -> str:
     """The resolved path: unveil and sys.path must name the same vnode chain (no symlink in between)."""
     return os.path.realpath(path)
+
+
+def read_credential(path: str, group: str, name: str) -> str:
+    """One 64-digit credential from its protected file, read before confinement; never shows the value.
+
+    The single-token sibling of serve_edge.load_mcp_tokens: no symlink in the path, a parent owned by root with mode
+    0711, the file opened without following a link, a regular file owned by root, group `group`, mode 0440 (the
+    owner and mode checks on POSIX only), at most 65 bytes: exactly 64 lower-case hex digits and one newline.
+    """
+    message = name + ": engine credential unavailable; run gateway enrolment"
+    try:
+        target = os.path.abspath(path)
+        part = target
+        while True:
+            if os.path.islink(part) or getattr(os.path, "isjunction", lambda _: False)(part):
+                raise ValueError()
+            parent = os.path.dirname(part)
+            if parent == part:
+                break
+            part = parent
+        gid = None
+        if os.name == "posix":
+            import grp
+            gid = grp.getgrnam(group).gr_gid
+            info = os.stat(os.path.dirname(target))
+            if info.st_uid != 0 or stat.S_IMODE(info.st_mode) != 0o711:
+                raise ValueError()
+        fd = os.open(target, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0))
+        with os.fdopen(fd, "rb") as stream:
+            meta = os.fstat(stream.fileno())
+            if not stat.S_ISREG(meta.st_mode):
+                raise ValueError()
+            if os.name == "posix" and (meta.st_uid != 0 or meta.st_gid != gid or stat.S_IMODE(meta.st_mode) != 0o440):
+                raise ValueError()
+            raw = stream.read(66)
+        if len(raw) != 65 or re.fullmatch(rb"[0-9a-f]{64}\n", raw) is None:
+            raise ValueError()
+        return raw[:64].decode("ascii")
+    except (OSError, ValueError, KeyError, UnicodeError):
+        raise SystemExit(message) from None
 
 
 def confine(svc: Service, unveils: list[tuple[str, str]], promises: str) -> None:

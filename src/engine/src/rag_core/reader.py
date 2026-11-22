@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any
 
 from rag_core.db import DEFAULT_FTS, OPTIN_DOCS, OPTIN_FTS, connect, is_split
+from rag_core.kb import version_key
 from rag_core.paths import RAGPaths
 from rag_core.retrievers.lexical import STOPWORDS, for_table
 from rag_core.sections import page_furniture, slugify
@@ -37,6 +38,13 @@ QUOTE_CHARS = str.maketrans({
 })
 ELLIPSIS = re.compile(r"\s*(?:\[\.\.\.\]|\.\.\.|…)\s*")
 CANON_DROP = re.compile(r"[\s-]+")
+# verify_quote, a quotation with omissions ("..."): retrieval.json verify.ellipsis (rag_core.api_v2.verify_settings)
+VERIFY_ELLIPSIS = ("any", "bounded")        # the first is the default
+DEFAULT_MAX_GAP_CHARS = 600                 # verify.max_gap_chars
+# bounded_spans gives up (the quotation does not pass) past these: more parts than any quotation needs, or parts so
+# short that they occur this many times in one document
+BOUNDED_MAX_PARTS = 16
+BOUNDED_MAX_OCCURRENCES = 50_000
 GREP_LINE_CHARS = 300
 MAX_REGEX_SIZE = 10_000     # parse-tree nodes a grep regex may unroll to (compile_regex)
 # a word as the BM25 index's FTS5 unicode61 tokenizer cuts one: a run of letters and digits
@@ -226,6 +234,79 @@ class SourceFile:
         return [(first + i - 1, t) for i, t in display_lines(self.lines(first, last), furniture)]
 
 
+# What a hit can carry besides its text (WP-E E5; settings evidence.covered_titles, evidence.table_context, WP-D D9),
+# computed at delivery from what the knowledge base already holds.
+TABLE_MAX_WALK = 2000         # pipe rows walked up from a window's first line to its table's header
+TABLE_CAPTION_LOOKBACK = 2    # lines above the header row a "Table N." caption may stand
+TABLE_HEADER_CELL_MAX = 60    # a header cell is a short name: longer, or a sentence, is a data row
+TABLE_CAPTION = re.compile(r"^Table\s+\d+[.:]?\s+\S")
+TABLE_STEP_ROW = re.compile(r"^Step\s+\d+\s+\|")
+
+
+def covered_titles(covered: list[str], sections: dict[str, Sec]) -> list[str] | None:
+    """The headings of the sections a merged passage covers (chunk_spans.covered_json), in order, empty ones left
+    out; None for a passage of one section, or when no covered section has a heading."""
+    if len(covered) < 2:
+        return None
+    titles = []
+    for section_id in covered:
+        sec = sections.get(section_id)
+        if sec is not None and sec.heading and sec.heading.strip():
+            titles.append(sec.heading)
+    return titles or None
+
+
+def table_cells(row: str) -> list[str]:
+    """A pipe row's cells: split on " | " outside [] and {} (the rule of the CLI index builder's split_cells)."""
+    out, depth, cur = [], 0, []
+    for part in re.split(r"( \| )", row):
+        if part == " | " and depth == 0:
+            out.append("".join(cur).strip())
+            cur = []
+            continue
+        depth += part.count("[") + part.count("{") - part.count("]") - part.count("}")
+        cur.append(part)
+    return out + ["".join(cur).strip()]
+
+
+def _table_row(line: str) -> bool:
+    return " | " in line and not line.startswith(("#", "```"))
+
+
+def table_context(source: SourceFile, first: int, floor: int = 1) -> dict[str, Any] | None:
+    """{"caption", "header"} for a window whose first line is a row of a pipe table below its header row, else
+    None. The walk goes up from `first` over pipe rows, never above `floor` (the section's first line) and at most
+    TABLE_MAX_WALK lines; the topmost row reached is the header when it has as many cells as line `first`, is not a
+    procedure step and reads as names (short cells, no sentence). The caption is a "Table N." line just above it."""
+    if not 1 <= first <= source.n_lines:
+        return None
+    row = source.line(first)
+    if not _table_row(row) or len(table_cells(row)) < 2:
+        return None
+    top, walked = first, 0
+    while top - 1 >= max(floor, 1) and _table_row(source.line(top - 1)):
+        top -= 1
+        walked += 1
+        if walked > TABLE_MAX_WALK:
+            return None
+    if top == first:
+        return None
+    header = source.line(top)
+    parts = table_cells(header)
+    if (len(parts) != len(table_cells(row)) or TABLE_STEP_ROW.match(header)
+            or any(len(p) > TABLE_HEADER_CELL_MAX or ". " in p or ";" in p for p in parts)):
+        return None
+    caption = None
+    k = top - 1
+    while k >= max(floor, 1) and top - k <= TABLE_CAPTION_LOOKBACK:
+        text = source.line(k).strip()
+        if text:
+            caption = text if TABLE_CAPTION.match(text) else None
+            break
+        k -= 1
+    return {"caption": caption, "header": header}
+
+
 def query_terms(*queries: str) -> list[str]:
     terms = []
     for query in queries:
@@ -342,6 +423,40 @@ def chunk_window(text: str, terms: list[str], max_chars: int) -> str:
     return window(pairs, best_line(pairs, terms) or 0, max_chars, terms)[0]
 
 
+def release_spellings(release: str | None) -> set[str]:
+    """How a doc_key may spell a release: its first two or more dot-separated parts run together, lower case.
+    "17.9" -> {"179"}; "17.18.x" -> {"1718", "1718x"}; "26.x" -> {"26x"}; "2.3.7.9" -> {"23", "237", "2379"}.
+    A release of one part ("17") has none: one number is not enough to tell it from any other token."""
+    parts = [p for p in re.split(r"[.\s]+", (release or "").strip().lower()) if p]
+    return {"".join(parts[:n]) for n in range(2, len(parts) + 1)}
+
+
+def book_family(doc: "Doc") -> tuple[str, str] | None:
+    """(doc_type, the doc_key with the token that names the release replaced by "*"): the same for the books that
+    are one book at several releases (c9300-179-rtng, c9300-1718-rtng and c9300-26x-rtng are "c9300-*-rtng";
+    ise31-admin-pxgrid and ise34-admin-pxgrid are "ise*-admin-pxgrid"). The token is found from what the
+    structure index stores, doc_key and release (doc_sources): the one "-"-separated token after the first that
+    is a spelling of the release (release_spellings), else a first token of letters followed by such a spelling.
+    None when it cannot be decided: no stored release, a release of one part, no such token, or two of them."""
+    spellings = release_spellings(doc.release)
+    if not spellings:
+        return None
+    tokens = doc.doc_key.lower().split("-")
+    at = [i for i, token in enumerate(tokens) if i and token in spellings]
+    if len(at) == 1:
+        tokens[at[0]] = "*"
+    elif not at and (m := re.fullmatch(r"([a-z]+)(\d[\dx]*)", tokens[0])) and m.group(2) in spellings:
+        tokens[0] = m.group(1) + "*"
+    else:
+        return None
+    return doc.doc_type, "-".join(tokens)
+
+
+def heading_key(heading: str | None) -> str:
+    """A heading for comparison: case and runs of whitespace do not tell two apart."""
+    return " ".join((heading or "").casefold().split())
+
+
 def ref_candidates(ref: str) -> list[str]:
     """Section ids a ref may name, the literal one first: as given, lowercased, and without a
     "section-" anchor prefix (RFC Editor URL style, "rfc3101#section-3.2"). The literal id
@@ -357,6 +472,86 @@ def canonical(text: str) -> str:
     """Quote comparison form: typographic quotes and dashes made ASCII, then every run of
     whitespace and hyphens removed (joins hyphenation breaks and re-wrapped lines)."""
     return CANON_DROP.sub("", text.translate(QUOTE_CHARS))
+
+
+def in_order(text: str, parts: list[str]) -> list[tuple[int, int]] | None:
+    """Where the parts of a quotation stand in `text` (both in canonical form) when each is taken at its first
+    place after the part before it, however far: [(start, end)], or None when a part does not follow. The rule
+    of verify.ellipsis "any", and of a quotation without omissions (one part)."""
+    spans: list[tuple[int, int]] = []
+    pos = 0
+    for part in parts:
+        found = text.find(part, pos)
+        if found < 0:
+            return None
+        pos = found + len(part)
+        spans.append((found, pos))
+    return spans
+
+
+def widest_gap(spans: list[tuple[int, int]]) -> int:
+    """The most canonical characters between two neighbouring parts; 0 for one part."""
+    return max((b[0] - a[1] for a, b in zip(spans, spans[1:])), default=0)
+
+
+def bounded_spans(
+    text: str,
+    parts: list[str],
+    max_gap: int,
+    section_of,
+) -> list[tuple[int, int]] | None:
+    """verify.ellipsis "bounded": the parts placed in order so that each starts at most `max_gap` canonical
+    characters after the end of the part before it and all of them lie in one section (`section_of(offset)`: the
+    deepest section of the line that holds the canonical offset; a part that itself runs from one section into
+    another has no place). [(start, end)] of the leftmost such placement (the first part as far left as any
+    placement allows, then each next part as far left as the rest allows), or None when there is none.
+
+    When the places in_order() finds satisfy the bound, they are the answer: the leftmost placement is then the
+    same one. Every way of placing the parts is considered, not only that one: a part that occurs twice may have
+    to take its second place to stay near the next part.
+
+    The work is bounded: more than BOUNDED_MAX_PARTS parts, or parts that occur more than
+    BOUNDED_MAX_OCCURRENCES times in all, are not placed (None)."""
+    if len(parts) > BOUNDED_MAX_PARTS:
+        return None
+    budget = BOUNDED_MAX_OCCURRENCES
+    starts: dict[str, list[int]] = {}
+    for part in dict.fromkeys(parts):
+        found: list[int] = []
+        at = text.find(part)
+        while at >= 0:
+            budget -= 1
+            if budget < 0:
+                return None
+            if section_of(at) is section_of(at + len(part) - 1):
+                found.append(at)
+            at = text.find(part, at + 1)
+        if not found:
+            return None
+        starts[part] = found
+    # feasible[k]: the starts of part k from which every later part can still be placed, ascending
+    feasible: list[list[int]] = [starts[parts[-1]]]
+    for k in range(len(parts) - 2, -1, -1):
+        following, size, keep = feasible[0], len(parts[k]), []
+        for start in starts[parts[k]]:
+            end = start + size
+            i = bisect.bisect_left(following, end)
+            while i < len(following) and following[i] - end <= max_gap:
+                if section_of(following[i]) is section_of(start):
+                    keep.append(start)
+                    break
+                i += 1
+        if not keep:
+            return None
+        feasible.insert(0, keep)
+    spans = [(feasible[0][0], feasible[0][0] + len(parts[0]))]
+    home = section_of(spans[0][0])
+    for k in range(1, len(parts)):
+        i = bisect.bisect_left(feasible[k], spans[-1][1])
+        while section_of(feasible[k][i]) is not home:
+            i += 1
+        spans.append((feasible[k][i], feasible[k][i] + len(parts[k])))
+    return spans
 
 
 def regex_size(pattern: str, flags: int = 0) -> int:
@@ -512,6 +707,8 @@ class RootReader:
         self._lock = threading.Lock()
         self._of_types: dict[frozenset[str], frozenset[str]] = {}
         self._headings: tuple[dict, list] | None = None
+        self._families: dict[tuple[str, str], list[Doc]] | None = None
+        self._heading_counts: dict[str, dict[str, int]] = {}
         self.structured = False
 
         sources = paths.root / "sources"
@@ -550,6 +747,16 @@ class RootReader:
                 doc.doc_id for doc in self.docs.values() if doc.doc_type in doc_types
             )
         return found
+
+    def covered_titles(self, covered: list[str]) -> list[str] | None:
+        """The headings of the sections a merged passage covers (chunk_rows' "covered"), or None (WP-E E5)."""
+        return covered_titles(covered, self.sections)
+
+    def table_context(self, doc: Doc, first: int) -> dict[str, Any] | None:
+        """{"caption", "header"} of the table a window starting at source line `first` sits in, or None (WP-E E5);
+        the walk stays inside the section holding that line."""
+        sec = doc.section_at(first)
+        return table_context(self.file(doc), first, sec.line_start if sec else 1)
 
     def file(self, doc: Doc) -> SourceFile:
         """The document's source, read on first use and kept. Reading and parsing happen outside
@@ -639,6 +846,71 @@ class RootReader:
             ]
         return sorted(found, key=lambda f: (f[0].doc_key, f[1].ordinal))[:limit]
 
+    def chunk_lines(self, chunk_id: str) -> tuple[str, int | None, int | None] | None:
+        """(doc_id, first line, last line) of a chunk in its source, the lines None when the chunk was not located;
+        None for an unknown chunk id."""
+        with connect(self.paths.sqlite / "rag.db") as conn:
+            row = conn.execute(
+                "SELECT doc_id, line_start, line_end FROM chunk_spans WHERE chunk_id = ?", (chunk_id,)
+            ).fetchone()
+        return (row["doc_id"], row["line_start"], row["line_end"]) if row else None
+
+    def line_offset(self, doc: Doc, sec: Sec, line: int) -> int:
+        """The character offset in the section's display text (section_text) at which the first display line at
+        or after source line `line` begins; when no display line follows it (blank lines or page furniture to
+        the section's end), the one where the last display line begins."""
+        offset = begins = 0
+        for at, text in self.file(doc).shown(sec.line_start, sec.line_end):
+            begins = offset
+            if at >= line:
+                return offset
+            offset += len(text) + 1
+        return begins
+
+    def heading_count(self, doc: Doc, heading: str | None) -> int:
+        """How many sections of the document carry this heading (heading_key), counted once per document."""
+        counts = self._heading_counts.get(doc.doc_key)
+        if counts is None:
+            counts = {}
+            for s in doc.sections:
+                if s.heading:
+                    key = heading_key(s.heading)
+                    counts[key] = counts.get(key, 0) + 1
+            self._heading_counts[doc.doc_key] = counts
+        return counts.get(heading_key(heading), 0)
+
+    def same_section_in(self, doc: Doc, sec: Sec) -> list[dict[str, Any]]:
+        """The same section in the same book at other releases: [{"doc_key", "section_id", "release"}], oldest
+        release first (kb.version_key order, then doc_key). A document of the same book family (book_family) and
+        another release that has a section with the same anchor and the same heading; when that heading occurs
+        more than once in either document ("Examples", "Restrictions": their anchors end in -2, -3 in document
+        order, which another release may order differently), the headings above the two sections, below each
+        book's top heading, must be equal too. [] when the family cannot be decided, for the preamble, and for
+        a document without siblings."""
+        family = book_family(doc)
+        if family is None or sec.heading is None:
+            return []
+        if self._families is None:
+            families: dict[tuple[str, str], list[Doc]] = {}
+            for other in self.docs.values():
+                key = book_family(other)
+                if key is not None:
+                    families.setdefault(key, []).append(other)
+            self._families = families
+        found = []
+        for other in self._families.get(family, ()):
+            if other is doc or other.release == doc.release:
+                continue
+            twin = self.sections.get(f"{other.doc_key}#{sec.anchor}")
+            if twin is None or heading_key(twin.heading) != heading_key(sec.heading):
+                continue
+            once = self.heading_count(doc, sec.heading) == 1 and self.heading_count(other, twin.heading) == 1
+            if not once and [heading_key(h) for h in twin.path[1:]] != [heading_key(h) for h in sec.path[1:]]:
+                continue
+            found.append((version_key(other.release) or (), other.doc_key, twin.section_id, other.release))
+        return [{"doc_key": key, "section_id": section_id, "release": release}
+                for _, key, section_id, release in sorted(found)]
+
     def neighbours(self, doc: Doc, sec: Sec) -> tuple[Sec | None, Sec | None]:
         """(previous, next) section outside `sec`'s own subtree, in document order."""
         prev = next(
@@ -711,16 +983,37 @@ class RootReader:
 
     # --- verify_quote ---------------------------------------------------------------------
 
-    def verify_quote(self, doc: Doc, sec: Sec | None, quote: str) -> dict[str, Any]:
+    def verify_quote(
+        self,
+        doc: Doc,
+        sec: Sec | None,
+        quote: str,
+        *,
+        ellipsis: str = VERIFY_ELLIPSIS[0],
+        max_gap_chars: int = DEFAULT_MAX_GAP_CHARS,
+    ) -> dict[str, Any]:
         """Find `quote` in the section, else anywhere in the document.
 
         exact       the quote occurs verbatim in the source
         normalized  it occurs once typographic quotes/dashes, whitespace, line wrapping,
                     hyphenation breaks and RFC page headers/footers are disregarded; "..."
                     marks an omission (the parts must occur in order)
+
+        `ellipsis` (retrieval.json verify.ellipsis) is the rule for a quotation with omissions. "any" (the
+        default): the parts only have to occur in order, at any distance (in_order). "bounded": they must also
+        lie in one section, each at most `max_gap_chars` canonical characters after the part before it
+        (bounded_spans); a quotation whose parts do occur in order but in no such way is not_found with
+        "reason": "parts-too-far" and the widest gap of the in-order places as "gap_chars". A quotation
+        without omissions is checked the same under both.
+
+        Every answer also says where the match lies: "scope" (only when a section was cited: "section" when the
+        matched lines are inside it, "document" when the quotation was found elsewhere in the document),
+        "sections" (the ids of the sections the matched lines are in, in document order; [] for not_found) and
+        "gap_chars" (the most canonical characters, that is characters other than whitespace and hyphens,
+        outside RFC page headers and footers, between two neighbouring parts; 0 without an omission).
         """
         not_found = {"result": "not_found", "section_id": sec.section_id if sec else None,
-                     "local": None, "match_text": None}
+                     "local": None, "match_text": None, "sections": [], "gap_chars": 0}
         needle = quote.strip()
         if not needle:
             return not_found            # "" occurs everywhere: nothing is verified
@@ -735,26 +1028,43 @@ class RootReader:
             pos = source.text.find(needle, start, end)
             if pos >= 0:
                 a, b = source.line_at(pos), source.line_at(pos + len(needle) - 1)
-                return self._quote_result("exact", doc, a, b, needle)
+                return self._quote_result("exact", doc, sec, a, b, needle)
 
         parts = [canonical(p) for p in ELLIPSIS.split(quote.translate(QUOTE_CHARS))]
         parts = [p for p in parts if p]
+        bounded = ellipsis == VERIFY_ELLIPSIS[1] and len(parts) > 1
+        far: int | None = None      # bounded: the widest gap where the parts stand in order, but not near enough
         if parts:
             for first, last in scopes:
-                found = self._find_canonical(source, first, last, parts)
-                if found:
-                    a, b = found
-                    shown = "\n".join(t for _, t in source.shown(a, b))
-                    return self._quote_result("normalized", doc, a, b, shown)
+                text, ends, lines = self._canonical_text(source, first, last)
+                spans = in_order(text, parts)
+                if spans is None:
+                    continue
+                if bounded:
+                    near = bounded_spans(
+                        text, parts, max_gap_chars,
+                        lambda at: doc.section_at(lines[bisect.bisect_right(ends, at)]),
+                    )
+                    if near is None:
+                        far = widest_gap(spans) if far is None else far
+                        continue            # the cited section does not hold it so: the whole document may
+                    spans = near
+                a = lines[bisect.bisect_right(ends, spans[0][0])]
+                b = lines[bisect.bisect_left(ends, spans[-1][1])]
+                shown = "\n".join(t for _, t in source.shown(a, b))
+                return self._quote_result("normalized", doc, sec, a, b, shown, widest_gap(spans))
+        if far is not None:
+            return {**not_found, "gap_chars": far, "reason": "parts-too-far"}
         return not_found
 
-    def _find_canonical(
+    def _canonical_text(
         self,
         source: SourceFile,
         first: int,
         last: int,
-        parts: list[str],
-    ) -> tuple[int, int] | None:
+    ) -> tuple[str, list[int], list[int]]:
+        """Lines first..last in the quote comparison form, joined (page furniture and lines that are empty in
+        that form left out), with, per kept line, the offset its text ends at and its line number."""
         pieces: list[str] = []
         ends: list[int] = []
         lines: list[int] = []
@@ -769,25 +1079,33 @@ class RootReader:
             total += len(piece)
             ends.append(total)
             lines.append(n)
-        text = "".join(pieces)
-        pos, begin = 0, None
-        for part in parts:
-            found = text.find(part, pos)
-            if found < 0:
-                return None
-            begin = found if begin is None else begin
-            pos = found + len(part)
-        a = lines[bisect.bisect_right(ends, begin)]
-        b = lines[bisect.bisect_left(ends, pos)]
-        return a, b
+        return "".join(pieces), ends, lines
 
-    def _quote_result(self, result: str, doc: Doc, a: int, b: int, text: str) -> dict[str, Any]:
+    def _quote_result(
+        self,
+        result: str,
+        doc: Doc,
+        cited: Sec | None,
+        a: int,
+        b: int,
+        text: str,
+        gap: int = 0,
+    ) -> dict[str, Any]:
+        """A match on lines a..b. `cited`: the section the caller named, if any."""
         sec = doc.section_at(a)
+        # every section a line of a..b is in: the one that holds line a, then each that starts up to line b
+        spanned = ([sec] if sec else []) + [
+            s for s in doc.sections[bisect.bisect_right(doc.starts, a):] if s.line_start <= b
+        ]
         return {
             "result": result,
             "section_id": sec.section_id if sec else None,
             "local": doc.local(a, b),
             "match_text": text[:2000],
+            **({"scope": "section" if cited.line_start <= a and b <= cited.line_end else "document"}
+               if cited is not None else {}),
+            "sections": [s.section_id for s in spanned],
+            "gap_chars": gap,
         }
 
     # --- grep -----------------------------------------------------------------------------
@@ -978,7 +1296,8 @@ def near_window(
 
 
 def chunk_rows(conn, chunk_ids: list[str]) -> dict[str, dict[str, Any]]:
-    """Chunk text and heading path, with the source span when the root has one."""
+    """Chunk text and heading path, with the source span when the root has one, and then "covered": the ids of the
+    sections the span touches (chunk_spans.covered_json; WP-E E5)."""
     if not chunk_ids:
         return {}
     marks = ",".join("?" for _ in chunk_ids)
@@ -986,7 +1305,7 @@ def chunk_rows(conn, chunk_ids: list[str]) -> dict[str, dict[str, Any]]:
     rows = conn.execute(
         f"""
         SELECT c.chunk_id, c.doc_id, c.text, c.heading_path_json
-               {", s.line_start, s.line_end, s.section_id AS span_section" if spans else ""}
+               {", s.line_start, s.line_end, s.section_id AS span_section, s.covered_json" if spans else ""}
         FROM chunks c
         {"LEFT JOIN chunk_spans s ON s.chunk_id = c.chunk_id" if spans else ""}
         WHERE c.chunk_id IN ({marks})
@@ -997,5 +1316,7 @@ def chunk_rows(conn, chunk_ids: list[str]) -> dict[str, dict[str, Any]]:
     for r in rows:
         row = dict(r)
         row["heading_path"] = json.loads(row.pop("heading_path_json") or "[]")
+        if spans:
+            row["covered"] = json.loads(row.pop("covered_json") or "[]")
         out[row["chunk_id"]] = row
     return out

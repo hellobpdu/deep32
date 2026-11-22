@@ -29,7 +29,7 @@ class WholeAssembly(unittest.TestCase):
         self.out = self.root / "release"
         self.mirrors = strict_load(TOOLS / "contracts" / "fixtures" / "valid" / "mirrors-v2.json")
         self.rows, self.producers, self.sources = [], [], {}
-        argv = ["--format", "whole", "--version", "0.1.0-alpha.2",
+        argv = ["--format", "whole", "--version", "0.1.0-alpha.3",
                 "--output", str(self.out), "--mirrors-input", str(self.inputs / "mirrors.json"),
                 "--metadata-list", str(self.inputs / "metadata.json"),
                 "--bundle-inputs", str(self.inputs / "bundles.json")]
@@ -112,7 +112,7 @@ class WholeAssembly(unittest.TestCase):
 
     def test_isolated_cli(self):
         argv = [sys.executable, "-I", "-B", str(TOOLS / "release_assemble.py"),
-                "--format", "whole", "--version", "0.1.0-alpha.2", "--output", str(self.out),
+                "--format", "whole", "--version", "0.1.0-alpha.3", "--output", str(self.out),
                 "--mirrors-input", str(self.inputs / "mirrors.json"),
                 "--metadata-list", str(self.inputs / "metadata.json"),
                 "--bundle-inputs", str(self.inputs / "bundles.json")]

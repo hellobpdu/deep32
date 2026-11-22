@@ -267,7 +267,7 @@ read() {
     def test_boot_text_matches_release_and_guided_questions(self):
         boot = (INSTALL / "boot.conf.guided").read_text()
         self.assertIn("# guided medium boot sentence; release ID only.", boot)
-        self.assertIn("Deep32 Workstation 0.1.0-alpha.2 (alpha). Guided install:", boot)
+        self.assertIn("Deep32 Workstation 0.1.0-alpha.3 (alpha). Guided install:", boot)
         self.assertIn("it asks for the disk, the passphrases and the passwords.", boot)
         self.assertIn("set image /bsd\n", boot)
         self.assertIn("# install completion, before the first start.", self.generated_text)

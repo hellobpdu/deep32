@@ -19,6 +19,16 @@ windows = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(windows)
 
 
+def alpha2_recipes():
+    """forge-recipes-0.1.0-alpha.2.json is alpha.2's signed waiver record, kept as history. Its recipes still apply,
+    so the tests read it with every waiver's release set to the release under test, in memory only."""
+    rows = json.loads((TOOLS / 'forge-recipes-0.1.0-alpha.2.json').read_bytes())
+    for row in rows:
+        if isinstance(row.get('waiver'), dict):
+            row['waiver']['release'] = windows.preflight.requirements.RELEASE
+    return rows
+
+
 class WindowsForgePreflight(unittest.TestCase):
     def setUp(self):
         self.version = {'Platform': {'Name': 'Docker Desktop 4.99.0 (10001)'},
@@ -222,11 +232,11 @@ class WindowsOwnerWaiver(unittest.TestCase):
         self.smi = '617.14, 7.5, 11264\n'
         requirements = windows.preflight.requirements
         rows = requirements.cite(
-            json.loads((TOOLS / 'forge-recipes-0.1.0-alpha.2.json').read_bytes()), {'prerequisites.json': 'a' * 64},
+            alpha2_recipes(), {'prerequisites.json': 'a' * 64},
             {name: 'b' * 64 for name in ('LINUX-MINERU-R3-EVIDENCE.md', 'WINDOWS-RAW-QUALIFICATION.md')})
         requirements.validate_recipes(rows)
         self.recipe = next(row for row in rows if row['os_id'] == 'windows')
-        self.envelope = dict(format='deep32-forge-prerequisites/1', release='0.1.0-alpha.2',
+        self.envelope = dict(format='deep32-forge-prerequisites/1', release='0.1.0-alpha.3',
                              capability_sha256='7' * 64, pins_sha256='8' * 64, recipes=rows,
                              driver_floors=dict(tei_minimum_driver='575.51.03', cuda_minimum_driver='580.65.06',
                                                 mineru_minimum_driver='580.65.06'),
@@ -289,7 +299,7 @@ class WindowsOwnerWaiver(unittest.TestCase):
         self.info = dict(self.info, ServerVersion='30.0.0', KernelVersion='7.0.1.1-microsoft-standard-WSL2')
 
     def test_alpha2_windows_recipe_accepts_the_named_host_with_one_plain_line(self):
-        notice = ('Note: this host type is accepted for 0.1.0-alpha.2 under an owner waiver dated 2026-11-18 '
+        notice = ('Note: this host type is accepted for 0.1.0-alpha.3 under an owner waiver dated 2026-11-18 '
                   '(recipe windows-11-docker-desktop-wsl2-j1). I have not yet run a full install on it; '
                   'FORGE-PREREQUISITES.json lists what was not run.')
         result = self.collect()

@@ -22,4 +22,10 @@ Weight the analysis toward building it right the first time:
 - **Configurations that look right but fail**: ones that parse cleanly but do not work (wrong mode, wrong direction,
   wrong VRF, missing keyword, an ACL that implicitly denies), each with the cited reason.
 - **Removal and change**: how the `no` form behaves, what lingers, and what needs a reset or re-key.
-- **Verify after every step**: the show command and the expected output fragment that proves each step worked.
+- **Verify after every step**: the show command and the output fragment that proves each step worked, quoted from
+  a corpus sample or constructed under the rule below.
+
+Everything this lens adds beyond a retrieved passage (a table row, a scenario, a recommendation, a pattern) is cited,
+or labelled `inference (from [cite] + [cite])` with the sources it rests on. Constructed output (a configuration,
+show output, a log line) is built only from a sample checked with `verify_quote`, with every field you changed
+marked, and is labelled constructed: never present it as seen on a device.

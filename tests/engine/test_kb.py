@@ -5,6 +5,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import engine_target  # noqa: E402,F401  the engine copy under test, on sys.path (engine_target.py)
 
 import json
+import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
@@ -700,6 +701,140 @@ class SectionAnchorTests(unittest.TestCase):
                  "Security Considerations": "Security Considerations", "Appendix A.  Extra": "Appendix A"}
         self.assertEqual({s.heading: s.anchor for s in sections if s.heading},
                          {heading: kb.section_anchor(ref) for heading, ref in typed.items()})
+
+
+class FactLookupTests(unittest.TestCase):
+    """kb.lookup_fact (WP-E E4, /v2/lookup?kind=): the feature table as build_kb makes it, and the three new fact
+    tables made here with INTERFACES 3's columns and synthetic rows."""
+
+    HISTORY = [
+        (1, "made-cr", "made-cr#command-history-1", "timers frob", "10.0", "ios", "This command was introduced.",
+         "introduced", 10),
+        (2, "made-cr", "made-cr#command-history-1", "timers frob", "12.0(26)S", "ios", "The burst argument was added.",
+         "modified", 11),
+        (3, "made-cr", "made-cr#command-history-2", "timers frobnicate", "16.5.1a", "iosxe",
+         "This command was introduced.", "introduced", 30),
+        (4, "made-other", "made-other#x", "no frob", "14.1", "sdwan-manager", "Command introduced.", "introduced", 5),
+    ]
+
+    @classmethod
+    def setUpClass(cls):
+        cls.tmp = tempfile.TemporaryDirectory()
+        base = Path(cls.tmp.name)
+        paths = build_root(base)
+        index_root(paths)
+        cls.kb_path = paths.root / "kb" / "kb.sqlite"
+        kb.build_kb(base / "kb-src", cls.kb_path)
+        cls.bare = base / "bare.sqlite"              # today's tables only
+        cls.bare.write_bytes(cls.kb_path.read_bytes())
+        conn = sqlite3.connect(cls.kb_path)
+        conn.executescript("""
+            CREATE TABLE command_history (id INTEGER PRIMARY KEY, doc_key TEXT, section_id TEXT, command TEXT,
+                release TEXT, train TEXT, modification TEXT, kind TEXT, line INTEGER);
+            CREATE TABLE cmd_default (id INTEGER PRIMARY KEY, doc_key TEXT, section_id TEXT, command TEXT,
+                parameter TEXT, default_value TEXT, sentence TEXT, line INTEGER);
+            CREATE TABLE deprecation (id INTEGER PRIMARY KEY, doc_key TEXT, section_id TEXT, subject TEXT,
+                replacement TEXT, release TEXT, sentence TEXT, line INTEGER);
+        """)
+        conn.executemany("INSERT INTO command_history VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", cls.HISTORY)
+        conn.execute("INSERT INTO cmd_default VALUES (1, 'made-cr', 'made-cr#command-default-1', 'timers frob', "
+                     "'keepalive', '60 seconds', 'The default is 60 seconds.', 8)")
+        conn.executemany("INSERT INTO deprecation VALUES (?, ?, ?, ?, ?, ?, ?, ?)", [
+            (1, "made-cr", "made-cr#usage-1", "frob widget", "frob gadget", "15.1(1)SY",
+             "Note | the frob widget command is replaced by the frob gadget command.", 90),
+            (2, "made-cr", "made-cr#usage-2", None, None, None, "This option is deprecated.", 95)])
+        conn.commit()
+        conn.close()
+        cls.db = kb.open_kb(cls.kb_path)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.db.close()
+        cls.tmp.cleanup()
+
+    def ids(self, kind, identifier, db=None):
+        found = kb.lookup_fact(db or self.db, kind, identifier)
+        table = sqlite3.connect(self.kb_path)
+        try:
+            by_line = {(r[0], r[1]): r[2] for r in table.execute(
+                f"SELECT doc_key, line, id FROM {kb.FACT_TABLES[kind]}")}
+        finally:
+            table.close()
+        return [by_line[(row["doc_key"], row["line"])] for row in found["results"]], found
+
+    def test_substring_rows_in_doc_order(self):
+        ids, found = self.ids("history", "timers frob")
+        self.assertEqual(ids, [1, 2, 3])         # the substring also matches timers frobnicate, after the exact ones
+        self.assertIs(found["truncated"], False)
+        row = found["results"][0]
+        self.assertEqual(row, {"kind": "history", "doc_key": "made-cr", "section_id": "made-cr#command-history-1",
+                               "line": 10, "doc_release": None, "command": "timers frob", "change": "introduced",
+                               "release": "10.0", "train": "ios", "modification": "This command was introduced."})
+        self.assertEqual(list(row), ["kind", "doc_key", "section_id", "line", "doc_release", "command", "change",
+                                     "release", "train", "modification"])
+
+    def test_case_and_separators(self):
+        self.assertEqual(self.ids("history", "TIMERS_FROB")[0], [1, 2, 3])
+
+    def test_section_id_and_doc_key(self):
+        self.assertEqual(self.ids("history", "made-cr#command-history-2")[0], [3])
+        self.assertEqual(self.ids("history", "made-other")[0], [4])
+
+    def test_no_form(self):
+        # LEAD-RULINGS E-op10: a leading "no " is not part of a command's match, and exact matches come first
+        self.assertEqual(self.ids("history", "no timers frob")[0], [1, 2, 3])
+        self.assertEqual(self.ids("history", "no frob")[0], [4, 1, 2, 3])
+        self.assertEqual(self.ids("history", "frob")[0], [4, 1, 2, 3])
+        self.assertEqual(self.ids("default", "no timers frob")[0], [1])
+
+    def test_exact_matches_come_before_longer_commands(self):
+        self.assertEqual(self.ids("history", "timers frobnicate")[0], [3])
+        self.assertEqual(self.ids("history", "timers")[0], [1, 2, 3])   # all start with it: document order
+
+    def test_subject_null_rows(self):
+        self.assertEqual(self.ids("deprecation", "deprecated")[0], [])
+        self.assertEqual(self.ids("deprecation", "made-cr#usage-2")[0], [2])
+        self.assertEqual(self.ids("deprecation", "frob widget")[0], [1])
+
+    def test_feature_kind(self):
+        found = kb.lookup_fact(self.db, "feature", "nssa")
+        self.assertEqual(len(found["results"]), 1)
+        row = found["results"][0]
+        self.assertEqual(row["section_id"], "c9300-179-rtng#restrictions-for-ospf-nssa")
+        self.assertEqual((row["feature"], row["release"], row["info"]), ("OSPF NSSA", "16.3.1", "introduced"))
+        self.assertEqual(list(row), ["kind", "doc_key", "section_id", "line", "doc_release", "feature", "release",
+                                     "info"])
+
+    def test_cap_and_truncated(self):
+        for n, truncated in ((51, True), (50, False)):
+            with self.subTest(rows=n), tempfile.TemporaryDirectory() as tmp:
+                path = Path(tmp) / "kb.sqlite"
+                conn = sqlite3.connect(path)
+                conn.execute("CREATE TABLE command_history (id INTEGER PRIMARY KEY, doc_key TEXT, section_id TEXT, "
+                             "command TEXT, release TEXT, train TEXT, modification TEXT, kind TEXT, line INTEGER)")
+                conn.executemany("INSERT INTO command_history VALUES (?, 'many-cr', 'many-cr#h', 'timers many', "
+                                 "'1.0', NULL, 'x', 'modified', ?)", [(i, i) for i in range(1, n + 1)])
+                conn.commit()
+                conn.close()
+                db = kb.open_kb(path)
+                try:
+                    found = kb.lookup_fact(db, "history", "timers many")
+                finally:
+                    db.close()
+                self.assertEqual((len(found["results"]), found["truncated"]), (50, truncated))
+
+    def test_absent_table(self):
+        db = kb.open_kb(self.bare)
+        try:
+            self.assertEqual(kb.lookup_fact(db, "history", "x"),
+                             {"kind": "history", "results": [], "degraded": ["kb"]})
+            self.assertEqual(len(kb.lookup_fact(db, "feature", "nssa")["results"]), 1)
+        finally:
+            db.close()
+
+    def test_an_identifier_without_words(self):
+        self.assertEqual(kb.lookup_fact(self.db, "history", " _-- "),
+                         {"kind": "history", "results": [], "truncated": False})
 
 
 if __name__ == "__main__":

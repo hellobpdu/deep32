@@ -150,7 +150,14 @@ def check_pending_mount(value):
     assert path.is_relative_to(root / 'tmp') and path.name.startswith('mount.')
     return path
 
-if phase == 'disc3':
+if phase == 'check-settings':
+    # The getter names every missing non-interactive choice before it reads any media.
+    assert args[1] == '--split' and '--linux-forge-tailnet' in args
+    if '--confirm-tailnet' not in args:
+        report('settings-refused')
+        print('Settings refused: missing non-interactive choices: confirm-tailnet', file=sys.stderr)
+        raise SystemExit(1)
+elif phase == 'disc3':
     assert '--from' in args and '--ingestion' in args and '--full' not in args
     report('verified-media')
     sys.stdout.reconfigure(newline='\n')
@@ -236,7 +243,7 @@ def msys(path):
     return value
 
 
-def run_bash_fixture(root, *arguments, **overrides):
+def run_bash_fixture(root, *arguments, confirm_tailnet=True, **overrides):
     tools = root / 'repo/src/release-tools'
     shims = root / 'shim'
     temp = root / 'tmp'
@@ -277,9 +284,10 @@ id() { test "$1" = "-u" || return 97; printf '0\n'; }
 source "$1" "${@:2}"
 '''
     command = [str(BASH), '--noprofile', '--norc', '-c', startup, '--', msys(tools / 'deep32-get.sh'),
-               'disc3', '--install', '--journey', 'J2', '--gpu-class', GPU_CLASS,
+               'disc3', '--install', '--journey', 'J2', '--gpu-class', GPU_CLASS, '--ingestion',
                '--data-root', msys(root / 'install-data'), '--from', msys(root / 'outer'),
-               '--non-interactive', '--confirm-tailnet', 'synthetic-tailnet.ts.net', *arguments]
+               '--non-interactive', *(('--confirm-tailnet', 'synthetic-tailnet.ts.net') if confirm_tailnet else ()),
+               *arguments]
     completed = subprocess.run(command, cwd=root, env=env, capture_output=True, text=True, timeout=90)
     rows = [json.loads(line) for line in (root / 'events.jsonl').read_text(encoding='ascii').splitlines()]
     return completed, rows, expected
@@ -347,6 +355,15 @@ class JoinTest(unittest.TestCase):
                    'roles': list(ROLES), 'payload_sha256': sha(manifest), 'components': inputs}
         return {**{'payload/' + name: raw for name, raw in contents.items()},
                 'PAYLOAD.json': manifest, 'PAYLOAD.SHA256': sums(rows), 'RUNTIME.json': canonical(receipt)}
+
+    def test_join_without_ingestion_has_only_core_and_embedder_roles(self):
+        # The Linux getter installs the ingestion add-on only with --ingestion (DR-64).
+        self.assertEqual(self.output, self.join(self.media['core'], self.media['embedder-turing'], None, GPU_CLASS,
+                                                self.output, self.data_root))
+        runtime = json.loads((self.output / 'RUNTIME.json').read_bytes())
+        self.assertEqual(runtime['roles'], ['door', 'reranker', 'tei-turing'])
+        self.assertEqual([row['component'] for row in runtime['components']], ['core', 'embedder-turing'])
+        provision.verified_payload(self.output / 'payload')
 
     def test_exact_producer_union_and_immutable_reuse(self):
         old_media = files(self.root / 'media')
@@ -510,6 +527,13 @@ class JoinTest(unittest.TestCase):
         self.assertEqual(list(workspace.iterdir()), [])
 
     @unittest.skipUnless(BASH.is_file(), 'requires the named Bash executable')
+    def test_bash_split_missing_choices_are_refused_before_any_media_is_read(self):
+        result, rows, _ = run_bash_fixture(self.root / 'missing-choices', '--accept-plan', 'a' * 64,
+                                           confirm_tailnet=False)
+        self.assertEqual(1, result.returncode, result.stdout + result.stderr)
+        self.assertEqual([['settings-refused']], rows)   # no verified-media: the whole helper was never called
+        self.assertIn('missing non-interactive choices', result.stderr)
+
     def test_bash_split_real_join_consent_and_mount_cleanup(self):
         for case, expected_code, args, overrides, events in (
             ('decline', 1, (), {}, ('verified-media', 'plan')),

@@ -2,7 +2,7 @@
   "format": "deep32-reproducibility",
   "format_version": 1,
   "generator_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-  "release": "v0.1.0-alpha.2",
+  "release": "v0.1.0-alpha.3",
   "source_commit": "0000000000000000000000000000000000000000",
   "source_date_epoch": 946684800,
   "subjects": [
@@ -74,7 +74,7 @@
       "subject": {
         "aliases": [],
         "kind": "disc",
-        "path": "deep32-0.1.0-alpha.2-disc1-workstation-amd64.img",
+        "path": "deep32-0.1.0-alpha.3-disc1-workstation-amd64.img",
         "sha256": "cd389f69edebba3b206857c8baf77bc2b248d5c102123aa39ab64ec2e66583dc",
         "size": 26
       },
@@ -148,7 +148,7 @@
       "subject": {
         "aliases": [],
         "kind": "disc",
-        "path": "deep32-0.1.0-alpha.2-disc2-content.iso",
+        "path": "deep32-0.1.0-alpha.3-disc2-content.iso",
         "sha256": "1fe5fabf26b93afbd0a9d2a4cba3651380b397046b075296c1f1096c74f795a3",
         "size": 26
       },
@@ -222,7 +222,7 @@
       "subject": {
         "aliases": [],
         "kind": "disc",
-        "path": "deep32-0.1.0-alpha.2-disc3-gpu-pack.iso",
+        "path": "deep32-0.1.0-alpha.3-disc3-gpu-pack.iso",
         "sha256": "ef20d2113f484125ec6f95fc2c2c2cb95e6036341c44bc27c30674b0624a93f1",
         "size": 26
       },

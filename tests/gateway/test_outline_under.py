@@ -275,7 +275,7 @@ class OutlineUnderTest(ToolCase):
                 self.assertEqual(self.fake.paths(), ["GET /v2/outline"])
 
     async def test_other_failures_are_reported_without_the_fallback(self):
-        cases = {"deep32-engine is busy or degraded (HTTP 503)": reply(503, {"detail": "busy"}, {"Retry-After": "1"}),
+        cases = {"(HTTP 503)": reply(503, {"detail": "busy"}, {"Retry-After": "1"}),
                  "deep32-engine failed (HTTP 500)": reply(500, {"detail": "boom"}),
                  "deep32-engine rejected the request (HTTP 400)": reply(400)}
         for fragment, answer in cases.items():

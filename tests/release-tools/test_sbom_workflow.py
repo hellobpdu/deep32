@@ -88,7 +88,7 @@ class Workflow(unittest.TestCase):
                              image=dict(binding=dict(image_id='sha256:' + self.config_digest, config_digest='sha256:' + self.config_digest,
                                                      index_digest=None, manifest_digest=None, archive_format='classic'),
                                         inventory=dict(root='media', path='inventory.json'))))
-        self.m = dict(format='deep32-sbom-input/1', release='0.1.0-alpha.2', source_date_epoch=946684800,
+        self.m = dict(format='deep32-sbom-input/1', release='0.1.0-alpha.3', source_date_epoch=946684800,
                       source_revision='1' * 40, generator_sha256=generator_sha256(), roots=[dict(id='media', files=[])],
                       components=[app], subjects=subjects, gaps=dict(format='deep32-sbom-gaps/1', gaps=[]),
                       absent_roles=['converter', 'builder'])

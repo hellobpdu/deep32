@@ -1814,7 +1814,7 @@ function Invoke-Prerequisites {
     $scopes=@('base','publish','download');if($family -cne 'windows'){$scopes+='unix-download'}
     if($ws -or $gpu){$scopes+='host'}
     if($ws){$scopes+='vm';if($family -ceq 'windows'){$scopes+='windows-vm'}else{$scopes+='linux-vm'}}
-    if($gpu){$scopes+=@('gpu','docker');if($Journey -ceq 'J3'){$scopes+='full'};if($family -ceq 'windows'){$scopes+='windows-gpu'}}
+    if($gpu){$scopes+=@('gpu','docker');if($Journey -ceq 'J3'){$scopes+='full'};if($family -ceq 'windows'){$scopes+='windows-gpu'}else{$scopes+='linux-gpu'}}
     if($agent){$scopes+='agent'}
     $roles=@();if($ws){$roles+='workstation-host'};if($gpu){$roles+='gpu-host'};if($agent){$roles+='agent'}
     $storage=@();$storageState='unknown';$storageDeclared=$false;$storageResourceUnavailable=$false;$groups=New-Object 'System.Collections.Generic.Dictionary[string,object]' ([System.StringComparer]::Ordinal);$order=@();$valid=$true

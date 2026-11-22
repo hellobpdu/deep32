@@ -430,7 +430,7 @@
       "const": "retain-until-user-removes"
     },
     "release": {
-      "const": "0.1.0-alpha.2"
+      "const": "0.1.0-alpha.3"
     },
     "source_commit": {
       "pattern": "^[0-9a-f]{40}$",

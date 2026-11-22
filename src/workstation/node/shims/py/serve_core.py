@@ -5,7 +5,8 @@ rc.d/d32core runs, as root:
       -- /usr/local/d32/venv/deep32-engine/bin/python3.12 -I -B -X utf8 /usr/local/d32/node/shims/serve_core.py
 so this file starts as _d32core with the socket on fd 3 and the environment file on fd 4. Order:
   1. boot: 8 MiB thread stacks, environment rebuilt (login class: RAG_TRACE=off, RAG_DB_IMMUTABLE=1, SQLITE_TMPDIR;
-     the environment file: RAG_ROOT, RAG_CORE_API_TOKEN, RAG_QDRANT_URL, RAG_EMBEDDING_URL, RAG_RERANK_URL, ...)
+     the environment file: RAG_ROOT, RAG_CORE_API_TOKEN_FILE, RAG_QDRANT_URL, RAG_EMBEDDING_URL, RAG_RERANK_URL, ...);
+     the engine token is read from RAG_CORE_API_TOKEN_FILE (root:_d32core 0440) before confinement
   2. code tree first on sys.path, the torch/pylate stand-ins after the venv (deep32-engine only), cwd = code tree
   3. import rag_core.api and the serve path; node layers (immutable database, GPU over UNIX sockets)
   4. uvicorn with production's defaults (loop auto = uvloop, http auto = httptools, lifespan on) on the inherited
@@ -28,7 +29,8 @@ sys.path.insert(0, HERE)
 import d32svc  # noqa: E402
 
 CLASS_KEYS = ("RAG_TRACE", "RAG_DB_IMMUTABLE", "SQLITE_TMPDIR")
-REQUIRED = ("RAG_ROOT", "RAG_CORE_API_TOKEN")
+REQUIRED = ("RAG_ROOT", "RAG_CORE_API_TOKEN_FILE")
+ENGINE_TOKEN_FILE = "/etc/d32/private/engine-api.token"  # nosec B105
 # the serve path rag_core.api loads; imported before confinement so no import happens later (FIX-06)
 PRE_IMPORT = ("rag_core.api", "rag_core.api_v2", "rag_core.orchestrator", "rag_core.reader", "rag_core.structure",
               "rag_core.status", "rag_core.kb", "rag_core.db", "rag_core.dense", "rag_core.rerank",
@@ -48,6 +50,10 @@ def _is_file_url(url: str) -> bool:
 
 def main() -> None:
     svc = d32svc.boot("deep32-engine", class_keys=CLASS_KEYS, required=REQUIRED)
+    token_path = os.environ.pop("RAG_CORE_API_TOKEN_FILE")
+    if token_path != ENGINE_TOKEN_FILE or "RAG_CORE_API_TOKEN" in os.environ:
+        raise SystemExit("deep32-engine: engine credential unavailable; run gateway enrolment")
+    os.environ["RAG_CORE_API_TOKEN"] = d32svc.read_credential(token_path, "_d32core", "deep32-engine")
     if os.environ["RAG_TRACE"].strip().lower() not in ("off", "false", "no", "none"):
         raise SystemExit("deep32-engine: RAG_TRACE must be off on the node (FIX-05: traces hold query text)")
     if "core" not in svc.listeners:
@@ -103,7 +109,8 @@ def main() -> None:
         (d32svc.realpath_dir(os.environ["SQLITE_TMPDIR"]), "rwc"),  # SQLite temp files only (FIX-06)
         ("/etc/ssl/cert.pem", "r"),
     ]
-    for key in ("RAG_RETRIEVAL_CONFIG", "RAG_SERVING_CONFIG", "RAG_LATE_INTERACTION_CONFIG", "RAG_CHUNKING_CONFIG"):
+    for key in ("RAG_RETRIEVAL_CONFIG", "RAG_SERVING_CONFIG", "RAG_LATE_INTERACTION_CONFIG", "RAG_CHUNKING_CONFIG",
+                "RAG_CONFIG_OVERLAY_DIR"):
         if os.environ.get(key):
             unveils.append((d32svc.realpath_dir(os.environ[key]), "r"))
     for uds in (embed_uds, rerank_uds):

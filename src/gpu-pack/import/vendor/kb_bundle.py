@@ -91,10 +91,14 @@ def rag_db_stats(path):
                 'structure': structure,
                 'dense_indexed': c.execute('SELECT count(*) FROM index_state WHERE dense_indexed=1').fetchone()[0] if has_table(c, 'index_state') else None}
 
+def quoted(name):
+    """An SQLite identifier as a double-quoted literal, embedded quotes doubled."""
+    return '"' + name.replace('"', '""') + '"'
+
 def kb_stats(path):
     with sqlite_ro(path) as c:
         names = [r[0] for r in c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name")]
-        return {t: c.execute('SELECT count(*) FROM "' + t.replace('"', '""') + '"').fetchone()[0] for t in names}
+        return {t: c.execute('SELECT count(*) FROM ' + quoted(t)).fetchone()[0] for t in names}
 
 def member_name_problems(paths):
     problems, seen = [], set()
@@ -401,17 +405,17 @@ def content(directory, docs, chunks, rules, report, cut=(), markings=(), public=
     path_values = []
     with sqlite_ro(root / 'sqlite/rag.db') as c:
         for table in ('documents', 'assets', 'ingest_runs'):
-            columns = [r[1] for r in c.execute('PRAGMA table_info(' + table + ')') if r[1] == 'path' or r[1].endswith('_path')]
+            columns = [r[1] for r in c.execute('PRAGMA table_info(' + quoted(table) + ')') if r[1] == 'path' or r[1].endswith('_path')]
             for column in columns:
-                path_values.extend(r[0] for r in c.execute('SELECT "' + column + '" FROM ' + table) if isinstance(r[0], str))
+                path_values.extend(r[0] for r in c.execute('SELECT ' + quoted(column) + ' FROM ' + quoted(table)) if isinstance(r[0], str))
         for table in [r[0] for r in c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'") if not r[0].startswith('chunk_fts')]:
-            for col in [r[1] for r in c.execute('PRAGMA table_info("' + table + '")') if 'provenance' in r[1]]:
-                count = sum(provenance_bad(r[0]) for r in c.execute('SELECT "' + col + '" FROM "' + table + '"') if r[0])
+            for col in [r[1] for r in c.execute('PRAGMA table_info(' + quoted(table) + ')') if 'provenance' in r[1]]:
+                count = sum(provenance_bad(r[0]) for r in c.execute('SELECT ' + quoted(col) + ' FROM ' + quoted(table)) if r[0])
                 if count:
                     report.fail(6, 'T7', table + '.' + col, detail=str(count) + ' invalid provenance records')
-            for col in [r[1] for r in c.execute('PRAGMA table_info("' + table + '")') if r[1].endswith('_json') and 'provenance' not in r[1]]:
+            for col in [r[1] for r in c.execute('PRAGMA table_info(' + quoted(table) + ')') if r[1].endswith('_json') and 'provenance' not in r[1]]:
                 bad = 0
-                for row in c.execute('SELECT "' + col + '" FROM "' + table + '"'):
+                for row in c.execute('SELECT ' + quoted(col) + ' FROM ' + quoted(table)):
                     if not row[0]:
                         continue
                     try:

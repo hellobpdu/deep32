@@ -23,6 +23,11 @@ NAME = os.environ.get("DEEP32_GATEWAY_TARGET", "gateway")
 if NAME not in TARGETS:
     raise SystemExit(f"DEEP32_GATEWAY_TARGET={NAME!r}: expected one of {', '.join(TARGETS)}")
 REPO = TARGETS[NAME]
+# The builder's copy is the gateway of the lab compose line only (src/kb-tools/linux-line/compose/gateway.Dockerfile
+# copies engine/rag/edge; the Forge builder image copies only engine/rag/core). It keeps 0.1.0-alpha.2's behaviour, so
+# a test of what alpha.3 changed in src/gateway (WP-C) skips there with this reason.
+BUILDER = NAME == "builder"
+ALPHA3_ONLY = "the Forge builder's lab copy keeps the 0.1.0-alpha.2 gateway; WP-C changed src/gateway only"
 
 for _path in (str(REPO), str(HERE)):
     if _path not in sys.path:

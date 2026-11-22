@@ -22,9 +22,12 @@ from .wire import Error, ProtocolError
 class RelayReactor:
     def __init__(self, listener, agent, scratch_factory, *, clock=time.monotonic,
                  wall_clock=time.time, publish=None, install=None,
-                 identity_observer=process_identity):
+                 identity_observer=process_identity, settings=None, on_turn=None, on_answer=None):
         self.listener, self.agent = listener, agent
         self.scratch_factory = scratch_factory
+        self.settings = settings        # settings.Settings of the service; None keeps the supervisor's defaults
+        self.on_turn = on_turn          # told each finished turn's numbers (the service's log)
+        self.on_answer = on_answer      # given each finished answer's record, when the operator asked for records
         self.clock, self.wall_clock = clock, wall_clock
         self.publish = publish or (lambda value: None)
         self.install = install
@@ -69,7 +72,8 @@ class RelayReactor:
             if old.supervisor.cleanup_failed:
                 self.cleanup_failed = True
                 raise ProtocolError(Error.SETTINGS_UNVERIFIED)
-        bridge = make_bridge(link, self.agent, self.scratch_factory, clock=self.clock)
+        bridge = make_bridge(link, self.agent, self.scratch_factory, clock=self.clock, settings=self.settings,
+                             on_turn=self.on_turn, on_answer=self.on_answer)
         # A reconnect does not reset the installation's hourly quota.
         bridge.supervisor.turns = self.turns
         with self.lock:
@@ -247,6 +251,18 @@ def stop_requested(owner, install_id):
     return True
 
 
+def turn_logger(owner):
+    """The service's turn log, logs/events.jsonl in the relay's own folder: one line of counts per turn
+    (runtime.log_turn). A log that cannot be set up or written is skipped; it never stops the relay or a turn."""
+    from .runtime import EventLedger, log_turn
+    try:
+        owner.mkdir("logs")
+        ledger = EventLedger(owner.path("logs/events.jsonl"), validate_owner=owner.validate)
+    except Exception:
+        return None
+    return lambda numbers: log_turn(ledger, numbers)
+
+
 def run_owned(owner, *, stop_event=None):
     """Run only a fully qualified, already paired, explicit installation.
 
@@ -263,9 +279,14 @@ def run_owned(owner, *, stop_event=None):
     config = owner.read_json("config.json", 4096)
     if receipt["state"] == "removed" or not config["intake_enabled"]:
         raise StateError("relay-intake-disabled")
+    # Operator settings come from this process's environment, never from the recorded configuration above.
+    from .settings import load
+    settings = load(os.environ, receipt["agent"])
     agent = native_from_owned(owner, receipt)
     if not agent.ready:
         raise StateError("native-agent-unqualified")
+    # What the default model and effort choice of a conversation runs (DEEP32_RELAY_MODEL, DEEP32_RELAY_EFFORT).
+    agent.pin_model, agent.pin_effort = settings.model, settings.effort
     provider = load_provider()
     store = IdentityStore(owner)
     with owner.lock():
@@ -273,12 +294,17 @@ def run_owned(owner, *, stop_event=None):
         peer = store.load_peer()
     if peer is None:
         raise StateError("pairing-required")
+    records = None
+    if settings.answer_record:
+        from .record import AnswerRecords
+        records = AnswerRecords(owner, receipt, agent)
     profiles = ({"name": "research", "models": list(agent.models),
                  "efforts": list(agent.efforts)},)
     listener = Listener(identity, peer, provider=provider, port=config["port"], profiles=profiles)
     reactor = RelayReactor(listener, agent,
         lambda ident: Scratch(owner.path("runtime/sessions"), validate_owner=owner.validate),
-        publish=lambda value: publish_status(owner, value), install=receipt)
+        publish=lambda value: publish_status(owner, value), install=receipt, settings=settings,
+        on_turn=turn_logger(owner), on_answer=records.write if records is not None else None)
     stopped = stop_event or threading.Event()
     try:
         reactor.start()

@@ -1,9 +1,9 @@
 {
   "architecture": "amd64",
   "archive": {
-    "details_url": "https://archive.org/details/deep32-0.1.0-alpha.2",
-    "item": "deep32-0.1.0-alpha.2",
-    "torrent_url": "https://archive.org/download/deep32-0.1.0-alpha.2/deep32-0.1.0-alpha.2_archive.torrent"
+    "details_url": "https://archive.org/details/deep32-0.1.0-alpha.3",
+    "item": "deep32-0.1.0-alpha.3",
+    "torrent_url": "https://archive.org/download/deep32-0.1.0-alpha.3/deep32-0.1.0-alpha.3_archive.torrent"
   },
   "bundles": [
     {
@@ -13,15 +13,15 @@
       "chunk_sha256": [
         "fad31509e846ef0a3d9540e633e260bb2a33d7d59e6eb8414159e20d7138da79"
       ],
-      "file": "deep32-0.1.0-alpha.2-disc3-gpu-pack-core.iso",
+      "file": "deep32-0.1.0-alpha.3-disc3-gpu-pack-core.iso",
       "mirrors": [
         {
           "id": "internet-archive",
-          "url": "https://archive.org/download/deep32-0.1.0-alpha.2/deep32-0.1.0-alpha.2-disc3-gpu-pack-core.iso"
+          "url": "https://archive.org/download/deep32-0.1.0-alpha.3/deep32-0.1.0-alpha.3-disc3-gpu-pack-core.iso"
         },
         {
           "id": "example-mirror",
-          "url": "https://mirror.example.org/deep32-0.1.0-alpha.2/deep32-0.1.0-alpha.2-disc3-gpu-pack-core.iso"
+          "url": "https://mirror.example.org/deep32-0.1.0-alpha.3/deep32-0.1.0-alpha.3-disc3-gpu-pack-core.iso"
         }
       ],
       "sha256": "fad31509e846ef0a3d9540e633e260bb2a33d7d59e6eb8414159e20d7138da79",
@@ -34,15 +34,15 @@
       "chunk_sha256": [
         "d080b8582bb73b6246fee1bb419ac508206a7ce3da63325cc906153dc8a5f7c6"
       ],
-      "file": "deep32-0.1.0-alpha.2-disc3-gpu-pack-embedder-ada.iso",
+      "file": "deep32-0.1.0-alpha.3-disc3-gpu-pack-embedder-ada.iso",
       "mirrors": [
         {
           "id": "internet-archive",
-          "url": "https://archive.org/download/deep32-0.1.0-alpha.2/deep32-0.1.0-alpha.2-disc3-gpu-pack-embedder-ada.iso"
+          "url": "https://archive.org/download/deep32-0.1.0-alpha.3/deep32-0.1.0-alpha.3-disc3-gpu-pack-embedder-ada.iso"
         },
         {
           "id": "example-mirror",
-          "url": "https://mirror.example.org/deep32-0.1.0-alpha.2/deep32-0.1.0-alpha.2-disc3-gpu-pack-embedder-ada.iso"
+          "url": "https://mirror.example.org/deep32-0.1.0-alpha.3/deep32-0.1.0-alpha.3-disc3-gpu-pack-embedder-ada.iso"
         }
       ],
       "sha256": "d080b8582bb73b6246fee1bb419ac508206a7ce3da63325cc906153dc8a5f7c6",
@@ -55,15 +55,15 @@
       "chunk_sha256": [
         "7cc1bccdd0d97297fbabf37128a3ea6d8f302bde1ead2154dda8ef84161d429f"
       ],
-      "file": "deep32-0.1.0-alpha.2-disc3-gpu-pack-embedder-ampere80.iso",
+      "file": "deep32-0.1.0-alpha.3-disc3-gpu-pack-embedder-ampere80.iso",
       "mirrors": [
         {
           "id": "internet-archive",
-          "url": "https://archive.org/download/deep32-0.1.0-alpha.2/deep32-0.1.0-alpha.2-disc3-gpu-pack-embedder-ampere80.iso"
+          "url": "https://archive.org/download/deep32-0.1.0-alpha.3/deep32-0.1.0-alpha.3-disc3-gpu-pack-embedder-ampere80.iso"
         },
         {
           "id": "example-mirror",
-          "url": "https://mirror.example.org/deep32-0.1.0-alpha.2/deep32-0.1.0-alpha.2-disc3-gpu-pack-embedder-ampere80.iso"
+          "url": "https://mirror.example.org/deep32-0.1.0-alpha.3/deep32-0.1.0-alpha.3-disc3-gpu-pack-embedder-ampere80.iso"
         }
       ],
       "sha256": "7cc1bccdd0d97297fbabf37128a3ea6d8f302bde1ead2154dda8ef84161d429f",
@@ -76,15 +76,15 @@
       "chunk_sha256": [
         "87b80e4866519d7eeff2460912ad3132156faf509bc4b4542be7fd6e465a9de6"
       ],
-      "file": "deep32-0.1.0-alpha.2-disc3-gpu-pack-embedder-ampere86.iso",
+      "file": "deep32-0.1.0-alpha.3-disc3-gpu-pack-embedder-ampere86.iso",
       "mirrors": [
         {
           "id": "internet-archive",
-          "url": "https://archive.org/download/deep32-0.1.0-alpha.2/deep32-0.1.0-alpha.2-disc3-gpu-pack-embedder-ampere86.iso"
+          "url": "https://archive.org/download/deep32-0.1.0-alpha.3/deep32-0.1.0-alpha.3-disc3-gpu-pack-embedder-ampere86.iso"
         },
         {
           "id": "example-mirror",
-          "url": "https://mirror.example.org/deep32-0.1.0-alpha.2/deep32-0.1.0-alpha.2-disc3-gpu-pack-embedder-ampere86.iso"
+          "url": "https://mirror.example.org/deep32-0.1.0-alpha.3/deep32-0.1.0-alpha.3-disc3-gpu-pack-embedder-ampere86.iso"
         }
       ],
       "sha256": "87b80e4866519d7eeff2460912ad3132156faf509bc4b4542be7fd6e465a9de6",
@@ -97,15 +97,15 @@
       "chunk_sha256": [
         "b4766fd533f0f79e113d883f99dcf0b506a54d633dbe402ab2a247b1c72cea0c"
       ],
-      "file": "deep32-0.1.0-alpha.2-disc3-gpu-pack-embedder-blackwell100.iso",
+      "file": "deep32-0.1.0-alpha.3-disc3-gpu-pack-embedder-blackwell100.iso",
       "mirrors": [
         {
           "id": "internet-archive",
-          "url": "https://archive.org/download/deep32-0.1.0-alpha.2/deep32-0.1.0-alpha.2-disc3-gpu-pack-embedder-blackwell100.iso"
+          "url": "https://archive.org/download/deep32-0.1.0-alpha.3/deep32-0.1.0-alpha.3-disc3-gpu-pack-embedder-blackwell100.iso"
         },
         {
           "id": "example-mirror",
-          "url": "https://mirror.example.org/deep32-0.1.0-alpha.2/deep32-0.1.0-alpha.2-disc3-gpu-pack-embedder-blackwell100.iso"
+          "url": "https://mirror.example.org/deep32-0.1.0-alpha.3/deep32-0.1.0-alpha.3-disc3-gpu-pack-embedder-blackwell100.iso"
         }
       ],
       "sha256": "b4766fd533f0f79e113d883f99dcf0b506a54d633dbe402ab2a247b1c72cea0c",
@@ -118,15 +118,15 @@
       "chunk_sha256": [
         "9d920bf37af988ff6e43f9b77cb451c55593983174097938e31e0d1bd222cffb"
       ],
-      "file": "deep32-0.1.0-alpha.2-disc3-gpu-pack-embedder-blackwell120.iso",
+      "file": "deep32-0.1.0-alpha.3-disc3-gpu-pack-embedder-blackwell120.iso",
       "mirrors": [
         {
           "id": "internet-archive",
-          "url": "https://archive.org/download/deep32-0.1.0-alpha.2/deep32-0.1.0-alpha.2-disc3-gpu-pack-embedder-blackwell120.iso"
+          "url": "https://archive.org/download/deep32-0.1.0-alpha.3/deep32-0.1.0-alpha.3-disc3-gpu-pack-embedder-blackwell120.iso"
         },
         {
           "id": "example-mirror",
-          "url": "https://mirror.example.org/deep32-0.1.0-alpha.2/deep32-0.1.0-alpha.2-disc3-gpu-pack-embedder-blackwell120.iso"
+          "url": "https://mirror.example.org/deep32-0.1.0-alpha.3/deep32-0.1.0-alpha.3-disc3-gpu-pack-embedder-blackwell120.iso"
         }
       ],
       "sha256": "9d920bf37af988ff6e43f9b77cb451c55593983174097938e31e0d1bd222cffb",
@@ -139,15 +139,15 @@
       "chunk_sha256": [
         "fb3bc7f8a42fcf4fa473312bf93721d3c68faa52f9a5213b28304e9bad10c936"
       ],
-      "file": "deep32-0.1.0-alpha.2-disc3-gpu-pack-embedder-hopper.iso",
+      "file": "deep32-0.1.0-alpha.3-disc3-gpu-pack-embedder-hopper.iso",
       "mirrors": [
         {
           "id": "internet-archive",
-          "url": "https://archive.org/download/deep32-0.1.0-alpha.2/deep32-0.1.0-alpha.2-disc3-gpu-pack-embedder-hopper.iso"
+          "url": "https://archive.org/download/deep32-0.1.0-alpha.3/deep32-0.1.0-alpha.3-disc3-gpu-pack-embedder-hopper.iso"
         },
         {
           "id": "example-mirror",
-          "url": "https://mirror.example.org/deep32-0.1.0-alpha.2/deep32-0.1.0-alpha.2-disc3-gpu-pack-embedder-hopper.iso"
+          "url": "https://mirror.example.org/deep32-0.1.0-alpha.3/deep32-0.1.0-alpha.3-disc3-gpu-pack-embedder-hopper.iso"
         }
       ],
       "sha256": "fb3bc7f8a42fcf4fa473312bf93721d3c68faa52f9a5213b28304e9bad10c936",
@@ -160,15 +160,15 @@
       "chunk_sha256": [
         "c1432f31ad5cb6ecd02c469e9256751a0d96134073853445f722a7870756d1e5"
       ],
-      "file": "deep32-0.1.0-alpha.2-disc3-gpu-pack-embedder-turing.iso",
+      "file": "deep32-0.1.0-alpha.3-disc3-gpu-pack-embedder-turing.iso",
       "mirrors": [
         {
           "id": "internet-archive",
-          "url": "https://archive.org/download/deep32-0.1.0-alpha.2/deep32-0.1.0-alpha.2-disc3-gpu-pack-embedder-turing.iso"
+          "url": "https://archive.org/download/deep32-0.1.0-alpha.3/deep32-0.1.0-alpha.3-disc3-gpu-pack-embedder-turing.iso"
         },
         {
           "id": "example-mirror",
-          "url": "https://mirror.example.org/deep32-0.1.0-alpha.2/deep32-0.1.0-alpha.2-disc3-gpu-pack-embedder-turing.iso"
+          "url": "https://mirror.example.org/deep32-0.1.0-alpha.3/deep32-0.1.0-alpha.3-disc3-gpu-pack-embedder-turing.iso"
         }
       ],
       "sha256": "c1432f31ad5cb6ecd02c469e9256751a0d96134073853445f722a7870756d1e5",
@@ -181,15 +181,15 @@
       "chunk_sha256": [
         "996b802f2f7aeaaedd8c887a759e0234b7cc571d9204a29072d1cc4200b5c4ba"
       ],
-      "file": "deep32-0.1.0-alpha.2-disc3-gpu-pack-ingestion.iso",
+      "file": "deep32-0.1.0-alpha.3-disc3-gpu-pack-ingestion.iso",
       "mirrors": [
         {
           "id": "internet-archive",
-          "url": "https://archive.org/download/deep32-0.1.0-alpha.2/deep32-0.1.0-alpha.2-disc3-gpu-pack-ingestion.iso"
+          "url": "https://archive.org/download/deep32-0.1.0-alpha.3/deep32-0.1.0-alpha.3-disc3-gpu-pack-ingestion.iso"
         },
         {
           "id": "example-mirror",
-          "url": "https://mirror.example.org/deep32-0.1.0-alpha.2/deep32-0.1.0-alpha.2-disc3-gpu-pack-ingestion.iso"
+          "url": "https://mirror.example.org/deep32-0.1.0-alpha.3/deep32-0.1.0-alpha.3-disc3-gpu-pack-ingestion.iso"
         }
       ],
       "sha256": "996b802f2f7aeaaedd8c887a759e0234b7cc571d9204a29072d1cc4200b5c4ba",
@@ -202,15 +202,15 @@
       "chunk_sha256": [
         "b1421e71a93f92b2e3afc34a1f7b237350e008299e7127b6252a11c56a1a42ae"
       ],
-      "file": "deep32-0.1.0-alpha.2-disc3-gpu-pack-full.iso",
+      "file": "deep32-0.1.0-alpha.3-disc3-gpu-pack-full.iso",
       "mirrors": [
         {
           "id": "internet-archive",
-          "url": "https://archive.org/download/deep32-0.1.0-alpha.2/deep32-0.1.0-alpha.2-disc3-gpu-pack-full.iso"
+          "url": "https://archive.org/download/deep32-0.1.0-alpha.3/deep32-0.1.0-alpha.3-disc3-gpu-pack-full.iso"
         },
         {
           "id": "example-mirror",
-          "url": "https://mirror.example.org/deep32-0.1.0-alpha.2/deep32-0.1.0-alpha.2-disc3-gpu-pack-full.iso"
+          "url": "https://mirror.example.org/deep32-0.1.0-alpha.3/deep32-0.1.0-alpha.3-disc3-gpu-pack-full.iso"
         }
       ],
       "sha256": "b1421e71a93f92b2e3afc34a1f7b237350e008299e7127b6252a11c56a1a42ae",
@@ -219,7 +219,7 @@
   ],
   "capability_manifest": {
     "file": "CAPABILITIES.json",
-    "sha256": "b79ef1762692fc78cada649f0c3d118e3f4141dfa82d52d8456ed52562741ce5"
+    "sha256": "0be2a1109ba59e2180e99be83b1831543ef25aca0508b3dc9634513311a7985c"
   },
   "citation": {
     "concept_doi": "https://doi.org/10.5281/zenodo.24272647",
@@ -231,16 +231,16 @@
       "chunk_sha256": [
         "cd389f69edebba3b206857c8baf77bc2b248d5c102123aa39ab64ec2e66583dc"
       ],
-      "file": "deep32-0.1.0-alpha.2-disc1-workstation-amd64.img",
+      "file": "deep32-0.1.0-alpha.3-disc1-workstation-amd64.img",
       "kind": "workstation",
       "mirrors": [
         {
           "id": "internet-archive",
-          "url": "https://archive.org/download/deep32-0.1.0-alpha.2/deep32-0.1.0-alpha.2-disc1-workstation-amd64.img"
+          "url": "https://archive.org/download/deep32-0.1.0-alpha.3/deep32-0.1.0-alpha.3-disc1-workstation-amd64.img"
         },
         {
           "id": "example-mirror",
-          "url": "https://mirror.example.org/deep32-0.1.0-alpha.2/deep32-0.1.0-alpha.2-disc1-workstation-amd64.img"
+          "url": "https://mirror.example.org/deep32-0.1.0-alpha.3/deep32-0.1.0-alpha.3-disc1-workstation-amd64.img"
         }
       ],
       "role": "disc1",
@@ -252,16 +252,16 @@
       "chunk_sha256": [
         "1fe5fabf26b93afbd0a9d2a4cba3651380b397046b075296c1f1096c74f795a3"
       ],
-      "file": "deep32-0.1.0-alpha.2-disc2-content.iso",
+      "file": "deep32-0.1.0-alpha.3-disc2-content.iso",
       "kind": "content",
       "mirrors": [
         {
           "id": "internet-archive",
-          "url": "https://archive.org/download/deep32-0.1.0-alpha.2/deep32-0.1.0-alpha.2-disc2-content.iso"
+          "url": "https://archive.org/download/deep32-0.1.0-alpha.3/deep32-0.1.0-alpha.3-disc2-content.iso"
         },
         {
           "id": "example-mirror",
-          "url": "https://mirror.example.org/deep32-0.1.0-alpha.2/deep32-0.1.0-alpha.2-disc2-content.iso"
+          "url": "https://mirror.example.org/deep32-0.1.0-alpha.3/deep32-0.1.0-alpha.3-disc2-content.iso"
         }
       ],
       "role": "disc2",
@@ -272,7 +272,7 @@
   "format": "deep32-mirrors",
   "format_version": 2,
   "published_at": "2000-01-01T00:00:00Z",
-  "release": "v0.1.0-alpha.2",
+  "release": "v0.1.0-alpha.3",
   "revision": 1,
   "source_commit": "0000000000000000000000000000000000000000"
 }

@@ -1,8 +1,38 @@
 from __future__ import annotations
 
+from typing import Any
+
 from rag_core.retrieval_types import (
     SearchHit,
 )
+
+# retrieval.json "passage_class": {"demote": [...]}: the classes of rag.db's passage_class table (chunk_id, class)
+PASSAGE_CLASSES = ("toc", "legal", "acknowledgments", "references", "bcp14", "lab-disclaimer", "content")
+PASSAGE_CLASS_KEYS = ("demote",)
+
+
+def passage_class_demote(config: dict[str, Any]) -> tuple[str, ...]:
+    """retrieval.json "passage_class": {"demote": ["toc", "legal", ...]}: the passage classes a search moves
+    behind every other candidate after the fusion (rag_core.orchestrator: before the reranker's candidates are
+    taken). [] or unset (the default): nothing moves. ValueError names a value it cannot take; the orchestrator
+    checks it when it starts, and scripts/derive_root.py before it writes a derived root. On a root whose rag.db
+    has no passage_class table the setting does nothing."""
+    value = config.get("passage_class")
+    if value is None:
+        return ()
+    if not isinstance(value, dict) or set(value) - set(PASSAGE_CLASS_KEYS):
+        raise ValueError(f"retrieval.json passage_class must be an object of {list(PASSAGE_CLASS_KEYS)}, "
+                         f"not {value!r}")
+    demote = value.get("demote", [])
+    if not isinstance(demote, list) or not all(isinstance(c, str) and c in PASSAGE_CLASSES for c in demote):
+        raise ValueError(f"retrieval.json passage_class.demote must be a list of {list(PASSAGE_CLASSES)}, "
+                         f"not {demote!r}")
+    return tuple(dict.fromkeys(demote))
+
+
+def demoted(candidates: list[dict], low: set[str]) -> list[dict]:
+    """`candidates` with those whose chunk_id is in `low` moved behind the others; each group keeps its order."""
+    return [c for c in candidates if c["chunk_id"] not in low] + [c for c in candidates if c["chunk_id"] in low]
 
 
 def rrf_fuse(

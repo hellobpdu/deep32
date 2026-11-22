@@ -1,7 +1,7 @@
 {
   "citation": {
     "concept_doi": "10.5281/zenodo.24272647",
-    "release_doi": "10.5281/zenodo.24371692"
+    "release_doi": "10.5281/zenodo.24272647"
   },
   "engine": {
     "source_id": "pub-9a2d58df01fc",
@@ -14,47 +14,47 @@
   "images": [
     {
       "disc": 1,
-      "name": "deep32-0.1.0-alpha.2-disc1-workstation-amd64.img"
+      "name": "deep32-0.1.0-alpha.3-disc1-workstation-amd64.img"
     },
     {
       "disc": 2,
-      "name": "deep32-0.1.0-alpha.2-disc2-content.iso"
+      "name": "deep32-0.1.0-alpha.3-disc2-content.iso"
     },
     {
       "disc": 3,
-      "name": "deep32-0.1.0-alpha.2-disc3-gpu-pack-core.iso"
+      "name": "deep32-0.1.0-alpha.3-disc3-gpu-pack-core.iso"
     },
     {
       "disc": 3,
-      "name": "deep32-0.1.0-alpha.2-disc3-gpu-pack-embedder-turing.iso"
+      "name": "deep32-0.1.0-alpha.3-disc3-gpu-pack-embedder-turing.iso"
     },
     {
       "disc": 3,
-      "name": "deep32-0.1.0-alpha.2-disc3-gpu-pack-embedder-ampere80.iso"
+      "name": "deep32-0.1.0-alpha.3-disc3-gpu-pack-embedder-ampere80.iso"
     },
     {
       "disc": 3,
-      "name": "deep32-0.1.0-alpha.2-disc3-gpu-pack-embedder-ampere86.iso"
+      "name": "deep32-0.1.0-alpha.3-disc3-gpu-pack-embedder-ampere86.iso"
     },
     {
       "disc": 3,
-      "name": "deep32-0.1.0-alpha.2-disc3-gpu-pack-embedder-ada.iso"
+      "name": "deep32-0.1.0-alpha.3-disc3-gpu-pack-embedder-ada.iso"
     },
     {
       "disc": 3,
-      "name": "deep32-0.1.0-alpha.2-disc3-gpu-pack-embedder-hopper.iso"
+      "name": "deep32-0.1.0-alpha.3-disc3-gpu-pack-embedder-hopper.iso"
     },
     {
       "disc": 3,
-      "name": "deep32-0.1.0-alpha.2-disc3-gpu-pack-embedder-blackwell100.iso"
+      "name": "deep32-0.1.0-alpha.3-disc3-gpu-pack-embedder-blackwell100.iso"
     },
     {
       "disc": 3,
-      "name": "deep32-0.1.0-alpha.2-disc3-gpu-pack-embedder-blackwell120.iso"
+      "name": "deep32-0.1.0-alpha.3-disc3-gpu-pack-embedder-blackwell120.iso"
     },
     {
       "disc": 3,
-      "name": "deep32-0.1.0-alpha.2-disc3-gpu-pack-ingestion.iso"
+      "name": "deep32-0.1.0-alpha.3-disc3-gpu-pack-ingestion.iso"
     }
   ],
   "knowledge_base": {
@@ -100,10 +100,10 @@
     }
   },
   "release": {
-    "date": "2026-11-20",
+    "date": "2026-11-22",
     "status": "source-staged",
-    "tag": "v0.1.0-alpha.2",
-    "version": "0.1.0-alpha.2"
+    "tag": "v0.1.0-alpha.3",
+    "version": "0.1.0-alpha.3"
   },
   "release_key_gpg_fingerprint": "B205B406548627AABF5250D8A078C5F25D025DD6",
   "schema": "deep32-code-release",

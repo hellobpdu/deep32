@@ -47,7 +47,7 @@ class Frozen(unittest.TestCase):
                     dict(id='forge', kind='runtime', file=dict(root='media', path='forge-docker.tar'), role='forge-runtime', aliases=[],
                          components=['app'], component_coverage='complete', licence_coverage='complete',
                          runtime_members=[dict(path='source.txt', size=len(source), sha256=hashlib.sha256(source).hexdigest(), mode=0o644)])]
-        self.measured = dict(format='deep32-sbom-input/1', release='v0.1.0-alpha.2', source_revision='1'*40,
+        self.measured = dict(format='deep32-sbom-input/1', release='v0.1.0-alpha.3', source_revision='1'*40,
                              source_date_epoch=946684800, generator_sha256=generator_sha256(),
                              roots=[dict(id='media', files=[dict(path=p.name, size=p.stat().st_size, sha256=digest(p))
                                                          for p in sorted(self.root.iterdir())])],

@@ -9,10 +9,10 @@
 
 </div>
 
-How to install Deep32 0.1.0-alpha.2, from checking your machines to a first question your agent answers from the
+How to install Deep32 0.1.0-alpha.3, from checking your machines to a first question your agent answers from the
 corpus. Plan on an afternoon, most of it downloading.
 
-<sub>Applies to 0.1.0-alpha.2 · [1 Layout](#1-choose-a-layout) · [2 Check](#2-check-your-machines) · [3 Source](#3-get-and-verify-the-source) · [4 Download](#4-download-the-images) · [5 Forge](#5-install-the-forge) · [6 Workstation](#6-install-the-workstation) · [7 Tailscale](#7-tailscale) · [8 Pair](#8-pair-the-parts) · [9 Verify](#9-verify) · [10 Afterwards](#10-afterwards) · [11 Never stored](#11-what-is-never-stored)</sub>
+<sub>Applies to 0.1.0-alpha.3 · [1 Layout](#1-choose-a-layout) · [2 Check](#2-check-your-machines) · [3 Source](#3-get-and-verify-the-source) · [4 Download](#4-download-the-images) · [5 Forge](#5-install-the-forge) · [6 Workstation](#6-install-the-workstation) · [7 Tailscale](#7-tailscale) · [8 Pair](#8-pair-the-parts) · [9 Verify](#9-verify) · [10 Afterwards](#10-afterwards) · [11 Never stored](#11-what-is-never-stored)</sub>
 
 
 **Quick start.** On each machine, clone the repository and run one command. It works out whether the machine
@@ -43,7 +43,7 @@ A deployment has three parts: the Workstation (an OpenBSD VM or machine with the
 that runs the search models) and the headend (the PC where Claude Code or Codex runs). They can share machines. Pick
 the layout, or journey, that matches what you have:
 
-| Journey | Machines | Workstation | Forge | In 0.1.0-alpha.2 |
+| Journey | Machines | Workstation | Forge | In 0.1.0-alpha.3 |
 |---|---|---|---|---|
 | J1 | Two Windows PCs | Hyper-V VM on the first | Docker Desktop on the second | Not yet run end to end |
 | J2 | A Windows PC and a Linux NVIDIA host | Hyper-V VM on the Windows PC | Docker on the Linux host | The Linux Forge is tested; the Hyper-V Workstation isn't yet |
@@ -77,10 +77,10 @@ listed with what to install.
 Clone the repository at the release tag and check the tag's signature:
 
 ```sh
-git clone --branch v0.1.0-alpha.2 https://github.com/hellobpdu/deep32.git
+git clone --branch v0.1.0-alpha.3 https://github.com/hellobpdu/deep32.git
 cd deep32
 gpg --import install/release-key.asc
-git verify-tag v0.1.0-alpha.2
+git verify-tag v0.1.0-alpha.3
 ```
 
 The signing key's fingerprint must be `B205 B406 5486 27AA BF52  50D8 A078 C5F2 5D02 5DD6`, as printed in the
@@ -96,7 +96,7 @@ download from the last verified 64 MiB chunk.
 |---|---|---|
 | Disc 1, Workstation | J1, J2, J4 | `bash src/release-tools/deep32-get.sh disc1` |
 | Disc 2, content | Every journey | `bash src/release-tools/deep32-get.sh disc2` |
-| Disc 3, Forge GPU pack | Forge installs | `bash src/release-tools/deep32-get.sh disc3 --gpu-class CLASS --ingestion` |
+| Disc 3, Forge GPU pack | Forge installs | `bash src/release-tools/deep32-get.sh disc3 --gpu-class CLASS`, with `--ingestion` for the PDF converter and index builder |
 
 On Windows use `src\release-tools\deep32-get.ps1` with the same arguments. Files go to `./deep32-downloads` unless you
 give `--to DIR`.
@@ -114,9 +114,11 @@ For disc 3, use the class for the compute capability reported by
 | 10.0 | `blackwell100` |
 | 12.0 | `blackwell120` |
 
-For disc 3 you get three images: the shared core (18.6 GB), your card's embedder (3.1 to 3.3 GB) and ingestion
-(15.3 GB), about 37.1 GB together. The alpha.2 Forge installer needs all three; ingestion
-also carries the PDF converter and the index builder. Disc 1 is 1.9 GB and disc 2 is 19.6 GB.
+For disc 3 you get the shared core (18.6 GB) and your card's embedder (3.1 to 3.3 GB), and with `--ingestion` the
+ingestion image (15.3 GB), which carries the PDF converter and the index builder: 21.7 to 21.9 GB without it, about
+37.1 GB with it. You need ingestion only to convert PDFs or build indexes of your own. On Windows, `deep32-get.ps1`
+still downloads all three. Disc 1 is 1.9 GB and disc 2 is 19.6 GB; disc 2 is the content image of 0.1.0-alpha.2,
+unchanged.
 
 If every mirror fails, `deep32-get` prints the image's torrent address from the signed metadata. Download it with
 any torrent client, then check it with `--from DIR`, which verifies files you already have without downloading.
@@ -142,12 +144,12 @@ Ubuntu 24.04 WSL 2 distro on Windows, or in Docker Desktop on Windows.
 > [!IMPORTANT]
 > Check these first. Each one decides whether the install or the pairing works later.
 >
-> - **The host.** In 0.1.0-alpha.2 the installer accepts Ubuntu 24.04 on amd64 with Docker Engine, on the host itself
+> - **The host.** In 0.1.0-alpha.3 the installer accepts Ubuntu 24.04 on amd64 with Docker Engine, on the host itself
 >   or as a WSL 2 distro, for journeys J2 and J4, and Windows 11 build 26100 or later (Home, Pro, Enterprise or
 >   Education) with Docker Desktop 4.99.0 or later and Docker Engine 29.0.0 or later on the WSL 2 backend, for J1.
 >   It stops on any other system, Windows 10 and Windows Server included.
-> - **Free space.** About 281 to 284 GB free when you start, if the data folder and Docker's storage share one
->   filesystem or volume. **Disk space** below has the figures for other layouts.
+> - **Free space.** About 244 to 247 GB free when you start for a Forge with ingestion, if the data folder and
+>   Docker's storage share one filesystem or volume. **Disk space** below has the figures for other layouts.
 > - **The card.** Compute capability 7.5 or newer and at least 10.5 GB of graphics memory, so an 11 GB card or larger
 >   ([docs/HARDWARE.md](docs/HARDWARE.md#5-graphics-card)).
 > - **Its Tailscale machine name starts with `deep32-`**, for example `deep32-forge`. The Workstation only offers
@@ -155,17 +157,19 @@ Ubuntu 24.04 WSL 2 distro on Windows, or in Docker Desktop on Windows.
 >   `sudo tailscale set --hostname deep32-forge`.
 > - **It is in the same tailnet as the Workstation.** A machine shared in from someone else's tailnet is never
 >   offered for pairing.
-> - **Docker's classic image store.** The alpha.2 Forge images load only into Docker's classic store (`overlay2`).
->   Docker Engine 29 and Docker Desktop keep images in containerd by default. To switch on Linux, add
->   `"features": {"containerd-snapshotter": false}` to `/etc/docker/daemon.json` and restart Docker; in Docker
->   Desktop, turn off **Use containerd for pulling and storing images** under Settings, General. Images and containers
->   you keep in the other store stay hidden until you switch back, so the installer never changes this for you.
-> - **Python.** The installer needs Python 3.12 or newer. On Linux and WSL the 0.1.0-alpha.2 pairing helper also runs
->   on the host's own `/usr/bin/python3`, which must be 3.10 or newer and able to import `ssl`:
->   `sh install/forge-host-python.sh` checks it and `sudo sh install/forge-host-python.sh --install` installs it with
->   apt, dnf, zypper or pacman. Appliance systems with a read-only root, such as Unraid, can't host an alpha.2 Forge.
+> - **Docker's image store.** On Linux and in WSL 2, Docker Engine can keep its default containerd image store, with
+>   the system's containerd running (the installer checks that it is), or use the classic store (`overlay2`). If you
+>   moved containerd's `root` in `/etc/containerd/config.toml`, the space check measures the wrong filesystem. Docker
+>   Desktop still needs the classic store: turn off **Use containerd for pulling and storing images** under Settings,
+>   General. Images and containers you keep in the other store stay hidden until you switch back, so the installer
+>   never changes this for you.
+> - **Python.** The installer needs Python 3.12 or newer, and from 0.1.0-alpha.3 the pairing helper runs on that same
+>   Python, so the host's own `/usr/bin/python3` doesn't matter any more.
+> - **One Docker engine per WSL VM.** Every WSL 2 distro shares one network stack. If another Docker engine runs in
+>   another distro and sets its `FORWARD` policy to `DROP`, traffic between the Forge's containers is dropped and the
+>   door reports unhealthy. Run one engine, or add `DOCKER-USER` accept rules for the Forge's bridges.
 
-**The short way.** One command checks all of that, downloads and verifies the three images, installs the Forge,
+**The short way.** One command checks all of that, downloads and verifies the images, installs the Forge,
 checks its door and shows the pairing code:
 
 ```sh
@@ -179,10 +183,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File install\deep32-setup.ps1 for
 
 **By hand.**
 
-1. Put the three images from section [4](#4-download-the-images) in one folder with the five signed files of the same
+1. Put the images from section [4](#4-download-the-images) in one folder with the five signed files of the same
    release: `SHA256SUMS`, `SHA256SUMS.sig`, `MIRRORS.json`, `CAPABILITIES.json` and `FORGE-PREREQUISITES.json`. If you
    downloaded with `deep32-get`, they are already in `./deep32-downloads`, the signed files in its
-   `.deep32-v0.1.0-alpha.2/revision-*` snapshot.
+   `.deep32-v0.1.0-alpha.3/revision-*` snapshot.
 2. Run the installer. On Linux or in WSL:
 
    ```sh
@@ -210,27 +214,29 @@ powershell -NoProfile -ExecutionPolicy Bypass -File install\deep32-setup.ps1 for
 
    For J4 the recipe is `ubuntu-24.04-docker-engine-j4`, and on Windows `windows-11-docker-desktop-wsl2-j1`. The line
    doesn't stop the install.
-4. It joins the three images into one verified copy, loads the Docker images and starts the embedding and reranking
+4. It joins the images into one verified copy, loads the Docker images and starts the embedding and reranking
    services behind one door. The PDF converter runs only for a conversion job; while it runs, the Forge pauses the two
    models and brings them back afterwards.
 
 On Windows, give `--docker-storage-path DIR` if Docker Desktop keeps its disk image somewhere other than its default,
 so the space check looks at the right drive.
 
-**Disk space.** The installer compares free space with the storage budget signed into the release. For 0.1.0-alpha.2
-the budgets are declared upper bounds: I computed them from the sizes of the three images, with a margin over what my
-test runs used, and the check line ends with `(declared upper bound; no measurement yet)`. The installer checks twice,
-before it joins the images and again after it has written the joined copy (36.8 GB), each time against the whole
-budget. So have the budget plus the joined copy free when you start:
+**Disk space.** The installer compares free space with the storage budget signed into the release. For 0.1.0-alpha.3
+the budgets are declared upper bounds: I computed them from the sizes of the images, with a margin over what my test
+runs used, and the check line ends with `(declared upper bound; no measurement yet)`. The installer checks twice,
+before it joins the images and again after it has written the joined copy, and from 0.1.0-alpha.3 the second check
+counts the joined copy that is already on disk. So have the budget free when you start. With ingestion:
 
-| Where the Forge writes | Budget | Free at the start |
-|---|---|---|
-| Linux, data folder and Docker's storage on one filesystem | 244.0 GB | 280.8 GB |
-| Linux or Windows, the data folder on a filesystem or volume of its own | 123.8 GB | 160.6 GB |
-| Linux, Docker's storage on a filesystem of its own | 120.2 GB | 120.2 GB |
-| Windows, data folder and Docker Desktop's disk image on one volume | 246.2 GB | 283.0 GB |
-| Windows, Docker Desktop's disk image on a volume of its own | 122.5 GB | 122.5 GB |
-| Windows, inside Docker Desktop's virtual disk | 176.8 GB | 176.8 GB |
+| Where the Forge writes | Budget |
+|---|---|
+| Linux, data folder and Docker's storage on one filesystem | 244.0 GB |
+| Linux or Windows, the data folder on a filesystem or volume of its own | 123.8 GB |
+| Linux, Docker's storage on a filesystem of its own | 120.2 GB |
+| Windows, data folder and Docker Desktop's disk image on one volume | 246.2 GB |
+| Windows, Docker Desktop's disk image on a volume of its own | 122.5 GB |
+| Windows, inside Docker Desktop's virtual disk | 176.8 GB |
+
+A Linux Forge without ingestion needs less, because neither the ingestion image nor its Docker images are written.
 
 The figures are for a `turing` card; the other classes need up to about 1 GB more. GB here means 10⁹ bytes; `df -h`
 and Windows count in GiB and show numbers about 7% smaller. The joined copy goes beside the data folder, in
@@ -281,8 +287,8 @@ Port 8443 answers the same way. The setup script runs both checks for you.
    It writes files and prints commands; it doesn't create or change a VM itself.
 2. Create the VM with those settings. On Hyper-V the VM must be Generation 1. On KVM use BIOS firmware, IDE disks, a
    VGA display and an e1000 network adapter. Give it a disk of 200 GB or more: the guided layout sizes the Library
-   partition from the disk, and the disc 2 import needs about 20 GB free there. The commands from step 1 still make
-   a 160 GB disk, so change `160GB` (Hyper-V) or `160G` (KVM) to `200GB` or `200G` before you run them.
+   partition from the disk, and the disc 2 import needs about 20 GB free there. The commands from step 1 make a
+   200 GB disk.
 3. Disc 1 is a disk image. Attach the installer image from step 1 (installer.vhd on Hyper-V, installer.img
    on KVM) as the VM's first disk, the empty 200 GB disk as the second, and boot from the first. The wizard's VM
    guide (`--vm-guide`, or `-VmGuide` in PowerShell) gives these settings for Proxmox VE, Hyper-V, KVM, VMware and
@@ -412,6 +418,11 @@ start the Forge again to open a new one.
    the public Certificate Transparency logs, as every Tailscale HTTPS name is. Without it, publication stays off. The
    command checks the gateway and ends with the Connect command for this Workstation, for Linux and for Windows. That
    command says `--agent both`, which pairs twice, once for each agent. To connect one agent, name it as in step 2.
+
+   If it ends with exit status 14 and Tailscale couldn't get the certificate, look at your router's DNS. Some home
+   routers strip the DNSSEC signatures from part of their answers, and the Workstation's resolver validates them, so it
+   refuses the name of Let's Encrypt's service. Point the router or the Workstation's network at a resolver that keeps
+   the signatures, then run the command again. I haven't fixed this on the Workstation's side yet.
 2. On the headend, from the Deep32 source folder, start Connect with your agent, `claude` for Claude Code or `codex`
    for Codex, and the Workstation's address:
 
@@ -452,16 +463,18 @@ Ask has no password of its own: every account in the Workstation's `_d32users` g
 2. Ask your agent something you already know, such as the BGP hold time in RFC 4271, and check that it cites the RFC
    and quotes it.
 
-`deep32 doctor` and `deep32 selftest` are on the images, but in 0.1.0-alpha.2 doctor can't read the install record
+`deep32 doctor` and `deep32 selftest` are on the images, but in 0.1.0-alpha.3 doctor can't read the install record
 and selftest has no signed reference values, so neither gives a useful result yet. Fixes for both are planned for
-0.1.0-alpha.3.
+0.1.0-alpha.4.
 
 ## 10. Afterwards
 
 - **Status.** `bash install/deep32-setup.sh check` can be run at any time; it never changes anything.
-- **Revoking a Workstation.** In 0.1.0-alpha.2, revoking a paired Workstation on the Forge rotates the Forge's token,
-  and the Forge then refuses to restart because its identity record no longer matches. Until 0.1.0-alpha.3, revoke by
-  uninstalling the Forge and installing it into a new data folder, then pair again.
+- **Revoking a Workstation.** Revoking a paired Workstation on the Forge rotates the Forge's token. From 0.1.0-alpha.3
+  the Forge starts again with the new token (`--start` below), and the revoked Workstation gets `401`. In 0.1.0-alpha.2
+  the Forge then refused to restart, and the way out was a new install into a new data folder.
+- **Adding ingestion later.** A Linux Forge installed without `--ingestion` can't add it in place yet. Install it again
+  into a new data folder with `--ingestion` and pair it again.
 - **Updates.** The Forge's `--upgrade` action installs new GPU media over the old and keeps the Forge's data and
   pairing identity. A Forge installed fresh into an empty folder makes a new token and certificate, so pair it with the
   Workstation again afterwards. In the alpha releases a Workstation is installed fresh.

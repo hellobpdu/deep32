@@ -31,7 +31,7 @@ class BundleAssembly(unittest.TestCase):
         self.capraw = (fixtures / "capabilities" / "manifest.json").read_bytes()
         self.capability = contracts.strict_loads(self.capraw)
         self.rows, self.producers, self.sources = [], [], {}
-        argv = ["--format", "whole", "--version", "0.1.0-alpha.2", "--output", str(self.output),
+        argv = ["--format", "whole", "--version", "0.1.0-alpha.3", "--output", str(self.output),
                 "--mirrors-input", str(self.inputs / "mirrors.json"),
                 "--metadata-list", str(self.inputs / "metadata.json"),
                 "--bundle-inputs", str(self.inputs / "bundles.json")]
@@ -212,7 +212,7 @@ class BundleAssembly(unittest.TestCase):
     def test_undeclared_source_bundle_refused(self):
         item = copy.deepcopy(self.mirrors["bundles"][0])
         item["bundle_id"] = "source-build-unrelated"
-        item["file"] = "deep32-0.1.0-alpha.2-disc3-gpu-pack-source-build-unrelated.iso"
+        item["file"] = "deep32-0.1.0-alpha.3-disc3-gpu-pack-source-build-unrelated.iso"
         item["mirrors"][0]["url"] = "https://archive.org/download/" + self.mirrors["archive"]["item"] + "/" + item["file"]
         self.mirrors["bundles"].append(item)
         with self.assertRaises(contracts.ContractError):
@@ -226,7 +226,7 @@ class BundleAssembly(unittest.TestCase):
         item["bundle_sha256"] = hashlib.sha256(contracts.canonical(source)).hexdigest()
         item["sha256"] = "f" * 64
         item["chunk_sha256"] = ["f" * 64]
-        item["file"] = "deep32-0.1.0-alpha.2-disc3-gpu-pack-" + source["id"] + ".iso"
+        item["file"] = "deep32-0.1.0-alpha.3-disc3-gpu-pack-" + source["id"] + ".iso"
         item["mirrors"][0]["url"] = "https://archive.org/download/" + self.mirrors["archive"]["item"] + "/" + item["file"]
         self.mirrors["bundles"].append(item)
         contracts.validate_mirror_capabilities(self.mirrors, self.capability)

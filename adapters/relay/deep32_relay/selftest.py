@@ -69,6 +69,17 @@ def binding_digest(install, research_sha256, contract_sha256):
     return hashlib.sha256(json_bytes(value)).hexdigest()
 
 
+def instruction_file(install):
+    """The owned file that holds this installation's research instruction: RESEARCH-codex.md for a Codex relay
+    whose package carries it, RESEARCH.md otherwise (Claude Code, and any package made before the Codex text)."""
+    owned = install.get("owned_files")
+    release = install.get("release_id")
+    if not isinstance(owned, dict) or not valid_hash(release):
+        raise StateError("binding-changed")
+    codex = "packages/" + release + "/RESEARCH-codex.md"
+    return codex if install.get("agent") == "codex" and codex in owned else "packages/" + release + "/RESEARCH.md"
+
+
 def install_binding(install):
     """Bind the release/profile and exact packaged instruction/control bytes."""
     owned = install.get("owned_files")
@@ -76,7 +87,7 @@ def install_binding(install):
     if not isinstance(owned, dict) or not valid_hash(release):
         raise StateError("binding-changed")
     prefix = "packages/" + release + "/"
-    research = owned.get(prefix + "RESEARCH.md")
+    research = owned.get(instruction_file(install))
     controls = {key[len(prefix):]: value for key, value in owned.items()
                 if isinstance(key, str) and key.startswith(prefix + "deep32_relay/") and key.endswith(".py")}
     if not controls or any(not valid_hash(value) for value in controls.values()):

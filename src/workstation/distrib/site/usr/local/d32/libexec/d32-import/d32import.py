@@ -367,7 +367,6 @@ def _restore_report(ctx, old, kb_only=False):
     if ctx.p.node == 'workstation':
         imp_files.add_unit_times(ctx)
     for unit in ctx.report.data['units']:
-        saved = old.get('units', {}).get(unit['id'], {})
         if unit['state'] != 'skipped' and not (kb_only and unit['kind'] != 'kb'):
             unit['state'] = 'kept' if ctx.p.node == 'forge' and unit['kind'] in ('kb', 'block') else 'installed'
             unit['parts_checked'] = unit['parts']

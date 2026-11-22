@@ -87,7 +87,6 @@ and 64 for an argument it does not know.
 | `Docker keeps images in its containerd store` | The person decides | Switching hides what is in the other store; the line says how ([INSTALL.md section 5](../../../INSTALL.md#5-install-the-forge)) |
 | `install the NVIDIA Container Toolkit` | The person, or you after their yes | The commands in the line |
 | `Docker is not installed or not running` | The person | https://docs.docker.com/engine/install/ |
-| `the pairing helper needs /usr/bin/python3 3.10+ with ssl` | You after their yes, or the person | `sudo sh install/forge-host-python.sh --install` |
 | `turn on systemd` (WSL) | The person | The line's steps, from Windows |
 | `run this from an elevated PowerShell` | The person | PowerShell as administrator |
 | `install Python 3.12 or newer from python.org` | The person | The line's steps |

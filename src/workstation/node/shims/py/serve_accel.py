@@ -8,15 +8,20 @@ re-reads the published copy /var/d32/run/gpu_ext at every re-check and forwards 
 then it forwards nothing until the hub has passed the identity check, which it repeats every
 GPU_EXT_RECHECK_SECONDS:
 
-  embedder  GET /info: model_id must equal GPU_EXT_EMBED_MODEL_ID. Revision: TEI reports "model_sha" (null on
-            the hub today [m], hub-probe 2026-11-05); if it reports one it must equal GPU_EXT_EMBED_REVISION; if
-            not, the golden probe decides: POST the recorded probe input, take the vector as float32
-            little-endian, and its SHA-256 must equal GPU_EXT_EMBED_PROBE_SHA256.
-  reranker  GET /health: status "ok" and model == GPU_EXT_RERANK_MODEL_ID. Revision: a "revision" field if the
-            service reports one (it does not today), else the golden probe file GPU_EXT_RERANK_PROBE (query,
-            documents, the recorded order and scores): same order, every score within its tolerance.
+  embedder  GET /info: model_id must equal GPU_EXT_EMBED_MODEL_ID. Revision: TEI reports "model_sha", the
+            --revision it was started with; if it reports one it must equal GPU_EXT_EMBED_REVISION; if not, the
+            golden probe decides: the probe file's "embed" vector (cosine at least its min_cosine), else the
+            SHA-256 of the float32 little-endian vector for GPU_EXT_EMBED_PROBE_INPUT.
+  reranker  GET /health: status "ok" and model == GPU_EXT_RERANK_MODEL_ID. Revision: the Forge reranker reports
+            a fixed string; if it equals GPU_EXT_RERANK_REVISION that is accepted, else the golden probe file
+            GPU_EXT_RERANK_PROBE decides (query, documents, the recorded order and scores): same order, every
+            score within its tolerance.
   With GPU_EXT_REQUIRE_REVISION=yes (the default) a model whose revision is neither reported nor proven by a
-  probe is refused, not warned about (INTEGRATIONS 2.4 step 5).
+  probe is refused, not warned about (INTEGRATIONS 2.4 step 5). With GPU_EXT_PROBE_ALWAYS=yes a matching
+  revision is still required where one is set, and is not enough: the short probes run on every check, and the
+  probe file's "long" ones (15 passages of up to 1,600 characters, and a document-prompt input of about 7,000
+  characters), which must have recorded values, run at the first check after a start or a pairing, after GPU_EXT
+  was off or the credential was refused, whenever the Forge reports another model identity, and until they pass.
 
 Until verified, or while the setting is off, every request gets 503 with a JSON reason: deep32-engine's breaker then
 degrades dense or the reranker, which /v2/status and every search answer report.
@@ -70,10 +75,6 @@ BAD_CREDENTIAL = "d32accel: Forge credential is unavailable; re-pair this Workst
 
 class ForgeCredentialError(ValueError):
     """A fixed, nonsecret diagnostic suitable for the service's startup error."""
-
-
-class ForgeAuthRejected(ValueError):
-    pass
 
 
 def _not_link(st) -> bool:
@@ -188,6 +189,7 @@ class Settings:
         self.connect_timeout = float(env.get("GPU_EXT_CONNECT_TIMEOUT", "5"))
         self.read_timeout = float(env.get("GPU_EXT_READ_TIMEOUT", "120"))
         self.require_revision = _yes(env.get("GPU_EXT_REQUIRE_REVISION", "yes"))
+        self.probe_always = _yes(env.get("GPU_EXT_PROBE_ALWAYS", "no"))
         self.embed_model = env.get("GPU_EXT_EMBED_MODEL_ID", "")
         self.embed_revision = env.get("GPU_EXT_EMBED_REVISION", "")
         self.embed_probe_input = env.get("GPU_EXT_EMBED_PROBE_INPUT", "")

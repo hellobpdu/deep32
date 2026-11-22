@@ -86,7 +86,8 @@ class PreferReadRefTests(unittest.TestCase):
         hb.pins = release_pins(["17.9"])
         hb.db = None
         doc = types.SimpleNamespace(doc_key="c9300-179-rtng", title="Routing 17.9", doc_type="cisco", release="17.9",
-                                    rfc=None, cite=lambda s: "Routing 17.9 › NSSA", url=lambda s: None)
+                                    platform="Catalyst 9300", rfc=None, cite=lambda s: "Routing 17.9 › NSSA",
+                                    url=lambda s: None)
         row = {"chunk_id": "chk_179", "doc_id": "doc_179", "heading_path": ["NSSA"]}
         hb.copies = {"chk_179": (row, doc, ("short passage", sec, "c9300-179-rtng.txt:3-4"))}
         return hb
@@ -95,7 +96,8 @@ class PreferReadRefTests(unittest.TestCase):
     def hit(**extra):
         return {"id": "chk_261", "doc_id": "doc_261", "doc_key": "c9300-261-rtng", "title": "Routing 26.1",
                 "doc_type": "cisco", "cite": "Routing 26.1 › NSSA", "section_id": "c9300-261-rtng#nssa",
-                "section_path": ["NSSA"], "status": None, "release": "26.1", "score": 0.5, "matched": ["bm25"],
+                "section_path": ["NSSA"], "status": None, "release": "26.1", "platform": None, "score": 0.5,
+                "matched": ["bm25"],
                 "text": "short passage", "local": "c9300-261-rtng.txt:3-4", "url": None,
                 "also_in": [{"id": "chk_179", "doc_key": "c9300-179-rtng", "release": "17.9",
                              "section_id": "c9300-179-rtng#nssa", "cite": "Routing 17.9 › NSSA"}], **extra}
@@ -107,8 +109,8 @@ class PreferReadRefTests(unittest.TestCase):
                 hit = self.hit(tier=tier, reranked=False, get_section="c9300-261-rtng#nssa")
                 keys = list(hit)
                 self.builder(sec).prefer([hit])
-                self.assertEqual((hit["id"], hit["release"], hit["section_id"]),
-                                 ("chk_179", "17.9", "c9300-179-rtng#nssa"))
+                self.assertEqual((hit["id"], hit["release"], hit["platform"], hit["section_id"]),
+                                 ("chk_179", "17.9", "Catalyst 9300", "c9300-179-rtng#nssa"))
                 self.assertEqual(hit["get_section"], "c9300-179-rtng#nssa")
                 self.assertEqual(list(hit), keys)
                 self.assertEqual(hit["also_in"][0]["id"], "chk_261")
@@ -119,7 +121,7 @@ class PreferReadRefTests(unittest.TestCase):
         self.assertEqual((hit["id"], hit["section_id"], hit["get_section"]), ("chk_179", None, "chk_179"))
 
     def test_a_hit_without_a_read_ref_gets_none(self):
-        hit = self.hit()                              # without deep: no get_section, as before
+        hit = self.hit(reranked=False)                # without deep: no get_section, as before
         self.builder(types.SimpleNamespace(section_id="c9300-179-rtng#nssa", path=["NSSA"], anchor="nssa")).prefer(
             [hit])
         self.assertEqual(hit["id"], "chk_179")

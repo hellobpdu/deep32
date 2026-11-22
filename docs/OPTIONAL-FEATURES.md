@@ -13,7 +13,7 @@ Every optional feature ships switched off, with no address, key, account or webh
 preset. This page lists each one, what it contacts when you switch it on, and what a fresh install contacts with all
 of them off.
 
-<sub>Applies to 0.1.0-alpha.2 · [1 Defaults](#1-defaults) · [2 Features](#2-features) · [3 Commands that reach out](#3-commands-that-reach-out) · [4 Network egress](#4-network-egress)</sub>
+<sub>Applies to 0.1.0-alpha.3 · [1 Defaults](#1-defaults) · [2 Features](#2-features) · [3 Commands that reach out](#3-commands-that-reach-out) · [4 Network egress](#4-network-egress)</sub>
 
 ## 1. Defaults
 

@@ -64,13 +64,13 @@ class Served:
 
     @classmethod
     def bodies(cls):
-        """{shape name: the raw response body}."""
+        """{shape name: the response body in its alpha.2 form (fold_root.alpha2_form), timing values masked}."""
         out = {}
         for name, path, body, rerank in shapes():
             r = post(cls.c, path, body, rerank)
             if r.status_code != 200:
                 raise AssertionError(f"{name}: {r.status_code} {r.text}")
-            out[name] = r.content
+            out[name] = fold_root.alpha2_form(r.content, body)
         return out
 
 
@@ -81,7 +81,7 @@ class FoldOffTests(Served, unittest.TestCase):
         pinned = load_pinned(OFF)
         for name, content in self.bodies().items():
             with self.subTest(name):
-                self.assertEqual(fold_root.masked(content), pinned[name.split("+")[0]])
+                self.assertEqual(content, pinned[name.split("+")[0]])
 
 
 class FoldFalseTests(FoldOffTests):
@@ -115,7 +115,7 @@ class FoldOnTests(Served, unittest.TestCase):
         pinned = load_pinned(ON)
         for name in REQUESTS:
             with self.subTest(name):
-                self.assertEqual(fold_root.masked(self.raw[name]), pinned[name])
+                self.assertEqual(self.raw[name], pinned[name])
 
     def swaps(self, name):
         """[(place, 6afc29b's hit, the hit now)] where the hit is another chunk now."""
@@ -176,14 +176,14 @@ class FoldOnTests(Served, unittest.TestCase):
         for name in REQUESTS:
             for tag in ("pin179", "default"):
                 with self.subTest(f"{name}+{tag}"):
-                    self.assertEqual(fold_root.masked(self.raw[f"{name}+{tag}"]), load_pinned(ON)[name])
+                    self.assertEqual(self.raw[f"{name}+{tag}"], load_pinned(ON)[name])
 
     def test_a_copy_whose_window_differs_in_a_byte_stays_in_also_in(self):
         # the 17.12 copy folds by fold_key (case, punctuation, spacing and fullwidth letters aside), but its window
         # is not the hit's text byte for byte: never shown in the hit's place
         for name in REQUESTS:
             with self.subTest(name):
-                self.assertEqual(fold_root.masked(self.raw[f"{name}+pin1712"]), load_pinned(ON)[name])
+                self.assertEqual(self.raw[f"{name}+pin1712"], load_pinned(ON)[name])
         first = self.got["search_docs+pin1712"]["hits"][0]
         self.assertIn(chunk_id("c9300-1712-rtng", 0), [m["id"] for m in first["also_in"]])
 

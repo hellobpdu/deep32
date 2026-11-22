@@ -11,8 +11,8 @@ c6.import.kb.n	installing the knowledge base: {done} of {total} MB
 c6.import.kb.ready	the knowledge base is ready; the Library is still importing
 c6.import.library	the knowledge base is ready; copying, checking and installing the Library
 c6.import.library.n	the knowledge base is ready; the Library: {done} of {total} MB
-c6.import.library.pct	the knowledge base is ready; Library {pct} %: {files} of {count} files checked ({done} of {total} MB), {packs} of {npacks} packs installed
-c6.import.library.eta	the knowledge base is ready; Library {pct} %: {files} of {count} files checked ({done} of {total} MB), {packs} of {npacks} packs installed, about {left} left
+c6.import.library.pct	the knowledge base is ready; Library {pct} % overall: {files} of {count} files checked, {done} of {total} MB copied, {packs} of {npacks} packs installed
+c6.import.library.eta	the knowledge base is ready; Library {pct} % overall: {files} of {count} files checked, {done} of {total} MB copied, {packs} of {npacks} packs installed, about {left} left
 c6.import.blocks	keeping the corpus blocks
 c6.import.blocks.n	keeping the corpus blocks: {done} of {total} MB
 c6.import.switch	the knowledge base is ready; switching to the new Library

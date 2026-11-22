@@ -26,12 +26,12 @@ from rag_core.db import connect
 from rag_core.reader import query_terms
 
 import fold_root
-from fold_root import AUTH, REQUESTS, WordReranker, masked, post
+from fold_root import AUTH, REQUESTS, WordReranker, alpha2_form, post
 from test_api_v2 import RootClient
 from v2_root import add_document, chunk_id
 
 PINNED = Path(__file__).resolve().parent / "data" / "deep_off_6afc29b.json"
-LABELS = ("tier", "reranked", "get_section")
+LABELS = ("tier", "get_section")       # what only a deep hit carries ("reranked" is on every hit)
 N_DEEP_DOCS = 40
 
 
@@ -60,7 +60,7 @@ def capture_with(client, extra) -> dict[str, str]:
         r = post(client, path, {**body, **extra}, rerank)
         if r.status_code != 200:
             raise AssertionError(f"{name}: {r.status_code} {r.text}")
-        out[name] = masked(r.content)
+        out[name] = alpha2_form(r.content, {**body, **extra})
     return out
 
 

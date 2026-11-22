@@ -25,7 +25,7 @@ def component(name, **changes):
 
 
 def fixture():
-    return dict(format='deep32-sbom-normalised/1', release='0.1.0-alpha.2',
+    return dict(format='deep32-sbom-normalised/1', release='0.1.0-alpha.3',
         source_date_epoch=0, source_revision='1' * 40, generator_sha256='2' * 64,
         roots=[dict(id='media', files=[measured('disc.iso')])],
         subjects=[dict(id='disc1', kind='disc', file=measured('disc.iso'), role='workstation',

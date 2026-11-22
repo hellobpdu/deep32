@@ -52,18 +52,19 @@ section ID and quote result separately. If keyword search works but dense search
 label the check keyword-only. Do not claim model health or live acceptance from copied skill/configuration files.
 The runtime first-session check requires Phase B media with published HTTPS and an enrolled headend.
 
-## 1. Check the tools (once per session, and again after any tool error)
+## 1. Check the tools (at the start of every answer, and again after any tool error)
 
 1. **Load the tools.** If the `mcp__deep32__*` tools are listed only by name as deferred tools, load all eleven in
    one ToolSearch call: `select:mcp__deep32__rag_status,mcp__deep32__search_many,mcp__deep32__search_rag,mcp__deep32__get_section,mcp__deep32__get_outline,mcp__deep32__verify_quote,mcp__deep32__lookup_id,mcp__deep32__lookup_rfc,mcp__deep32__find_command,mcp__deep32__grep_corpus,mcp__deep32__list_documents`.
-2. **Call `rag_status`.** It prints `ok`, `generation`, `corpus_fingerprint`, `n_docs` and `n_chunks` on its first
-   line, then one line per backend (`bm25: ok`, `dense: ok; …`, `reranker: ok; …`, `kb: ok`, `structure: ok`), a
-   `degraded:` line and an `edge:` line. When the GPU node is down or busy, the reranker shows as off or degraded,
-   which lowers ranking quality but is not an error.
+2. **Call `rag_status`** once at the start of every answer, whatever the depth, a follow-up question included. It
+   prints `ok`, `generation`, `corpus_fingerprint`, `n_docs` and `n_chunks` on its first line, then one line per
+   backend (`bm25: ok`, `dense: ok; …`, `reranker: ok; …`, `kb: ok`, `structure: ok`), a `degraded:` line and an
+   `edge:` line. A backend shown as anything but `ok` (`off` or `DOWN`) makes this answer degraded, exactly as if the
+   `degraded:` line named it (section 3, Degraded search).
 3. If the tools are missing, erroring or timing out, or `rag_status` shows `ok: False` with no backend lines, or
    `bm25: DOWN`, stop and say that Deep32 search is unavailable. Never answer the question from memory instead.
-   If `ok: False` or `degraded:` is not `none` but `bm25: ok`, go on, write "degraded: …" in the answer's last line
-   and lean on BM25, `grep_corpus` and the lookups.
+   If `ok: False`, a backend other than `bm25` is not `ok`, or `degraded:` is not `none`, but `bm25: ok`, go on: the
+   answer is degraded (section 3, Degraded search), so lean on BM25, `grep_corpus` and the lookups.
 - An error that says `401`, `unauthorized` or `Dynamic Client Registration rejected` means this session's MCP
   connection has no valid token. Tell the user: "run `/mcp` and reconnect deep32, or start a new session". Never try
   to fix authentication yourself, and never read a token or settings file.
@@ -79,45 +80,53 @@ The runtime first-session check requires Phase B media with published HTTPS and 
    `"DSCP EF"`, a CLI command.
 4. **Recall.** One `search_many(queries=[{text, mode}, …])` with 3 to 6 queries: identifiers and exact CLI with
    `mode: "bm25"`, paraphrases with `mode: "dense"`. The `per query:` line shows what each query found; for a query
-   marked "no hit", run it alone with `search_rag(query, docs=[the doc_keys of the best hits so far])`. Write the
+   marked "no hit", run it alone with `search_rag(query, docs=[…])`: the doc_keys blueprint.md names for the topic
+   and those of the best hits so far. Write the
    queries in the documents' terms first, especially for plain-English and troubleshooting questions:
-   `${CLAUDE_SKILL_DIR}/query-planning.md`.
+   `${CLAUDE_SKILL_DIR}/query-planning.md`. Every `search_many` and `search_rag` call gives `prefer_release`: the
+   pins of section 0 as bare release numbers (as shipped `["17.9", "20.9", "2.3", "3.1"]`), with a release the
+   question names in place of its component's pin.
 5. **Exact strings.** `find_command(command, release="17.9")` expands IOS abbreviations and returns doc_key:line;
    `grep_corpus(pattern, docs=[…])` finds show-output lines and exact phrases.
 6. **Read whole sections.** `get_section(ref=<the hit's section id>)`. For a big guide, `get_outline(doc, depth=1)`,
    then `get_outline(doc, under=<chapter id>)`. Also read nearby Restrictions, Prerequisites, Defaults and Feature
-   History sections.
-7. **Standing.** `lookup_rfc(rfc)` for every RFC you cite. For an obsoleted RFC, cite its successor too. Check that
-   no verified errata touch the section you quote.
+   History sections. To open a long section where a hit sits, add `around=<the hit's id>`. The reply prints the
+   section's `cite`, its release and, for an RFC, its standing: cite from it.
+7. **Standing.** `lookup_rfc(rfc)` for every RFC you cite. When a reply says `OBSOLETED by`, look up each RFC it
+   names too, and go on until a reply names no successor: cite that last RFC as current, beside the obsoleted one.
+   Check that no verified errata touch the section you quote.
 8. **Compare** the RFC's MUST/SHOULD text with the Cisco default and its release
    (`${CLAUDE_SKILL_DIR}/rfc-pitfalls.md`, `${CLAUDE_SKILL_DIR}/release-drift.md`).
-9. **Verify** every quoted string, one `verify_quote(ref=<section id>, quote=<exact text>)` call each. The result is
+9. **Verify** every quoted string with `verify_quote`: one call checks up to 16 quotes as
+   `quotes=[{ref: <section id>, quote: <exact text>}, …]`, or one quote as `ref` and `quote`. Each quote's result is
    `exact`, `normalized` or `not_found`, and its `local` value is the `file:line` to print after that quote. Fix or
    drop any `not_found` quote. A quote with no verify_quote call is labelled **unverified**, never normalized.
 10. **Answer** in the format of `${CLAUDE_SKILL_DIR}/citation-style.md`. If the question's premise is wrong, correct
     it first.
 
 Each hit carries `cite` (copy it as the citation), `section` (for get_section and verify_quote), `status` (RFC
-standing), `release` and `local` (file:line in the corpus). Budget: about 8 to 15 tool calls. Stop searching once
-two independent sources agree.
+standing), `release` and `local` (file:line in the corpus). How many calls to make and when to stop come only from
+the depth file of section 3 (Depth): `quick-default.md` by default, `deep-engine.md` for thorough, deep and insane.
 
 ## 3. Answer
 
 Use the layout in `${CLAUDE_SKILL_DIR}/expanded-answer.md`: a fuller answer, a How it works section on the theory,
 5 to 8 Evidence bullets, RFC vs Cisco, Further reading, Confidence and gaps, and the sections read. Cite forms and
 quote rules come from `${CLAUDE_SKILL_DIR}/citation-style.md`; use its compact template only when the user asks for
-a short answer. Every claim in Answer and Evidence needs a citation. Your own background belongs in How it works,
-labelled "(unsourced)", and never stands in for a default, a value, a command or a release.
+a short answer. Every claim in Answer and Evidence needs a citation. Your own background goes only where
+`${CLAUDE_SKILL_DIR}/expanded-answer.md` allows it, labelled "(unsourced)", and never stands in for a default, a
+value, a command or a release.
 
-Degraded search: if any tool reply begins with a "degraded:" line (dense, reranker, kb or structure), the search ran
-below full strength. Say so: put one line at the top of the answer, "Search degraded: <list> (dense down =
-keyword-only recall; reranker down = unreranked order)", and repeat the state in the closing line. Never present an
-answer built on degraded search as full-strength. The usual cause is a GPU node that is down or busy; the Deep32
-status view shows which.
+Degraded search: the search ran below full strength if any tool reply begins with a "degraded:" line (dense,
+reranker, kb or structure), or if this answer's `rag_status` shows a backend as anything but `ok` (`off` or `DOWN`).
+Say so: put one line at the top of the answer, "Search degraded: <list> (dense down or off = keyword-only recall;
+reranker down or off = unreranked order)", and repeat the state in the closing line. Never present an answer built on
+degraded search as full-strength. The usual cause is a GPU node that is down or busy, or a backend configured off;
+the Deep32 status view shows which.
 
 Depth: by default the retrieval of section 2 runs as the bounded rounds of `${CLAUDE_SKILL_DIR}/quick-default.md`
 (read it; do not read deep-engine.md then). Only when the user says "thorough", "deep" or "insane" does it run as the
-rounds of `${CLAUDE_SKILL_DIR}/deep-engine.md`, which replace its call budget and early stop ("deep" or "insane":
+rounds of `${CLAUDE_SKILL_DIR}/deep-engine.md`, with their own budget and stop ("deep" or "insane":
 until two rounds in a row bring no new section). Those rounds send evidence searches without `limit`, and narrow
 lookups keep a small one: `${CLAUDE_SKILL_DIR}/deep-engine.md` section 8 says which is which and how to read the 32
 tiered hits. The user can make an answer Full (the default, 32 tiered hits), Half (`limit` 16) or Light (`limit` 8)
@@ -132,6 +141,14 @@ Reading results:
   evidence; `platform: "iosxe-router"` or `"cat9300"` narrows the rows.
 - The 26.x / 17.18 preference order and the ISE rule are in `${CLAUDE_SKILL_DIR}/release-drift.md`; `release_max`
   narrows and never decides (`${CLAUDE_SKILL_DIR}/deep-engine.md` section 1, step 2).
+- `pin="other"` on a hit (it appears only on a call that gave `prefer_release`): a Cisco passage whose release is
+  none of the pins, and no identical copy at a pin could be shown in its place. Name its release in the claim, as
+  release-drift.md says. A rolling `17.x` book is never marked: its label proves nothing either way.
+- A hit's `platform` (when the reply shows one) is its document's platform: a `Catalyst 9300` book is no evidence
+  for a router, nor the reverse (release-drift.md, Platform drift).
+- `covers="..."` on a hit (when the reply shows one) names the sections a merged passage runs through, and a first
+  text line `table: <caption> | <header row>` is the header of the table the passage starts inside. Both place the
+  passage; neither is part of its text, so quote from the text below them.
 - A hit followed by `also in (same text as hit N): ...`, and a deep answer's tier headers: `deep-engine.md` section 8
   (cite the pinned-release copy, and a copy is never a second source; tiers 2 and 3 are candidates, read before
   citing).
@@ -145,7 +162,8 @@ For special question types, read the matching file first:
   `${CLAUDE_SKILL_DIR}/collections.md`.
 
 Web sources: none, ever, inside this skill: it answers from the knowledge base only. Where the corpus is silent after
-the outline check, write "not in corpus" and stop there. You may end with one line offering an official vendor-doc
+the outline check, write "not in corpus" and stop there (for the question's main point: the gap layout of
+`${CLAUDE_SKILL_DIR}/expanded-answer.md`). You may add one line before the Read line offering an official vendor-doc
 lookup as a separate step after this answer; never fetch it within the skill, even when asked in the same request.
 That lookup, if the user wants it, happens outside the skill, labelled "web, not in corpus", its quotes
 **unverified**.

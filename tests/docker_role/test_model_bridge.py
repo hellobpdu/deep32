@@ -73,6 +73,20 @@ def configuration():
             "GPU_EXT_RERANK_REVISION": "synthetic-rerank-revision"}
 
 
+def probes(long_scores=(0.5, 0.25, -0.125), long_vector=(0.6, 0.8), recorded=True):
+    long_rerank = {"model": "synthetic-rerank", "query": "synthetic long query", "documents": ["p0", "p1", "p2"],
+                   "tolerance": 0.005}
+    long_embed = {"model": "synthetic-embed", "input": "Document: synthetic", "min_cosine": 0.999}
+    if recorded:
+        long_rerank.update(order=[0, 1, 2], scores=list(long_scores))
+        long_embed.update(vector=list(long_vector))
+    return {"model": "synthetic-rerank", "query": "synthetic query", "documents": ["d0"], "order": [0],
+            "scores": [0.5], "tolerance": 0.005,
+            "embed": {"model": "synthetic-embed", "input": "Query: synthetic", "min_cosine": 0.999,
+                      "vector": [0.25, -0.5]},
+            "long": {"rerank": long_rerank, "embed": long_embed}}
+
+
 class Fixture(unittest.TestCase):
     def setUp(self):
         if not SCRATCH:
@@ -244,6 +258,171 @@ class ModelTests(Fixture):
         self.token.mkdir()
         with self.assertRaises(bridge.CredentialError):
             bridge.protected_tokens(str(self.token))
+
+    def probe_reply(self, long_scores=(0.5, 0.25, -0.125), long_indices=(0, 1, 2), long_vector=(0.6, 0.8)):
+        """Answers the short and long probe calls apart (3 documents, or an input starting with "Document:"), with
+        the configured revision in /info and /health and self.reported[kind] added to them. The long answer is
+        read from self.long_answer at call time: a pooled connection keeps the reply it was made with."""
+        self.long_answer = {"scores": long_scores, "indices": long_indices, "vector": long_vector}
+        self.reported = getattr(self, "reported", None) or {"embed": {}, "rerank": {}}
+
+        def reply(call):
+            if dict(call["headers"]).get("Authorization") != "Bearer " + self.expected:
+                return Response(401, {"error": ROTATED})
+            if call["path"] == "/info":
+                return Response(200, {"model_id": self.settings.embed_model, "model_sha": self.settings.embed_revision,
+                                      **self.reported["embed"]})
+            if call["path"] == "/health":
+                return Response(200, {"status": "ok", "model": self.settings.rerank_model,
+                                      "revision": self.settings.rerank_revision, **self.reported["rerank"]})
+            body = json.loads(call["body"])
+            answer = self.long_answer
+            if call["path"] == "/v1/embeddings":
+                vector = answer["vector"] if body["input"][0].startswith("Document:") else (0.25, -0.5)
+                return Response(200, {"data": [{"embedding": list(vector)}]})
+            if len(body["documents"]) == 3:
+                return Response(200, {"results": [{"index": i, "relevance_score": answer["scores"][i]}
+                                                  for i in answer["indices"]]})
+            return Response(200, {"results": [{"index": 0, "relevance_score": 0.5}]})
+        return reply
+
+    def sent(self):
+        """The calls made, each POST marked "short" or "long" by its body."""
+        result = []
+        for call in self.calls:
+            if call["method"] != "POST":
+                result.append((call["method"], call["path"]))
+                continue
+            body = json.loads(call["body"])
+            long = len(body.get("documents", ())) == 3 or str((body.get("input") or [""])[0]).startswith("Document:")
+            result.append((call["method"], call["path"], "long" if long else "short"))
+        return result
+
+    def always(self, reply):
+        self.att.rerank_probe = probes()
+        self.settings.probe_always = True
+        self.model_reply = reply
+
+    def test_probe_always_absent_keeps_the_revision_shortcut(self):
+        self.att.rerank_probe = probes()
+        self.model_reply = self.probe_reply()
+        self.att.run_once()
+        for kind in shared.ROUTES:
+            ok, reason = self.att.ok(kind)
+            self.assertTrue(ok)
+            self.assertTrue(reason.startswith("model and revision as expected"), reason)
+        self.assertEqual(self.sent(), [("GET", "/info"), ("GET", "/health")])
+
+    def test_probe_always_runs_short_and_long_probes(self):
+        self.always(self.probe_reply())
+        self.att.run_once()
+        for kind in shared.ROUTES:
+            ok, reason = self.att.ok(kind)
+            self.assertTrue(ok)
+            self.assertTrue(reason.startswith("model as expected; long probe within tolerance"), reason)
+        self.assertEqual(self.sent(), [
+            ("GET", "/info"), ("POST", "/v1/embeddings", "short"), ("POST", "/v1/embeddings", "long"),
+            ("GET", "/health"), ("POST", "/v1/rerank", "short"), ("POST", "/v1/rerank", "long")])
+
+    def test_right_revision_wrong_long_scores_is_refused(self):
+        self.always(self.probe_reply(long_scores=(0.5, 0.25, -0.115)))
+        self.att.run_once()
+        ok, reason = self.att.ok("rerank")
+        self.assertFalse(ok)
+        self.assertTrue(reason.startswith("forge-model-mismatch: reranker long probe score differs"), reason)
+        handler = self.handler("rerank")
+        handler.do_POST()
+        handler.send_response.assert_called_once_with(503)
+        self.assertTrue(self.att.ok("embed")[0])
+
+    def test_right_revision_wrong_long_vector_is_refused(self):
+        self.always(self.probe_reply(long_vector=(0.8, -0.6)))
+        self.att.run_once()
+        ok, reason = self.att.ok("embed")
+        self.assertFalse(ok)
+        self.assertTrue(reason.startswith("forge-model-mismatch: embedder long probe differs"), reason)
+
+    def test_unrecorded_long_probe_is_refused(self):
+        self.always(self.probe_reply())
+        self.att.rerank_probe = probes(recorded=False)
+        self.att.run_once()
+        for kind, start in (("embed", "embedder long probe not recorded"),
+                            ("rerank", "reranker long probe not recorded")):
+            ok, reason = self.att.ok(kind)
+            self.assertFalse(ok)
+            self.assertTrue(reason.startswith(start), reason)
+
+    def test_long_rerank_probe_is_compared_by_passage(self):
+        self.always(self.probe_reply(long_indices=(1, 0, 2)))
+        self.att.run_once()
+        self.assertTrue(self.att.ok("rerank")[0])
+        self.att = bridge.Attestor(self.settings, self.up, self.guard)
+        self.always(self.probe_reply(long_indices=(0, 1)))
+        self.att.run_once()
+        ok, reason = self.att.ok("rerank")
+        self.assertFalse(ok)
+        self.assertTrue(reason.startswith("forge-model-mismatch: reranker long probe answer is incomplete"), reason)
+
+    def test_probe_always_configuration(self):
+        def settings(**fields):
+            config = configuration()
+            config.update(fields)
+            return bridge.Settings(config, self.guard)
+        self.assertTrue(settings(GPU_EXT_PROBE_ALWAYS="yes", GPU_EXT_RERANK_PROBE="/etc/deep32/gpu-probes.json").probe_always)
+        self.assertFalse(settings(GPU_EXT_PROBE_ALWAYS="no").probe_always)
+        self.assertFalse(settings().probe_always)
+        self.assertTrue(settings(GPU_EXT_PROBE_ALWAYS="yes", GPU_EXT_RERANK_PROBE=bridge.IMAGE_PROBES).probe_always)
+        for fields in ({"GPU_EXT_PROBE_ALWAYS": "maybe"}, {"GPU_EXT_PROBE_ALWAYS": "yes"},
+                       {"GPU_EXT_PROBE_ALWAYS": "yes", "GPU_EXT_RERANK_PROBE": "/opt/deep32/model-bridge/other.json"}):
+            with self.subTest(fields=fields), self.assertRaisesRegex(ValueError, "^Model identity settings are invalid"):
+                settings(**fields)
+
+    def test_long_probes_run_at_start_and_on_identity_change_only(self):
+        # lead ruling F-op2: the periodic check keeps the short probes
+        self.always(self.probe_reply())
+        self.att.run_once()
+        self.assertEqual([c for c in self.sent() if c[-1] == "long"],
+                         [("POST", "/v1/embeddings", "long"), ("POST", "/v1/rerank", "long")])
+        del self.calls[:]
+        self.att.run_once()
+        self.assertEqual(self.sent(), [("GET", "/info"), ("POST", "/v1/embeddings", "short"),
+                                       ("GET", "/health"), ("POST", "/v1/rerank", "short")])
+        for kind in shared.ROUTES:
+            ok, reason = self.att.ok(kind)
+            self.assertTrue(ok)
+            self.assertTrue(reason.startswith("model as expected; golden probe"), reason)
+            self.assertIn("long probe passed for this identity", reason)
+        del self.calls[:]
+        self.reported["rerank"] = {"device_kind": "cpu"}
+        self.att.run_once()
+        self.assertEqual(self.sent(), [("GET", "/info"), ("POST", "/v1/embeddings", "short"),
+                                       ("GET", "/health"), ("POST", "/v1/rerank", "short"),
+                                       ("POST", "/v1/rerank", "long")])
+        self.assertTrue(self.att.ok("rerank")[0])
+
+    def test_long_probes_run_again_after_failure_gpu_ext_off_or_refused_credential(self):
+        self.always(self.probe_reply(long_scores=(0.5, 0.25, -0.115)))
+        for _ in range(2):
+            del self.calls[:]
+            self.att.run_once()
+            self.assertIn(("POST", "/v1/rerank", "long"), self.sent())
+            self.assertFalse(self.att.ok("rerank")[0])
+        self.model_reply = self.probe_reply()
+        self.att.run_once()
+        self.assertTrue(self.att.ok("rerank")[0])
+
+        def gpu_ext_off():
+            self.att.is_enabled = lambda: False
+            self.att.run_once()
+            self.att.is_enabled = lambda: True
+        for reset in (self.att.invalidate, gpu_ext_off):
+            with self.subTest(reset=reset.__name__):
+                reset()
+                del self.calls[:]
+                self.att.run_once()
+                self.assertEqual([c for c in self.sent() if c[-1] == "long"],
+                                 [("POST", "/v1/embeddings", "long"), ("POST", "/v1/rerank", "long")])
+                self.assertTrue(all(self.att.ok(kind)[0] for kind in shared.ROUTES))
 
     def test_shared_core_is_used_by_workstation_wrapper(self):
         path = REPO / "src/workstation/node/shims/py/serve_accel.py"

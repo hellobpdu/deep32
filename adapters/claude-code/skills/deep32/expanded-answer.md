@@ -33,8 +33,7 @@ After the method's recall and reading steps, research what the sections below ne
    17.18, Catalyst 9300 26.x), searched without `release_max` beside the filtered queries.
 6. Edge cases: the "unless", "except" and "if more than one" clauses of the sections read, how the feature meets its
    neighbours, and `lookup_rfc` for the updates and errata of every RFC you cite.
-7. Keep collecting Evidence past the method's "two independent sources agree" stop until you have 5 bullets from
-   3 sections, or the corpus has nothing more on the topic.
+7. Keep collecting Evidence until you have 5 bullets from 3 sections, or the corpus has nothing more on the topic.
 8. Run `verify_quote` on every new quote, one call each.
 
 ## Layout
@@ -91,6 +90,18 @@ pitfalls are its body: head them with **Analysis** there, after Evidence, and ke
 - A section with nothing real to say is left out (no Worked example for a pure default, no In production when the
   textbook is the practice). "Short", "quick" or "brief" means the compact template; "deep" or "insane" change the
   retrieval (the method's deep mode), and the deeper material then fills these same sections.
+
+## When the main point is not covered
+
+When the outline check (`${CLAUDE_SKILL_DIR}/outline-check.md`) leaves the question's main point open, the answer is
+short and says so, and the sizes above do not apply. It has only:
+- **Answer.** The gap first, with its outline-check label, then what the corpus does hold on it: the lookup rows that
+  exist (an IANA code point, an RFC's standing, a `find_command` row), each cited.
+- At most one short paragraph of background headed **Background (unsourced)**, with no value, timer, command,
+  syntax, release or platform limit in it.
+- **Read**, the last line as always.
+
+A side point the corpus does not cover goes to Confidence and gaps as usual; this layout is for the main point only.
 
 ## Writing it
 

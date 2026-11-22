@@ -134,13 +134,15 @@ class Attestor:
         self.pending_identity = {k: {} for k in ROUTES}
         self.enabled = False
         self.is_enabled = lambda: setting_on(self.s.state_file)
+        # GPU_EXT_PROBE_ALWAYS: per kind, the reported identity the last passed long probe stands for (None: none yet)
+        self.long_passed = {k: None for k in ROUTES}
         self.rerank_probe = None
         if s.rerank_probe_file:
             try:
                 with open(s.rerank_probe_file, encoding="utf-8") as f:  # read before confinement
                     self.rerank_probe = json.load(f)
             except FileNotFoundError:
-                log.warning("GPU_EXT: no reranker golden probe at %s (record it: tools/record_gpu_probes.py)",
+                log.warning("GPU_EXT: no reranker golden probe at %s (record it: src/model-bridge/record_gpu_probes.py)",
                             s.rerank_probe_file)
 
     def ok(self, kind: str) -> tuple[bool, str]:
@@ -157,6 +159,7 @@ class Attestor:
             for kind in ROUTES:
                 self.identity[kind] = {}
                 self.pending_identity[kind] = {}
+                self.long_passed[kind] = None
 
     def snapshot(self) -> dict:
         with self.lock:
@@ -218,37 +221,70 @@ class Attestor:
             raise ValueError(f"POST {path} answered {status}")
         return json.loads(data)
 
-    def check_embed(self) -> tuple[bool, str]:
+    def _cosine_probe(self, ref: dict, name: str) -> tuple[bool, str]:
+        """POST ref's input to the embedder and compare the vector with ref["vector"] by cosine similarity: each GPU
+        class runs its own TEI build, so vectors agree closely across cards but never bit for bit. name ("golden
+        probe" or "long probe") goes into the reason."""
         s = self.s
-        info = self._get_json("embed", "/info")
-        self._remember_identity('embed', info, 'model_id', 'model_sha')
-        if info.get("model_id") != s.embed_model:
-            return False, "forge-model-mismatch: embedder model differs"
-        reported = info.get("model_sha")
-        if reported:
-            if s.embed_revision and reported != s.embed_revision:
-                return False, "forge-model-mismatch: embedder revision differs"
-            if s.embed_revision:
-                return True, "model and revision as expected"
+        payload = {"input": [str(ref.get("input", s.embed_probe_input))]}
+        if ref.get("model") or s.embed_probe_model:
+            payload["model"] = str(ref.get("model") or s.embed_probe_model)
+        out = self._post_json("embed", ROUTES["embed"], payload)
+        vec = out["data"][0]["embedding"]
+        want = ref["vector"]
+        if (not vec or len(vec) != len(want) or any(not isinstance(v, (int, float)) or isinstance(v, bool)
+                or not math.isfinite(v) for v in list(vec) + list(want))):
+            return False, f"forge-model-mismatch: embedder {name} is invalid"
+        dot = sum(a * b for a, b in zip(vec, want))
+        norm = math.sqrt(sum(a * a for a in vec)) * math.sqrt(sum(b * b for b in want))
+        cosine = dot / norm if norm else 0.0
+        if not cosine >= float(ref.get("min_cosine", 0.999)):
+            return False, f"forge-model-mismatch: embedder {name} differs"
+        return True, f"model as expected; {name} within tolerance (cosine {cosine:.6f}, {len(vec)} dims)"
+
+    def _long(self, kind: str) -> dict | None:
+        """The probe file's long probe of this kind ("rerank" or "embed"), or None."""
+        long = self.rerank_probe.get("long") if isinstance(self.rerank_probe, dict) else None
+        ref = long.get(kind) if isinstance(long, dict) else None
+        return ref if isinstance(ref, dict) else None
+
+    @staticmethod
+    def _reported_identity(info: dict, model_key: str, revision_key: str) -> tuple:
+        """The model identity a service reports (model, revision, device kind: the fields _remember_identity keeps),
+        which a passed long probe stands for until it changes."""
+        return tuple(info.get(key) for key in (model_key, revision_key, "device_kind"))
+
+    def _probes_always(self, kind: str, identity: tuple, short: tuple[bool, str] | None, run_long,
+                       revision_matched: bool) -> tuple[bool, str]:
+        """GPU_EXT_PROBE_ALWAYS, once the short probe (when configured) has passed. The long probe runs at the first
+        check after the bridge starts (a start, or the restart a pairing makes), again after GPU_EXT was off or the
+        credential was refused, whenever the service reports another identity than at the last long probe that
+        passed, and at every check until it passes. Between those the periodic check keeps the short probe: a
+        15-passage rerank on every check would compete with live searches for the Forge's GPU (lead ruling F-op2)."""
+        with self.lock:
+            due = self.long_passed[kind] != identity
+            if due:
+                self.long_passed[kind] = None
+        if due:
+            result = run_long()
+            if result[0]:
+                with self.lock:
+                    self.long_passed[kind] = identity
+            return result
+        note = "; long probe passed for this identity"
+        if short is not None:
+            return short[0], short[1] + note
+        if revision_matched:
+            return True, "model and revision as expected" + note
+        return True, "model as expected" + note
+
+    def _embed_short(self) -> tuple[bool, str] | None:
+        """The short embedder probe: the probe file's "embed", else GPU_EXT_EMBED_PROBE_INPUT and _SHA256; None when
+        neither is configured."""
+        s = self.s
         ref = self.rerank_probe.get("embed") if isinstance(self.rerank_probe, dict) else None
         if isinstance(ref, dict) and isinstance(ref.get("vector"), list) and ref["vector"]:
-            # Tolerant golden probe: each GPU class runs its own TEI build, so vectors agree closely across cards but
-            # never bit for bit. The recorded vector is compared by cosine similarity.
-            payload = {"input": [str(ref.get("input", s.embed_probe_input))]}
-            if ref.get("model") or s.embed_probe_model:
-                payload["model"] = str(ref.get("model") or s.embed_probe_model)
-            out = self._post_json("embed", ROUTES["embed"], payload)
-            vec = out["data"][0]["embedding"]
-            want = ref["vector"]
-            if (not vec or len(vec) != len(want) or any(not isinstance(v, (int, float)) or isinstance(v, bool)
-                    or not math.isfinite(v) for v in list(vec) + list(want))):
-                return False, "forge-model-mismatch: embedder golden probe is invalid"
-            dot = sum(a * b for a, b in zip(vec, want))
-            norm = math.sqrt(sum(a * a for a in vec)) * math.sqrt(sum(b * b for b in want))
-            cosine = dot / norm if norm else 0.0
-            if not cosine >= float(ref.get("min_cosine", 0.999)):
-                return False, "forge-model-mismatch: embedder golden probe differs"
-            return True, f"model as expected; golden probe within tolerance (cosine {cosine:.6f}, {len(vec)} dims)"
+            return self._cosine_probe(ref, "golden probe")
         if s.embed_probe_input and s.embed_probe_sha256:
             payload = {"input": [s.embed_probe_input]}
             if s.embed_probe_model:
@@ -261,9 +297,79 @@ class Attestor:
             if digest != s.embed_probe_sha256:
                 return False, "forge-model-mismatch: embedder golden probe differs"
             return True, f"model as expected; golden probe equal ({len(vec)} dims)"
+        return None
+
+    def _embed_long(self) -> tuple[bool, str]:
+        ref = self._long("embed")
+        if (ref is None or not isinstance(ref.get("input"), str) or not ref["input"]
+                or not isinstance(ref.get("vector"), list) or not ref["vector"]):
+            return False, "embedder long probe not recorded (GPU_EXT_PROBE_ALWAYS=yes)"
+        return self._cosine_probe(ref, "long probe")
+
+    def check_embed(self) -> tuple[bool, str]:
+        s = self.s
+        info = self._get_json("embed", "/info")
+        self._remember_identity('embed', info, 'model_id', 'model_sha')
+        if info.get("model_id") != s.embed_model:
+            return False, "forge-model-mismatch: embedder model differs"
+        always = getattr(s, "probe_always", False) is True
+        reported = info.get("model_sha")
+        if reported:
+            if s.embed_revision and reported != s.embed_revision:
+                return False, "forge-model-mismatch: embedder revision differs"
+            if s.embed_revision and not always:
+                return True, "model and revision as expected"
+        short = self._embed_short()
+        if always:     # GPU_EXT_PROBE_ALWAYS: a matching revision is necessary, and the probes decide
+            if short is not None and not short[0]:
+                return short
+            return self._probes_always("embed", self._reported_identity(info, "model_id", "model_sha"), short,
+                                       self._embed_long, bool(reported and s.embed_revision))
+        if short is not None:
+            return short
         if s.require_revision:
             return False, "embedder revision neither reported nor proven by a golden probe"
         return True, "model as expected; revision NOT checked (GPU_EXT_REQUIRE_REVISION=no)"
+
+    def _rerank_short(self) -> tuple[bool, str] | None:
+        """The short reranker probe (the probe file's top level), or None without a probe file."""
+        p = self.rerank_probe
+        if not p:
+            return None
+        out = self._post_json("rerank", ROUTES["rerank"], {"model": p["model"], "query": p["query"],
+                                                           "documents": p["documents"],
+                                                           "top_n": len(p["documents"])})
+        got = [(int(r["index"]), float(r["relevance_score"])) for r in out["results"]]
+        want = [(int(i), float(sc)) for i, sc in zip(p["order"], p["scores"])]
+        tol = float(p.get("tolerance", 1e-4))
+        if len(p["order"]) != len(p["scores"]) or [i for i, _ in got] != [i for i, _ in want]:
+            return False, "forge-model-mismatch: reranker golden probe order differs"
+        worst = max((abs(a - b) for (_, a), (_, b) in zip(got, want)), default=0.0)
+        if not worst <= tol or any(not math.isfinite(a) for _, a in got):
+            return False, "forge-model-mismatch: reranker golden probe score differs"
+        return True, f"model as expected; golden probe equal (max diff {worst:.1e})"
+
+    def _rerank_long(self) -> tuple[bool, str]:
+        p = self._long("rerank")
+        if (p is None or not isinstance(p.get("documents"), list) or not p["documents"]
+                or not isinstance(p.get("order"), list) or not isinstance(p.get("scores"), list)):
+            return False, "reranker long probe not recorded (GPU_EXT_PROBE_ALWAYS=yes)"
+        docs = p["documents"]
+        out = self._post_json("rerank", ROUTES["rerank"], {"model": p["model"], "query": p["query"],
+                                                           "documents": docs, "top_n": len(docs)})
+        # passage by passage: two near-equal scores may swap places between card generations
+        got = {int(r["index"]): float(r["relevance_score"]) for r in out["results"]}
+        want = {int(i): float(sc) for i, sc in zip(p["order"], p["scores"])}
+        every = set(range(len(docs)))
+        if (len(out["results"]) != len(docs) or len(p["order"]) != len(p["scores"])
+                or set(got) != every or set(want) != every):
+            return False, "forge-model-mismatch: reranker long probe answer is incomplete"
+        worst = max(abs(got[i] - want[i]) for i in every)
+        # max() skips a NaN that is not first, so every score is also checked for finiteness
+        if not worst <= float(p.get("tolerance", 0.005)) or any(
+                not math.isfinite(v) for v in (*got.values(), *want.values())):
+            return False, "forge-model-mismatch: reranker long probe score differs"
+        return True, f"model as expected; long probe within tolerance (max diff {worst:.1e}, {len(docs)} passages)"
 
     def check_rerank(self) -> tuple[bool, str]:
         s = self.s
@@ -273,25 +379,21 @@ class Attestor:
             return False, "forge-model-mismatch: reranker is not healthy"
         if health.get("model") != s.rerank_model:
             return False, "forge-model-mismatch: reranker model differs"
+        always = getattr(s, "probe_always", False) is True
         reported = health.get("revision")
         if reported and s.rerank_revision:
             if reported != s.rerank_revision:
                 return False, "forge-model-mismatch: reranker revision differs"
-            return True, "model and revision as expected"
-        p = self.rerank_probe
-        if p:
-            out = self._post_json("rerank", ROUTES["rerank"], {"model": p["model"], "query": p["query"],
-                                                               "documents": p["documents"],
-                                                               "top_n": len(p["documents"])})
-            got = [(int(r["index"]), float(r["relevance_score"])) for r in out["results"]]
-            want = [(int(i), float(sc)) for i, sc in zip(p["order"], p["scores"])]
-            tol = float(p.get("tolerance", 1e-4))
-            if len(p["order"]) != len(p["scores"]) or [i for i, _ in got] != [i for i, _ in want]:
-                return False, "forge-model-mismatch: reranker golden probe order differs"
-            worst = max((abs(a - b) for (_, a), (_, b) in zip(got, want)), default=0.0)
-            if not worst <= tol or any(not math.isfinite(a) for _, a in got):
-                return False, "forge-model-mismatch: reranker golden probe score differs"
-            return True, f"model as expected; golden probe equal (max diff {worst:.1e})"
+            if not always:
+                return True, "model and revision as expected"
+        short = self._rerank_short()
+        if always:     # GPU_EXT_PROBE_ALWAYS: a matching revision is necessary, and the probes decide
+            if short is not None and not short[0]:
+                return short
+            return self._probes_always("rerank", self._reported_identity(health, "model", "revision"), short,
+                                       self._rerank_long, bool(reported and s.rerank_revision))
+        if short is not None:
+            return short
         if s.require_revision:
             return False, "reranker revision neither reported nor proven by a golden probe"
         return True, "model as expected; revision NOT checked (GPU_EXT_REQUIRE_REVISION=no)"
@@ -302,6 +404,8 @@ class Attestor:
         for kind, fn in (("embed", self.check_embed), ("rerank", self.check_rerank)):
             with self.lock:
                 self.pending_identity[kind] = {}
+                if not enabled:  # the long probes run again at the next check with GPU_EXT on
+                    self.long_passed[kind] = None
             if not enabled:
                 results[kind] = (False, "GPU_EXT is off")
                 continue

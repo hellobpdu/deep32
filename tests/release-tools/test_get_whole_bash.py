@@ -114,7 +114,7 @@ for name in names:
         check(alias + '-shared-local-only', '--from' in record and '--to' not in record and '--cache' not in record)
     work, _ = run('default-online', ['disc2'])
     record = json.loads(events.read_text(encoding='ascii').splitlines()[-1])
-    check('default-alpha2', record[record.index('--release') + 1] == 'v0.1.0-alpha.2')
+    check('default-release', record[record.index('--release') + 1] == 'v0.1.0-alpha.3')
     check('one-online-image', len(list(work.rglob('*.iso'))) == 1)
     check('whole-no-part-response-or-join', not any(p.name.endswith(('.download', '.response', '.joining')) or '.part' in p.name for p in work.rglob('*')))
     work, _ = run('selection-forwarding', ['disc3', '--gpu-class', 'synthetic-class', '--ingestion', '--full', '--repo', 'synthetic/release'])
@@ -129,7 +129,9 @@ for name in names:
     before = events.read_bytes()
     work, result = run('split-install-reaches-prerequisites',
                        ['disc3', '--gpu-class', 'turing', '--install', '--journey', 'J2'], 10)
-    check('split-install-guard-accepted', 'synthetic-prerequisite-check' in result.stderr and 'ingestion ISO' in result.stdout)
+    # Without --ingestion the Linux getter installs the core and its embedder and says how to add the add-on.
+    check('split-install-guard-accepted', 'synthetic-prerequisite-check' in result.stderr
+          and 'without the ingestion add-on' in result.stdout and 'add --ingestion' in result.stdout)
     check('preflight-before-helper-or-target', events.read_bytes() == before and not (work / 'deep32-downloads').exists())
     for name, arguments in (
         ('missing-class-refusal', ['disc3', '--install', '--journey', 'J2']),

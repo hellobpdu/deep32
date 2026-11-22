@@ -9,7 +9,7 @@ from pathlib import Path
 import subprocess
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from deep32net.enrol import enrol_gateway
+from deep32net.enrol import enrol_engine, enrol_gateway
 
 
 def main():
@@ -25,6 +25,9 @@ def main():
         if running:
             subprocess.run(['/usr/sbin/rcctl', 'stop', 'd32edge'], check=True,
                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        if firstboot:
+            # The engine token moves from core.env and edge.env into one protected file per service.
+            enrol_engine(Path('/'))
         enrol_gateway(Path('/var/db/d32/net'), peer)
         if running or peer:
             subprocess.run(['/usr/sbin/rcctl', 'start', 'd32edge'], check=True,

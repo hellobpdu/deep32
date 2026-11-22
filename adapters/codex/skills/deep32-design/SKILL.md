@@ -17,10 +17,15 @@ Weight the analysis toward choosing between options and defending the choice:
 - **Options**: every reasonable design option, cited, with how each one meets or misses each requirement. Prefer
   Cisco design guides (CVDs, design zone) and RFC operational guidance as evidence.
 - **Decision matrix**: options against requirements, then the recommendation and the conditions that would change
-  it.
+  it. Each cell is cited or labelled inference; the recommendation is labelled inference with the cites it rests on.
 - **Failure domains**: what fails together, the blast radius of each failure, and how each option contains it.
 - **Anti-patterns**: designs that look attractive but fail, with the cited reason.
 - **Worked scenarios**: two or three realistic situations with their constraints, the option that fits and why the
-  others lose.
+  others lose, each step cited or labelled inference.
 - **Prove it**: a lab check that demonstrates the key trade-off (convergence time, scale limit or failure behaviour)
   with the commands that measure it, proposed, never run.
+
+Everything this lens adds beyond a retrieved passage (a table row, a scenario, a recommendation, a pattern) is cited,
+or labelled `inference (from [cite] + [cite])` with the sources it rests on. Constructed output (a configuration,
+show output, a log line) is built only from a sample checked with `verify_quote`, with every field you changed
+marked, and is labelled constructed: never present it as seen on a device.

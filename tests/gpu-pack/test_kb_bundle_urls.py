@@ -197,6 +197,26 @@ class ProvenanceUrls(unittest.TestCase):
                 build_fixture(base, self.modules[0][1])
             self.check_build_report_fixture(base)
 
+    def test_table_and_column_names_are_quoted_in_the_deep_check(self):
+        # A table whose name holds a double quote, with a _json column: the deep check's PRAGMA and SELECT
+        # statements must quote both names (Bandit B608; before alpha.3 this raised an SQLite syntax error).
+        with tempfile.TemporaryDirectory(prefix='odd-fixture-') as name:
+            base = Path(name)
+            module = self.modules[0][1]
+            build_fixture(base, module)
+            source = base / 'out/mini-gen/mini-20261114'
+            rag = source / 'root/sqlite/rag.db'
+            with contextlib.closing(sqlite3.connect(rag)) as db, db:
+                db.execute('CREATE TABLE "odd""name" (x_json TEXT)')
+                db.execute('INSERT INTO "odd""name" VALUES (?)', ('{"synthetic": 1}',))
+            manifest_path = source / 'MANIFEST.json'
+            manifest = module.read_json(manifest_path)
+            for entry in manifest['files']:
+                if entry['path'] == 'root/sqlite/rag.db':
+                    entry.update(size=rag.stat().st_size, sha256=module.sha(rag))
+            module.write_json(manifest_path, manifest)
+            self.check_build_report_fixture(base)
+
     def check_build_report_fixture(self, base):
         fixture = base / 'out/mini-gen/mini-20261114'
         if not fixture.is_dir():

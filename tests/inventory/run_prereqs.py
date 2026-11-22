@@ -108,7 +108,7 @@ foreach($name in @('plan.json','forge-evidence.json')) {
     accepted = run(args)
     assert accepted['storage_plan'] == [{'filesystem':'filesystem-1','needed_bytes':large+2,'free_bytes':large+2}]
     # An owner waiver adds one plain line for the person at the terminal and changes no check.
-    notice = ('Note: this host type is accepted for 0.1.0-alpha.2 under an owner waiver dated 2026-11-18 '
+    notice = ('Note: this host type is accepted for 0.1.0-alpha.3 under an owner waiver dated 2026-11-18 '
               '(recipe synthetic-waived-recipe). I have not yet run a full install on it; '
               'FORGE-PREREQUISITES.json lists what was not run.')
     def prove(**changes):
@@ -182,6 +182,8 @@ def main():
     check('j2-linux-gpu',base)
     check('j1-windows-ws',fixture('windows','pro','24H2'),'J1','workstation-host')
     check('j1-windows-gpu',fixture('windows','home','24H2'),'J1','gpu-host',validate=lambda d:state(d,'windows.edition','unknown',False))
+    # containerd is checked on Linux GPU hosts only (scope linux-gpu); Docker Desktop manages its own.
+    check('j1-windows-gpu-no-containerd',fixture('windows','home','24H2'),'J1','gpu-host',validate=lambda d:state(d,'docker.containerd','unknown',False))
     check('j2-windows-ws',fixture('windows','pro','24H2'),'J2','workstation-host')
     check('j3-linux-all',fixture('linux','debian','13'),'J3','all',validate=lambda d:(assert_roles(d,['gpu-host'])))
     # Forge must not require an additional engine/gateway/importer payload.
@@ -197,7 +199,7 @@ def main():
     check('j5-linux-ws',base,'J5','workstation-host',validate=lambda d:state(d,'gpu.driver','unknown',False))
     check('j5-windows-ws',fixture('windows','pro','24H2'),'J5','workstation-host')
     check('j3-remote-agent',fixture('windows','home','24H2'),'J3','agent',validate=lambda d:state(d,'full.payload','unknown',False))
-    for id in ['download.gpg','download.python','host.reboot-clear','host.tailscale-daemon','host.tailscale-signed-in','gpu.release-envelope','gpu.driver','gpu.capability','gpu.memory','docker.server','docker.compose','docker.nvidia-runtime','platform.recipe']:
+    for id in ['download.gpg','download.python','host.reboot-clear','host.tailscale-daemon','host.tailscale-signed-in','gpu.release-envelope','gpu.driver','gpu.capability','gpu.memory','docker.server','docker.compose','docker.nvidia-runtime','docker.containerd','platform.recipe']:
         for value,want in [(False,'missing'),(None,'unknown')]:
             f=copy.deepcopy(base);f['prerequisites'][id]=value
             check(id.replace('.','-')+'-'+want,f,expected=10,validate=lambda d,id=id,want=want:state(d,id,want))

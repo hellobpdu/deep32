@@ -272,6 +272,13 @@ class TransportTests(ScratchCase):
         self.assertEqual(settings.transport, "tailnet")
         self.assertEqual(settings.ports, {"embed": 443, "rerank": 8443})
 
+    def test_probe_always_setting(self):
+        self.assertFalse(accel.Settings(settings_env(), token_path=str(self.token_path)).probe_always)
+        for value, expected in (("yes", True), ("no", False)):
+            env = dict(settings_env(), GPU_EXT_PROBE_ALWAYS=value)
+            with self.subTest(value=value):
+                self.assertIs(accel.Settings(env, token_path=str(self.token_path)).probe_always, expected)
+
     def test_paired_endpoint_urls_select_actual_https_ports(self):
         env = settings_env()
         env.update(GPU_EXT_HOST='forge.synthetic.ts.net',

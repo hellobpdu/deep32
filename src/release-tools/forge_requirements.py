@@ -12,7 +12,7 @@ import tempfile
 
 ASSET = 'FORGE-PREREQUISITES.json'
 FORMAT = 'deep32-forge-prerequisites/1'
-RELEASE = '0.1.0-alpha.2'
+RELEASE = '0.1.0-alpha.3'
 DRIVER_KEYS = ('tei_minimum_driver', 'cuda_minimum_driver', 'mineru_minimum_driver')
 WINDOWS_DRIVER_KEY = 'windows_cuda13_driver_build'
 DESKTOP_FIELDS = {'backend', 'editions', 'version_min', 'engine_version_min'}

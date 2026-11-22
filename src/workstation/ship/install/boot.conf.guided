@@ -1,4 +1,4 @@
 # guided medium boot sentence; release ID only.
-echo Deep32 Workstation 0.1.0-alpha.2 (alpha). Guided install: it asks for the disk, the passphrases and the passwords.
+echo Deep32 Workstation 0.1.0-alpha.3 (alpha). Guided install: it asks for the disk, the passphrases and the passwords.
 set timeout 10
 set image /bsd

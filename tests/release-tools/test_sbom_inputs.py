@@ -25,7 +25,7 @@ class Inputs(unittest.TestCase):
         for name, content in [('disc.iso', b'synthetic disc'), ('source.py', b'pass\n'), ('LICENCE.txt', b'synthetic licence')]:
             (self.root / name).write_bytes(content)
         self.manifest_path = self.base / 'INPUT.json'
-        self.m = dict(format='deep32-sbom-input/1', release='0.1.0-alpha.2', source_date_epoch=0,
+        self.m = dict(format='deep32-sbom-input/1', release='0.1.0-alpha.3', source_date_epoch=0,
                       source_revision='1' * 40, generator_sha256='2' * 64,
                       roots=[dict(id='media', files=[])],
                       components=[dict(id='app', kind='application', name='demo', version='1.0', architecture='all', usage='runtime',

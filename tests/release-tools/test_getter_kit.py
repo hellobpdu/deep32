@@ -173,7 +173,7 @@ class GetterKit(unittest.TestCase):
                    if key not in ('role', 'kind')}
             row['bundle_id'] = bundle['id']
             row['bundle_sha256'] = sha(contracts.canonical(bundle))
-            row['file'] = 'deep32-0.1.0-alpha.2-disc3-gpu-pack-' + bundle['id'] + '.iso'
+            row['file'] = 'deep32-0.1.0-alpha.3-disc3-gpu-pack-' + bundle['id'] + '.iso'
             for mirror in row['mirrors']:
                 mirror['url'] = mirror['url'].rsplit('/', 1)[0] + '/' + row['file']
             value['bundles'].append(row)
@@ -281,8 +281,8 @@ class GetterKit(unittest.TestCase):
                 (source / cap_name).write_bytes(cap_raw)
                 os.utime(source / cap_name, ns=(before[cap_name][1], before[cap_name][1]))
         self.assertEqual([record[1] for record in records], [
-            'deep32-0.1.0-alpha.2-disc3-gpu-pack-core.iso',
-            'deep32-0.1.0-alpha.2-disc3-gpu-pack-embedder-turing.iso'])
+            'deep32-0.1.0-alpha.3-disc3-gpu-pack-core.iso',
+            'deep32-0.1.0-alpha.3-disc3-gpu-pack-embedder-turing.iso'])
         self.assertTrue(all(Path(record[0]).parent == source for record in records))
         self.assertEqual(before, {p.name: (p.read_bytes(), p.stat().st_mtime_ns) for p in source.iterdir()})
 

@@ -158,7 +158,7 @@ def _digest(path):
     return result.hexdigest()
 
 
-def read_authenticated(path, authenticated_sha256, expected_release='0.1.0-alpha.2'):
+def read_authenticated(path, authenticated_sha256, expected_release='0.1.0-alpha.3'):
     """Read only after signature verification of the root that supplied the hash.
 
     A caller cannot use a manifest's self-declared checksum or a local install

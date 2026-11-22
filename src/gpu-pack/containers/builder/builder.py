@@ -22,6 +22,15 @@ SERVED_SETTINGS = (
     "retrieval.reranker.window=centred",
     "retrieval.reranker.search_many_candidates=10",
     "retrieval.fold_identical=true",
+    # 0.1.0-alpha.3's serving settings (WP-E E9): the values the disc 1 release overlay ships
+    # (src/workstation/ship/site/usr/local/d32/etc/engine-overlay), so a new generation carries them itself
+    "retrieval.evidence.tier1_chars=3200",
+    "retrieval.evidence.covered_titles=true",
+    "retrieval.evidence.table_context=true",
+    "retrieval.verify.ellipsis=bounded",
+    "retrieval.verify.max_gap_chars=300",
+    "retrieval.search_many.rerank_isolation=true",
+    "serving.pipeline.rerank_gate=1",
 )
 SERVICE_ENV = {
     "RAG_EMBEDDING_URL": "http://embeddings:80/v1/embeddings",
@@ -29,6 +38,9 @@ SERVICE_ENV = {
     "RAG_RERANK_URL": "http://reranker:8082/v1/rerank",
 }
 GENERATION_RE = re.compile(r"[a-z0-9][a-z0-9._-]{0,39}\Z")
+# --baseline-root: validate_root --max-drop limits for each compared set. A mean drop of 0 on the 0/1 metrics
+# hit@1 and hit@8 means no net loss; delivery@8 may fall by at most 0.005.
+BASELINE_LIMITS = {"hit@1": 0.0, "hit@8": 0.0, "delivery@8": 0.005}
 
 
 class BuilderError(ValueError):
@@ -117,6 +129,18 @@ def build(args, *, runner=subprocess.run, environ=None):
         # Preserve preflight path/link checks before resolving child inputs.
         eval_root = Path(eval_root).resolve()
         selected = [directory.resolve() for directory in selected]
+    baseline_root = getattr(args, "baseline_root", None)
+    if baseline_root is not None:
+        if eval_root is None:
+            raise BuilderError("--baseline-root compares quality results: supply --eval-root as well")
+        baseline_root = Path(baseline_root)
+        if baseline_root.is_symlink() or not baseline_root.is_dir():
+            raise BuilderError("baseline root must be a regular directory")
+        _generation(baseline_root.name)
+        if baseline_root.name in (args.generation, args.served_generation):
+            raise BuilderError("baseline root must be an earlier generation")
+        baseline_root = baseline_root.resolve()
+    compared, not_compared = [], []
     env = child_env(environ)
     completed = []
     def step(name, argv):
@@ -140,8 +164,19 @@ def build(args, *, runner=subprocess.run, environ=None):
         # Negative probes have no judged relevance rows, so hit metrics are
         # undefined. Use the validator's existing off switches for only those
         # two floors; its status, errors, degradation and scope gates remain.
-        if directory.name.endswith("_probe") and not doc_keys(directory / "qrels.jsonl"):
+        probe = directory.name.endswith("_probe") and not doc_keys(directory / "qrels.jsonl")
+        if probe:
             validation.extend(["--min", "hit@1=off", "--min", "hit@8=off"])
+        if baseline_root is not None:
+            # A probe set has no judged rows to compare; a set the earlier generation never ran has no report.
+            report = baseline_root / ("VALIDATION-" + directory.name + ".json")
+            if not probe and report.is_file() and not report.is_symlink():
+                validation.extend(["--baseline", str(report)])
+                for metric, limit in BASELINE_LIMITS.items():
+                    validation.extend(["--max-drop", f"{metric}={limit:g}"])
+                compared.append(directory.name)
+            else:
+                not_compared.append(directory.name)
         step("validate_root:" + directory.name, validation)
     if not selected:
         step("validate_root:no-eval", command(args, "validate_root.py", "--root", args.served_root,
@@ -150,6 +185,9 @@ def build(args, *, runner=subprocess.run, environ=None):
              "--report-name", "VALIDATION-structural.json"))
     quality = {"status": "passed", "eval_sets": [p.name for p in selected]} if selected else {
         "status": "skipped", "message": SKIPPED_MESSAGE, "eval_sets": []}
+    if baseline_root is not None:
+        quality["baseline"] = {"generation": baseline_root.name, "compared": compared,
+                               "not_compared": not_compared, "max_drop": dict(BASELINE_LIMITS)}
     record_quality(args.served_root, quality)
     step("export_generation", command(args, "export_generation.py", "export", "--root", args.served_root,
          "--expect-generation", args.served_generation, "--expect-fingerprint", args.expect_fingerprint,
@@ -206,6 +244,9 @@ def parser():
         if name == "build":
             p.add_argument("--eval-root", type=Path,
                            help="operator-provided runtime mount containing eval_v2.py and golden/; omit to skip quality validation")
+            p.add_argument("--baseline-root", type=Path,
+                           help="an earlier served generation's root: each supplied set is compared with its "
+                                "VALIDATION-<set>.json there (needs --eval-root)")
             for item in ("corpus-repo", "corpus-ref", "build-root", "served-root", "generation",
                          "kept-manifest", "export-dir", "recipient"):
                 p.add_argument("--" + item, required=True)

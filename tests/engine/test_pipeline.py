@@ -40,6 +40,9 @@ QUERIES = ["NSSA translator election", "Type-7 LSAs P-bit", "BGP ORIGINATOR_ID I
            "area nssa translate type7 always", "UPDATE message Established state"]
 MANY = [["Type-7 LSAs NSSA translator", "ORIGINATOR_ID BGP Identifier", "NSSA ABR elected translator"],
         ["OSPFv3 Type-7 LSAs", "MULTI_EXIT_DISC attributes", "Phase 2 decision function"]]
+# the tiny root is configured without a dense retriever: a hybrid /v2/search (PipelineCase.search) says so; a
+# search_many of bm25 queries (PipelineCase.search_many) and the legacy /search do not
+OFF = ["dense"]
 
 
 class Clock:
@@ -370,7 +373,7 @@ class StartTests(PipelineCase):
         body = self.search(root, QUERIES[0]).json()
         many = self.search_many(root, MANY[0]).json()
         legacy = root.client.post("/search", json={"query": QUERIES[1]}, headers=AUTH).json()
-        self.assertEqual((body["degraded"], many["degraded"]), ([], []))
+        self.assertEqual((body["degraded"], many["degraded"]), (OFF, []))
         self.assertIn("rerank_wait", body["timings_ms"])
         self.assertIn("rerank_wait", many["timings_ms"])
         self.assertEqual(set(legacy["rerank"]), {"applied", "candidates", "ms", "wait_ms"})
@@ -411,7 +414,7 @@ class BurstTests(PipelineCase):
         root = self.root(reranker=reranker)
         with barrier_retrieve(4):
             answers = [r.json() for r in self.executor(4).map(lambda q: self.search(root, q), QUERIES[:4])]
-        self.assertEqual([a["degraded"] for a in answers], [[]] * 4)
+        self.assertEqual([a["degraded"] for a in answers], [OFF] * 4)
         self.assertTrue(all(a["timings_ms"]["rerank"] is not None for a in answers))
         self.assertEqual(reranker.peak, 1)
         self.assertEqual(sorted(q for q, _, _ in reranker.calls), sorted(QUERIES[:4]))
@@ -433,7 +436,7 @@ class BurstTests(PipelineCase):
             return (self.search(root, arg) if kind == "search" else self.search_many(root, arg)).json()
 
         answers = list(self.executor(len(jobs)).map(run, jobs))
-        self.assertEqual([a["degraded"] for a in answers], [[]] * len(jobs))
+        self.assertEqual([a["degraded"] for a in answers], [OFF if kind == "search" else [] for kind, _ in jobs])
         self.assertTrue(all(a["timings_ms"]["rerank"] is not None for a in answers))
         self.assertEqual(len(reranker.calls), len(QUERIES) + sum(len(t) for t in MANY))
         self.assertEqual(overlapping(reranker.calls, request_of), [])
@@ -489,7 +492,7 @@ class BreakerTests(PipelineCase):
     def open_it(self):
         self.reranker.fail = True
         for q in QUERIES[:3]:
-            self.assertEqual(self.search(self.r, q).json()["degraded"], ["reranker"])
+            self.assertEqual(self.search(self.r, q).json()["degraded"], OFF + ["reranker"])
         self.assertEqual(self.breaker.state, "open")
         self.reranker.fail = set()
 
@@ -506,7 +509,7 @@ class BreakerTests(PipelineCase):
         finally:
             self.gate.release()
         self.assertEqual((body["degraded"], many["degraded"], legacy["degraded"]),
-                         (["reranker"], ["reranker"], ["reranker"]))
+                         (OFF + ["reranker"], ["reranker"], ["reranker"]))
         self.assertEqual((body["timings_ms"]["rerank"], body["timings_ms"]["rerank_wait"]), (None, 0.0))
         self.assertEqual((many["timings_ms"]["rerank"], many["timings_ms"]["rerank_wait"]), (None, 0.0))
         self.assertEqual(legacy["rerank"]["skipped"], "circuit breaker open")
@@ -530,7 +533,7 @@ class BreakerTests(PipelineCase):
         allows = self.allows
         with barrier_retrieve(3):
             answers = [r.json() for r in self.executor(3).map(lambda q: self.search(self.r, q), QUERIES[3:6])]
-        self.assertEqual([a["degraded"] for a in answers], [[]] * 3)            # the trial, then two more
+        self.assertEqual([a["degraded"] for a in answers], [OFF] * 3)            # the trial, then two more
         self.assertEqual(self.breaker.state, "closed")
         self.assertEqual(self.allows - allows, 3)       # one allow() each, inside the gate
         self.assertEqual(self.search_many(self.r, MANY[1]).json()["degraded"], [])
@@ -547,7 +550,7 @@ class BreakerTests(PipelineCase):
         self.open_it()
         self.clock.now += 31
         self.reranker.fail = True
-        self.assertEqual(self.search(self.r, QUERIES[6]).json()["degraded"], ["reranker"])
+        self.assertEqual(self.search(self.r, QUERIES[6]).json()["degraded"], OFF + ["reranker"])
         self.assertEqual(self.breaker.state, "open")
         self.reranker.fail = set()
         self.clock.now += 31                            # half-open: the pre-check lets a search queue
@@ -560,7 +563,7 @@ class BreakerTests(PipelineCase):
         finally:
             self.gate.release()
         calls = len(self.reranker.calls)
-        self.assertEqual(future.result(10).json()["degraded"], ["reranker"])
+        self.assertEqual(future.result(10).json()["degraded"], OFF + ["reranker"])
         self.assertEqual(len(self.reranker.calls), calls)       # inside the gate allow() refused it
 
 
@@ -585,7 +588,7 @@ class QueueTimeoutTests(PipelineCase):
             gate.release()
         self.assertLess(took, 5.0)
         for answer in (body, many):
-            self.assertEqual(answer["degraded"], ["reranker"])
+            self.assertEqual(answer["degraded"], (OFF if answer is body else []) + ["reranker"])
             self.assertIsNone(answer["timings_ms"]["rerank"])
             self.assertGreaterEqual(answer["timings_ms"]["rerank_wait"], 100)
         self.assertEqual((legacy["degraded"], legacy["rerank"]["skipped"]), (["reranker"], "rerank queue"))
@@ -593,7 +596,7 @@ class QueueTimeoutTests(PipelineCase):
         # one failure would open this breaker: the queue is not the service failing
         self.assertEqual((breaker.state, breaker.snapshot()["consecutive_failures"]), ("closed", 0))
         self.assertEqual(gate.snapshot()["timed_out"], 3)
-        self.assertEqual(self.search(root, QUERIES[2]).json()["degraded"], [])  # the gate free: reranked again
+        self.assertEqual(self.search(root, QUERIES[2]).json()["degraded"], OFF)  # the gate free: reranked again
 
     def test_wait_the_default_keeps_the_search_in_line_and_reranks_it(self):
         reranker = TrackingReranker(pause=0)
@@ -610,8 +613,8 @@ class QueueTimeoutTests(PipelineCase):
             self.assertFalse(search.done() or many.done())
         finally:
             gate.release()
-        for answer in (search.result(10).json(), many.result(10).json()):
-            self.assertEqual(answer["degraded"], [])
+        for answer, off in ((search.result(10).json(), OFF), (many.result(10).json(), [])):
+            self.assertEqual(answer["degraded"], off)
             self.assertIsNotNone(answer["timings_ms"]["rerank"])
             self.assertGreaterEqual(answer["timings_ms"]["rerank_wait"], 300)
         self.assertEqual(gate.snapshot()["timed_out"], 0)
@@ -628,7 +631,7 @@ class QueueTimeoutTests(PipelineCase):
             body = self.search(root, QUERIES[0]).json()
         finally:
             gate.release()
-        self.assertEqual((body["degraded"], gate.snapshot()["refused"], reranker.calls), (["reranker"], 1, []))
+        self.assertEqual((body["degraded"], gate.snapshot()["refused"], reranker.calls), (OFF + ["reranker"], 1, []))
 
 
 class FirstExceptionTests(PipelineCase):
@@ -657,7 +660,7 @@ class FirstExceptionTests(PipelineCase):
         self.assertEqual(gate.snapshot()["busy"], 0)    # released at the first failure
         wait_for(lambda: reranker.running == 2)         # the other two calls are (still) at the service
         body = self.search(root, QUERIES[0]).json()    # the next search does not wait for them
-        self.assertEqual(body["degraded"], [])
+        self.assertEqual(body["degraded"], OFF)
         self.assertLess(body["timings_ms"]["rerank_wait"], 100)
         self.assertEqual(reranker.running, 2)
         reranker.hold.set()
@@ -694,7 +697,7 @@ class StarvationTests(PipelineCase):
         self.assertEqual((snap["busy"], snap["waiting"]), (1, 1))
         reranker.hold.set()
         answers = [f.result(20).json() for f in running + queued]
-        self.assertEqual([a["degraded"] for a in answers], [[]] * 4)
+        self.assertEqual([a["degraded"] for a in answers], [OFF] * 4)
         self.assertEqual(reranker.peak, 1)
 
 

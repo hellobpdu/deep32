@@ -89,9 +89,31 @@ class Scratch:
 
 
 EVENTS = frozenset(("service-check", "link-open", "link-close", "session-open",
-                   "session-close", "turn-start", "turn-end", "cleanup-failed"))
+                   "session-close", "turn-start", "turn-end", "cleanup-failed", "answer-check"))
 REASONS = frozenset(("none", "unavailable", "cancelled", "timeout", "protocol",
                     "auth", "limit", "cleanup"))
+
+
+TURN_REASONS = {"turn-timeout": "timeout", "cleanup-failed": "cleanup", "agent-sign-in-required": "auth"}
+
+
+def log_turn(ledger, numbers):
+    """Append one turn-end line for a finished turn: how it ended, its MCP requests (count), the calls the relay
+    refused, the bytes the agent wrote to its standard output and the turn's duration. Counts only, no text.
+    Returns False instead of raising: a log that cannot be written must never fail a turn."""
+    try:
+        status = numbers.get("status")
+        reason = ("none" if status == "completed" else "cancelled" if status == "interrupted"
+                  else TURN_REASONS.get(numbers.get("reason"), "unavailable"))
+        ledger.append("turn-end", reason, count=int(numbers.get("calls", 0)),
+                      refused=int(numbers.get("refused", 0)), bytes=int(numbers.get("output_bytes", 0)),
+                      duration_ms=int(numbers.get("seconds", 0) * 1000))
+        if numbers.get("check") == "failed":
+            # The answer check itself broke: the answer went out without a footer, and this line says so.
+            ledger.append("answer-check", "unavailable")
+        return True
+    except Exception:
+        return False
 
 
 class EventLedger:
@@ -103,7 +125,7 @@ class EventLedger:
         self.max_bytes, self.sequence = max_bytes, 0
 
     def append(self, event, reason="none", **counts):
-        if event not in EVENTS or reason not in REASONS or set(counts) - {"count", "bytes", "duration_ms"}:
+        if event not in EVENTS or reason not in REASONS or set(counts) - {"count", "bytes", "duration_ms", "refused"}:
             raise RuntimeErrorCode("invalid-log-event")
         if any(type(v) is not int or not 0 <= v < 2**63 for v in counts.values()):
             raise RuntimeErrorCode("invalid-log-value")

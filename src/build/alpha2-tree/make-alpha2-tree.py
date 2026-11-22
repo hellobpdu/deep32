@@ -25,7 +25,7 @@ import tempfile
 
 
 PUBLISHED_COMMIT = "5cbec0d"
-RELEASE_ID = "0.1.0-alpha.2"
+RELEASE_ID = "0.1.0-alpha.3"
 RELEASE_FILES = {
     "install/release-key.gpg": "distrib/site/usr/local/share/d32/release/release-key.gpg",
     "install/release-key.fingerprint": "distrib/site/usr/local/share/d32/release/release-key.fingerprint",

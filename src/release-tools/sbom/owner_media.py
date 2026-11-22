@@ -14,8 +14,8 @@ from .workflow import contents, finalise, generator_sha256, verify
 from .spdx import _metadata
 
 
-RELEASE = 'v0.1.0-alpha.2'
-VERSION = '0.1.0-alpha.2'
+RELEASE = 'v0.1.0-alpha.3'
+VERSION = '0.1.0-alpha.3'
 SEAL = 'OWNER-MEDIUM-SEAL.json'
 
 

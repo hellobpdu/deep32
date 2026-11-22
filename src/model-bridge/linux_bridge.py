@@ -28,12 +28,13 @@ FORGE_TOKEN = "/run/secrets/forge-token"
 CORE_TOKEN = "/run/secrets/core-token"
 MCP_TOKENS = "/run/secrets/mcp-tokens"
 PORTS = {"embed": 9081, "rerank": 9082}
+IMAGE_PROBES = "/opt/deep32/model-bridge/gpu-probes.json"  # in the model-bridge image
 CREDENTIAL_ERROR = "Credentials are unavailable; complete enrolment and restart the full role."
 CONFIG_ERROR = "Model identity settings are invalid; restore the signed model configuration."
 ALLOWED = frozenset({"schema", "GPU_EXT_EMBED_MODEL_ID", "GPU_EXT_EMBED_REVISION",
     "GPU_EXT_RERANK_MODEL_ID", "GPU_EXT_RERANK_REVISION", "GPU_EXT_EMBED_PROBE_INPUT",
     "GPU_EXT_EMBED_PROBE_SHA256", "GPU_EXT_EMBED_PROBE_MODEL", "GPU_EXT_RERANK_PROBE",
-    "GPU_EXT_RECHECK_SECONDS", "GPU_EXT_CONNECT_TIMEOUT", "GPU_EXT_READ_TIMEOUT"})
+    "GPU_EXT_RECHECK_SECONDS", "GPU_EXT_CONNECT_TIMEOUT", "GPU_EXT_READ_TIMEOUT", "GPU_EXT_PROBE_ALWAYS"})
 
 
 class CredentialError(ValueError):
@@ -132,11 +133,16 @@ class Settings:
             self.rerank_model = config.get("GPU_EXT_RERANK_MODEL_ID", "")
             self.rerank_revision = config.get("GPU_EXT_RERANK_REVISION", "")
             self.rerank_probe_file = config.get("GPU_EXT_RERANK_PROBE", "")
+            always = config.get("GPU_EXT_PROBE_ALWAYS", "no")
+            if always not in ("yes", "no"):
+                raise ValueError()
+            self.probe_always = always == "yes"
             if (not self.embed_model or not self.rerank_model or
                     (not self.embed_revision and not (self.embed_probe_input and re.fullmatch("[0-9a-f]{64}", self.embed_probe_sha256))) or
-                    (not self.rerank_revision and not self.rerank_probe_file)):
+                    (not self.rerank_revision and not self.rerank_probe_file) or
+                    (self.probe_always and not self.rerank_probe_file)):
                 raise ValueError()
-            if self.rerank_probe_file:
+            if self.rerank_probe_file and self.rerank_probe_file != IMAGE_PROBES:
                 path = PurePosixPath(self.rerank_probe_file)
                 if (not self.rerank_probe_file.startswith("/etc/deep32/") or
                         str(path) != self.rerank_probe_file or ".." in path.parts):

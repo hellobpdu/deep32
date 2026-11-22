@@ -17,7 +17,8 @@ Change a value here to move this install's default; a release the user names in 
 | IOSv and IOSv-L2 | 15.8 and 15.2 |
 
 The rest of these files write the pins as "17.9", "20.9", "2.3" and "3.1": read the values in this table instead
-when they differ.
+when they differ. Every search passes the first four as `prefer_release`, bare release numbers in this order (as
+shipped `["17.9", "20.9", "2.3", "3.1"]`); the IOSv rows are not passed.
 
 ## What the corpus covers
 
@@ -54,6 +55,9 @@ The Release and Kind of every document come from `list_documents` and each hit's
   17.18.x and 26.x. Cite them with the release in the claim ("C9300 17.18 guide; 17.9 not confirmed"), and confirm
   syntax in `c9300-179-cr`. A statement found only in a 26.x guide is "not shown for 17.9". Never apply 26.x-only
   behaviour, such as newer secure-by-default settings, to the 17.9 pin.
+- To compare one section across releases, read it once: the reply's `same section in other releases:` line names the
+  same section in the same book family at other releases (doc_key, section id, release). Read those ids with
+  `get_section` instead of searching for them.
 - `release_max` (a search filter) removes a whole document whose release is later than the cap: on the same major
   line (17.18 after 17.9), or numbered by year against a cap numbered before (26.x after 17.9, 20.9 or 3.1). The
   rolling "17.x" books and documents with no release always pass. So `release_max: "17.9"` hides 17.12, 17.18 and
@@ -71,7 +75,11 @@ The Release and Kind of every document come from `list_documents` and each hit's
 1. Find the feature's release. It can be in a "Feature History for ..." table (`Release | Feature | Feature
    Information`, 30 of them in c9300-1718-rtng alone), a "Feature Information for ..." line (over 1,100 in the IP
    Routing book), a command's "Command History" row, or a phrase like "From Cisco IOS XE Release 17.2.1, ...".
-   Search near the section you are reading with `grep_corpus`, or use `find_command`, which returns a release.
+   Look it up first: `lookup_id(<feature>, kind="feature")` returns the parsed Feature History rows, and
+   `lookup_id(<command>, kind="history")` a command's Command History rows (introduced, modified, deprecated,
+   removed); `kind="deprecation"` finds deprecation notices and `kind="default"` a command's Command Default. Each row
+   gives its release and `doc_key:line [section]`: read that section and check the quote before citing it. Only when
+   no row comes back, search near the section with `grep_corpus`, or use `find_command`.
 2. Translate IOS XE train names. These were checked against the names that occur in the corpus.
 
 | Train | Releases |
@@ -111,6 +119,7 @@ The Release and Kind of every document come from `list_documents` and each hit's
 
 ## Platform drift
 
-A C9300 (switch) book is not proof of C8000V (router) behaviour, or the reverse. Use each document's platform (from
-`list_documents` and the hit's metadata), and name the platform in the answer whenever you cite a platform-specific
-book.
+A C9300 (switch) book is not proof of C8000V (router) behaviour, or the reverse. Read each document's platform from
+a hit's `platform`, from its title (the start of a hit's `cite`, and the last column of `list_documents`) or from a
+`find_command` row's `platform`; `list_documents` with `platform` lists one platform's books. Name the platform in
+the answer whenever you cite a platform-specific book.

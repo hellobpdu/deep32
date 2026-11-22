@@ -18,6 +18,7 @@ RAG_CORE_API_TOKEN=
 RAG_QDRANT_URL=file:/d32/libcontent/kb/dense
 RAG_EMBEDDING_URL=http://gpu-embed.d32.invalid/v1/embeddings
 RAG_RERANK_URL=http://gpu-rerank.d32.invalid/v1/rerank
+RAG_CONFIG_OVERLAY_DIR=/usr/local/d32/etc/engine-overlay
 EOT
 cat >/etc/d32/edge.env <<EOT
 # /etc/d32/edge.env (root 0400): written at install by 66-ship-node; d32-firstboot makes the tokens at the first start.
@@ -25,6 +26,8 @@ RAG_CORE_URL=http://localhost
 RAG_CORE_API_TOKEN=
 TAILSCALE_DNS_NAME=deep32.invalid
 RAG_MCP_TOKENS=
+RAG_EDGE_DEFAULT_PREFER=pins
+RAG_EDGE_DEGRADED_ADVICE=on
 EOT
 [ -f /etc/d32/accel.env ] || cp /etc/d32/accel.env.example /etc/d32/accel.env
 chown root:wheel /etc/d32/core.env /etc/d32/edge.env /etc/d32/accel.env

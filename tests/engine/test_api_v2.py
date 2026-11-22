@@ -32,7 +32,7 @@ from v2_root import CISCO_179, build_root, chunk_id, line_of
 TOKEN = "v" * 40
 AUTH = {"Authorization": f"Bearer {TOKEN}"}
 HIT_KEYS = {"id", "doc_id", "doc_key", "title", "doc_type", "cite", "section_id", "section_path",
-            "status", "release", "score", "matched", "text", "local", "url"}
+            "status", "release", "platform", "score", "matched", "text", "local", "url", "reranked"}
 
 CONFIG = {
     "rrf_k": 60,
@@ -114,7 +114,7 @@ class ApiV2Tests(unittest.TestCase):
         body = self.post("/v2/search", {"query": "P-bit clear forwarding address 0.0.0.0",
                                         "limit": 3, "max_chars": 300})
         self.assertEqual(set(body), {"hits", "degraded", "timings_ms", "generation"})
-        self.assertEqual(body["degraded"], [])
+        self.assertEqual(body["degraded"], ["dense", "reranker"])       # a keyword-only, unreranked root
         self.assertEqual(body["generation"], "root")
         # the stages, then the slowest leg of each retriever that ran (and the dense leg's split)
         self.assertEqual(set(body["timings_ms"]), {"retrieve", "rerank", "assemble", "total", "bm25"})
@@ -219,17 +219,17 @@ class ApiV2Tests(unittest.TestCase):
             for expected_calls in (1, 2, 2):            # two failures open the breaker; then skipped
                 body = self.post("/v2/search", {"query": "NSSA translator", "mode": "dense"})
                 self.assertEqual(dense.calls, expected_calls)
-                self.assertEqual(body["degraded"], ["dense"])
+                self.assertEqual(body["degraded"], ["dense", "reranker"])
                 self.assertTrue(body["hits"])
                 self.assertEqual({m for h in body["hits"] for m in h["matched"]}, {"bm25"})
             self.assertEqual(breaker.state, "open")
             hybrid = self.post("/v2/search", {"query": "NSSA translator"})
-            self.assertEqual((hybrid["degraded"], bool(hybrid["hits"])), (["dense"], True))
+            self.assertEqual((hybrid["degraded"], bool(hybrid["hits"])), (["dense", "reranker"], True))
             many = self.post("/v2/search_many", {"queries": [{"text": "NSSA", "mode": "dense"},
                                                              {"text": "Type-7", "mode": "bm25"}]})
-            self.assertEqual((many["degraded"], bool(many["hits"])), (["dense"], True))
+            self.assertEqual((many["degraded"], bool(many["hits"])), (["dense", "reranker"], True))
             # a bm25 search never asked for dense: nothing it needed was missing
-            self.assertEqual(self.post("/v2/search", {"query": "NSSA", "mode": "bm25"})["degraded"], [])
+            self.assertEqual(self.post("/v2/search", {"query": "NSSA", "mode": "bm25"})["degraded"], ["reranker"])
         self.assertEqual(dense.calls, 2)
 
     def test_search_many_falls_back_to_bm25_per_query(self):
@@ -244,7 +244,7 @@ class ApiV2Tests(unittest.TestCase):
             body = self.post("/v2/search_many", {"queries": [{"text": "Type-7 translation", "mode": "dense"},
                                                              {"text": "Type-7 translation", "mode": "dense"}]})
         self.assertEqual(dense.calls, 2)
-        self.assertEqual(body["degraded"], ["dense"])                  # the first query's failure
+        self.assertEqual(body["degraded"], ["dense", "reranker"])                  # the first query's failure
         by_id = {h["id"]: h for h in body["hits"]}
         self.assertIn("dense", by_id[target]["matched"])
         self.assertIn("1", by_id[target]["per_query_ranks"])          # found by the second query's dense leg
@@ -256,7 +256,7 @@ class ApiV2Tests(unittest.TestCase):
                 return self.post("/v2/search", {"query": "NSSA", "mode": mode})["degraded"]
 
             self.assertEqual((degraded("hybrid"), degraded("dense"), degraded("bm25")),
-                             (["dense"], ["dense"], []))
+                             (["dense", "reranker"], ["dense", "reranker"], ["reranker"]))
             self.assertEqual(orch.search("NSSA", retrievers=frozenset({"bm25"}))["degraded"], [])
             self.assertEqual(orch.search("NSSA")["degraded"], ["dense"])         # /search: all of them
 
@@ -283,7 +283,7 @@ class ApiV2Tests(unittest.TestCase):
             })
 
         body = run(1.0)
-        self.assertEqual(set(body), {"hits", "degraded", "timings_ms", "generation"})
+        self.assertEqual(set(body), {"hits", "degraded", "degraded_detail", "timings_ms", "generation"})
         ranks = [h["per_query_ranks"] for h in body["hits"]]
         self.assertTrue(all(set(r) <= {"0", "1"} and r for r in ranks))
         # each window is centred on the terms of the queries that found the hit
@@ -510,6 +510,8 @@ class ApiV2Tests(unittest.TestCase):
         self.assertEqual(len(docs), 5)
         self.assertEqual(docs["rfc1587"]["status"], "Proposed Standard; OBSOLETED by RFC 3101")
         self.assertEqual(docs["c9300-1718-rtng"]["release"], "17.18")
+        self.assertEqual(list(docs["rfc3101"])[3:5], ["release", "platform"])
+        self.assertIsNone(docs["rfc3101"]["platform"])          # this fixture's sources name no platform
         self.assertEqual(docs["rfc3101"]["n_chunks"], 5)
         self.assertEqual(docs["rfc3101"]["source_url"], "https://example.test/rfc3101")
         self.assertGreater(docs["rfc4271"]["n_sections"], 4)
@@ -708,7 +710,7 @@ class ApiV2Tests(unittest.TestCase):
             "status": self.get("/v2/status"),
         }
         for name, body in answers.items():
-            self.assertEqual(body["degraded"], [], name)
+            self.assertEqual(body["degraded"], ["dense", "reranker"] if name.startswith("search") else [], name)
 
     def test_v1_search_is_unchanged(self):
         body = self.post("/search", {"query": "NSSA translator"})
@@ -815,7 +817,7 @@ class PartialRootTests(unittest.TestCase):
             self.assertEqual(r.status_code, 503, path)
             self.assertIn("scripts/build_root.py", r.json()["detail"])
         search = c.post("/v2/search", json={"query": "NSSA"}, headers=AUTH).json()
-        self.assertEqual(search["degraded"], ["structure"])
+        self.assertEqual(search["degraded"], ["dense", "reranker", "structure"])
         status = c.get("/v2/status", headers=AUTH).json()
         self.assertFalse(status["backends"]["structure"]["ok"])
         self.assertIn("structure", status["degraded"])
@@ -966,7 +968,7 @@ class UnstructuredRootTests(unittest.TestCase):
         r = self.c.post("/v2/search", json={"query": "NSSA translator"}, headers=AUTH)
         self.assertEqual(r.status_code, 200)
         body = r.json()
-        self.assertEqual(body["degraded"], ["kb", "structure"])
+        self.assertEqual(body["degraded"], ["dense", "kb", "reranker", "structure"])
         hit = body["hits"][0]
         self.assertIsNone(hit["section_id"])
         self.assertIsNone(hit["local"])

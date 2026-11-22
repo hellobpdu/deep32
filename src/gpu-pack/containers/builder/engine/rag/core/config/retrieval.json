@@ -12,5 +12,8 @@
   "dense_breaker": {
     "failures": 3,
     "open_seconds": 30
-  }
+  },
+
+  "retrievers": ["bm25", "dense"],
+  "technical_variant_retrievers": ["bm25"]
 }

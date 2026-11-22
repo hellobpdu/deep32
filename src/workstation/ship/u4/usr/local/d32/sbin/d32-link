@@ -331,7 +331,7 @@ finish() {	# Tailscale runs: the tailnet group, the infra table, GPU_EXT, time
 	maint_open "$ip" "$HUB" tailnet || return 1
 	if [ ! -f $RUN/link.gpu ]; then
 		if xq $SBIN/d32-gpu-ext on; then g="on (d32accel started; it checks the hub's models first)"
-		else g="did not start (doas d32-link status)"; fi
+		else g="did not start (doas /usr/local/d32/sbin/d32-link status)"; fi
 		mark gpu
 		say "GPU_EXT: $g"
 	fi
@@ -476,7 +476,7 @@ cmd_on() {
 		if [ $TTY = 1 ] && [ $DRY != 1 ]; then
 			login_fg
 		else
-			say "Tailscale needs its one-time login: the link is in /var/db/d32link/login-url (or: doas d32-link login)"
+			say "Tailscale needs its one-time login: the link is in /var/db/d32link/login-url (or: doas /usr/local/d32/sbin/d32-link login)"
 		fi
 	fi
 	unlock
@@ -511,7 +511,7 @@ cmd_login() {
 	case $r in
 	0)	say "Tailscale is logged in already (deep32 $(tsip))" ;;
 	4)	login_fg $qr ;;
-	*)	say "the link is not ready for the login yet (doas d32-link status)"; exit 1 ;;
+	*)	say "the link is not ready for the login yet (doas /usr/local/d32/sbin/d32-link status)"; exit 1 ;;
 	esac
 	unlock
 	status

@@ -19,6 +19,9 @@ def package_digest():
         digest.update(path.name.encode("ascii") + b"\0" + path.read_bytes())
     prompt = root.parent / "RESEARCH.md"
     digest.update(prompt.read_bytes())
+    codex = root.parent / "RESEARCH-codex.md"
+    if codex.is_file():
+        digest.update(b"RESEARCH-codex.md\0" + codex.read_bytes())
     lock = root.parent / 'tls-provider-lock.json'
     if lock.is_file():
         digest.update(b'tls-provider-lock.json\0' + lock.read_bytes())
@@ -53,6 +56,13 @@ def assess(owner=None):
             result['reasons'].append('pairing-required')
         if receipt['state'] == 'removed' or not owner.read_json('config.json').get('intake_enabled'):
             result['reasons'].append('relay-intake-disabled')
+        import os
+        from .settings import load
+        from .state import StateError
+        try:
+            load(os.environ, receipt['agent'])
+        except StateError:
+            result['reasons'].append('invalid-relay-setting')
         result['ready'] = not result['reasons']
     return result
 
@@ -110,7 +120,10 @@ class ResearchBridge:
         self.supervisor.disconnect()
 
 
-def make_bridge(link, agent, scratch_factory, *, clock):
+def make_bridge(link, agent, scratch_factory, *, clock, settings=None, on_turn=None, on_answer=None):
+    """`settings` is the service's settings.Settings; without it the supervisor keeps its own defaults.
+    `on_turn` receives each finished turn's numbers (runtime.log_turn writes them to the service's log);
+    `on_answer` receives each finished answer's record (record.AnswerRecords.write)."""
     from .proxy import Gateway, ProxyError
     from .sessions import Supervisor
     def dispatch(session, envelope, deadline, guard):
@@ -120,8 +133,9 @@ def make_bridge(link, agent, scratch_factory, *, clock):
         return link.reverse_request(session, envelope, timeout=min(170, remaining), guard=guard)
     gateway = Gateway(None, clock=clock, guarded_dispatch=dispatch,
                       on_revoke=link.cancel_requests)
+    policy = {} if settings is None else {"idle_limit": settings.idle_seconds, "checks": settings.checks}
     supervisor = Supervisor(agent, gateway, lambda stream, event: None,
-                            scratch_factory, clock=clock)
+                            scratch_factory, clock=clock, on_turn=on_turn, on_answer=on_answer, **policy)
     return ResearchBridge(link, supervisor)
 
 
@@ -160,7 +174,10 @@ def main(argv=None):
                     receipt['release_id'], agent_found=binary_found(receipt['agent_binary'])))
             except Exception:
                 pass
+        # A setting the operator wrote wrongly (settings.py) is named; every other failure keeps the fixed reason.
+        reason = ("invalid-relay-setting" if getattr(exc, "reason", None) == "invalid-relay-setting"
+                  else "owned-state-unavailable")
         result = {"schema": "deep32.relay-check.v1", "ready": False,
-                  "reasons": ["owned-state-unavailable"], "agent_launches": 0, "listeners": 0}
+                  "reasons": [reason], "agent_launches": 0, "listeners": 0}
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if result.get('ready') else 10

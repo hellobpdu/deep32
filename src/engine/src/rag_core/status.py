@@ -31,9 +31,11 @@ from pathlib import Path
 from typing import Any, Callable
 
 from rag_core.api_v2 import (
+    evidence_settings,
     fold_identical,
     grep_settings,
     search_many_settings,
+    verify_settings,
 )
 from rag_core.corpus import (
     corpus_fingerprint,
@@ -421,6 +423,17 @@ class StatusService:
             **pipeline,
         }
 
+    @staticmethod
+    def _evidence(config: dict[str, Any]) -> dict[str, Any]:
+        """retrieval.json "evidence" as the settings show it: the keys a root sets (tier1_chars when it is a
+        number, covered_titles and table_context when true), {} when none."""
+        evidence = evidence_settings(config)
+        return {
+            **({"tier1_chars": evidence.tier1_chars} if evidence.tier1_chars is not None else {}),
+            **({"covered_titles": True} if evidence.covered_titles else {}),
+            **({"table_context": True} if evidence.table_context else {}),
+        }
+
     def _settings(
         self,
         reranker,
@@ -432,8 +445,13 @@ class StatusService:
         start (search_many.parallel: the queries retrieved at once, 0 one after
         another), and the admission. Then "dense": the dense retriever's search
         settings as it started (retrieval.json "dense", DenseSearchSettings: only
-        the keys that are set), and only when one is set; last "fold_identical":
-        true, only when retrieval.json sets it true (rag_core.api_v2.fold_identical).
+        the keys that are set), and only when one is set; then "fold_identical":
+        true, only when retrieval.json sets it true (rag_core.api_v2.fold_identical);
+        then, each only when a root sets it, "evidence": {"tier1_chars": N,
+        "covered_titles": true, "table_context": true} (the keys that are set:
+        rag_core.api_v2.evidence_settings) and "verify": {"ellipsis":
+        "bounded", "max_gap_chars": N} (rag_core.api_v2.verify_settings; not
+        shown while ellipsis is "any").
         Without them the block is exactly the one before (the production chain
         compares it as a string)."""
         many = search_many_settings(config)
@@ -454,6 +472,9 @@ class StatusService:
                     ),
                     "max_chars": getattr(reranker, "max_chars", None),
                     "window": getattr(reranker, "window", None),
+                    # each only when a root sets it true: without them the block is the one before
+                    **({"title": True} if getattr(reranker, "title", False) is True else {}),
+                    **({"covered_titles": True} if getattr(reranker, "covered_titles", False) is True else {}),
                 }
                 if reranker is not None
                 else None
@@ -461,6 +482,8 @@ class StatusService:
             "search_many": {
                 "parallel": many.workers,
                 "rerank": many.rerank,
+                # only when a root sets it true: without it the block is the one before
+                **({"rerank_isolation": True} if many.rerank_isolation else {}),
             },
             "grep": {
                 "regex_engine": grep_settings(config).regex_engine,
@@ -468,4 +491,9 @@ class StatusService:
             "serving": dict(self.serving),
             **({"dense": shown} if shown else {}),
             **({"fold_identical": True} if fold_identical(config) else {}),
+            # the settings of 0.1.0-alpha.3, each only when a root sets it (after everything older)
+            **({"evidence": self._evidence(config)} if self._evidence(config) else {}),
+            **({"verify": {"ellipsis": verify_settings(config).ellipsis,
+                           "max_gap_chars": verify_settings(config).max_gap_chars}}
+               if verify_settings(config).ellipsis != "any" else {}),
         }

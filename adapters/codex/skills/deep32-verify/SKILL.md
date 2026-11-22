@@ -21,6 +21,11 @@ Weight the analysis toward proving state from output:
   that proves it.
 - **Output traps**: counters since last clear, cached or stale entries, per-VRF vs global views, platform
   differences in output, fields renamed between the pinned release and 26.x.
-- **Annotated output**: realistic output built from corpus samples, labelled as constructed, with the field that
-  decides each reading.
+- **Annotated output**: output built only from a corpus sample checked with `verify_quote`, every changed field
+  marked and the whole labelled constructed, with the field that decides each reading.
 - **Debug vs show**: when a show cannot prove it and a debug or event trace is needed, and how to scope it safely.
+
+Everything this lens adds beyond a retrieved passage (a table row, a scenario, a recommendation, a pattern) is cited,
+or labelled `inference (from [cite] + [cite])` with the sources it rests on. Constructed output (a configuration,
+show output, a log line) is built only from a sample checked with `verify_quote`, with every field you changed
+marked, and is labelled constructed: never present it as seen on a device.

@@ -64,13 +64,13 @@ data_root/config/model-bridge.json. C7 settings never hold credentials.
     if not re.fullmatch(r'(?=.{1,253}$)[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)*\.ts\.net', dns):
         raise ValueError('Read the signed-in host Tailscale DNS name before configuring the gateway.')
     dtype = config.get('reranker_dtype') or config.get('runtime', {}).get('reranker_dtype', 'float16')
-    if dtype not in ('float16', 'float32', 'bfloat16') or config.get('reranker_device', 'cuda') != 'cuda':
+    if dtype not in ('float16', 'float32') or config.get('reranker_device', 'cuda') != 'cuda':
         raise ValueError('Use the pinned CUDA reranker settings for the full GPU role.')
     bridge = config.get('model_bridge') or config.get('full', {}).get('model_bridge')
     if not isinstance(bridge, dict) or bridge.get('schema') != 'deep32.model-bridge.v1':
         raise ValueError('Write the signed model attestation configuration before starting the full role.')
     for name in bridge:
-        if name != 'schema' and not re.fullmatch(r'GPU_EXT_(?:EMBED_MODEL_ID|RERANK_MODEL_ID|EMBED_REVISION|RERANK_REVISION|EMBED_PROBE_INPUT|EMBED_PROBE_SHA256|EMBED_PROBE_MODEL|RERANK_PROBE|RECHECK_SECONDS|CONNECT_TIMEOUT|READ_TIMEOUT)', name):
+        if name != 'schema' and not re.fullmatch(r'GPU_EXT_(?:EMBED_MODEL_ID|RERANK_MODEL_ID|EMBED_REVISION|RERANK_REVISION|EMBED_PROBE_INPUT|EMBED_PROBE_SHA256|EMBED_PROBE_MODEL|RERANK_PROBE|RECHECK_SECONDS|CONNECT_TIMEOUT|READ_TIMEOUT|PROBE_ALWAYS)', name):
             raise ValueError('Keep transport settings and credentials out of the model attestation configuration.')
     if any(not isinstance(value, str) for value in bridge.values()):
         raise ValueError('Use string values in the signed model attestation configuration.')
@@ -82,6 +82,9 @@ data_root/config/model-bridge.json. C7 settings never hold credentials.
     for name in ('GPU_EXT_EMBED_REVISION', 'GPU_EXT_RERANK_REVISION'):
         if bridge.get(name) and not re.fullmatch(r'[0-9a-f]{40}', bridge[name]):
             raise ValueError('Use the complete signed model revisions in the bridge configuration.')
+    if bridge.get('GPU_EXT_PROBE_ALWAYS', 'no') not in ('yes', 'no') or (
+            bridge.get('GPU_EXT_PROBE_ALWAYS') == 'yes' and not bridge.get('GPU_EXT_RERANK_PROBE')):
+        raise ValueError('Set GPU_EXT_PROBE_ALWAYS to yes or no, and name the probe file when it is yes.')
     import math
     for name in ('GPU_EXT_RECHECK_SECONDS', 'GPU_EXT_CONNECT_TIMEOUT', 'GPU_EXT_READ_TIMEOUT'):
         if name in bridge:

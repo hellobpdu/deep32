@@ -12,6 +12,172 @@
 Releases, newest first. Versions follow [Semantic Versioning](https://semver.org), and each release is signed and
 archived on Zenodo under [10.5281/zenodo.24272647](https://doi.org/10.5281/zenodo.24272647).
 
+## 0.1.0-alpha.3 · 22 November 2026
+
+After alpha.2 I audited where answer quality gets lost between the index and the agent's answer, and this release is
+the quick fixes from that audit, plus the fixes the roadmap listed for it. The Workstation and the Forge have new
+images. Disc 2 is alpha.2's content image, unchanged, and an alpha.3 Workstation imports it. The new features the
+roadmap had listed for alpha.3 moved to alpha.4, and so did some fixes I promised in alpha.2's notes; the last group
+below lists each one.
+
+**Added**
+
+- `lookup_id` takes a `kind`. With `feature` it answers which releases introduced or changed a feature, from the 2,578
+  feature-history entries the build has always made and no tool read until now. The kinds `history`, `default` and
+  `deprecation` are there as well, and answer once a disc 2 is built with their tables.
+- `verify_quote` checks up to 16 quotations in one call.
+- `get_section` prints the section's citation and release, can open at a hit's passage (`around`), and names the same
+  section in the other releases' books. `list_documents` filters by key prefix, release and platform, and every hit
+  carries its document's platform.
+- A settings overlay on disc 1 (`/usr/local/d32/etc/engine-overlay`, named by `RAG_CONFIG_OVERLAY_DIR`). The engine
+  merges it key by key over the settings of the index generation it serves, so a release can change how a Workstation
+  serves without a new disc 2. This release's changes to search and the quotation check below come in that way.
+- A script that checks a finished Ask answer against the tool calls of its turn, with no model:
+  `adapters/relay/deep32_relay/answer_check.py`. It looks at the quotations against their `verify_quote` results, the
+  cited RFCs against their status lookups, a "not covered" against an outline read, a degraded search against the
+  answer's first lines, and numbers, releases and commands against the text the tools returned. Everything it can't
+  confirm is listed as "to check"; it never edits or blocks an answer. With `DEEP32_RELAY_CHECKS=footer` the relay
+  adds its result under each answer as a Checks section. That ships off. On the 12 answers graded in my November
+  pilot it flagged 8 of the 19 unsupported claims, with 23 false alarms, and it can't see a wrong recommendation or
+  inference at all. You can also run it from the command line on a saved answer.
+- Relay settings for a fixed model and a record of each answer. `DEEP32_RELAY_MODEL` and `DEEP32_RELAY_EFFORT` say
+  what Ask's default choice runs, and the relay refuses a turn whose agent reports another model.
+  `DEEP32_RELAY_ANSWER_RECORD=on` writes one small file per answer with the agent, the model, the hash of the
+  instruction it was given, the index generation and the ids each tool returned. It holds no question, answer,
+  passage or quotation. Both are off when absent ([Agent adapters 5](adapters/README.md#5-the-ask-relay)).
+- The Forge's builder compares a new generation with an earlier one you name (`--baseline-root`) when you supply a
+  labeled question set. It stops before export on a net loss at hit@1 or hit@8, or delivery@8 more than 0.005 lower.
+- A Workstation can check its Forge's models with known inputs even when the reported revision matches
+  (`GPU_EXT_PROBE_ALWAYS`). With it on, long inputs (a 15-passage rerank call and a 7,089-character document for the
+  embedder) run when the link starts and whenever the Forge reports another model, revision or card. It ships off
+  until the long inputs' reference values are recorded on both card generations.
+
+**Changed**
+
+- The top 8 hits carry up to 3,200 characters each, where they carried 2,400, whenever the request asks for 2,400 or
+  more. The hits and their order are chosen as before; only the delivered text is wider. I measured it by replaying
+  recorded runs of my production setup: with identical hit lists, delivery@8 went from 0.9092 to 0.9566, 142
+  questions got more of their labeled answer text and none got less, for about 21% more text per hit.
+- A hit whose window starts inside a table carries the table's caption and header row, and a passage that merges
+  several sections lists their titles.
+- When a search names no release, the copy from the pinned releases is the one shown among identical copies. Ranks and
+  text stay the same.
+- `verify_quote` accepts a quotation with "..." only when all its parts lie in one section and no two neighboring
+  parts are more than 300 characters of source text apart; otherwise it answers `not_found` with the reason
+  `parts-too-far`. Each result also says whether the match lies in the section the agent cited, and where it was found
+  when it doesn't.
+- `lookup_rfc` follows the obsoleted-by chain to its end and gives the date.
+- `degraded` also names a backend that is switched off in the settings, so a keyword-only or unreranked answer never
+  reads as complete. In `search_many` a failed reranker call now costs only its own query's scores, and every hit says
+  whether the reranker scored it.
+- The research skill, which Connect installs and the Ask relay carries: a quotation is one unbroken run of the source
+  text, every search asks for the pinned releases' copies, an answer whose main point the corpus doesn't cover is short
+  and says so, each depth has one budget and one stop rule, an answer from a search with a backend down is marked
+  degraded, and an RFC's obsoleted-by chain is followed to its end. On an alpha.2 Workstation the skill still works;
+  the parts that need this release's tools say what to do when a reply lacks them.
+- Ask gives each agent its own skill, with the rules every default answer follows first and the exam blueprint last,
+  and nothing left out. Codex now gets its own skill once per conversation; before, it got the Claude Code skill twice
+  in every turn.
+- An Ask conversation keeps its context for 15 minutes between questions, where it was 60 seconds (still 60 while
+  another conversation waits for the relay), and the agent sees the earlier questions and answers marked as such.
+- `deep32 selftest` compares a labeled span with a hit the way `verify_quote` does. Before, 104 of its 107 spans could
+  never match an RFC's wrapped lines. It still has no signed reference values, so it can't score a run yet.
+- The Linux getter installs a Forge with the core and the card's embedder, about 21.7 to 21.9 GB, and adds the
+  15.3 GB ingestion image only with `--ingestion`. The Windows getter still includes it.
+- On Linux, the Forge's images load into Docker Engine's default containerd image store as well as the classic store.
+  Docker Desktop still needs the classic store.
+
+**Fixed**
+
+- The Forge's pairing helper runs on the installer's own Python, so a host whose system Python is missing or old, such
+  as Unraid, can pair.
+- Revoking a Workstation on the Forge with `deep32-pair unpair` no longer leaves the Forge unable to restart.
+- The VM commands that `deep32-get --prepare-vm` writes make a 200 GB disk.
+- The installer's second space check counts the joined copy of the images that is already on disk, so the joined copy
+  no longer has to be free on top of the budget.
+- A Forge install that is missing settings lists all of them at once, before it reads the media.
+- The Forge's prerequisite check confirms that containerd is running.
+- `deep32-setup.sh forge` uses the one-host KVM layout's journey (J4) when the Workstation VM is on the same host.
+- `deep32-setup.sh` no longer counts a Tailscale sign-in it has just completed as a problem.
+- The terminal hints of `d32-link` and the gateway's publication tool give full command paths.
+- `d32upd` names a disc 2 download that holds its lock, instead of "another d32upd is running (pid 1)".
+- The Library's progress line in First Start labels its two measures.
+- Two agent messages in one Ask answer no longer run together; each starts a new paragraph.
+- An Ask answer no longer fails with `native-output-limit` on text the agent wrote that never reaches the window, and
+  a tool call over the turn's limits gets a result that says what to do.
+- The Workstation image's `/etc/rc.local` comes from the published source.
+- The release-tools test that was left out below Python 3.14 runs again, and a test imports every diagnostics module.
+
+**Security**
+
+- The token between the Workstation's gateway and engine moved out of their environment files into a protected file
+  for each service, so it can be replaced like every other credential.
+- The five low-severity defects the fuzz targets found in the Library's JSON, WAVE and RFC text readers are fixed
+  ([fuzzing page, section 5](tests/fuzz/README.md#5-findings)), and so are three of the four Ruff and Bandit findings
+  worth a change. The fourth is in the PDF converter, whose image isn't rebuilt in this release.
+- Pins moved to fixed versions: opentelemetry-api 1.45.2 and certifi 2026.10.23 on the Workstation, and aiohttp
+  3.14.5, certifi 2026.10.23 and filelock 4.2.10 in the index builder. setuptools stays at 81.0.0 in the builder,
+  because torch 2.11.0 requires a version below 82. The [OpenVEX document](docs/security/README.md) covers this
+  release's pins.
+
+**Moving from 0.1.0-alpha.2**
+
+Both the Workstation and the Forge have new images, so follow Procedure 1 in [Upgrading](docs/UPGRADING.md#33-when-the-workstation-changes):
+check out `v0.1.0-alpha.3` on each machine, install the Forge again into an empty data folder, install the new
+Workstation from disc 1 and import disc 2 (the alpha.2 content image you already have works), pair the Forge, publish
+the gateway, connect each agent into a new profile, and install the Ask relay again under a new install ID. Connect
+installs this release's research skill, and the relay carries its own copy of the skill, so reinstalling both is also
+how they get this release's skill.
+
+**Known issues**
+
+- The guided installer prints a status line between asking a question and asking it again. A key typed in that
+  moment can be lost, and in my lab runs the installer twice stopped reading keys after it. If it stops responding,
+  restart the VM: the installer starts over. Answer each question once it is the last line on the screen.
+- The disc 2 import still copies the Library into the Library partition before it installs it, so the Workstation
+  needs a disk of 200 GB or more. On a smaller disk the knowledge base still goes into use, and the Library stops with
+  IMPORT_SPACE before any of it is copied.
+- The GPU pack's images are still stored uncompressed, so a Forge with ingestion downloads about 37 GB instead of about
+  26.5 GB, and the installer's space check still reserves room for unpacking at a factor set for compressed archives.
+- At boot the Workstation lists `kiwix_serve(failed)` among its services until disc 2 is imported.
+- Behind a router whose DNS strips DNSSEC signatures from some answers, the Workstation's validating resolver can
+  refuse the name that Let's Encrypt's service resolves to, and publishing the gateway fails with exit 14.
+- A Forge in a WSL 2 distro shares the network stack of every other distro in that WSL VM. If another Docker engine
+  there sets its `FORWARD` policy to `DROP`, traffic between the Forge's containers is dropped and its door reports
+  unhealthy. Run one Docker engine per WSL VM, or add `DOCKER-USER` accept rules for the Forge's bridges.
+- A Linux host whose containerd root was moved in `/etc/containerd/config.toml` is measured on the wrong filesystem by
+  the space check. Docker Desktop's containerd store isn't supported yet.
+- The Ask window has no password of its own. In it the relay on the paired PC picks the engine, so the window can't
+  switch the engine for each conversation or sign in to Codex. [SECURITY.md section 5](.github/SECURITY.md#5-known-limitations)
+  says who can use Ask.
+- Stop the Ask relay service before pairing (`systemctl --user stop 'deep32-relay-<id>'` on Linux), then start it
+  again afterwards. Publish the gateway before pairing the relay. Unpublishing it stops Ask until you publish again.
+  To pair a different relay, remove the old one first (`/usr/local/d32/sbin/d32-chatctl unpair work`).
+- If the Forge's five-minute pairing window closes before you pair, its services keep running but it records itself
+  as stopped; start it again to open a new window.
+- `deep32 doctor` doesn't read the install record, so it always reports the installation check as failed, and
+  `deep32 selftest` has no signed reference values. `deep32-setup.sh` checks an install meanwhile.
+- The Workstation offers only machines whose Tailscale name starts with `deep32-` and that are in its own tailnet, for
+  both the Forge and the Ask relay.
+- Adding ingestion to a Forge installed without it means installing again into a new data folder with `--ingestion`.
+- The repository doesn't pass the REUSE check yet: the license texts are still in `licenses/`.
+- Deep32 has one maintainer, and I review every change myself.
+
+**Moved to 0.1.0-alpha.4**
+
+These were promised for alpha.3, in alpha.2's notes or on the roadmap. I kept this release to fixes I could make and
+test quickly, and each of these needs more than that.
+
+- From alpha.2's notes: staging the Library copy where there is more room, storing the GPU pack's images compressed
+  with the space factor corrected, a working `deep32 doctor` and `deep32 selftest`, the license texts moved to
+  `LICENSES/` for the REUSE check, and changes reaching the main branch through pull requests.
+- From the roadmap's alpha.3 section: the HTTPS API beside MCP, headend pairing on the console, PDFium in the PDF
+  converter, a setup wizard on the Workstation, one installer on the PC, relay pairing without service steps,
+  reinstall-aware pairing, exact model choice in Ask, the `kiwix_serve` boot message, coding standards checked in CI,
+  the C build changes, the Workstation's C tests, every image built twice, license headers, and the decision on the
+  artwork's license.
+- The PDF converter's NOTICE file and its fix for invisible characters, which need the converter image rebuilt.
+
 ## 0.1.0-alpha.2 · 20 November 2026
 
 The first release whose Workstation installs from its image and joins your own tailnet, and whose parts pair with each

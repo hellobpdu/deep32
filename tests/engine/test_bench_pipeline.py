@@ -64,7 +64,7 @@ class RunBenchTests(PipelineCase):
     def test_the_phases_and_their_summaries_with_the_gate(self):
         report, reranker = self.run_bench(SERVING_ON)
         c1 = report["phases"]["c1"]["summary"]["/v2/search"]
-        self.assertEqual((c1["calls"], c1["ok"], c1["errors"], c1["degraded"], c1["unreranked"]), (4, 4, 0, 0, 0))
+        self.assertEqual((c1["calls"], c1["ok"], c1["errors"], c1["degraded"], c1["unreranked"]), (4, 4, 0, 4, 0))    # every answer says "dense": the tiny root has no dense retriever
         self.assertLess(c1["rerank_wait_ms"]["max"], 5.0)            # one at a time: nobody ahead
         burst = report["phases"]["burst"]["summary"]
         self.assertEqual(set(burst), {"/v2/search", "/v2/search_many", "/v2/grep"})
@@ -72,7 +72,7 @@ class RunBenchTests(PipelineCase):
                           burst["/v2/grep"]["calls"]), (2 * 3, 2 * 2, 2 * 2))
         for route in ("/v2/search", "/v2/search_many"):
             s = burst[route]
-            self.assertEqual((s["errors"], s["http_503"], s["degraded"], s["unreranked"]), (0, 0, 0, 0), route)
+            self.assertEqual((s["errors"], s["http_503"], s["degraded_by_kind"], s["unreranked"]), (0, 0, {"dense": s["ok"]}, 0), route)
             self.assertEqual(s["rerank_wait_ms"]["n"], s["ok"])
         self.assertEqual(burst["/v2/grep"]["truncated"], 0)
         self.assertNotIn("rerank_wait_ms", burst["/v2/grep"])
@@ -140,7 +140,7 @@ class RunBenchTests(PipelineCase):
         report = bench.run_bench(ClientHttp(root.client), QUERIES, c1=2, bursts=1, burst=1, per_many=2,
                                  searches=0, greps=[])
         c1 = report["phases"]["c1"]["summary"]["/v2/search"]
-        self.assertEqual((c1["degraded"], c1["degraded_by_kind"], c1["unreranked"]), (2, {"reranker": 2}, 2))
+        self.assertEqual((c1["degraded"], c1["degraded_by_kind"], c1["unreranked"]), (2, {"dense": 2, "reranker": 2}, 2))
 
 
 class HelperTests(unittest.TestCase):

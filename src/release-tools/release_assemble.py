@@ -132,8 +132,8 @@ def assemble(args):
     selected_format = getattr(args, "format", None)
     if selected_format == "whole" or (selected_format is None and args.version != "0.1.0-alpha.1"):
         return assemble_whole(args)
-    if args.version == "0.1.0-alpha.2":
-        raise Refusal("Alpha.2 requires whole-image assembly")
+    if args.version in ("0.1.0-alpha.2", "0.1.0-alpha.3"):
+        raise Refusal("Alpha.2 and later require whole-image assembly")
     for value in (args.version, args.arch):
         if not IDENTIFIER.fullmatch(value) or ".." in value:
             raise Refusal("Version and architecture must be safe identifiers")
@@ -354,8 +354,8 @@ def assemble_whole(args):
     canonical, load_contract = contracts.canonical, contracts.load_contract
     safe_path, strict_load = contracts.safe_path, contracts.strict_load
     validate_contract = contracts.validate_contract
-    if args.version != "0.1.0-alpha.2" or args.arch != "amd64":
-        raise Refusal("Whole assembly requires the frozen alpha.2 amd64 contract")
+    if args.version != "0.1.0-alpha.3" or args.arch != "amd64":
+        raise Refusal("Whole assembly requires the frozen 0.1.0-alpha.3 amd64 contract")
     if args.pending or not args.mirrors_input or not args.metadata_list:
         raise Refusal("Whole assembly needs all three producers, mirrors and a metadata list")
     mirrors = load_contract("mirrors", plain_path(args.mirrors_input))

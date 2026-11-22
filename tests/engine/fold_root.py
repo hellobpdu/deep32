@@ -133,6 +133,34 @@ def masked(content: bytes) -> str:
     return _TIMINGS.sub(lambda m: _NUMBER.sub(":0", m.group(0)), text)
 
 
+# What 0.1.0-alpha.3 adds to a search answer whatever the settings: "platform" and "reranked" on every hit (a deep
+# hit carried "reranked" before), "degraded_detail" on search_many, and in "degraded" the backends a root is
+# configured without. This fixture root has no dense retriever and no reranker, so its alpha.2
+# answers named "dense" only for a query sent with mode dense, and "reranker" only for rerank "on" with nothing to
+# rerank with (REQUESTS has no such shape: its rerank "on" shapes run behind WordReranker).
+ADDED_HIT_KEYS = ("platform", "reranked")
+ADDED_BODY_KEYS = ("degraded_detail",)
+
+
+def alpha2_form(content, request) -> str:
+    """A search or search_many answer of this fixture root (the response's bytes, or its masked text) as
+    0.1.0-alpha.2 sent it, timing values masked: what alpha.3 adds is taken out again and every other byte is kept,
+    so the bodies pinned from 4f4fe78 and 6afc29b stay the reference. `request`: the body that was sent."""
+    body = json.loads(masked(content) if isinstance(content, bytes) else content)
+    for key in ADDED_BODY_KEYS:
+        body.pop(key, None)
+    queries = request["queries"] if "queries" in request else [request]
+    added = set() if any(q.get("mode", "hybrid") == "dense" for q in queries) else {"dense"}
+    if request.get("rerank", "auto") == "auto":
+        added.add("reranker")
+    body["degraded"] = [name for name in body["degraded"] if name not in added]
+    for hit in body["hits"]:
+        for key in ADDED_HIT_KEYS:
+            if key != "reranked" or not request.get("deep"):       # a deep hit carried "reranked" before
+                hit.pop(key, None)
+    return json.dumps(body, ensure_ascii=False, allow_nan=False, indent=None, separators=(",", ":"))
+
+
 def post(client, path, body, rerank=False):
     """One request; with rerank, behind WordReranker (no boost) as the root's reranker. The raw response."""
     orch = client.app.state.orchestrator
@@ -143,13 +171,13 @@ def post(client, path, body, rerank=False):
 
 
 def capture(client) -> dict[str, str]:
-    """Every REQUESTS shape on a RootClient(prepare=prepare)'s client: {name: masked body}."""
+    """Every REQUESTS shape on a RootClient(prepare=prepare)'s client: {name: masked body in its alpha.2 form}."""
     out = {}
     for name, (path, body, rerank) in REQUESTS.items():
         r = post(client, path, body, rerank)
         if r.status_code != 200:
             raise AssertionError(f"{name}: {r.status_code} {r.text}")
-        out[name] = masked(r.content)
+        out[name] = alpha2_form(r.content, body)
     return out
 
 

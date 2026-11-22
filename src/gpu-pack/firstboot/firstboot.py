@@ -226,7 +226,10 @@ def pair(status, form, data, token, public):
     try:
         status.update('pairing', 'waiting', pair=code, pair_with='workstation', expires=300,
                       msg='Pair from the Workstation within five minutes, then resume the same installation if it expires')
-        process = subprocess.Popen([str(HELPER), 'pair-forge'], stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        # The interpreter running this lifecycle (3.12 or newer for the Docker form, the guest's own for WSL), not
+        # the helper's #!/usr/bin/python3: appliance hosts have no usable system Python.
+        process = subprocess.Popen([sys.executable, '-I', '-B', str(HELPER), 'pair-forge'], stdin=subprocess.PIPE,
+                                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         process.stdin.write((json.dumps(request) + '\n').encode('ascii'))
         process.stdin.close()
         deadline = time.monotonic() + 300

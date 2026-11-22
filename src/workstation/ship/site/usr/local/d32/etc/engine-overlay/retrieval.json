@@ -1,0 +1,14 @@
+{
+  "evidence": {
+    "tier1_chars": 3200,
+    "covered_titles": true,
+    "table_context": true
+  },
+  "verify": {
+    "ellipsis": "bounded",
+    "max_gap_chars": 300
+  },
+  "search_many": {
+    "rerank_isolation": true
+  }
+}

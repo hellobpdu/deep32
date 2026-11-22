@@ -97,6 +97,10 @@ class Unchanged242Test(ToolCase):
                 compared += 1
         self.assertEqual(compared, 3200)
 
+    # WP-C (alpha.3): parameters added to tools other than the searches; each is pinned by its own test module
+    ADDED = {"get_section": ("around",), "list_documents": ("prefix", "release", "platform"), "lookup_id": ("kind",),
+             "verify_quote": ("quotes",)}
+
     async def test_the_schema_adds_only_deep(self):
         self.serve({})
         new = {t.name: t.input_schema for t in await self.mcp.list_tools()}
@@ -108,6 +112,10 @@ class Unchanged242Test(ToolCase):
                 deep = props.pop("deep")
                 self.assertEqual((deep["type"], deep["default"]), ("boolean", False))
                 props.pop("prefer_release")   # round B merge: relpref's property, pinned by test_prefer_release
+            if name == "verify_quote" and "quotes" in props:
+                continue                      # ref and quote became optional (WP-C C5): test_verify_many pins it
+            for added in self.ADDED.get(name, ()):
+                props.pop(added, None)        # absent on the builder's lab copy (gateway_target.ALPHA3_ONLY)
             self.assertEqual({**new[name], "properties": props}, old[name], name)
 
 

@@ -210,7 +210,7 @@ def main():
 
     case, _ = run('default-online', ['disc2', '--to', '{case}/synthetic destination'])
     forwarded = json.loads((case / 'helper-args.json').read_bytes())
-    check(forwarded[forwarded.index('--release') + 1] == 'v0.1.0-alpha.2', 'default release')
+    check(forwarded[forwarded.index('--release') + 1] == 'v0.1.0-alpha.3', 'default release')
     check(forwarded[forwarded.index('--to') + 1] == str(case / 'synthetic destination'), 'literal destination')
     check(not list(case.rglob('*.response')) and not list(case.rglob('*.joining')) and
           not list(case.rglob('*.download')), 'wrapper owns no payload temporaries')

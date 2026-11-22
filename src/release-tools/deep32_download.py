@@ -1159,7 +1159,7 @@ def join(core, embedder, ingestion, gpu_class, output, data_root):
     """Validate all component contents, then derive or verify the joined cache."""
     if gpu_class not in GPU_CLASSES:
         raise ValueError('Select a supported Disc 3 GPU class.')
-    mounts = [plain_directory(path) for path in (core, embedder, ingestion)]
+    mounts = [plain_directory(path) for path in (core, embedder, ingestion) if path is not None]
     output = plain_directory(output, missing=True)
     plain_directory(output.parent)
     data_root = plain_directory(data_root, missing=True)
@@ -1172,8 +1172,10 @@ def join(core, embedder, ingestion, gpu_class, output, data_root):
     parts = [
         component(mounts[0], 'core', None, ['door', 'reranker']),
         component(mounts[1], 'embedder', gpu_class, ['tei-' + gpu_class]),
-        component(mounts[2], 'ingestion', None, ['builder', 'converter', 'qdrant']),
     ]
+    # The ingestion add-on is optional on the Linux getter (--ingestion); the Windows getter always joins it.
+    if ingestion is not None:
+        parts.append(component(mounts[2], 'ingestion', None, ['builder', 'converter', 'qdrant']))
     files, metadata, index = join_metadata(parts, gpu_class)
     if output.exists():
         verify_sources(parts)
@@ -1396,8 +1398,9 @@ def join_windows_iso(core, embedder, ingestion, gpu_class, output, data_root, wo
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
-    for name in ('core', 'embedder', 'ingestion', 'output', 'data-root'):
+    for name in ('core', 'embedder', 'output', 'data-root'):
         parser.add_argument('--' + name, required=True, type=Path)
+    parser.add_argument('--ingestion', type=Path)
     parser.add_argument('--gpu-class', choices=GPU_CLASSES, required=True)
     parser.add_argument('--windows-workspace', type=Path)
     parser.add_argument('--bsdtar', type=Path)
@@ -1407,6 +1410,8 @@ def main():
         if args.windows_workspace is not None or args.bsdtar is not None:
             if os.name != 'nt' or args.windows_workspace is None or args.bsdtar is None:
                 raise ValueError('Raw Disc 3 ISO reading is available only from the native Windows getter.')
+            if args.ingestion is None:
+                raise ValueError('The Windows getter installs the Forge with the ingestion add-on.')
             join_windows_iso(*values, args.windows_workspace, args.bsdtar)
         else:
             join(*values)

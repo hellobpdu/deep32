@@ -388,7 +388,7 @@ class SinglePassImport(_Harness):
         self.assertIn(READY, self.messages)
         self.assertEqual(self.messages[-2:], ['disc 2 0.1.0-alpha.2 imported', 'ready'])
         self.assertTrue([m for m in self.messages if re.fullmatch(
-            r'the knowledge base is ready; Library [0-9]+ %: [0-9] of 7 files checked \(0 of 1 MB\), [0-3] of 3 '
+            r'the knowledge base is ready; Library [0-9]+ % overall: [0-9] of 7 files checked, 0 of 1 MB copied, [0-3] of 3 '
             r'packs installed(, about [0-9]+ min left)?', m)])
 
     def test_usb_stick_with_the_disc_2_image_imports_like_the_disc(self):
@@ -949,6 +949,11 @@ class SinglePassImport(_Harness):
                       left='99 h 59 min')
         for key in imp_files.STATUS:
             self.assertLessEqual(len(strings.get(key, **widest)), 240, key)
+        # The percent is of the whole Library stage; the megabytes are the copy alone (backlog B37).
+        for key in ('c6.import.library.pct', 'c6.import.library.eta'):
+            line = strings.get(key, **widest)
+            self.assertIn('% overall', line)
+            self.assertIn('MB copied', line)
         broken = imp_c6.Strings()
         broken.rows['c6.import.library.eta'] = broken.rows['c6.import.library.eta'] + ' {unknown}'
         with self.assertRaises(ValueError):

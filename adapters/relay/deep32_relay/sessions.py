@@ -57,6 +57,9 @@ class Session:
     close_requested: bool = False
     model: str = ""
     effort: str = ""
+    message_start: int = 0          # where the agent's latest message begins in delta_text
+    break_pending: bool = False     # that message's first text gets a paragraph break before it
+    check_state: str = "off"        # this turn's answer check: off, done or failed
 
 
 class Supervisor:
@@ -69,15 +72,25 @@ class Supervisor:
     """
     def __init__(self, agent, gateway, emit, scratch_factory, *, clock=time.monotonic,
                  turn_limit=3600, queue_limit=2, queue_wait=30, idle_limit=60,
-                 lifetime=3600, on_close=None):
+                 lifetime=3600, on_close=None, on_turn=None, checks="off", on_answer=None):
+        # An idle conversation may be kept for up to 15 minutes (the service passes DEEP32_RELAY_IDLE_SECONDS,
+        # settings.py); the default here stays the 60 seconds every earlier release had.
         if (not 0 < turn_limit <= 3600 or not 0 <= queue_limit <= 2 or
-            not 0 < queue_wait <= 30 or not 0 < idle_limit <= 60 or not 0 < lifetime <= 3600):
+            not 0 < queue_wait <= 30 or not 0 < idle_limit <= 900 or not 0 < lifetime <= 3600
+                or checks not in ("footer", "off")):
             raise SessionError("invalid-policy")
+        # "footer": every finished answer is checked by answer_check.py and its footer is shown after the answer.
+        self.checks = checks
+        # on_answer(turn) writes the optional answer record (record.py): what answered, on what, and the counts.
+        self.on_answer = on_answer
+        self.capture = checks == "footer" or on_answer is not None      # keep each turn's tool calls for them
         self.agent, self.gateway, self.emit, self.scratch_factory = agent, gateway, emit, scratch_factory
         self.clock = clock
         self.lock = threading.RLock()
         self.accepting = True
         self.on_close = on_close or (lambda stream: None)
+        # on_turn(numbers) is told how each turn ended: counts for the service's log, never text.
+        self.on_turn = on_turn or (lambda numbers: None)
         self.turn_limit, self.queue_limit, self.queue_wait = turn_limit, queue_limit, queue_wait
         self.idle_limit, self.lifetime = idle_limit, lifetime
         self.sessions = {}
@@ -88,6 +101,16 @@ class Supervisor:
         self.last_result = {"status": "none", "reason": "none", "usage_known": False}
         self.cleanup_failed = False
         self.last_stream = 0
+
+    @staticmethod
+    def _tell(hook, value):
+        """Call one of the service's hooks (the turn log, the answer record). A hook that fails never fails a
+        turn: the result only says whether it ran."""
+        try:
+            hook(value)
+            return True
+        except Exception:
+            return False
 
     def _event(self, s, op, **values):
         value = {"op": op, "session": s.ident, **values}
@@ -196,6 +219,7 @@ class Supervisor:
         s.answer_bytes, s.final_seen = 0, False
         s.delta_text = s.final_text = ""
         s.question, s.usage = text, None
+        s.message_start, s.break_pending, s.check_state = 0, False, "off"
         return s
 
     def start(self, stream, text, *, guard=None):
@@ -208,6 +232,7 @@ class Supervisor:
                     return
                 s.scratch = self.scratch_factory(s.ident)
                 s.capability = self.gateway.grant(s.ident, s.deadline)
+                s.capability.capture = self.capture
                 scratch, cap, epoch = s.scratch, s.capability, s.epoch
             # Native verification and spawn are outside the state lock. A
             # cancellation can revoke the capability immediately in either.
@@ -265,6 +290,11 @@ class Supervisor:
                 if not isinstance(text, str) or s.final_seen:
                     raise SessionError("invalid-agent-output")
                 text = "".join(c for c in text if c in "\n\t" or ord(c) >= 32 and not 127 <= ord(c) <= 159)
+                if op == "delta" and s.break_pending and text:
+                    # The first text of a further assistant message: a paragraph break goes out before it.
+                    gap = "" if s.delta_text.endswith("\n\n") else "\n" if s.delta_text.endswith("\n") else "\n\n"
+                    s.message_start, s.break_pending = len(s.delta_text) + len(gap), False
+                    text = gap + text
                 data = text.encode("utf-8")
                 s.answer_bytes += len(data)
                 if s.answer_bytes > MAX_ANSWER:
@@ -282,6 +312,11 @@ class Supervisor:
                 else:
                     for part in parts:
                         self._event(s, "agent.delta", text=part)
+            elif op == "break" and set(event) == {"type"}:
+                # A further assistant message begins (the agent spoke, called tools, speaks again).
+                if s.final_seen:
+                    raise SessionError("invalid-agent-output")
+                s.message_start, s.break_pending = len(s.delta_text), bool(s.delta_text)
             elif op == "completed" and set(event) == {"type", "usage"}:
                 if s.answer_bytes == 0:
                     raise SessionError("empty-output")
@@ -290,6 +325,7 @@ class Supervisor:
                     or any(type(v) is not int or v < 0 or v >= 2**63 for v in usage.values())):
                     raise SessionError("usage-unavailable")
                 s.usage = usage.copy()
+                self._after_answer(s)
                 self._finish(s, "completed", "none")
             else:
                 raise SessionError("invalid-agent-output")
@@ -297,6 +333,57 @@ class Supervisor:
             self._finish(s, "failed", "invalid-agent-output")
             return False
         return True
+
+    def _after_answer(self, s):
+        """The answer is complete and its tool calls are still at hand: check it by script and show the footer.
+
+        Never raises, never changes the answer, calls no model. The footer goes to the Ask window only: it is no
+        part of the answer the session remembers for a follow-up question.
+        """
+        if self.checks != "footer" and self.on_answer is None:
+            return
+        result = events = None
+        try:
+            from . import answer_check
+            with self.gateway.lock:
+                events = list(getattr(s.capability, "events", None) or ())
+            # Claude's final text is the answer. Codex has none: its answer is its last message.
+            answer = s.final_text if s.final_seen else (s.delta_text[s.message_start:] or s.delta_text)
+            result = answer_check.check(answer, events, question=s.question)
+            text = answer_check.footer(result)
+            s.check_state = "done" if text else "failed"
+            if text and self.checks == "footer":
+                self._footer(s, text)
+        except Exception:
+            s.check_state = "failed"
+        if self.on_answer is None:
+            return
+        try:
+            # The record gets what answered, the ids the tools returned and the check's counts: never any text.
+            from . import answer_check
+            describe = getattr(s.process, "describe", None)
+            about = dict(describe() if callable(describe) else {})
+            about.update(model_choice=s.model, effort_choice=s.effort)
+            turn = {"agent": about, "usage": dict(s.usage or {}),
+                    "index": answer_check.index(events or ()),
+                    "calls": answer_check.summarize(events or ()),
+                    "check": answer_check.redact(result) if isinstance(result, dict) else None}
+        except Exception:
+            turn = None         # a record that cannot be made never fails an answer
+        if turn is not None:
+            self._tell(self.on_answer, turn)
+
+    def _footer(self, s, text):
+        """Send the footer as answer text after everything the agent wrote. The Ask window shows streamed text and
+        ignores the final message once any streamed text came, so this is the one path it displays."""
+        text = "\n\n" + text + "\n"
+        text = "".join(c for c in text if c in "\n\t" or ord(c) >= 32 and not 127 <= ord(c) <= 159)
+        size = len(text.encode("utf-8"))
+        if s.answer_bytes + size > MAX_ANSWER:
+            return              # the answer used its whole bound: it goes out without the footer
+        s.answer_bytes += size
+        for start in range(0, len(text), 8192):
+            self._event(s, "agent.delta", text=text[start:start + 8192])
 
     @synchronised
     def _finish(self, s, status, reason):
@@ -315,6 +402,15 @@ class Supervisor:
             s.pending_end = (status, reason) if revoked else ("failed", "cleanup-failed")
             return
         clean = True
+        try:
+            # How the turn went, for the service's log: tool calls, refused calls, the agent's output bytes, time.
+            numbers = {"calls": int(getattr(s.capability, "calls", 0) or 0),
+                       "refused": int(getattr(s.capability, "refused", 0) or 0),
+                       "output_bytes": int(getattr(s.process, "output_bytes", 0) or 0),
+                       "seconds": max(0.0, self.clock() - (s.deadline - self.turn_limit)),
+                       "check": s.check_state}
+        except Exception:
+            numbers = {"calls": 0, "refused": 0, "output_bytes": 0, "seconds": 0.0, "check": "off"}
         if s.process is not None:
             try:
                 clean = s.process.cancel() is True
@@ -341,6 +437,7 @@ class Supervisor:
                     usage=s.usage or {"input_tokens": 0, "output_tokens": 0})
         self.last_result = {"status": status, "reason": reason, "usage_known": usage_known,
                             "model": s.model, "effort": s.effort}
+        self._tell(self.on_turn, dict(numbers, status=status, reason=reason))
         s.question = s.final_text = s.delta_text = ""
         s.capability = s.scratch = None
         s.state, s.idle_at = ("closing" if not clean else "idle"), self.clock()
@@ -391,7 +488,10 @@ class Supervisor:
                 self.close(stream, "session-timeout")
             elif s.state in ("verifying", "running") and now >= s.deadline:
                 self._finish(s, "failed", "turn-timeout")
-            elif s.state == "idle" and now - s.idle_at >= self.idle_limit:
+            elif s.state == "idle" and now - s.idle_at >= (min(self.idle_limit, 60) if self.queue
+                                                           else self.idle_limit):
+                # One session is admitted at a time. While another one waits, an idle session keeps the slot
+                # for a minute, as it always did; with nobody waiting it keeps its context for idle_limit.
                 self.close(stream, "idle-timeout")
             elif s.state == "running":
                 try:

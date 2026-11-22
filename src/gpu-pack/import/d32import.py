@@ -328,7 +328,6 @@ def _restore_report(ctx, old):
                                counts={key: kb[key] for key in ('documents', 'chunks', 'points')})
     imp_manifest.build_units(ctx)
     for unit in ctx.report.data['units']:
-        saved = old.get('units', {}).get(unit['id'], {})
         if unit['state'] != 'skipped':
             unit['state'] = 'kept' if ctx.p.node == 'forge' and unit['kind'] in ('kb', 'block') else 'installed'
             unit['parts_checked'] = unit['parts']

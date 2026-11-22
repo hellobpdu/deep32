@@ -175,6 +175,8 @@ lock() {
 		if [ $WINDOW = boot ] || [ -z "$lk_pid" ] || ! kill -0 "$lk_pid" 2>/dev/null; then
 			rm -rf $DB/.lock
 			mkdir $DB/.lock || die "cannot take the lock $DB/.lock"
+		elif [ "$(cat $DB/.lock/owner 2>/dev/null)" = d32-content-fetch ]; then
+			die "a disc 2 download is using the spare slot; import it, or remove it as root with /usr/local/d32/sbin/d32-content-fetch --cleanup"
 		else
 			die "another d32upd is running (pid $lk_pid)"
 		fi

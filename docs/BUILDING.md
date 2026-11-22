@@ -3,7 +3,7 @@
 How to run the test suites and the linters on a clone of this repository, and how the release images are made. It is
 for anyone who wants to change Deep32 or check my work.
 
-<sub>Applies to 0.1.0-alpha.2 · [1 What you need](#1-what-you-need) · [2 Tests](#2-running-the-tests) · [3 Lint and static analysis](#3-lint-and-static-analysis) · [4 Images](#4-building-the-images)</sub>
+<sub>Applies to 0.1.0-alpha.3 · [1 What you need](#1-what-you-need) · [2 Tests](#2-running-the-tests) · [3 Lint and static analysis](#3-lint-and-static-analysis) · [4 Images](#4-building-the-images)</sub>
 
 ## 1. What you need
 
@@ -257,7 +257,9 @@ leaves out only the second, which is planned for the next release:
   at the same import. The module now postpones the evaluation of its annotations, and both tests run again.
 - `Helpers.test_split_backing_filesystems_are_budgeted_separately` in `tests/release-tools/test_phase_a_helpers.py`:
   before Python 3.14 `Path.lstat` goes through `Path.stat`, which the test replaces with a stat result that has no
-  `st_file_attributes`, and `src/release-tools/deep32_get_manifest.py` line 62 doesn't accept that.
+  `st_file_attributes`, and `src/release-tools/deep32_get_manifest.py` line 62 doesn't accept that. In 0.1.0-alpha.3
+  the test's stat result carries the attribute a real one has, so the runner leaves out nothing on Python 3.12 and
+  3.13, and a test imports every module of `deep32_diag`.
 
 The one failure in the first run was `pairing/reference`: an end-to-end pairing test got a connection error where
 it expected the peer's refusal, while both runs were sharing the processor. The suite passed in the second run and
@@ -330,8 +332,8 @@ python -m venv "$env:LOCALAPPDATA\d32lint"
 
 Both commands pass only when there is nothing new. `ruff.toml` names the rule set: syntax errors, Pyflakes, Pylint's
 error checks and flake8-bugbear. It ignores four bugbear rules whose findings in this tree have no effect on behavior,
-leaves the existing findings in `src/gpu-pack` and `src/workstation` alone until the next release, because the images
-are built from those files, and lists the remaining reviewed findings file by file. `bandit-baseline.json` holds the
+leaves the existing findings in `src/gpu-pack` and `src/workstation` alone until a release that rebuilds the images
+fixes them, because the images are built from those files, and lists the remaining reviewed findings file by file. `bandit-baseline.json` holds the
 reviewed Bandit findings, and `-b` reports only findings that aren't in it. Its paths are written the way Bandit
 prints them on Linux and macOS, so on Windows run Bandit without `-b` and compare by hand, or use `make lint`, which
 gives Bandit a copy of the baseline with Windows paths. Please don't run
@@ -344,9 +346,10 @@ The recorded run for 0.1.0-alpha.2, on 19 November 2026 with Ruff 0.17.5 and Ban
 | Ruff | 670 | 41 outside the image source | 29 unused imports, 6 unused variables and 6 style findings. None is a defect |
 | Bandit | 485 | 185: 4 high, 100 medium, 81 low | Every high and medium finding reviewed. None is an exploitable vulnerability: SHA-1 appears only where OpenPGP v4 fingerprints and git blob IDs require it, SQL is built from constant or catalog names with values passed as parameters, and the services that listen on all interfaces do so inside their containers |
 
-Four findings are worth a change at the next release: a bidirectional control character and a zero-width space
-written raw in a converter string, inconsistent quoting of SQL identifiers in the knowledge-base bundle checker, an
-unused value in the importer, and a shadowed exception class in the Workstation's forwarder to the Forge. CodeQL also
+Four findings were worth a change: a bidirectional control character and a zero-width space written raw in a
+converter string, inconsistent quoting of SQL identifiers in the knowledge-base bundle checker, an unused value in the
+importer, and a shadowed exception class in the Workstation's forwarder to the Forge. 0.1.0-alpha.3 fixes the last
+three; the converter string waits for a release that rebuilds the converter image (0.1.0-alpha.4). CodeQL also
 analyzes the Python and C code on every push (section 2.5). The shell and PowerShell scripts have no linter run
 recorded for this release.
 

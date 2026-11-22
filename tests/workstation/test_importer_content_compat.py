@@ -28,8 +28,8 @@ import imp_switch
 import imp_units
 
 FINGERPRINT = '0123456789ABCDEF0123456789ABCDEF01234567'
-SYSTEM = '0.1.0-alpha.2'
-COMPATIBLE = '0.1.0-alpha.1'
+SYSTEM = '0.1.0-alpha.3'
+COMPATIBLE = '0.1.0-alpha.2'
 SHIPPED_COMPATIBILITY = ROOT / 'src/workstation/distrib/site/etc/d32/content-compatible-versions'
 
 
@@ -188,12 +188,18 @@ class ContentCompatibility(unittest.TestCase):
         self.assertEqual(ctx.report.unit('lib-cisco')['state'], 'installed')
         self.assertEqual((ctx.p.cr / ctx.desired[0]['target'] / 'MANIFEST.tsv').read_bytes(), b'inner\n')
 
-    def test_alpha2_system_imports_alpha1_content(self):
+    def test_alpha3_system_imports_alpha2_content(self):
         ctx = self.install(self.context())
         self.assertEqual(ctx.report.unit('lib-cisco')['state'], 'installed')
         self.assertEqual((ctx.p.cr / ctx.desired[0]['target'] / 'paper.txt').read_bytes(), b'TEST\n')
         self.assertEqual(ctx.registry.active['pointers'], {})
         self.assertFalse((ctx.p.cr / 'cisco').exists())
+
+    def test_alpha1_content_is_no_longer_accepted(self):
+        # alpha.1's images are withdrawn; the shipped list names only alpha.2 (lead ruling I-B2).
+        with self.assertRaises(imp_fs.ImportFailure) as failed:
+            imp_manifest.run_signature(self.context(accepts=('0.1.0-alpha.1',)))
+        self.assertEqual(failed.exception.code, 'IMPORT_WRONG_SYSTEM')
 
     def test_own_system_version_still_imports(self):
         ctx = self.install(self.context(accepts=(SYSTEM,)))
@@ -211,7 +217,7 @@ class ContentCompatibility(unittest.TestCase):
         self.assertEqual(failed.exception.code, 'IMPORT_WRONG_SYSTEM')
 
     def test_malformed_compatibility_list_grants_no_extra_version(self):
-        for data in (b'0.1.0-alpha.1\ninvalid version\n', b'\xff\n', b'x' * 4097):
+        for data in (b'0.1.0-alpha.2\ninvalid version\n', b'\xff\n', b'x' * 4097):
             with self.subTest(data_size=len(data)):
                 imp_paths.workstation().content_compatible_versions.write_bytes(data)
                 with self.assertRaises(imp_fs.ImportFailure) as failed:

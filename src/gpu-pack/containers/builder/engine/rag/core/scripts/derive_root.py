@@ -38,7 +38,10 @@ Steps, each safe to repeat with --resume; progress lines go to stdout:
                 retrieval.dense.hnsw_ef=256 (rag_core.retrievers.dense.DenseSearchSettings; unset: no search params,
                 /v2/status settings unchanged; scripts/ann_audit.py measures ANN against exact); identical-text
                 copies folded out of the hits into also_in, retrieval.fold_identical=true
-                (rag_core.api_v2.fold_identical; unset: the hits and /v2/status settings unchanged)
+                (rag_core.api_v2.fold_identical; unset: the hits and /v2/status settings unchanged); the top-tier
+                evidence window, retrieval.evidence.tier1_chars=3200 (rag_core.api_v2.evidence_tier1_chars); the
+                bounded check of a quotation with omissions, retrieval.verify.ellipsis=bounded
+                retrieval.verify.max_gap_chars=600 (rag_core.api_v2.VerifySettings)
   4. dense      a root that serves dense gets its OWN collection: every vector copied from <from>'s collection
                 through build_root's reuse path (fetched by point id per document, read-only; batched upserts), nothing
                 embedded. So pruning one generation's collection never breaks the other. The step then waits
@@ -100,9 +103,12 @@ if str(HERE) not in sys.path:
     sys.path.insert(0, str(HERE))
 
 import build_root as br  # noqa: E402  (scripts/build_root.py: guards, reuse path, report helpers)
-from rag_core.api_v2 import fold_identical, grep_settings, opt_in_doc_types, search_many_settings  # noqa: E402
+from rag_core.api_v2 import (  # noqa: E402
+    evidence_settings, fold_identical, grep_settings, opt_in_doc_types, search_many_settings, verify_settings,
+)
 from rag_core.config import OVERLAY_NAMES, load_config  # noqa: E402
 from rag_core.db import connect  # noqa: E402
+from rag_core.fusion import passage_class_demote  # noqa: E402
 from rag_core.dense import (  # noqa: E402
     DenseConfig,
     ensure_collection,
@@ -113,6 +119,7 @@ from rag_core.dense import (  # noqa: E402
 )
 from rag_core.paths import RAGPaths  # noqa: E402
 from rag_core.pipeline import pipeline_settings  # noqa: E402
+from rag_core.query_plan import technical_variant_settings  # noqa: E402
 from rag_core.rerank import Reranker  # noqa: E402
 from rag_core.retrievers.dense import dense_search_settings  # noqa: E402
 
@@ -260,6 +267,10 @@ def derived_config(source: dict[str, dict[str, Any]], generation: str, collectio
         opt_in_doc_types(config["retrieval"])               # and this
         grep_settings(config["retrieval"])                  # and this
         fold_identical(config["retrieval"])                 # and this
+        evidence_settings(config["retrieval"])              # and this
+        verify_settings(config["retrieval"])                # and this
+        technical_variant_settings(config["retrieval"])     # and the orchestrator this
+        passage_class_demote(config["retrieval"])           # and this
         dense_search_settings(config["retrieval"].get("dense"))     # and the orchestrator this
         serving = config["serving"]
         if "pipeline" in serving:                           # and the rerank gate, with the admission it runs with

@@ -700,6 +700,81 @@ def lookup(db: sqlite3.Connection, identifier: str) -> dict[str, Any]:
     return {"kind": results[0]["kind"] if results else "unknown", "results": results}
 
 
+# --- fact lookups (/v2/lookup?kind=) ------------------------------------------------------------------
+
+FACT_TABLES = {"feature": "feature", "history": "command_history", "default": "cmd_default",
+               "deprecation": "deprecation"}
+FACT_SUBJECT = {"feature": "feature", "history": "command", "default": "command", "deprecation": "subject"}
+FACT_FIELDS = {     # (row field, table column), after kind, doc_key, section_id, line, doc_release
+    "feature": (("feature", "feature"), ("release", "release"), ("info", "info")),
+    "history": (("command", "command"), ("change", "kind"), ("release", "release"), ("train", "train"),
+                ("modification", "modification")),
+    "default": (("command", "command"), ("parameter", "parameter"), ("default_value", "default_value"),
+                ("sentence", "sentence")),
+    "deprecation": (("subject", "subject"), ("replacement", "replacement"), ("release", "release"),
+                    ("sentence", "sentence")),
+}
+MAX_FACT_ROWS = 50
+# Kinds whose subject is a CLI command: a leading "no " (the command's negated form) is not part of the match
+# (LEAD-RULINGS E-op10), so "no timers bgp" finds the rows of "timers bgp".
+FACT_COMMAND_KINDS = frozenset({"history", "default"})
+
+
+def has_table(db: sqlite3.Connection, name: str) -> bool:
+    return db.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?", (name,)).fetchone() is not None
+
+
+def _fact_key(kind: str, text: str) -> str:
+    """The form a fact's subject and a lookup's identifier are compared in: norm(), and for a command kind without
+    a leading "no "."""
+    key = norm(text)
+    if kind in FACT_COMMAND_KINDS and key.startswith("no ") and len(key) > 3:
+        key = key[3:]
+    return key
+
+
+def _fact_row(kind: str, row: sqlite3.Row) -> dict[str, Any]:
+    out: dict[str, Any] = {"kind": kind, "doc_key": row["doc_key"], "section_id": row["section_id"],
+                           "line": row["line"], "doc_release": None}
+    for field, column in FACT_FIELDS[kind]:
+        out[field] = row[column]
+    return out
+
+
+def lookup_fact(db: sqlite3.Connection, kind: str, identifier: str, limit: int = MAX_FACT_ROWS) -> dict[str, Any]:
+    """/v2/lookup?kind= (WP-C C6, WP-E E4): the rows of one fact table for an identifier that is a section id
+    (contains "#"), a doc_key with rows in the table, or else text matched as a substring of the kind's subject
+    after norm() on both sides. Text matches come exact first, then those the identifier starts, then the rest,
+    each group in document order, so the cap of `limit` rows never cuts an exact match (LEAD-RULINGS E-op10).
+    A knowledge base without the kind's table answers degraded ["kb"]; doc_release is filled by the route."""
+    table, subject = FACT_TABLES[kind], FACT_SUBJECT[kind]
+    if not has_table(db, table):
+        return {"kind": kind, "results": [], "degraded": ["kb"]}
+    ident = identifier.strip()
+    order = "ORDER BY doc_key, line, id"
+    if "#" in ident:
+        rows = db.execute(f"SELECT * FROM {table} WHERE section_id = ? {order} LIMIT ?",                          (ident, limit + 1)).fetchall()
+    elif db.execute(f"SELECT 1 FROM {table} WHERE doc_key = ? LIMIT 1", (ident,)).fetchone():        rows = db.execute(f"SELECT * FROM {table} WHERE doc_key = ? {order} LIMIT ?",                          (ident, limit + 1)).fetchall()
+    else:
+        q = _fact_key(kind, ident)
+        words = sorted({w for w in re.split(r"[\s_-]+", q) if w})
+        if not words:
+            return {"kind": kind, "results": [], "truncated": False}
+        where = " AND ".join(f"{subject} LIKE ? ESCAPE '\\'" for _ in words)
+        exact: list[sqlite3.Row] = []
+        starts: list[sqlite3.Row] = []
+        within: list[sqlite3.Row] = []
+        for row in db.execute(f"SELECT * FROM {table} WHERE {where} {order}",                              [f"%{_like(w)}%" for w in words]):
+            if row[subject] is None:
+                continue
+            key = _fact_key(kind, row[subject])
+            if q not in key:
+                continue
+            (exact if key == q else starts if key.startswith(q) else within).append(row)
+        rows = exact + starts + within
+    return {"kind": kind, "results": [_fact_row(kind, r) for r in rows[:limit]], "truncated": len(rows) > limit}
+
+
 # --- build --------------------------------------------------------------------------------------
 
 def _read_only_uri(path: Path) -> str:

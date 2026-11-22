@@ -14,7 +14,7 @@ from .errors import DiagError, bounded
 from .runner import Budget, CommandOutput, CommandRequest, strict_json
 
 PIN = 'B205B406548627AABF5250D8A078C5F25D025DD6'
-RELEASE = '0.1.0-alpha.2'
+RELEASE = '0.1.0-alpha.3'
 SHA = re.compile(r'[0-9a-f]{64}\Z')
 ALIAS = re.compile(r'[a-z][a-z0-9-]{0,63}\Z')
 PAIRS = frozenset({('workstation', 'openbsd'), ('forge', 'linux'), ('forge', 'windows'),

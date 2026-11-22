@@ -604,6 +604,21 @@
       "requires_elevation": false
     },
     {
+      "id": "docker.containerd",
+      "scopes": [
+        "linux-gpu"
+      ],
+      "need": "Docker's container runtime, containerd, answers the Docker daemon",
+      "minimum_version": null,
+      "actions": {
+        "windows": "Use the native Linux Docker form.",
+        "linux": "sudo systemctl unmask containerd; sudo systemctl enable --now containerd; sudo systemctl restart docker",
+        "macos": "Complete the named vendor prerequisite and rerun this check."
+      },
+      "requires_reboot": false,
+      "requires_elevation": true
+    },
+    {
       "id": "docker.compose",
       "scopes": [
         "docker"

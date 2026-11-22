@@ -12,8 +12,16 @@ The Linux `linux_bridge.py` adapter fixes its only upstream to the authenticated
 and `9082` (reranking). Only the exact model POST route and `GET /d32/status`
 are accepted. No host port is published. `--check` succeeds only when both
 models are authenticated and their expected model/revision or golden probe
-matches. Configuration is non-secret JSON at `/etc/deep32/model-bridge.json`,
-schema `deep32.model-bridge.v1`, with flat `GPU_EXT_*` identity/probe fields.
+matches. With `GPU_EXT_PROBE_ALWAYS` set to `yes`, a matching revision is not
+enough: the short known-input probes run on every check, and the probe file's
+long ones (a 15-passage rerank and a long embedding input) also run at the
+first check after a start, whenever a model reports another identity, and
+until they pass. The image carries the probe file at
+`/opt/deep32/model-bridge/gpu-probes.json`, a copy of the Workstation's
+`/etc/d32/gpu-probes/rerank.json`; `record_gpu_probes.py` records its long
+probes on a Forge. Configuration is non-secret JSON at
+`/etc/deep32/model-bridge.json`, schema `deep32.model-bridge.v1`, with flat
+`GPU_EXT_*` identity/probe fields.
 There is no transport, endpoint or credential override in that configuration.
 The enclosing release verifier authenticates this file's signed pin metadata.
 

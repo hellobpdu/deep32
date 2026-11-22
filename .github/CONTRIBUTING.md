@@ -3,7 +3,7 @@
 How to ask a question, report a bug or a security problem, and send a change. I maintain Deep32 by myself, so it can
 take me a few days to answer, but I read everything that comes in.
 
-<sub>Applies to 0.1.0-alpha.2 · [1 Questions](#1-questions) · [2 Bug reports](#2-bug-reports) · [3 Security problems](#3-security-problems) · [4 Changes](#4-proposing-a-change) · [5 Licensing](#5-licensing-of-contributions) · [6 Conduct](#6-conduct)</sub>
+<sub>Applies to 0.1.0-alpha.3 · [1 Questions](#1-questions) · [2 Bug reports](#2-bug-reports) · [3 Security problems](#3-security-problems) · [4 Changes](#4-proposing-a-change) · [5 Licensing](#5-licensing-of-contributions) · [6 Conduct](#6-conduct)</sub>
 
 ## 1. Questions
 

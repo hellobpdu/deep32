@@ -1,11 +1,11 @@
 # Deep retrieval engine: wider, deeper rounds
 
 This file changes only **how much** SKILL.md section 2 retrieves, strictly from the knowledge base and with the same
-method: it replaces section 2's budget
-("about 8 to 15 tool calls") and its early stop ("once two independent sources agree"). Everything else stays as it
+method: it is the depth file that sets the budget and the stop rule for thorough, deep and insane. Everything else
+stays as it
 is: section 1 (the tool check), the rules of section 2 (identifiers, documents' terms, `find_command` at 17.9, whole
 sections, `lookup_rfc` standing, RFC vs Cisco, `verify_quote`, the `cite` attribute), section 3, `citation-style.md`,
-`expanded-answer.md` and the answer's shape (Evidence, then the analysis, then the `RAG:` line). It runs on the
+`expanded-answer.md` and the answer's shape (Evidence, then the analysis, then the Read line). It runs on the
 deep32 tools only: "not in corpus" where the documents are silent, never the web. The Claude twin of this skill
 runs the same rounds with parallel tool calls instead of the code-mode scripts below.
 
@@ -49,16 +49,17 @@ runs the same rounds with parallel tool calls instead of the code-mode scripts b
 | the question as asked | dense | why the ABR sets the forwarding address to 0.0.0.0 |
 | the mechanism, step by step | dense | how an NSSA ABR translates type-7 LSAs into type-5 |
 | defaults, prerequisites and restrictions | bm25 | `NSSA restrictions`, `nssa default`, `NSSA prerequisites` |
-| the governing RFC against the Cisco text (`docs`: the RFC and the Cisco doc_keys of the best hits) | bm25, dense | `forwarding address P-bit translation` |
+| the governing RFC against the Cisco text (`docs`: the RFC, the Cisco doc_keys blueprint.md names for the topic and those of the best hits; at most 20) | bm25, dense | `forwarding address P-bit translation` |
 | troubleshooting: show, debug and syslog output, error strings | bm25 | `show ip ospf database nssa-external` |
 | adjacent features and interactions | dense | NSSA with summarization and filtering at the ABR |
 | counter-evidence: not supported, exceptions, caveats | bm25 | `NSSA not supported` |
-| the guides' own headings (natural queries miss guide sections the outline reaches) | bm25, `docs`: the Cisco guides of the best hits | `Restrictions for <feature>`, `Information About <feature>`, `Prerequisites for <feature>`, `Feature History for <feature>` |
+| the guides' own headings (natural queries miss guide sections the outline reaches) | bm25, `docs`: the Cisco guides blueprint.md names for the topic and those of the best hits | `Restrictions for <feature>`, `Information About <feature>`, `Prerequisites for <feature>`, `Feature History for <feature>` |
 
 2. Batch them into 2 or 3 `search_many` calls of 3 to 6 queries each, grouped so one filter fits each call (the
-   RFC-vs-Cisco group with its `docs`; `release_max: "17.9"` where section 2 pins it). In the same
+   RFC-vs-Cisco group with its `docs`; `release_max: "17.9"` where section 2 pins it), every call with
+   `prefer_release` as SKILL.md section 2, step 4 says. In the same
    round: `lookup_id` for each identifier, `find_command` (release 17.9) for each command the question names,
-   `lookup_rfc` for the governing RFC, and `rag_status` if this thread has not called it yet. A `lookup_id` row from
+   `lookup_rfc` for the governing RFC, and `rag_status` at the start of each answer (SKILL.md section 1). A `lookup_id` row from
    an opt-in collection (`collections.md`) is opt-in material too: skip it unless the question is one `collections.md`
    covers.
    **`release_max` narrows; it never decides.** Use it only on a group whose Cisco doc_keys include a 17.9 book (`c9300-179-*`, `c9400-179-*`, `c9k-179-*`, `iosxe-179-*`), and send the same
@@ -85,7 +86,8 @@ From what round 1 read (the script's `leads:` list and your own reading), run ta
   pinned platform (`release_max: "17.9"` under section 1 step 2's rule: the same query unfiltered beside it, and
   unfiltered alone where no 17.9 book covers the area);
 - error strings and syslog messages: `grep_corpus` (with `docs` when you know the document);
-- each "no hit" sub-query: alone with `search_rag` and `docs` from the best hits so far;
+- each "no hit" sub-query: alone with `search_rag` and `docs` from blueprint.md's entry for the topic and the best
+  hits so far;
 - adjacent sections: a partial read continued, Restrictions and Defaults not read yet, the sibling a section refers
   to (`get_outline(doc, under=<chapter>)` finds them);
 - commands that `collections.md` names newer-version and differences pages for: the script's leads are Cisco-shaped,
@@ -103,7 +105,8 @@ From what round 1 read (the script's `leads:` list and your own reading), run ta
   Add them as your own `get_section` jobs here; one still open when the budget ends is read as a plain call
   before the quote script, outside the budget like a confirmation;
 - when no section read in round 1 has a heading that names the feature, start this round with
-  `get_outline(<the likeliest Cisco guide>, depth=1)`, then `get_outline(doc, under=<chapter>)` and the section
+  `get_outline(<the first Cisco guide blueprint.md names for the topic that fits the platform, else the likeliest
+  guide of the best hits>, depth=1)`, then `get_outline(doc, under=<chapter>)` and the section
   that names it, inside the round budget;
 - a call that came back with an error: the script did not mark it done, so the same call may run again.
 
@@ -167,8 +170,7 @@ shape; show it only when the user asks for it.
 One round per `exec`. Copy the script exactly and edit only `KEY`, `DEPTH`, `MODE` (section 8, Modes), `JOBS` (and
 `SEED_READ` in round 1).
 `store` and `load` keep the ledger between the rounds of this thread; a sub-agent has its own. A new question in the
-same thread gets a new `KEY`. A call is marked done only when it succeeds. The `RAG:` line counts the calls in the
-script's summary line plus the quote checks and any call made outside the scripts.
+same thread gets a new `KEY`. A call is marked done only when it succeeds.
 
 ```js
 // @exec: {"max_output_tokens": 30000}
@@ -192,8 +194,8 @@ const PLAN = {                 // per round (the last entry repeats): JOBS calls
   default: { rounds: 2, jobs: [8, 10], reads: [4, 3], near: [2, 1], limit: 16, chars: 500, read: 9000, deep32: true },
   deep: { rounds: Infinity, jobs: [12], reads: [4], near: [2], limit: 20, chars: 400, read: 9000, deep32: true },
 }[DEPTH];
-// deep32: an evidence search goes without limit, so gateway 2.4.3+ answers it with deep-32 (32
-// hits in three tiers); limit is then sent only once an edge without deep-32 answered untiered (L.flat), as before. A
+// deep32: an evidence search goes without limit, so a gateway with deep-32 answers it with 32
+// hits in three tiers; limit is then sent only once an edge without deep-32 answered untiered (L.flat), as before. A
 // job's own limit (a narrow lookup) is kept.
 // modes: the evidence-search limit of a default or deep round. "full" sends none (deep-32 above),
 // "half" 16 and "light" 8 plain hits. Round 1 fixes it for the question (the ledger keeps it); a job's own limit is
@@ -213,6 +215,8 @@ const CAND_SHARE = 0.2;
 // a folded copy at a release pin (as shipped: IOS XE 17.9, SD-WAN 20.9, Catalyst Center 2.3, ISE 3.1; change PIN with
 // the pins table of release-drift.md): its section is read and cited
 const PIN = /\[([^\]\s]+#[^\]\s]+)\] release (?:17\.9|20\.9|2\.3|3\.1)(?![0-9])/;
+// prefer_release on every search job (SKILL.md section 2, step 4): the pins as bare release numbers; change it with PIN
+const PREFER = ["17.9", "20.9", "2.3", "3.1"];
 const NEAR = /restriction|prerequisite|limitation|default|guideline|usage|caveat|feature-history|feature-information/i;
 const STOP = "a|an|the|that|this|these|those|how|what|which|why|when|where|whether|if|it|its|you|your|up|in|on|of|to"
   + "|for|as|is|are|be|by|and|or|with|then|from|only|any|some|more|no|not|command|commands|output|again|also";
@@ -335,10 +339,10 @@ async function round() {
       if (isSearch(j.tool)) {
         const lines = [], later = [];
         let fresh = 0, dup = 0, top = 0, hidden = 0, nHits = 0;
-        // gateway 2.4.2+: the copies the engine folded into hit n, on their own line after its </hit>
+        // folded copies: the copies the engine folded into hit n, on their own line after its </hit>
         //   "also in (same text as hit n): doc_key [section] release R; ..."
         const alsoIn = new Map([...t.matchAll(/^also in \(same text as hit (\d+)\): (.*)$/gm)].map(x => [Number(x[1]), x[2].trim()]));
-        // a deep answer (gateway 2.4.3+ without limit, or deep=true): a "tier T (hits a-b): ..." line before each
+        // a deep answer (no limit to a gateway with deep-32, or deep=true): a "tier T (hits a-b): ..." line before each
         // tier's first hit; tier 1 is the evidence, tiers 2 and 3 are candidates (placed by fit, after every tier 1)
         const tiers = [...t.matchAll(/^tier ([123]) \(hits (\d+)-(\d+)\)/gm)].map(x => [Number(x[1]), Number(x[2]), Number(x[3])]);
         const tierOf = n => (tiers.find(([, lo, hi]) => n >= lo && n <= hi) ?? [0])[0];
@@ -370,7 +374,7 @@ async function round() {
           x.last = top; x.noNew = top ? 0 : x.noNew + 1;
           if (x.noNew >= NO_NEW_STOP) x.closed = true;
         }
-        // a gateway without deep-32 (before 2.4.3) answers a search without limit untiered
+        // a gateway without deep-32 answers a search without limit untiered
         if (PLAN.deep32 && nHits && !tiers.length && j.args.limit === undefined && j.args.deep !== false) flat = true;
         const pq = (t.match(/^per query:.*$/m) ?? [""])[0];
         for (const q of pq.matchAll(/(?:^per query: |; )(\d+)(?: \(weight [^)]*\))? → no hit/g))
@@ -439,6 +443,7 @@ async function round() {
       if (!PLAN.deep32 || (evLimit === undefined && L.flat)) j.args.limit ??= PLAN.limit;
       else if (evLimit !== undefined) j.args.limit ??= evLimit;
       j.args.max_chars ??= PLAN.chars;
+      j.args.prefer_release ??= PREFER;
     }
     run.push(j);
   }
@@ -479,7 +484,7 @@ async function round() {
   const leadText = list("RFCs to lookup_rfc (standing, errata) and read where the Cisco text maps to them", leads.rfc)
     + list("commands to confirm with find_command (release 17.9)", leads.cmd)
     + list("messages to grep_corpus", leads.msg)
-    + list('"no hit" queries: send each alone with search_rag (docs= the doc_keys of the best hits)', leads.noHit.filter(Boolean))
+    + list('"no hit" queries: send each alone with search_rag (docs= the doc_keys blueprint.md names for the topic and those of the best hits)', leads.noHit.filter(Boolean))
     + list("partial sections to continue", leads.partial)
     + list("Restrictions/Defaults sections not read yet", leads.near)
     + list("sections hit only in tier 3 (unranked snippets): read the 1 to 3 that matter as your own get_section jobs", tier3);
@@ -542,7 +547,7 @@ text(rows.join("\n") + `\n== ${QUOTES.length} verify_quote calls (result | local
 
 ## 8. Copies (`also in`) and deep tiers
 
-When the engine folds identical text (gateway 2.4.2 and later), a hit can be followed by the line
+When the engine folds identical text, a hit can be followed by the line
 `also in (same text as hit N): doc_key [section] release R; ...` (the round script prints it under the hit as
 `also in (same text; cite the pinned-release copy): ...`, marks the copies' sections seen, and reads the pinned
 copy's section instead of the hit's). The listed copies carry the hit's text word for word:
@@ -552,16 +557,18 @@ copy's section instead of the hit's). The listed copies carry the hit's text wor
   read.
 - A copy is the same text: never a second independent source, a new section for the stop rule (section 3), or a
   separate Evidence bullet.
+- Every evidence search sends `prefer_release` (SKILL.md section 2, step 4), so a hit that has an identical copy at a
+  pin is usually shown as that copy already, and its `also in` line names the other releases.
 
 When results carry tier headers (`tier 1 (hits 1-8): ...`, `tier 2 (hits 9-16): ...`, `tier 3 (hits 17-32): ...`: an
-evidence search sent without `limit` to gateway 2.4.3 or later (deep-32, below), or a search sent with `deep=true`),
+evidence search sent without `limit` (deep-32, below), or a search sent with `deep=true`),
 the round script lists them under the search as `deep tiers:` and marks every tier 2 and tier 3 hit as a candidate:
 - Tier 1 is the evidence: the same hits as without deep (full windows at the search's `max_chars`, exactly what the
   same search gives with `limit` 8). Rank, read and cite from tier 1 first, as always.
 - Tiers 2 and 3 are candidates, not evidence. Never cite a tier 2 or tier 3 snippet on its own: read its section first
   (`get_section(ref=<the hit's section>)`), then cite from that text and check quotes with `verify_quote` against that
-  section. A tier 3 hit has no cite: take it from `get_section(ref=..., format="json")` (its `cite` field), or build it
-  from the doc and path as for any section.
+  section. A tier 3 hit has no cite: `get_section` on its section prints
+  the `cite`.
 - Tier 2 (hits 9-16) gives windows of at most 800 characters, never more than `max_chars` (500 at section
   0's value), with `cite` and `id`. Tier 3 (hits 17-32) gives snippets of at most 250 characters with no `cite` and no
   chunk `id`: use its doc and `section` ref (the script prints `(no cite: take it from its section)`). Never quote from
@@ -581,9 +588,11 @@ the round script lists them under the search as `deep tiers:` and marks every ti
 every evidence search of a `default` or `deep` round (`search_many` or `search_rag`) **without `limit`** unless the job
 sets one, with section 0's `max_chars`, so in your `JOBS` leave `limit` and `deep` out of evidence searches (round 1's
 batches, round 2's targeted searches and "no hit" sub-queries, the theory pass's search, each deeper round's
-searches). Gateway 2.4.3 and later answers a search that gives neither with deep-32: the 32 tiered hits above, about
+searches). A gateway with deep-32 answers a search that gives neither with the 32 tiered hits above, about
 17,000 to 19,000 characters at `max_chars` 500 (a `limit` 16 reply is about 12,000). An explicit `limit` gets exactly
-that many plain hits and `deep: false` the usual 8, as before.
+that many plain hits and `deep: false` the usual 8, as before. Section 0's `max_chars` belongs to the round script
+(thorough and deep): at the default depth, which runs no script, evidence searches send no `max_chars`
+(quick-default.md).
 - **Narrow lookups keep an explicit small `limit`** in their job or plain call (3 is usual): re-finding a passage you
   already know, to get the section id for the quote script; checking that one command, identifier or exact phrase
   occurs; a search inside the outline check (`outline-check.md`). A search that collects evidence is never narrow.
@@ -593,21 +602,19 @@ that many plain hits and `deep: false` the usual 8, as before.
   shown (output budget; still unseen)", and a later round can surface it. A section hit only in tier 3 never takes
   one of the script's automatic reads: it comes back in `leads:` ("sections hit only in tier 3"); read the 1 to 3 that
   matter as your own `get_section` jobs in the next round.
-- **A gateway without deep-32** (before 2.4.3) answers a search without `limit` with
+- **A gateway without deep-32** answers a search without `limit` with
   at most 8 plain hits and no tier header line. From the first such reply on, the script sends `limit` 16 (20 at depth
   `deep`) on this question's later evidence searches and says so in its summary (`edge without deep-32: ...`); every
-  hit of such a reply is evidence. When `rag_status`'s `edge:` line already names a version before 2.4.3,
-  write `limit: 16` (20 at depth `deep`) into every round's evidence jobs yourself (a reply to a job that gave its own
-  `limit` cannot show the script that the edge is old, so it would send round 2 without one).
+  hit of such a reply is evidence.
 
 **Modes: Full (32 hits), Half (16) and Light (8).** The search size of a `default` or `deep` round. The user picks one by
 saying full, half or light mode (or `$deep32 half: ...`). It holds for the rest of that answer; full is the default.
 Set the round script's `MODE` (`"full"`, `"half"`, `"light"`) in round 1. The script keeps round 1's mode for the
 question's later rounds, and its summary line names the mode when it is not full.
-- **Full** (default): evidence searches send no `limit`, as above (deep-32: 32 tiered hits on gateway 2.4.3).
+- **Full** (default): evidence searches send no `limit`, as above (deep-32: 32 tiered hits).
 - **Half:** evidence searches send `limit` 16: 16 plain hits, no tiers.
 - **Light:** evidence searches send `limit` 8: 8 plain hits, no tiers.
 - In every mode, narrow lookups keep their own small `limit`. The tier rules above apply only when a reply carries
   tier headers. In half and light mode every hit is evidence, and the old-gateway fallback never comes up, because the limit is always sent. Depth and
   mode are separate: "deep, light mode" runs section 3's rounds with `limit` 8. When the mode is not full, name it in
-  the answer's last line ("half").
+  the Read line ("half").

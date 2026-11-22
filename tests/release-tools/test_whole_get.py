@@ -195,7 +195,7 @@ class Getter(unittest.TestCase):
                 self.run_get()
 
     def test_wrong_release(self):
-        self.args.release = 'v0.1.0-alpha.3'
+        self.args.release = 'v0.1.0-alpha.2'
         with self.assertRaisesRegex(getter.manifest.Refusal, 'release'):
             self.run_get()
 
@@ -501,6 +501,14 @@ class ForgeBudget(unittest.TestCase):
         with self.assertRaises(getter.manifest.Refusal):
             getter.forge_budget_document(self.bundles, self.discs, 'ada')
 
+    def test_budget_without_ingestion_sums_core_and_embedder_only(self):
+        document = getter.forge_budget_document(self.bundles[:2], self.discs[:2], 'ada')
+        self.assertEqual([row['component'] for row in document['media_components']], [row['bundle_id'] for row in self.discs[:2]])
+        self.assertEqual((document['data_bytes'], document['docker_bytes']), (10 + 11, 30 + 31))
+        for selected, discs in ((self.bundles[:1], self.discs[:1]), (self.bundles[:2], self.discs)):
+            with self.subTest(bundles=len(selected), discs=len(discs)), self.assertRaises(getter.manifest.Refusal):
+                getter.forge_budget_document(selected, discs, 'ada')
+
     def test_classic_image_store_returns_only_a_qualified_linux_engine_root(self):
         root = '/synthetic/dedicated-docker'
         classic = dict(OSType='linux', Driver='overlay2', DockerRootDir=root,
@@ -525,7 +533,7 @@ class ForgeBudget(unittest.TestCase):
             self.assertEqual(error.exception.code, 'docker-store-unknown')
 
     def test_signed_plan_uses_observed_local_volumes(self):
-        args = argparse.Namespace(release='v0.1.0-alpha.2', disc='disc3', gpu_class='ada',
+        args = argparse.Namespace(release='v0.1.0-alpha.3', disc='disc3', gpu_class='ada',
                                   source='synthetic-release-source', ingestion=True, full=False,
                                   forge_data_root='synthetic-forge-data')
         source = Path(args.source)
@@ -549,8 +557,8 @@ class ForgeBudget(unittest.TestCase):
             with self.subTest(info=bad[:24]), self.assertRaises(getter.manifest.Refusal):
                 getter.linux_forge_storage(args, bad, observe=observe)
 
-    def test_containerd_gate_precedes_release_and_filesystem_observations(self):
-        args = argparse.Namespace(release='v0.1.0-alpha.2', disc='disc3', gpu_class='ada',
+    def test_containerd_store_without_containerd_info_is_refused_first(self):
+        args = argparse.Namespace(release='v0.1.0-alpha.3', disc='disc3', gpu_class='ada',
                                   source='unused-release', ingestion=True, full=False,
                                   forge_data_root='/unused-data')
         info = json.dumps(dict(OSType='linux', Driver='overlayfs', DockerRootDir='/var/lib/docker',
@@ -559,9 +567,64 @@ class ForgeBudget(unittest.TestCase):
         with mock.patch.object(getter, 'metadata') as read_release, \
                 self.assertRaises(getter.DockerImageStoreRefusal) as error:
             getter.linux_forge_storage(args, info, observe=observe)
-        self.assertEqual(error.exception.code, 'docker-store-containerd')
+        self.assertEqual(error.exception.code, 'docker-store-unknown')
         read_release.assert_not_called()
         observe.assert_not_called()
+
+    def test_forge_docker_root_follows_the_store(self):
+        classic = dict(OSType='linux', Driver='overlay2', DockerRootDir='/synthetic/docker', DriverStatus=[])
+        store = dict(classic, Driver='overlayfs', DriverStatus=[['driver-type', 'io.containerd.snapshotter.v1']])
+        self.assertEqual(getter.forge_docker_root(classic), '/synthetic/docker')
+        self.assertEqual(getter.forge_docker_root(dict(store, Containerd={'Address': '/run/containerd/containerd.sock'})),
+                         '/var/lib/containerd')
+        managed = dict(store, Containerd={'Address': '/var/run/docker/containerd/containerd.sock'})
+        self.assertEqual(getter.forge_docker_root(managed), '/synthetic/docker')
+        for info in (store, dict(store, Containerd={'Address': '/elsewhere/containerd.sock'}),
+                     dict(store, Containerd={'Address': None}), dict(store, Containerd='x'),
+                     dict(store, Driver='native', Containerd={'Address': '/run/containerd/containerd.sock'}),
+                     dict(store, DockerRootDir='relative', Containerd={'Address': '/run/containerd/containerd.sock'})):
+            with self.subTest(info=info), self.assertRaises(getter.DockerImageStoreRefusal) as error:
+                getter.forge_docker_root(info)
+            self.assertEqual(error.exception.code, 'docker-store-unknown')
+        with self.assertRaises(getter.DockerImageStoreRefusal):
+            getter.forge_docker_root(dict(classic, OSType='windows'))
+
+    def test_forge_side_containerd_rule_matches_the_getter(self):
+        text = (TOOLS.parents[1] / 'src/gpu-pack/forms/host-requirements.py').read_text(encoding='ascii')
+        for literal in (getter.CONTAINERD_SYSTEM_SOCKET, getter.CONTAINERD_SYSTEM_ROOT, getter.CONTAINERD_MANAGED_PREFIX):
+            self.assertIn("'" + literal + "'", text)
+
+    def test_joined_cache_bytes_counts_only_a_complete_plain_copy(self):
+        components = [{'component': 'core', 'size': 1, 'sha256': 'a' * 64},
+                      {'component': 'embedder-ada', 'size': 2, 'sha256': 'b' * 64}]
+        with tempfile.TemporaryDirectory(prefix='synthetic-joined-', dir=SCRATCH) as name:
+            data_root = Path(name) / 'forge-data'
+            self.assertEqual(getter.joined_cache_bytes(str(data_root), components), 0)   # no copy yet
+            key = hashlib.sha256(('a' * 64 + 'b' * 64).encode('ascii')).hexdigest()
+            cache = Path(name) / 'forge-data.deep32-media' / key
+            (cache / 'payload').mkdir(parents=True)
+            (cache / 'payload/a.bin').write_bytes(b'x' * 7)
+            (cache / 'PAYLOAD.SHA256').write_bytes(b's\n')
+            (cache / 'RUNTIME.json').write_bytes(b'{}\n')
+            def rows(*entries):
+                raw = json.dumps([{'path': path, 'size': size, 'sha256': 'c' * 64} for path, size in entries])
+                (cache / 'PAYLOAD.json').write_bytes(raw.encode('ascii'))
+                return len(raw)
+            listed = rows(('a.bin', 7))
+            self.assertEqual(getter.joined_cache_bytes(str(data_root), components), 7 + listed + 2 + 3)
+            self.assertEqual(getter.joined_cache_bytes(str(data_root), None), 0)
+            self.assertEqual(getter.joined_cache_bytes(str(data_root), components[:1]), 0)   # another key
+            for entries in ((('/a.bin', 7),), (('../a.bin', 7),), (('a.bin', 8),), (('missing.bin', 1),)):
+                with self.subTest(entries=entries):
+                    rows(*entries)
+                    self.assertEqual(getter.joined_cache_bytes(str(data_root), components), 0)
+            rows(('a.bin', 7))
+            (cache / 'payload/a.bin').unlink()
+            try:
+                os.symlink(cache / 'RUNTIME.json', cache / 'payload/a.bin')
+            except (OSError, NotImplementedError):
+                return   # this account may not create symbolic links (Windows without the privilege)
+            self.assertEqual(getter.joined_cache_bytes(str(data_root), components), 0)   # a link is not a file
 
     def test_volume_observation_has_no_fake_root_fallback(self):
         existing = Path(__file__).resolve().parent

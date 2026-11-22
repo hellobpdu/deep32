@@ -20,7 +20,7 @@
     "hit_at_8": 1.0,
     "mrr_at_10": 0.75
   },
-  "release": "v0.1.0-alpha.2",
+  "release": "v0.1.0-alpha.3",
   "schema_version": 1,
   "status": "INCOMPLETE"
 }

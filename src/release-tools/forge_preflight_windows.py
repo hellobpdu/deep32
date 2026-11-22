@@ -295,8 +295,14 @@ def physical_storage(identity, budget, backing, guest_free, *, observe=preflight
                (backing_path, budget['desktop-backing_bytes'], True))
     row = preflight.getter.storage_row
     rows = [row('desktop-guest', budget['docker_bytes'], guest_free, budget)]
-    for directory, needed, exists in targets:
+    # A complete joined copy already beside the data root is part of the data budget; do not ask for it twice.
+    credit = preflight.getter.joined_cache_bytes(identity['data_root'], identity.get('media_components'))
+    for index, (directory, needed, exists) in enumerate(targets):
         device, free = observe(str(directory), existing=exists)
+        if index == 0 and credit:
+            cache_device, _ = observe(str(data_path.with_name(data_path.name + '.deep32-media')), existing=True)
+            if cache_device == device:
+                needed = max(0, needed - credit)
         rows.append(row('windows-' + device, needed, free, budget))
     return rows
 
@@ -379,7 +385,7 @@ def main(argv=None):
         parser.add_argument('--' + name, required=True)
     parser.add_argument('--gpg', default='')
     args = parser.parse_args(argv)
-    args.release = 'v0.1.0-alpha.2'
+    args.release = 'v0.1.0-alpha.3'
     if os.name != 'nt':
         parser.exit(10, 'Use native Windows PowerShell for Docker Desktop prerequisites.\n')
     try:

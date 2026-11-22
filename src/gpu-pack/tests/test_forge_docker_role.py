@@ -201,6 +201,11 @@ class ForgeTests(unittest.TestCase):
                          {'tei-ampere86', 'door', 'reranker', 'converter', 'builder', 'qdrant'})
         self.assertEqual(self.subject.storage_image(images()), images()['DOOR_IMAGE'])
         self.assertIn('full', common.Lifecycle(self.root, self.kit).image_roles('ampere86', pins()))
+        # A payload without the ingestion add-on (no converter row) selects the core and its embedder only.
+        self.assertEqual(self.subject.image_roles('ampere86', pins(True), [dict(role='door')]),
+                         {'tei-ampere86', 'reranker', 'door'})
+        self.assertEqual(self.subject.image_roles('ampere86', pins(True), [dict(role='door'), dict(role='converter')]),
+                         {'tei-ampere86', 'door', 'reranker', 'converter', 'builder', 'qdrant'})
 
     def test_prepare_start_stop_resume_and_status_for_linux_and_windows(self):
         for platform in ('linux', 'windows'):
@@ -481,6 +486,29 @@ class ForgeTests(unittest.TestCase):
         self.assertEqual(result, images())
         self.assertEqual(len(calls), 5)
 
+    def test_containerd_store_identity_is_the_recorded_index_digest(self):
+        rows = [dict(role=role, config_digest='sha256:' + str(index) * 64, path='images/synthetic-' + role + '.tar')
+                for index, role in enumerate(['tei-ampere86', 'reranker', 'door', 'converter'], 1)]
+        write_json(self.payload / 'images/index.json', rows)
+        index = {row['role']: 'sha256:' + format(number, 'x') * 64 for number, row in enumerate(rows, 10)}
+        inputs = SimpleNamespace(CAPABILITIES={'8.6': 'ampere86'},
+                                 verified_image=lambda config, row, binding: dict(row, index_digest=index[row['role']]))
+        modules = {'docker_installed_inputs': inputs, 'docker_image_binding': SimpleNamespace()}
+        loaded = set(index.values())
+        def observe(argv, *args, **kwargs):
+            if argv[0] == 'nvidia-smi':
+                return '8.6\n'
+            if argv[1:3] == ['image', 'inspect'] and argv[3] in loaded:
+                return json.dumps([dict(Id=argv[3], Os='linux', Architecture='amd64')])
+            if argv[1:3] == ['image', 'inspect']:
+                raise common.Refusal('synthetic missing image')
+            raise AssertionError(argv)
+        self.subject.platform = 'linux'
+        self.subject.run = observe
+        with patch.object(common, 'module', side_effect=lambda name, path: modules[name]):
+            result = self.subject.images(self.payload, pins())
+        self.assertEqual(set(result.values()), loaded)
+
     def test_windows_host_gate_has_forge_ports_and_no_full_content_budget(self):
         backing = self.work / 'synthetic-desktop-storage'
         backing.mkdir()
@@ -523,7 +551,20 @@ class ForgeTests(unittest.TestCase):
         self.assertEqual(before, {p.name: p.read_bytes() for p in (self.root / 'private').iterdir()})
         token = self.root / 'private/forge-token'
         token.write_text('6d' * 32 + '\n', encoding='ascii', newline='\n')
+        forge.identities(self.root, KIT, committed=True, key_factory=keys)   # a rotated bearer is accepted
+        record = json.loads((self.root / 'private/forge-identity.json').read_text(encoding='ascii'))
+        self.assertEqual(record['files']['forge-token'], hashlib.sha256(token.read_bytes()).hexdigest())
+        forge.identities(self.root, KIT, committed=True, key_factory=keys)   # and stays accepted
+        public = self.root / 'private/kb-public.pem'
+        original = public.read_bytes()
+        # Still a parseable Ed25519 key (read_kb_public accepts it), so the refusal comes from the record.
+        public.write_bytes(original.replace(b'Bwc', b'Bwd', 1))
+        self.assertNotEqual(public.read_bytes(), original)
         with self.assertRaisesRegex(common.Refusal, 'original Forge identity'):
+            forge.identities(self.root, KIT, committed=True, key_factory=keys)
+        public.write_bytes(original)
+        token.write_text('not-a-token\n', encoding='ascii', newline='\n')
+        with self.assertRaises(tokens.StateError):
             forge.identities(self.root, KIT, committed=True, key_factory=keys)
         token.unlink()
         with self.assertRaisesRegex(common.Refusal, 'Restore all Forge identity'):

@@ -197,6 +197,7 @@ int rfctext_classify(char **raw_lines, int n, rfc_doc *out)
 				if (prev_end || indent(p) != indent(raw.l[nxt]) || heading(raw.l[nxt], (char[16]){ 0 }, 16, &(const char *){ 0 }))
 					if (add(&ls, "", 0)) { rc = -1; goto out; }
 			}
+			if (nxt < raw.n) raw.brk[nxt] = 0;
 			i = nxt - 1;
 			continue;
 		}

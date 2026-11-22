@@ -50,7 +50,10 @@ class Helpers(unittest.TestCase):
         def split_stat(folder, *args, **kwargs):
             values = list(original(folder, *args, **kwargs))
             values[2] = 20 if folder == self.cache else 10
-            return os.stat_result(values)
+            real = original(folder, *args, **kwargs)
+            extras = {name: getattr(real, name) for name in ('st_atime', 'st_mtime', 'st_ctime', 'st_atime_ns',
+                      'st_mtime_ns', 'st_ctime_ns', 'st_file_attributes', 'st_reparse_tag') if hasattr(real, name)}
+            return os.stat_result(values, extras)
         with patch.object(Path, 'stat', split_stat):
             rows = self.plan('ps1')['filesystems']
         self.assertEqual({r['filesystem']: r['needed'] for r in rows}, {'10': 1048576, '20': 1048576})

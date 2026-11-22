@@ -22,6 +22,16 @@ HOST = 'synthetic-forge.' + PREFIX
 ASSET = 'FORGE-PREREQUISITES.json'
 
 
+def alpha2_recipes():
+    """forge-recipes-0.1.0-alpha.2.json is alpha.2's signed waiver record, kept as history. Its recipes still apply,
+    so the tests read it with every waiver's release set to the release under test, in memory only."""
+    rows = json.loads((TOOLS / 'forge-recipes-0.1.0-alpha.2.json').read_bytes())
+    for row in rows:
+        if isinstance(row.get('waiver'), dict):
+            row['waiver']['release'] = subject.requirements.RELEASE
+    return rows
+
+
 class ForgeEvidence(unittest.TestCase):
     def setUp(self):
         temporary = tempfile.TemporaryDirectory(prefix='synthetic-forge-proof-', dir=SCRATCH)
@@ -39,7 +49,7 @@ class ForgeEvidence(unittest.TestCase):
         self.recipe = dict(id='synthetic-linux-qualification', os_id='ubuntu', os_version='24.04',
                            architecture='amd64', journey='J2', accepted_on='2026-11-18',
                            recipe_sha256='d' * 64, acceptance_sha256='e' * 64)
-        self.envelope = dict(format='deep32-forge-prerequisites/1', release='0.1.0-alpha.2',
+        self.envelope = dict(format='deep32-forge-prerequisites/1', release='0.1.0-alpha.3',
                              capability_sha256='7' * 64, pins_sha256='8' * 64,
                              driver_floors=dict(tei_minimum_driver='810.199',
                                                 cuda_minimum_driver='810.200',
@@ -94,7 +104,7 @@ class ForgeEvidence(unittest.TestCase):
     def test_unqualified_store_has_no_storage_observation_or_pass(self):
         docker = self.observed['docker']
         docker['Driver'] = 'overlayfs'
-        cases = [([['driver-type', 'io.containerd.snapshotter.v1']], False, 'docker-store-containerd'),
+        cases = [([['driver-type', 'io.containerd.snapshotter.v1']], None, 'docker-store-unknown'),
                  ([], None, 'docker-store-unknown'), (None, None, 'docker-store-unknown')]
         for status, expected, code in cases:
             docker['DriverStatus'] = status
@@ -107,6 +117,33 @@ class ForgeEvidence(unittest.TestCase):
                 self.assertIn('classic overlay2', issue['next_step'])
                 self.assertIn(code, result['details']['docker.storage'])
                 self.assertEqual(result['storage_plan'], [])
+
+    def test_second_pass_credits_the_joined_copy_already_in_place(self):
+        # The getter writes the joined copy to <data root>.deep32-media/<sha256 of the component digests>
+        # (deep32_settings.media_cache) before the final prerequisite pass.
+        key = hashlib.sha256(''.join(row['sha256'] for row in self.media).encode('ascii')).hexdigest()
+        cache = self.data.with_name(self.data.name + '.deep32-media') / key
+        (cache / 'payload/images').mkdir(parents=True)
+        (cache / 'payload/a.bin').write_bytes(b'x' * 10)
+        (cache / 'payload/images/b.tar').write_bytes(b'y' * 20)
+        manifest = json.dumps([{'path': 'a.bin', 'size': 10, 'sha256': 'a' * 64},
+                               {'path': 'images/b.tar', 'size': 20, 'sha256': 'b' * 64}]).encode('ascii')
+        (cache / 'PAYLOAD.json').write_bytes(manifest)
+        (cache / 'PAYLOAD.SHA256').write_bytes(b'sums\n')
+        (cache / 'RUNTIME.json').write_bytes(b'{}\n')
+        copy_bytes = 10 + 20 + len(manifest) + len(b'sums\n') + len(b'{}\n')
+        with mock.patch.object(self, 'observe', return_value=('synthetic-device', 5000)):
+            rows = self.evaluate()[0]['storage_plan']
+        self.assertEqual([row['needed_bytes'] for row in rows], [900 - copy_bytes, 1200])
+        (cache / 'payload/images/b.tar').write_bytes(b'y' * 19)   # one byte short: not a complete copy
+        with mock.patch.object(self, 'observe', return_value=('synthetic-device', 5000)):
+            rows = self.evaluate()[0]['storage_plan']
+        self.assertEqual([row['needed_bytes'] for row in rows], [900, 1200])
+        (cache / 'payload/images/b.tar').write_bytes(b'y' * 20)
+        devices = iter([('data-device', 5000), ('docker-device', 5000), ('other-device', 5000)])
+        with mock.patch.object(self, 'observe', side_effect=lambda *args, **kwargs: next(devices)):
+            rows = self.evaluate()[0]['storage_plan']
+        self.assertEqual([row['needed_bytes'] for row in rows], [900, 1200])   # the copy is on another filesystem
 
     def test_recipe_mismatch_and_missing_or_bad_envelope(self):
         self.args.os_version = '22.04'
@@ -178,7 +215,7 @@ class ForgeEvidence(unittest.TestCase):
     def waive(self, **changes):
         """Accept the recipe by owner waiver in place of its passed lifecycle record."""
         row = {key: value for key, value in self.recipe.items() if key != 'acceptance_sha256'}
-        waiver = dict(granted_by='release-owner', granted_on=row['accepted_on'], release='0.1.0-alpha.2',
+        waiver = dict(granted_by='release-owner', granted_on=row['accepted_on'], release='0.1.0-alpha.3',
                       recipe_id=row['id'], not_run=['The full install from the signed release.'],
                       evidence=[dict(file='SYNTHETIC-COMPONENT-EVIDENCE.md', sha256='f' * 64)])
         self.recipe = dict(row, waiver=dict(waiver, **changes))
@@ -201,7 +238,7 @@ class ForgeEvidence(unittest.TestCase):
         passed, _ = self.evaluate()
         self.assertNotIn('notice', passed)
         notice = self.waive()
-        self.assertEqual(notice, 'Note: this host type is accepted for 0.1.0-alpha.2 under an owner waiver dated '
+        self.assertEqual(notice, 'Note: this host type is accepted for 0.1.0-alpha.3 under an owner waiver dated '
                                  '2026-11-18 (recipe synthetic-linux-qualification). I have not yet run a full '
                                  'install on it; FORGE-PREREQUISITES.json lists what was not run.')
         waived, ports = self.evaluate()
@@ -263,8 +300,14 @@ class ForgeEvidence(unittest.TestCase):
         docker = self.observed['docker']
         docker.update(Driver='overlayfs', DriverStatus=[['driver-type', 'io.containerd.snapshotter.v1']])
         result, _ = self.evaluate()
-        self.assertIs(result['prerequisites']['docker.storage'], False)
+        self.assertIsNone(result['prerequisites'].get('docker.storage'))
         self.assertEqual(result['storage_plan'], [])
+        docker['Containerd'] = {'Address': '/run/containerd/containerd.sock'}
+        with mock.patch.object(self, 'observe', return_value=('synthetic-device', 899)) as observe:
+            result, _ = self.evaluate()
+        self.assertIs(result['prerequisites']['docker.storage'], True)
+        self.assertEqual(observe.call_args_list[1].args[0], '/var/lib/containerd')
+        del docker['Containerd']
         docker.update(Driver='overlay2', DriverStatus=[])
         with mock.patch.object(self, 'observe', return_value=('synthetic-device', 899)):
             rows = self.evaluate()[0]['storage_plan']
@@ -328,7 +371,7 @@ class ForgeEvidence(unittest.TestCase):
     def test_alpha2_recipes_match_ubuntu_2404_on_its_two_linux_journeys(self):
         requirements = subject.requirements
         rows = requirements.cite(
-            json.loads((TOOLS / 'forge-recipes-0.1.0-alpha.2.json').read_bytes()), {'prerequisites.json': 'a' * 64},
+            alpha2_recipes(), {'prerequisites.json': 'a' * 64},
             {name: 'b' * 64 for name in ('LINUX-MINERU-R3-EVIDENCE.md', 'WINDOWS-RAW-QUALIFICATION.md')})
         requirements.validate_recipes(rows)
         self.envelope['recipes'] = rows

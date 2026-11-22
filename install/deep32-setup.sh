@@ -12,6 +12,7 @@
 #          --workstation HOST (forge: pair over SSH when the Workstation allows root SSH with your key;
 #                          headend: the https://.../mcp address the Workstation printed at publication),
 #          --agent claude|codex|both (headend), --hypervisor kvm|hyper-v (workstation, default kvm).
+#          --journey J2|J4 (forge: the Workstation is elsewhere, or a KVM VM on this host; found by itself when the VM is named Deep32Workstation)
 #
 # The script stops only for what a person has to do: sign in to Tailscale in a browser, accept the installer's plan,
 # and type the pairing code on the Workstation (unless --workstation pairs over SSH). Every line it prints starts
@@ -31,7 +32,7 @@ here=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
 repo=$(cd -- "$here/.." && pwd -P)
 get="$repo/src/release-tools/deep32-get.sh"
 role=''; yes=0; data_root=/opt/deep32; want_name=''; ws_host=''; agent=''; hypervisor=kvm
-events=0; checks_only=0; guess_only=0; plan_digest=''; settings=''
+events=0; checks_only=0; guess_only=0; plan_digest=''; settings=''; journey_opt=''
 while (($#)); do
     case "$1" in
         check|forge|workstation|headend) role=$1 ;;
@@ -41,6 +42,9 @@ while (($#)); do
         --workstation) ws_host=${2:?}; shift ;;
         --agent) agent=${2:?}; shift ;;
         --hypervisor) hypervisor=${2:?}; shift ;;
+        --journey) journey_opt=${2:?}
+            case $journey_opt in J2|J4) ;; *) echo "[fail] unknown argument: --journey $journey_opt (try --help)"; exit 64 ;; esac
+            shift ;;
         --events) events=1 ;;
         --checks-only) checks_only=1 ;;
         --guess-role) guess_only=1 ;;
@@ -108,6 +112,7 @@ check_tailscale() {
             state=$(ts_field "d.get('BackendState','')")
         fi
         [ "$state" = Running ] || return
+        problems=$((problems - 1))
     fi
     ok "Tailscale signed in"
     [ "$(ts_field "t.get('MagicDNSEnabled', False)")" = True ] && ok "MagicDNS on" ||
@@ -181,8 +186,7 @@ check_forge() {
         as_root docker compose version >/dev/null 2>&1 && ok "Docker Compose v2" ||
             need "install the Docker Compose v2 plugin (docker compose)"
         case $(as_root docker info --format '{{.Driver}} {{json .DriverStatus}}' 2>/dev/null) in
-            *io.containerd.snapshotter*|overlayfs*)
-                need "Docker keeps images in its containerd store; the alpha.2 Forge loads only into the classic store (overlay2). To switch, add \"features\": {\"containerd-snapshotter\": false} to /etc/docker/daemon.json and restart Docker. Images and containers in the containerd store stay hidden until you switch back" ;;
+            *io.containerd.snapshotter*|overlayfs*) ok "Docker uses the containerd image store" ;;
             '') ;;
             *) ok "Docker uses the classic image store" ;;
         esac
@@ -190,17 +194,6 @@ check_forge() {
             need "install the NVIDIA Container Toolkit, then: sudo nvidia-ctk runtime configure --runtime=docker && sudo systemctl restart docker"
     else
         need "Docker is not installed or not running: https://docs.docker.com/engine/install/"
-    fi
-    if ! sh "$here/forge-host-python.sh" >/dev/null 2>&1; then
-        need "the pairing helper needs /usr/bin/python3 3.10+ with ssl"
-        if confirm "Install it with your package manager?" pairing-python; then
-            as_root sh "$here/forge-host-python.sh" --install | sed 's/^/[info] /'
-        else
-            sh "$here/forge-host-python.sh" | sed 's/^/[info] /'
-        fi
-        sh "$here/forge-host-python.sh" >/dev/null 2>&1 && { problems=$((problems - 1)); ok "pairing helper Python"; }
-    else
-        ok "pairing helper Python"
     fi
     check_tailscale forge
 }
@@ -221,7 +214,12 @@ do_forge() {
     [ -z "$plan_digest" ] || consent+=(--accept-plan "$plan_digest")
     ev step step download
     ev run tool get disc disc3 class "$class" dir "$PWD/deep32-downloads" root "$data_root"
-    as_root bash "$get" disc3 --gpu-class "$class" --install --journey J2 --data-root "$data_root" ${consent[@]+"${consent[@]}"} || rc=$?
+    local journey=${journey_opt:-J2}
+    if [ -z "$journey_opt" ] && command -v virsh >/dev/null 2>&1 &&
+        as_root virsh --connect qemu:///system dominfo Deep32Workstation >/dev/null 2>&1; then
+        journey=J4
+    fi
+    as_root bash "$get" disc3 --gpu-class "$class" --install --journey "$journey" --data-root "$data_root" ${consent[@]+"${consent[@]}"} || rc=$?
     ev exit tool get 'status#' "$rc"
     [ "$rc" -eq 0 ] || fail "the Forge install stopped; its message above names the cause"
     ok "Forge installed and running"

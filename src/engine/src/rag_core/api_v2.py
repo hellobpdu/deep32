@@ -6,11 +6,16 @@
                              candidate reranked against its own queries; every query weighted 1
                              or more keeps its best candidate among the hits (so the hits are in
                              rank order, and their scores need not descend); retrieval.json
-                             settings: SearchManySettings
-    GET  /v2/section         a section's full text, paged; ref = section id or chunk id
+                             settings: SearchManySettings; "degraded_detail" says what happened
+                             to each query (degraded_detail)
+    GET  /v2/section         a section's full text, paged; ref = section id or chunk id; around = a
+                             passage id or a file line to start at; with the citation, release,
+                             platform, RFC standing and the same section at other releases
     GET  /v2/outline         a document's sections, or one section's subtree (under=)
     GET  /v2/documents       the corpus
-    POST /v2/verify_quote    exact / normalized / not_found, with the location
+    POST /v2/verify_quote    exact / normalized / not_found, with the location, whether it lies in the
+                             cited section ("scope") and the sections it spans; retrieval.json
+                             settings: VerifySettings
     POST /v2/grep            literal (default) or bounded regex search over the source texts
     GET  /v2/rfc/{n}         RFC standing, relations and errata (+ a section)
     GET  /v2/lookup          RFC / RFC section / BCP / STD / IANA / glossary / CLI identifiers; else
@@ -33,9 +38,10 @@ the ones before.
 Deep results (deep=true on /v2/search and /v2/search_many, default false): DEEP_HITS (32) hits in three tiers
 (DEEP_TIERS): ranks 1-8 are the hits of the same request with limit 8, windows of max_chars as always; ranks 9-16
 have windows of at most 800 characters, ranks 17-32 of at most 250, each centred on the best-matching line. Every
-hit then carries "tier" (1, 2, 3) and "reranked" (whether the reranker scored it: its pool is
-retrieval.json reranker.candidates, 15, so ranks past it are the fusion's order), and a tier 2 or 3 hit carries
-"get_section", the ref to read its section with. `limit` is not used. search_many shares the 24 places of tiers 2
+hit then carries "tier" (1, 2, 3), and a tier 2 or 3 hit carries
+"get_section", the ref to read its section with. Every hit of every answer, deep or not, carries "reranked"
+(whether the reranker scored it: its pool is retrieval.json reranker.candidates, 15, so ranks past it are the
+fusion's order; false on every hit when the rerank was off, skipped or failed). `limit` is not used. search_many shares the 24 places of tiers 2
 and 3 among its queries (deep_share). Without deep, every response is exactly the one before (tests/test_deep_tiers.py
 pins 6afc29b's bodies).
 
@@ -44,9 +50,21 @@ Release preference (a search or search_many request's prefer_release, default no
 delivered window is the hit's text byte for byte; the hit it was moves into also_in (HitBuilder.prefer). No rank, no
 delivered text and no fold changes. Without fold_identical, or without prefer_release, the answer is the one before.
 
+Top-tier evidence window (retrieval.json evidence.tier1_chars, default none): the hits delivered with the request's
+full window (all of them without deep, tier 1 with it) are delivered with a window of that many characters
+when the request asked for at least 2400 and less than that (HitBuilder.widen). Which hits, their order, folds
+and also_in are decided on the request's own window size, as without the setting.
+
+What else a hit says (retrieval.json evidence.covered_titles, evidence.table_context, default off): the headings of
+the sections a merged passage covers ("covered_titles") and, for a window that begins inside a table, its caption
+and header row ("table_context"); EvidenceSettings, HitBuilder.describe.
+
 Every response carries "degraded": what this answer needed but could not use ("dense", "bm25",
 "reranker", "kb", "structure"); [] means it is complete. BM25 always answers: a dense-only search
 whose dense leg is down, failing or behind an open breaker is answered by BM25 and says so.
+A backend the root is configured without counts as well: "dense" for a hybrid or dense query of a
+root whose "retrievers" leave it out, "reranker" for a search that does not say rerank "off" on a
+root without one, so a keyword-only or unreranked answer never reads as complete.
 GET /v2/status (rag_core.api) reports the service as a whole.
 """
 from __future__ import annotations
@@ -67,7 +85,9 @@ from pydantic import BaseModel, Field
 
 from rag_core import kb
 from rag_core.errors import error_kind
-from rag_core.reader import Doc, RootReader, Sec, chunk_rows, chunk_window, query_terms
+from rag_core.reader import (
+    DEFAULT_MAX_GAP_CHARS, VERIFY_ELLIPSIS, Doc, RootReader, Sec, chunk_rows, chunk_window, query_terms,
+)
 from rag_core.db import connect
 
 
@@ -75,6 +95,7 @@ router = APIRouter(prefix="/v2")
 
 Mode = Literal["hybrid", "bm25", "dense"]
 Rerank = Literal["auto", "on", "off"]
+FactKind = Literal["feature", "history", "default", "deprecation"]
 
 GREP_BUDGET_SECONDS = 3.0
 RFC_SECTION_CHARS = 4000
@@ -225,11 +246,15 @@ BM25_ONLY = frozenset({"bm25"})
 
 def plan(request: Request, mode: str) -> tuple[frozenset[str] | None, set[str]]:
     """Retrievers to run for a mode, and what is degraded before anything runs: for hybrid,
-    every retriever that failed to start; for one mode, that retriever if it is not running
+    every retriever that failed to start, and dense when the root is configured without it
+    (neither started nor failed to start); for one mode, that retriever if it is not running
     (BM25 answers in its place)."""
     orch = request.app.state.orchestrator
     if mode == "hybrid":
-        return None, set(orch.degraded)
+        before = set(orch.degraded)
+        if "dense" not in orch.retrievers and "dense" not in orch.degraded:
+            before.add("dense")         # configured off: a keyword-only answer says so
+        return None, before
     if mode in orch.retrievers:
         return frozenset({mode}), set()
     return BM25_ONLY, {mode}
@@ -296,6 +321,47 @@ def grep_settings(config: dict[str, Any]) -> GrepSettings:
     return GrepSettings(regex_engine=engine)
 
 
+VERIFY_KEYS = ("ellipsis", "max_gap_chars")
+
+
+@dataclass(frozen=True)
+class VerifySettings:
+    """/v2/verify_quote's keys in retrieval.json, "verify": {...} (a root's overlay, e.g. set by
+    scripts/derive_root.py --set retrieval.verify.ellipsis=bounded); without them it works as it always did.
+
+        "ellipsis": "any" | "bounded"
+            The rule for a quotation with omissions ("...", "[...]" or the ellipsis character). any (default):
+            its parts only have to occur in order, at any distance, in the cited section or else anywhere in
+            the document. bounded: they must also lie in one section, each at most max_gap_chars after the
+            part before it (reader.bounded_spans); otherwise the answer is not_found with "reason":
+            "parts-too-far". A quotation without omissions is checked the same under both.
+        "max_gap_chars": 600
+            bounded only: the most characters between two neighbouring parts, counted in the comparison form
+            (characters other than whitespace and hyphens, RFC page headers and footers left out), so the
+            same omission counts the same in a hard-wrapped RFC and in a guide stored one paragraph a line.
+            An integer of 0 or more.
+    """
+    ellipsis: str = VERIFY_ELLIPSIS[0]
+    max_gap_chars: int = DEFAULT_MAX_GAP_CHARS
+
+
+def verify_settings(config: dict[str, Any]) -> VerifySettings:
+    """The settings in a retrieval config. ValueError names a value they cannot take; rag_core.api checks them at
+    start, as search_many_settings."""
+    verify = config.get("verify")
+    if verify is None:
+        return VerifySettings()
+    if not isinstance(verify, dict) or set(verify) - set(VERIFY_KEYS):
+        raise ValueError(f"retrieval.json verify must be an object of {list(VERIFY_KEYS)}, not {verify!r}")
+    ellipsis = verify.get("ellipsis", VERIFY_ELLIPSIS[0])
+    if ellipsis not in VERIFY_ELLIPSIS:
+        raise ValueError(f"retrieval.json verify.ellipsis must be one of {list(VERIFY_ELLIPSIS)}, not {ellipsis!r}")
+    gap = verify.get("max_gap_chars", DEFAULT_MAX_GAP_CHARS)
+    if isinstance(gap, bool) or not isinstance(gap, int) or gap < 0:
+        raise ValueError(f"retrieval.json verify.max_gap_chars must be an integer of 0 or more, not {gap!r}")
+    return VerifySettings(ellipsis=ellipsis, max_gap_chars=gap)
+
+
 def fold_identical(config: dict[str, Any]) -> bool:
     """retrieval.json "fold_identical" (a root's overlay, e.g. set by scripts/derive_root.py --set
     retrieval.fold_identical=true): false, null or unset (the default) or true. ValueError names a value it
@@ -319,6 +385,78 @@ def fold_identical(config: dict[str, Any]) -> bool:
 def folding(request: Request) -> bool:
     """The served root's fold_identical."""
     return fold_identical(getattr(request.app.state.orchestrator, "config", None) or {})
+
+
+EVIDENCE_KEYS = ("tier1_chars", "covered_titles", "table_context")
+TIER1_MIN_CHARS = 2400      # deep32-gateway's default max_chars: a request below it asked for short windows
+TIER1_MAX_CHARS = 4000      # the most a request's max_chars may ask for (SearchRequest)
+
+
+@dataclass(frozen=True)
+class EvidenceSettings:
+    """retrieval.json "evidence": {...}: what a hit is delivered with. Without the object, or with a key unset,
+    false or null, the hits are exactly the ones before it.
+
+        "tier1_chars": null | N         evidence_tier1_chars (below)
+        "covered_titles": false | true
+            true: a hit of a passage merged from several sections carries "covered_titles", the headings of the
+            sections it covers, in document order (RootReader.covered_titles, from chunk_spans.covered_json).
+        "table_context": false | true
+            true: a hit whose delivered window begins inside a table, below its header row, carries
+            "table_context": {"caption", "header"} (RootReader.table_context, from the source lines above it).
+
+    Both fields are added last (HitBuilder.describe), after the walk, prefer() and widen(), for the chunk and
+    the lines the hit finally shows: no hit, order, text or fold changes. An engine whose RootReader has no
+    such function (the Forge builder's copy validates a generation; it serves no agent) accepts the keys and
+    adds nothing."""
+    tier1_chars: int | None = None
+    covered_titles: bool = False
+    table_context: bool = False
+
+
+def evidence_settings(config: dict[str, Any]) -> EvidenceSettings:
+    """The settings in a retrieval config. ValueError names a value they cannot take; rag_core.api checks them at
+    start, as search_many_settings."""
+    evidence = config.get("evidence")
+    if evidence is None:
+        return EvidenceSettings()
+    if not isinstance(evidence, dict) or set(evidence) - set(EVIDENCE_KEYS):
+        raise ValueError(f"retrieval.json evidence must be an object of {list(EVIDENCE_KEYS)}, not {evidence!r}")
+    flags = {}
+    for key in ("covered_titles", "table_context"):
+        value = evidence.get(key)
+        if value is not None and not isinstance(value, bool):
+            raise ValueError(f"retrieval.json evidence.{key} must be true or false, not {value!r}")
+        flags[key] = bool(value)
+    return EvidenceSettings(tier1_chars=evidence_tier1_chars(config), **flags)
+
+
+def evidence_tier1_chars(config: dict[str, Any]) -> int | None:
+    """retrieval.json "evidence": {"tier1_chars": null | N} (a root's overlay, e.g. set by scripts/derive_root.py
+    --set retrieval.evidence.tier1_chars=3200): null or unset (the default), or an integer from TIER1_MIN_CHARS
+    to TIER1_MAX_CHARS. ValueError names a value it cannot take; rag_core.api checks it at start, as
+    search_many_settings.
+
+    N: a hit delivered with the request's full window (every hit of an answer without tiers, tier 1 of a deep
+    one) is delivered with a window of N characters instead, when the request's max_chars is at least
+    TIER1_MIN_CHARS and less than N (HitBuilder.widen). The walk that picks and orders the hits still runs on
+    the max_chars windows, so the hits, their order, the folds and also_in are the ones without the setting;
+    only "text" and "local" of those hits differ. A request with a smaller max_chars (the deep research modes
+    send 400 to 500) or one of N or more is answered exactly as without the setting.
+    Unset or null, every response is exactly the one before the setting, and /v2/status settings show
+    nothing of it (rag_core.status)."""
+    evidence = config.get("evidence")
+    if evidence is None:
+        return None
+    if not isinstance(evidence, dict) or set(evidence) - set(EVIDENCE_KEYS):
+        raise ValueError(f"retrieval.json evidence must be an object of {list(EVIDENCE_KEYS)}, not {evidence!r}")
+    chars = evidence.get("tier1_chars")
+    if chars is None:
+        return None
+    if isinstance(chars, bool) or not isinstance(chars, int) or not TIER1_MIN_CHARS <= chars <= TIER1_MAX_CHARS:
+        raise ValueError(f"retrieval.json evidence.tier1_chars must be null or an integer from {TIER1_MIN_CHARS} "
+                         f"to {TIER1_MAX_CHARS}, not {chars!r}")
+    return chars
 
 
 FOLD_TOKEN = re.compile(r"[a-z0-9]+")
@@ -419,8 +557,8 @@ def retrieve(
     orch = request.app.state.orchestrator
     retrievers, before = plan(request, mode)
     degraded |= before
-    if rerank == "on" and orch.reranker is None:
-        degraded.add("reranker")
+    if rerank != "off" and orch.reranker is None:
+        degraded.add("reranker")            # asked for, or auto on a root configured without one
 
     def run(names: frozenset[str] | None) -> dict[str, Any]:
         result = orch.search(
@@ -491,6 +629,20 @@ def deep_share(queries: list) -> DeepShare:
 _LATER = object()       # HitBuilder.build: the candidates a DeepShare held back follow this mark
 
 
+def standing_line(info: dict[str, Any], anchor: str | None) -> str:
+    """An RFC's standing (kb.rfc_info), with the errata on the section `anchor` names, as a hit and /v2/section
+    carry it in "status": "Proposed Standard; obsoletes RFC 1587; errata: 1 verified; errata on this section:
+    EID 3001 (Verified)"."""
+    line = info["standing"]
+    base = anchor.split("-")[0] if anchor and anchor[0].isdigit() else anchor
+    on = [e for e in info["errata"] if base and kb.errata_anchor(e["section"]) == base]
+    if on:
+        line += "; errata on this section: " + ", ".join(
+            f"EID {e['id']} ({e['status']})" for e in on[:3]
+        )
+    return line
+
+
 class HitBuilder:
     """Hit objects (BUILD-P1 section 3) for fused candidates."""
 
@@ -509,6 +661,19 @@ class HitBuilder:
         self.pins = release_pins(prefer_release) if self.fold else ()
         # prefer: each folded copy's row, document and window, by chunk id
         self.copies: dict[str, tuple[dict[str, Any], Doc | None, tuple[str, Sec | None, str | None]]] = {}
+        # retrieval.json evidence.tier1_chars: the size the full-window hits are delivered with, when it is more
+        # than the request asked for and the request asked for TIER1_MIN_CHARS or more (widen); None: as asked
+        evidence = evidence_settings(getattr(request.app.state.orchestrator, "config", None) or {})
+        tier1 = evidence.tier1_chars
+        self.wide = tier1 if tier1 is not None and TIER1_MIN_CHARS <= max_chars < tier1 else None
+        # retrieval.json evidence.covered_titles / table_context: the reader functions that make the two fields
+        # (WP-E; None for a setting that is off, and in an engine copy whose RootReader has none: describe)
+        self.covered_titles = getattr(self.corp, "covered_titles", None) if evidence.covered_titles else None
+        self.table_context = getattr(self.corp, "table_context", None) if evidence.table_context else None
+        # widen, describe: the row, document and terms each hit (and each folded copy prefer may show) was
+        # windowed with; kept only when one of them will run
+        self.keep_sources = self.wide is not None or self.covered_titles is not None or self.table_context is not None
+        self.sources: dict[str, tuple[dict[str, Any], Doc | None, list[str]]] = {}
         if db is None:
             degraded.add("kb")
 
@@ -520,14 +685,7 @@ class HitBuilder:
         info = self.rfcs[doc.rfc]
         if info is None:
             return None
-        line = info["standing"]
-        base = anchor.split("-")[0] if anchor and anchor[0].isdigit() else anchor
-        on = [e for e in info["errata"] if base and kb.errata_anchor(e["section"]) == base]
-        if on:
-            line += "; errata on this section: " + ", ".join(
-                f"EID {e['id']} ({e['status']})" for e in on[:3]
-            )
-        return line
+        return standing_line(info, anchor)
 
     def window(
         self,
@@ -596,13 +754,15 @@ class HitBuilder:
         hit["also_in"].append(member)
         if self.pins:
             self.copies[row["chunk_id"]] = (row, doc, placed)
+            if self.keep_sources:
+                self.sources[row["chunk_id"]] = (row, doc, terms)
 
     def prefer(self, hits: list[dict[str, Any]]) -> None:
         """prefer_release (with retrieval.json fold_identical): a hit whose release is none of the pins
         (pinned_release), with a pinned copy among the ones folded into it, is shown as that copy instead, the
         best-ranked such copy whose delivered window is the hit's text byte for byte and whose source lines overlap
         no other hit's (_overlaps, as the walk's rule). The hit keeps its place, score, matched retrievers and text;
-        it takes the copy's id, document, section, citation, standing, release, source lines and url (and its
+        it takes the copy's id, document, section, citation, standing, release, platform, source lines and url (and its
         per_query_ranks in search_many), and the hit it was moves to the front of also_in, named as any copy is.
         So the visible citation is the pinned release, nothing in the ranking or the delivered text changes,
         and the copies a hit stands for are the same set. A copy whose window differs in any byte (case,
@@ -637,6 +797,7 @@ class HitBuilder:
                     "section_path": sec.path if sec else row["heading_path"],
                     "status": self.status(doc, sec.anchor if sec else None) if doc else None,
                     "release": doc.release if doc else None,
+                    "platform": doc.platform if doc else None,
                     "local": local,
                     "url": doc.url(sec) if doc else None,
                     **({"per_query_ranks": member["per_query_ranks"]}
@@ -647,6 +808,42 @@ class HitBuilder:
                 hit["also_in"] = [was] + [m for m in hit["also_in"] if m is not member]
                 wheres[n] = where
                 break
+
+    def widen(self, hits: list[dict[str, Any]]) -> None:
+        """retrieval.json evidence.tier1_chars (self.wide): every hit delivered with the request's full window
+        (all of them without deep, tier 1 with it) gets the window of self.wide characters instead: window() as
+        the walk called it for this chunk, with the same terms, so it is centred on the same line and lies in
+        the same section, and "local" names the lines it shows. It is made afresh at the larger size, not grown
+        from the max_chars window. Runs last, after the walk and prefer(): which candidates are hits, their
+        order, scores, sections, citations, folds and also_in were all decided on the max_chars windows and
+        are not touched, so two hits of one file may now show overlapping lines. A hit prefer() shows as a pinned
+        copy is widened as that copy, from the copy's own source lines."""
+        for n, hit in enumerate(hits):
+            if self.deep and n >= DEEP_HEAD:
+                break                       # tiers 2 and 3 keep their sizes
+            row, doc, terms = self.sources[hit["id"]]
+            hit["text"], _, hit["local"] = self.window(row, doc, terms, self.wide)
+
+    def describe(self, hits: list[dict[str, Any]]) -> None:
+        """retrieval.json evidence.covered_titles and evidence.table_context: the two fields of a hit that say
+        what its text does not. "covered_titles": the headings of the sections the passage covers, when it was
+        merged from several (RootReader.covered_titles of the chunk's covered section ids, chunk_rows' "covered");
+        "table_context": {"caption", "header"} when the delivered window begins inside a table below its header
+        (RootReader.table_context of the document and the window's first source line, the first number of
+        "local"). A field is absent when its function answers None. Runs last, for every hit of every tier, on
+        the chunk the hit is finally shown as (a pinned copy after prefer) and the lines it finally shows
+        (after widen); the keys are added after every other key."""
+        for hit in hits:
+            row, doc, _ = self.sources[hit["id"]]
+            if self.covered_titles is not None:
+                titles = self.covered_titles(row.get("covered") or [])
+                if titles is not None:
+                    hit["covered_titles"] = titles
+            where = _local_range(hit["local"]) if self.table_context is not None and doc is not None else None
+            if where:
+                context = self.table_context(doc, where[1])
+                if context is not None:
+                    hit["table_context"] = context
 
     def build(
         self,
@@ -735,6 +932,7 @@ class HitBuilder:
                 "section_path": sec.path if sec else row["heading_path"],
                 "status": self.status(doc, sec.anchor if sec else None) if doc else None,
                 "release": doc.release if doc else None,
+                "platform": doc.platform if doc else None,
                 "score": round(float(cand.get("rerank_score", cand["fused_score"])), 6),
                 "matched": cand["retrievers"],
                 "text": text,
@@ -743,6 +941,8 @@ class HitBuilder:
             }
             if "per_query_ranks" in cand:
                 hit["per_query_ranks"] = cand["per_query_ranks"]
+            if self.keep_sources:
+                self.sources[row["chunk_id"]] = (row, doc, terms)
             if self.fold:
                 hit["also_in"] = []
                 # the fold key of its max_chars window (a deep tier 2 or 3 hit delivers a narrower one)
@@ -750,12 +950,12 @@ class HitBuilder:
                 if key and delivered:
                     folds[(key, delivered)] = hit
                     texts.add(key)
+            tier = deep_tier(len(hits)) if self.deep else 1
             if self.deep:
-                tier = deep_tier(len(hits))
                 hit["tier"] = tier
-                hit["reranked"] = "rerank_score" in cand
-                if tier > 1:                # the ref to read it in its section with (get_section)
-                    hit["get_section"] = sec.section_id if sec else row["chunk_id"]
+            hit["reranked"] = "rerank_score" in cand        # the reranker scored it (its score is a rerank score)
+            if tier > 1:                    # the ref to read it in its section with (get_section)
+                hit["get_section"] = sec.section_id if sec else row["chunk_id"]
             if owner is not None:
                 taken[owner] = taken.get(owner, 0) + 1
             hits.append(hit)
@@ -763,6 +963,10 @@ class HitBuilder:
                 break
         if self.pins:
             self.prefer(hits)       # prefer_release: which copy each hit is shown as, nothing else
+        if self.wide is not None:
+            self.widen(hits)        # evidence.tier1_chars: the text and lines of the full-window hits, nothing else
+        if self.covered_titles is not None or self.table_context is not None:
+            self.describe(hits)     # evidence.covered_titles, table_context: two fields more, nothing else
         return hits
 
 
@@ -813,7 +1017,8 @@ def search_v2(payload: SearchRequest, request: Request) -> dict[str, Any]:
 
 FAIR_WEIGHT = 1.0       # a search_many query weighted at least this keeps a place in the hits
 SEARCH_MANY_WORKERS = 4     # search_many_parallel true: queries retrieved at once, at most
-RERANK_MODES = ("per_query", "best_query")      # search_many_rerank; the first is the default
+RERANK_MODES = ("per_query", "best_query", "per_query_lists")       # search_many_rerank; the first is the default
+SEARCH_MANY_KEYS = ("rerank_isolation",)        # retrieval.json "search_many": {...}
 
 
 @dataclass(frozen=True)
@@ -826,13 +1031,24 @@ class SearchManySettings:
             SEARCH_MANY_WORKERS of them at once, N: at most N; first one TEI call embeds every
             dense query (retrieve_each; a single query runs as with false). The answer is the
             same either way.
-        "search_many_rerank": "per_query" | "best_query"
+        "search_many_rerank": "per_query" | "best_query" | "per_query_lists"
             per_query (default): each head candidate is reranked against every query that
             retrieved it. best_query: once, against the query that ranked it highest
-            (rerank_by_query).
+            (rerank_by_query). per_query_lists: each query's own first N candidates are
+            reranked in a call of their own and the reranked lists are fused by rank, so
+            no score of one call is compared with a score of another (rerank_lists); N is
+            reranker.search_many_candidates (null: reranker.candidates), the same for
+            every query.
+        "search_many": {"rerank_isolation": false | true}
+            false (default): one failed reranker call drops the rerank of the whole request (the fused
+            order stands, degraded "reranker"), as always. true: a failed call costs its own query's
+            scores only; the calls that answered are used (rerank_by_query, rerank_head), the answer is
+            still degraded "reranker", and "degraded_detail" says "partial" and which queries were
+            reranked. When every call fails the answer is the one without the setting.
     """
     workers: int = 0            # queries retrieved at once; 0: one after another
     rerank: str = RERANK_MODES[0]
+    rerank_isolation: bool = False      # a failed rerank call costs its own query's scores only
 
 
 def search_many_settings(config: dict[str, Any]) -> SearchManySettings:
@@ -851,7 +1067,15 @@ def search_many_settings(config: dict[str, Any]) -> SearchManySettings:
     rerank = config.get("search_many_rerank", RERANK_MODES[0])
     if rerank not in RERANK_MODES:
         raise ValueError(f"retrieval.json search_many_rerank must be one of {list(RERANK_MODES)}, not {rerank!r}")
-    return SearchManySettings(workers=workers, rerank=rerank)
+    many = config.get("search_many")
+    if many is None:
+        many = {}
+    if not isinstance(many, dict) or set(many) - set(SEARCH_MANY_KEYS):
+        raise ValueError(f"retrieval.json search_many must be an object of {list(SEARCH_MANY_KEYS)}, not {many!r}")
+    isolation = many.get("rerank_isolation", False)
+    if not isinstance(isolation, bool):
+        raise ValueError(f"retrieval.json search_many.rerank_isolation must be true or false, not {isolation!r}")
+    return SearchManySettings(workers=workers, rerank=rerank, rerank_isolation=isolation)
 
 
 def breakers_closed(orch) -> bool:
@@ -871,8 +1095,11 @@ def retrieve_each(
     degraded: set[str],
     timings: dict[str, float],
     exclude_doc_ids: frozenset[str] | None = None,
+    legs: list[set[str]] | None = None,
 ) -> Iterator[dict[str, Any]]:
-    """retrieve() for each search_many query (rerank off), the results in query order.
+    """retrieve() for each search_many query (rerank off), the results in query order. `legs`, when given,
+    receives one set per query, in query order: what that query needed and could not use (degraded_detail's
+    "legs_down"); `degraded` gets their union, as always.
 
     By default one query after another, as search_many always did. With search_many_parallel, at
     most settings.workers at once, after orchestrator.query_vectors has embedded every dense query
@@ -887,12 +1114,17 @@ def retrieve_each(
     profile's p50s, measured with fake legs)."""
     orch = request.app.state.orchestrator
     workers = min(settings.workers, len(queries))
+    own: list[set[str]] = [set() for _ in queries]
+    if legs is not None:
+        legs.extend(own)
     if not workers or len(queries) < 2 or not breakers_closed(orch):
-        for q in queries:
-            yield retrieve(
+        for q, mine in zip(queries, own):
+            result = retrieve(
                 request, q.text, mode=q.mode, rerank="off",
-                pool=pool, doc_ids=doc_ids, degraded=degraded, exclude_doc_ids=exclude_doc_ids,
+                pool=pool, doc_ids=doc_ids, degraded=mine, exclude_doc_ids=exclude_doc_ids,
             )
+            degraded |= mine
+            yield result
         return
 
     embedded = None
@@ -903,7 +1135,6 @@ def retrieve_each(
         embedded = query_vectors(dense)
         if embedded:
             timings["dense_embed"] = ms(t)
-    own: list[set[str]] = [set() for _ in queries]
     with ThreadPoolExecutor(max_workers=workers) as executor:
         futures = [
             executor.submit(
@@ -926,12 +1157,46 @@ def best_query(cand: dict[str, Any], queries: list[SubQuery]) -> str:
     return min(ranks, key=lambda i: (ranks[i], -queries[int(i)].weight, int(i)))
 
 
+def rerank_calls(
+    reranker,
+    jobs: dict[str, tuple[str, list[dict[str, Any]]]],
+    failures: dict[str, BaseException] | None = None,
+) -> dict[str, list[dict[str, Any]]]:
+    """One reranker call per job {query index: (query text, its candidates)}, all at once (at most 8, within the
+    reranker client's 16 connections): {query index: what the call returned}, in job order. Without `failures`
+    the first failed call raises, without waiting for the calls still running (they end by the client's timeout
+    and are discarded). With it (retrieval.json search_many.rerank_isolation) no failed call raises: every call
+    is waited for (a hung one ends by the client's timeout), and a failed one is noted there as {query index:
+    its exception}, in query order, and has no answer here."""
+    answers: dict[str, list[dict[str, Any]]] = {}
+    if jobs:
+        pool = ThreadPoolExecutor(max_workers=len(jobs))
+        try:
+            futures = {i: pool.submit(reranker.rerank, text, mine) for i, (text, mine) in jobs.items()}
+            if failures is None:
+                done, _ = wait(futures.values(), return_when=FIRST_EXCEPTION)
+                for future in done:
+                    if future.exception() is not None:
+                        future.result()         # raises the failure
+            else:
+                wait(futures.values())          # rerank_isolation: every call ends, by its timeout at the latest
+            for i, future in futures.items():   # no failure, or rerank_isolation: every call is done
+                if failures is not None and future.exception() is not None:
+                    failures[i] = future.exception()
+                    continue
+                answers[i] = future.result()
+        finally:
+            pool.shutdown(wait=False, cancel_futures=True)
+    return answers
+
+
 def rerank_by_query(
     reranker,
     queries: list[SubQuery],
     head: list[dict[str, Any]],
     rows: dict[str, dict[str, Any]],
     mode: str = RERANK_MODES[0],
+    failures: dict[str, BaseException] | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, dict[str, float]]]:
     """Rerank the fused head of search_many. Each candidate is scored against every query that
     retrieved it (its per_query_ranks), and its rerank_score is the best of those scores: a
@@ -947,34 +1212,27 @@ def rerank_by_query(
     and each query's scores {query index: {chunk_id: score}}. per_query_ranks are not changed:
     they stay every query's first-stage rank. Raises as soon as any call fails, without waiting
     for the calls still running (they end by the client's timeout and are discarded): the
-    caller keeps the fused order then."""
+    caller keeps the fused order then.
+
+    `failures` (retrieval.json search_many.rerank_isolation, rerank_calls): given a dict, no failed call raises;
+    a failed one is noted there and has no entry in the scores, and the calls that answered are used as always:
+    a candidate's rerank_score is the best of the scores it got, and one that no answered call scored follows
+    the scored ones in fused order."""
     head = [c for c in head if c["chunk_id"] in rows]
     jobs: dict[str, tuple[str, list[dict[str, Any]]]] = {}
     for i, q in enumerate(queries):
         mine = [
-            {"chunk_id": c["chunk_id"], "text": rows[c["chunk_id"]]["text"],
-             "heading_path": rows[c["chunk_id"]]["heading_path"]}
+            {"chunk_id": c["chunk_id"], "doc_id": rows[c["chunk_id"]].get("doc_id"),       # reranker.title
+             "text": rows[c["chunk_id"]]["text"], "heading_path": rows[c["chunk_id"]]["heading_path"]}
             for c in head if str(i) in c["per_query_ranks"]
             and (mode != "best_query" or best_query(c, queries) == str(i))
         ]
         if mine:
             jobs[str(i)] = (q.text, mine)
-    scores: dict[str, dict[str, float]] = {}
-    if jobs:
-        pool = ThreadPoolExecutor(max_workers=len(jobs))
-        try:
-            futures = {i: pool.submit(reranker.rerank, text, mine) for i, (text, mine) in jobs.items()}
-            done, _ = wait(futures.values(), return_when=FIRST_EXCEPTION)
-            for future in done:
-                if future.exception() is not None:
-                    future.result()             # raises the failure
-            for i, future in futures.items():   # no failure: every call is done
-                scores[i] = {
-                    item["chunk_id"]: float(item["rerank_score"])
-                    for item in future.result() if item.get("rerank_score") is not None
-                }
-        finally:
-            pool.shutdown(wait=False, cancel_futures=True)
+    scores = {
+        i: {item["chunk_id"]: float(item["rerank_score"]) for item in answer if item.get("rerank_score") is not None}
+        for i, answer in rerank_calls(reranker, jobs, failures).items()
+    }
     order = {c["chunk_id"]: n for n, c in enumerate(head)}
     out = []
     for c in head:
@@ -986,6 +1244,63 @@ def rerank_by_query(
     return out, scores
 
 
+def rerank_lists(
+    reranker,
+    queries: list[SubQuery],
+    head: list[dict[str, Any]],
+    rows: dict[str, dict[str, Any]],
+    depth: int,
+    k: int,
+    failures: dict[str, BaseException] | None = None,
+) -> tuple[list[dict[str, Any]], dict[str, dict[str, float]]]:
+    """search_many_rerank "per_query_lists": every query's own list reranked on its own, the reranked lists
+    fused by rank.
+
+    `head`: the candidates some query ranked among its first `depth` (rerank_head), in fused order. Query i's
+    list is the candidates it ranked 1 to `depth` in the first stage (per_query_ranks), in that order; it goes
+    to the reranker in one call with that query's text. One call per query that has a list, all at once
+    (rerank_calls; `failures` as there). The order a call returns, counting only the candidates it scored, gives
+    each of them a reranked rank r = 1, 2, ... for that query. A candidate's value is the weighted reciprocal
+    rank sum over the queries that scored it, sum of weight / (k + r), with search_many's own k (rrf_k): only
+    ranks are combined, never the scores of two calls (the reranker scores a list as a whole, so a score means
+    something only beside the other scores of its call).
+
+    Returns the head in the new order: the scored candidates by value, the higher first; equal values by the
+    best reranked rank any query gave, then by chunk id; then the candidates no answered call scored, in fused
+    order. A scored candidate carries the value as "rerank_score" (so "score" is that value and "reranked" is
+    true); per_query_ranks stay the first-stage ranks. And each query's own scores {query index: {chunk_id:
+    score}}, as rerank_by_query returns them: keep_each_query reads them to find the candidate a query's own
+    call scored highest, which is that query's reranked rank 1."""
+    head = [c for c in head if c["chunk_id"] in rows]
+    jobs: dict[str, tuple[str, list[dict[str, Any]]]] = {}
+    for i, q in enumerate(queries):
+        mine = sorted((c for c in head if c["per_query_ranks"].get(str(i), depth + 1) <= depth),
+                      key=lambda c: c["per_query_ranks"][str(i)])
+        if mine:
+            jobs[str(i)] = (q.text, [
+                {"chunk_id": c["chunk_id"], "doc_id": rows[c["chunk_id"]].get("doc_id"),
+                 "text": rows[c["chunk_id"]]["text"], "heading_path": rows[c["chunk_id"]]["heading_path"]}
+                for c in mine
+            ])
+    scores: dict[str, dict[str, float]] = {}
+    value: dict[str, float] = {}
+    best: dict[str, int] = {}
+    for i, answer in rerank_calls(reranker, jobs, failures).items():
+        scored = [item for item in answer if item.get("rerank_score") is not None]
+        scores[i] = {item["chunk_id"]: float(item["rerank_score"]) for item in scored}
+        for r, item in enumerate(scored, 1):
+            cid = item["chunk_id"]
+            value[cid] = value.get(cid, 0.0) + queries[int(i)].weight / (k + r)
+            best[cid] = min(best.get(cid, r), r)
+    order = {c["chunk_id"]: n for n, c in enumerate(head)}
+    out = [{**c, "rerank_score": value[c["chunk_id"]]} if c["chunk_id"] in value else dict(c) for c in head]
+    out.sort(key=lambda c: (
+        (0, -c["rerank_score"], best[c["chunk_id"]], c["chunk_id"]) if "rerank_score" in c
+        else (1, order[c["chunk_id"]], 0, "")
+    ))
+    return out, scores
+
+
 def rerank_head(
     request: Request,
     reranker,
@@ -993,20 +1308,44 @@ def rerank_head(
     ranked: list[dict[str, Any]],
     mode: str,
     degraded: set[str],
+    isolate: bool = False,
 ) -> tuple[list[dict[str, Any]], dict[str, dict[str, float]], float]:
     """search_many's rerank: the fused head (the reranker's search_many_candidates, which are its candidates unless
-    retrieval.json reranker.search_many_candidates says otherwise) through rerank_by_query, and the breaker told how
-    it went. (ranked, each query's scores, ms); a failure keeps the fused order, no scores, degraded "reranker"."""
+    retrieval.json reranker.search_many_candidates says otherwise) through rerank_by_query (mode per_query_lists:
+    every query's own first search_many_candidates through rerank_lists), and the breaker told how
+    it went. (ranked, each query's scores, ms); a failure keeps the fused order, no scores, degraded "reranker".
+    `isolate` (search_many.rerank_isolation): a call that fails costs its own query's scores only. While at least
+    one call answered, the breaker is told one success (the service answers; a half-open trial closes it) and the
+    answer is degraded "reranker"; when every call failed it is one failure (the first failed call's, in query
+    order) and the fused order stands, exactly as without the setting."""
     breaker = getattr(reranker, "breaker", None)
     t = time.perf_counter()
-    head = ranked[: getattr(reranker, "search_many_candidates", None) or reranker.candidates]
+    depth = getattr(reranker, "search_many_candidates", None) or reranker.candidates
+    lists = mode == RERANK_MODES[2]
+    if lists:       # per_query_lists: every candidate some query ranked among its own first `depth`
+        head = [c for c in ranked if min(c["per_query_ranks"].values()) <= depth]
+    else:
+        head = ranked[:depth]
     with connect(request.app.state.paths.sqlite / "rag.db") as conn:
         rows = chunk_rows(conn, [c["chunk_id"] for c in head])
+    failures: dict[str, BaseException] | None = {} if isolate else None
     try:
-        reranked, scores = rerank_by_query(reranker, queries, head, rows, mode)
-        ranked = reranked + ranked[len(head):]
+        if lists:
+            k = int(request.app.state.orchestrator.config.get("rrf_k", 60))
+            reranked, scores = rerank_lists(reranker, queries, head, rows, depth, k, failures)
+        else:
+            reranked, scores = rerank_by_query(reranker, queries, head, rows, mode, failures)
+        if failures and not scores:
+            raise next(iter(failures.values()))     # every call failed: one failure, the first in query order
+        if lists:
+            first = {c["chunk_id"] for c in head}
+            ranked = reranked + [c for c in ranked if c["chunk_id"] not in first]
+        else:
+            ranked = reranked + ranked[len(head):]
         if breaker is not None:
             breaker.record_success()
+        if failures:
+            degraded.add("reranker")                # some calls failed; the scores of the others stand
     except Exception as exc:    # the fused order stands
         if breaker is not None:
             breaker.record_failure(error_kind(exc))
@@ -1024,6 +1363,7 @@ def gated_rerank_head(
     mode: str,
     degraded: set[str],
     timings: dict[str, float],
+    isolate: bool = False,
 ) -> tuple[list[dict[str, Any]], dict[str, dict[str, float]], float | None]:
     """rerank_head behind the pipeline's rerank gate (rag_core.pipeline), held once across all of this
     search_many's calls (one job: no other search's rerank runs between them); timings["rerank_wait"] is the wait.
@@ -1041,7 +1381,30 @@ def gated_rerank_head(
         if not admitted or breaker is not None and not breaker.allow():
             degraded.add("reranker")
             return ranked, {}, None
-        return rerank_head(request, reranker, queries, ranked, mode, degraded)
+        return rerank_head(request, reranker, queries, ranked, mode, degraded, isolate)
+
+
+def degraded_detail(
+    legs: list[set[str]],
+    scores: dict[str, dict[str, float]],
+    degraded: set[str],
+) -> dict[str, Any]:
+    """search_many's "degraded_detail": what happened to each query, which "degraded" (one list for the whole
+    answer) cannot say. "queries": one entry per query, in order: its "index" (0-based), "legs_down" (the
+    retrievers it needed and could not use, sorted: failed, skipped by a breaker, failed to start or configured
+    off; a dense-mode query whose dense leg is down was answered by BM25) and "reranked" (the reranker scored
+    at least one of its candidates). "rerank": "ok" (every call made answered), "partial"
+    (search_many.rerank_isolation: some answered, some failed) or "skipped" (no call answered, or none was made:
+    rerank off, no reranker, its breaker open, the rerank queue full, a failure without isolation, or nothing
+    to rerank)."""
+    answered = any(scores.values())
+    return {
+        "queries": [
+            {"index": i, "legs_down": sorted(down), "reranked": bool(scores.get(str(i)))}
+            for i, down in enumerate(legs)
+        ],
+        "rerank": "skipped" if not answered else "partial" if "reranker" in degraded else "ok",
+    }
 
 
 def best_of_query(
@@ -1140,6 +1503,7 @@ def search_many(payload: SearchManyRequest, request: Request) -> dict[str, Any]:
     search_many_rerank "best_query" once, against the one that ranked it highest). Then every query
     weighted 1 or more keeps its best candidate among the first `limit` (keep_each_query).
     A hit's text window is centred on the terms of the queries that found it.
+    "degraded_detail" says what happened to each query and to the rerank (degraded_detail).
 
     deep: the fusion, rerank and fairness of limit 8 (whose hits are tier 1), each query retrieved to
     pool_size(DEEP_HITS) for the candidates after them (deep_tail), and DEEP_HITS hits in all, whatever the number
@@ -1160,10 +1524,11 @@ def search_many(payload: SearchManyRequest, request: Request) -> dict[str, Any]:
         doc_ids, excluded = filter_docs(reader(request), db, payload.filters, degraded, opt_in(request))
         t = time.perf_counter()
         fused: dict[str, dict[str, Any]] = {}
+        legs: list[set[str]] = []
         results = retrieve_each(
             request, payload.queries, settings,
             pool=pool_size(DEEP_HITS if deep else limit), doc_ids=doc_ids, degraded=degraded, timings=timings,
-            exclude_doc_ids=excluded,
+            exclude_doc_ids=excluded, legs=legs,
         )
         if deep:        # fused below as limit 8 fuses them: each query's first pool_size(8); the rest is deep_tail's
             deeper = list(results)
@@ -1185,8 +1550,8 @@ def search_many(payload: SearchManyRequest, request: Request) -> dict[str, Any]:
         rerank_ms = None
         scores: dict[str, dict[str, float]] = {}
         reranker = orch.reranker
-        if payload.rerank == "on" and reranker is None:
-            degraded.add("reranker")
+        if payload.rerank != "off" and reranker is None:
+            degraded.add("reranker")            # asked for, or auto on a root configured without one
         if payload.rerank != "off" and getattr(orch, "rerank_error", None):
             degraded.add("reranker")            # configured, but it could not start
         breaker = getattr(reranker, "breaker", None)
@@ -1194,14 +1559,16 @@ def search_many(payload: SearchManyRequest, request: Request) -> dict[str, Any]:
         if payload.rerank != "off" and reranker is not None and ranked and gate is not None:
             ranked, scores, rerank_ms = gated_rerank_head(
                 gate, request, reranker, payload.queries, ranked, settings.rerank, degraded, timings,
+                settings.rerank_isolation,
             )
         elif payload.rerank != "off" and reranker is not None and ranked and breaker is not None \
                 and not breaker.allow():
             degraded.add("reranker")            # its breaker is open: no call, no wait
         elif payload.rerank != "off" and reranker is not None and ranked:
             ranked, scores, rerank_ms = rerank_head(
-                request, reranker, payload.queries, ranked, settings.rerank, degraded,
+                request, reranker, payload.queries, ranked, settings.rerank, degraded, settings.rerank_isolation,
             )
+        detail = degraded_detail(legs, scores, degraded)
         ranked = keep_each_query(ranked, payload.queries, limit, scores)
         candidates = ranked[: pool_size(limit)]
         if deep:
@@ -1226,6 +1593,7 @@ def search_many(payload: SearchManyRequest, request: Request) -> dict[str, Any]:
     return {
         "hits": hits,
         "degraded": sorted(degraded),
+        "degraded_detail": detail,
         "timings_ms": {
             "retrieve": retrieve_ms, "rerank": rerank_ms, "assemble": ms(t),
             "total": ms(started), **timings,
@@ -1254,26 +1622,71 @@ def get_section(
     ref: str = Query(min_length=1, max_length=512),
     offset: int = Query(default=0, ge=0),
     max_chars: int = Query(default=20000, ge=1, le=100000),
+    around: str | None = Query(default=None, min_length=1, max_length=80),
 ) -> dict[str, Any]:
+    """A page of a section's text (ref: a section id or a chunk id), with its citation, the document's release
+    and platform, an RFC's standing with the errata on this section ("status", as a hit carries it; null for
+    another document or without the KB) and "same_section_in": the same section in the same book at other
+    releases (RootReader.same_section_in; [] when there is none or it cannot be decided).
+
+    `around` starts the page at a place inside the section instead of at `offset`: a passage id (chk_...: the
+    first line of that passage, or the section's first line when the passage begins above it) or a line of the
+    source file as "local" names them. The answer echoes it as "around" and says the offset it starts at in
+    "offset"; read on with offset = next_offset. 400: `around` together with an offset, neither form, or a
+    place outside the section; 404: an unknown passage, or one without source lines."""
     corp = reader(request)
     _need_structure(corp)
     found = corp.resolve(ref)
     if found is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"unknown section or chunk: {ref}")
     doc, sec = found
+    if around is not None:
+        if offset:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "give offset or around, not both")
+        offset = corp.line_offset(doc, sec, around_line(corp, doc, sec, around.strip()))
     prev, nxt = corp.neighbours(doc, sec)
     page = corp.section_text(doc, sec, offset, max_chars)
+    with kb_db(request) as db:
+        info = kb.rfc_info(db, doc.rfc) if db is not None and doc.rfc is not None else None
     return {
         "doc_key": doc.doc_key,
         "section_id": sec.section_id,
         "title": sec.heading or doc.title,
         "cite": doc.cite(sec),
         "section_path": sec.path,
+        "release": doc.release,
+        "platform": doc.platform,
+        "status": standing_line(info, sec.anchor) if info else None,
+        **({"around": around} if around is not None else {}),
         **page,
         "prev_section_id": prev.section_id if prev else None,
         "next_section_id": nxt.section_id if nxt else None,
+        "same_section_in": corp.same_section_in(doc, sec),
         "degraded": [],
     }
+
+
+def around_line(corp: RootReader, doc: Doc, sec: Sec, around: str) -> int:
+    """/v2/section's `around` as a line of the section: a passage id's first line (the section's first line when
+    the passage begins above the section and reaches into it), or the line given. HTTPException otherwise."""
+    span = f"{sec.section_id} (lines {sec.line_start}-{sec.line_end})"
+    if around.startswith("chk_"):
+        lines = corp.chunk_lines(around)
+        if lines is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, f"unknown passage: {around}")
+        doc_id, first, last = lines
+        if first is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, f"passage {around} has no source lines")
+        if doc_id != doc.doc_id or last < sec.line_start or first > sec.line_end:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, f"passage {around} is not in {span}")
+        return max(first, sec.line_start)
+    if around.isascii() and around.isdigit():
+        line = int(around)
+        if not sec.line_start <= line <= sec.line_end:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, f"line {line} is outside {span}")
+        return line
+    raise HTTPException(status.HTTP_400_BAD_REQUEST,
+                        "around must be a passage id (chk_...) or a line of the source file")
 
 
 def subtree(doc: Doc, top: Sec, depth: int) -> list[Sec]:
@@ -1359,6 +1772,7 @@ def list_documents(
                 "title": doc.title,
                 "doc_type": doc.doc_type,
                 "release": doc.release,
+                "platform": doc.platform,
                 "status": info["standing"] if info else None,
                 "n_sections": len(doc.sections),
                 "n_chunks": corp.n_chunks.get(doc.doc_id, 0),
@@ -1371,7 +1785,11 @@ def list_documents(
 
 @router.post("/verify_quote")
 def verify_quote(payload: VerifyQuoteRequest, request: Request) -> dict[str, Any]:
-    """ref: a section id, a chunk id or a doc_key (whole document)."""
+    """ref: a section id, a chunk id or a doc_key (whole document). The answer: "result" (exact, normalized,
+    not_found), "section_id" (where the match begins), "local", "match_text", then "scope" (only for a section or
+    chunk ref: "section" when the match lies in the cited section, "document" when it was found elsewhere in the
+    document), "sections" (every section the match is in), "gap_chars" and, with not_found under verify.ellipsis
+    "bounded", "reason": "parts-too-far" (RootReader.verify_quote; retrieval.json settings: VerifySettings)."""
     corp = reader(request)
     _need_structure(corp)
     found = corp.resolve(payload.ref)
@@ -1380,7 +1798,9 @@ def verify_quote(payload: VerifyQuoteRequest, request: Request) -> dict[str, Any
         if doc is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND, f"unknown reference: {payload.ref}")
         found = (doc, None)
-    return {**corp.verify_quote(*found, payload.quote), "degraded": []}
+    settings = verify_settings(getattr(request.app.state.orchestrator, "config", None) or {})
+    return {**corp.verify_quote(*found, payload.quote, ellipsis=settings.ellipsis,
+                                max_gap_chars=settings.max_gap_chars), "degraded": []}
 
 
 @router.post("/grep")
@@ -1486,12 +1906,22 @@ def rfc(
 def lookup(
     request: Request,
     identifier: str = Query(alias="id", min_length=1, max_length=200),
+    kind: Annotated[FactKind | None, Query()] = None,
 ) -> dict[str, Any]:
     """kb.lookup, then, only where it answers "unknown", the sections headed by the identifier
     (RootReader.headed: a PowerShell cmdlet or about topic, an HTTP API operation "METHOD /path"
     or a bare "/path"), as results of kind "section". An explicit identifier, so the opt-in doc
-    types are not left out."""
+    types are not left out. With kind (feature, history, default, deprecation), the rows of that
+    fact table instead (kb.lookup_fact), each with its document's stored release as doc_release."""
     corp = reader(request)
+    if kind is not None:
+        with kb_db(request, required=True) as db:
+            found = kb.lookup_fact(db, kind, identifier)
+        for row in found["results"]:
+            doc = corp.docs.get(row["doc_key"])
+            row["doc_release"] = doc.release if doc is not None else None
+        degraded = sorted(set(found.pop("degraded", [])) | set(_structure_degraded(corp)))
+        return {**found, "degraded": degraded}
     with kb_db(request, required=True) as db:
         found = kb.lookup(db, identifier)
     if found["kind"] == "unknown":

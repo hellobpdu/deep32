@@ -21,7 +21,7 @@ from alpha2_source import seal_source, verify_source
 
 CLASSES = ('turing', 'ampere80', 'ampere86', 'ada', 'hopper', 'blackwell100', 'blackwell120')
 COMPONENTS = ('core', *('embedder-' + value for value in CLASSES), 'ingestion')
-VERSION = '0.1.0-alpha.2'
+VERSION = '0.1.0-alpha.3'
 
 
 def image_name(component):

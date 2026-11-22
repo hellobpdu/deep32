@@ -10,6 +10,7 @@
 
 #define FAIL(...) do { snprintf(err, errlen, __VA_ARGS__); goto fail; } while (0)
 #define MAX_FRAMES (60L * 60 * 48000)
+#define MS_DELTA_MAX (0x7fffffffL / 768)	/* the largest step whose next update (x768) stays in 31 bits */
 
 static long asr8(long v) { return v >= 0 ? v / 256 : -((-v + 255) / 256); } /* floor(v / 256), as >> 8 */
 static int16_t clamp16(long v) { return (int16_t)(v < -32768 ? -32768 : v > 32767 ? 32767 : v); }
@@ -55,7 +56,7 @@ int wav_decode(const unsigned char *p, size_t n, wav_pcm *out, char *err, size_t
 		out->pcm = (int16_t *)malloc((size_t)out->frames * ch * sizeof(int16_t) + 2);
 		if (!out->pcm) FAIL("allocation");
 		for (k = 0; k < out->frames * ch; k++)
-			out->pcm[k] = bps == 1 ? (int16_t)((data[k] - 128) << 8) : le16s(data + 2 * k);
+			out->pcm[k] = bps == 1 ? (int16_t)((data[k] - 128) * 256) : le16s(data + 2 * k);
 		return 0;
 	}
 	if (out->format != 2 && out->format != 0x11) FAIL("format tag %d not supported", out->format);
@@ -71,6 +72,7 @@ int wav_decode(const unsigned char *p, size_t n, wav_pcm *out, char *err, size_t
 		}
 		if (spb <= 0) spb = (align - 7 * ch) * 2 / ch + 2;
 	} else if (spb <= 0) spb = (align - 4 * ch) * 2 / ch + 1;
+	if (out->format == 2 && spb < 2) FAIL("ADPCM %d samples per block", spb);
 	cap = (long)((datalen / (size_t)align) + 1) * spb;
 	if (cap > MAX_FRAMES) FAIL("too long");
 	out->pcm = (int16_t *)malloc((size_t)cap * ch * sizeof(int16_t) + 2);
@@ -106,6 +108,7 @@ int wav_decode(const unsigned char *p, size_t n, wav_pcm *out, char *err, size_t
 					s1[c] = v;
 					delta[c] = (ms_adapt[nib] * delta[c]) / 256;
 					if (delta[c] < 16) delta[c] = 16;
+					if (delta[c] > MS_DELTA_MAX) delta[c] = MS_DELTA_MAX;
 					out->pcm[(out->frames + fr) * ch + c] = (int16_t)v;
 					if (++c == ch) { c = 0; fr++; }
 					if (fr >= spb) break;

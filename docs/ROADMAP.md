@@ -3,19 +3,19 @@
 What I intend to do with Deep32 through November 2027, and what Deep32 will not do. It is for network and security
 engineers deciding whether to run Deep32, build on it or contribute to it.
 
-<sub>Applies to 0.1.0-alpha.2 · [1 Reading this page](#1-reading-this-page) · [2 Before alpha.3](#2-before-010-alpha3) · [3 0.1.0-alpha.3](#3-010-alpha3) · [4 The next 12 months](#4-the-next-12-months) · [5 Project practices](#5-project-practices) · [6 Under consideration](#6-under-consideration) · [7 What Deep32 will not do](#7-what-deep32-will-not-do)</sub>
+<sub>Applies to 0.1.0-alpha.3 · [1 Reading this page](#1-reading-this-page) · [2 Between releases](#2-between-releases) · [3 0.1.0-alpha.3](#3-010-alpha3) · [4 The next 12 months](#4-the-next-12-months) · [5 Project practices](#5-project-practices) · [6 Under consideration](#6-under-consideration) · [7 What Deep32 will not do](#7-what-deep32-will-not-do)</sub>
 
 ## 1. Reading this page
 
-This is my plan as of 19 November 2026. Everything on it is something I intend to do; none of it is a promise of a
+This is my plan as of 21 November 2026. Everything on it is something I intend to do; none of it is a promise of a
 feature or a date. I'll update this page with each release, and the [release notes](../CHANGELOG.md) record what
 actually shipped.
 
-The page has three horizons. Section 3 lists what I plan for 0.1.0-alpha.3, the next release with new images, item by
-item, so you can hold its release notes against it. Section 4 gives the direction through November 2027, in no
-fixed order. Section 7 says what Deep32 will not do, each point tied to a recorded design decision. Section 2 covers
-what comes before 0.1.0-alpha.3, section 5 the engineering practices behind several of the items, and section 6 ideas
-I haven't decided on.
+The page has three horizons. Section 3 lists what I planned for 0.1.0-alpha.3, item by item, with what that release
+did with each: the fixes and the small security items are in it, and the new features moved to 0.1.0-alpha.4, the next
+release with new images. Section 4 gives the direction through November 2027, in no fixed order. Section 7 says what
+Deep32 will not do, each point tied to a recorded design decision. Section 2 covers work between releases, section 5
+the engineering practices behind several of the items, and section 6 ideas I haven't decided on.
 
 Releases go from the 0.1.0 alphas to a beta, then release candidates and 1.0.0
 ([DR-88](DECISIONS.md#dr-88-alpha-versions-first)). The beta waits for the answer-level evaluation in
@@ -29,20 +29,21 @@ below: fixes to that code wait for new images, while the tests, CI, the setup sc
 relay and the documentation can change at any time. Each row links to where the item, or the decision behind it, is
 described.
 
-## 2. Before 0.1.0-alpha.3
+## 2. Between releases
 
 | Item | What changes | Described in |
 |---|---|---|
-| Forge acceptance | Full install runs on Linux, in WSL 2 and on Docker Desktop, and measured storage budgets in place of the declared upper bounds | [Overview 11.1](../README.md#111-roadmap); [D32-TR-1](tr/README.md), Implementation Status |
-| OpenSSF Best Practices | The passing badge for [project 16932](https://www.bestpractices.dev/projects/16932). My answers for this release meet every passing criterion marked MUST | [Section 5](#5-project-practices) |
-
-Forge acceptance comes in a signed revision of 0.1.0-alpha.2, which keeps the version number.
+| Forge acceptance | Full install runs on Linux, in WSL 2 and on Docker Desktop, and measured storage budgets in place of the declared upper bounds. I planned it as a signed revision of 0.1.0-alpha.2; it is still to come | [Overview 11.1](../README.md#111-roadmap); [D32-TR-1](tr/README.md), Implementation Status |
+| OpenSSF Best Practices | The passing badge for [project 16932](https://www.bestpractices.dev/projects/16932), awarded for 0.1.0-alpha.2 | [Section 5](#5-project-practices) |
 
 ## 3. 0.1.0-alpha.3
 
-The next release with new Workstation and Forge images.
+0.1.0-alpha.3 has new Workstation and Forge images and reuses alpha.2's content image. After alpha.2 I audited where
+answer quality gets lost between the index and the agent, and I kept alpha.3 to the quick fixes from that audit, the
+fixes in section 3.2 and the small security items of section 3.3. Everything else planned here moved to
+0.1.0-alpha.4, the next release with new images. The [release notes](../CHANGELOG.md) list each change.
 
-### 3.1 New for people running Deep32
+### 3.1 New for people running Deep32: moved to 0.1.0-alpha.4
 
 | Item | What changes | Described in |
 |---|---|---|
@@ -58,33 +59,50 @@ The next release with new Workstation and Forge images.
 
 ### 3.2 Fixes
 
-| Item | What changes | Described in |
-|---|---|---|
-| Docker's containerd image store | The Forge's images load into it as well as into the classic store | [Overview 11.1](../README.md#111-roadmap); [Hardware 5](HARDWARE.md#5-graphics-card) |
-| Pairing on appliance hosts | The Forge's pairing helper runs with the installer's own Python, so hosts such as Unraid can pair | [Hardware 5](HARDWARE.md#5-graphics-card) |
-| Revoking a Workstation | Revoking a Workstation on the Forge no longer leaves the Forge unable to restart | [Installation 10](../INSTALL.md#10-afterwards) |
-| Optional ingestion | A Forge that never converts a PDF no longer needs the 15.3 GB ingestion image | [DR-106](DECISIONS.md#dr-106-in-alpha2-a-forge-installs-the-ingestion-add-on-too) |
-| Boot and first-start messages | `kiwix_serve` no longer shows as failed at boot before the content image is imported, and the terminal hints of `d32-link` and the gateway's publication tool give full command paths | [Installation 6](../INSTALL.md#6-install-the-workstation) |
-| Python 3.12 and 3.13 | The one release-tools test the runner leaves out below Python 3.14 runs again | [Building 2.4](BUILDING.md#24-results-for-010-alpha2) |
+| Item | What changes | Release | Described in |
+|---|---|---|---|
+| Docker's containerd image store | On Linux the Forge's images load into Docker Engine's containerd store as well as into the classic store. Docker Desktop still needs the classic store | 0.1.0-alpha.3 | [Overview 11.1](../README.md#111-roadmap); [Hardware 5](HARDWARE.md#5-graphics-card) |
+| Pairing on appliance hosts | The Forge's pairing helper runs with the installer's own Python, so hosts such as Unraid can pair | 0.1.0-alpha.3 | [Hardware 5](HARDWARE.md#5-graphics-card) |
+| Revoking a Workstation | Revoking a Workstation on the Forge no longer leaves the Forge unable to restart | 0.1.0-alpha.3 | [Installation 10](../INSTALL.md#10-afterwards) |
+| Optional ingestion | A Forge on Linux no longer needs the 15.3 GB ingestion image unless you ask for it with `--ingestion`. The Windows getter still includes it | 0.1.0-alpha.3 | [DR-106](DECISIONS.md#dr-106-in-alpha2-a-forge-installs-the-ingestion-add-on-too) |
+| Adding ingestion later | Adding the ingestion image to a Forge installed without it, in place. Until then, install again into a new data folder with `--ingestion` | 0.1.0-alpha.4 | [DR-106](DECISIONS.md#dr-106-in-alpha2-a-forge-installs-the-ingestion-add-on-too) |
+| Boot and first-start messages | The terminal hints of `d32-link` and the gateway's publication tool give full command paths | 0.1.0-alpha.3 | [Installation 6](../INSTALL.md#6-install-the-workstation) |
+| The `kiwix_serve` boot message | `kiwix_serve` no longer shows as failed at boot before the content image is imported | 0.1.0-alpha.4 | [Installation 6](../INSTALL.md#6-install-the-workstation) |
+| Import staging | The disc 2 import stages the Library copy where there is more room. Promised for alpha.3 in alpha.2's notes; it changes the importer, which is more than a quick fix | 0.1.0-alpha.4 | [Release notes](../CHANGELOG.md) |
+| Compressed GPU pack images | The Forge's images stored compressed again, with the installer's unpacking factor corrected. Also promised for alpha.3 in alpha.2's notes; it changes the release build | 0.1.0-alpha.4 | [Release notes](../CHANGELOG.md) |
+| Python 3.12 and 3.13 | The one release-tools test the runner left out below Python 3.14 runs again | 0.1.0-alpha.3 | [Building 2.4](BUILDING.md#24-results-for-010-alpha2) |
 
 ### 3.3 Security, supply chain and the project
 
+| Item | What changes | Release | Described in |
+|---|---|---|---|
+| Dependency updates | Pins in the images moved to fixed versions: opentelemetry-api 1.45.2 and certifi 2026.10.23 on the Workstation, and aiohttp 3.14.5, certifi 2026.10.23 and filelock 4.2.10 in the index builder. setuptools waits for a torch release that allows 82 or later (torch 2.11.0 requires a version below 82), sentence-transformers, transformers and ujson for a pylate release that allows newer versions, and vLLM for a MinerU release that allows 0.32.0 | 0.1.0-alpha.3 | [Known vulnerabilities](security/README.md); [section 5.3](#53-static-analysis-coding-standards-and-dependencies) |
+| The engine token in its own file | The token between the Workstation's gateway and engine moved out of their root-only environment files into a protected file for each service, so it can be replaced like every other credential | 0.1.0-alpha.3 | [Assurance case 9.2](ASSURANCE-CASE.md#92-criteria) |
+| Analysis findings | Fixes for the five low-severity defects the fuzz targets found in the Library's JSON, WAVE and RFC text readers, and for three of the four findings worth a change in the recorded Ruff and Bandit run. The fourth is in the PDF converter, together with the converter's missing NOTICE file, and waits for the converter image to be rebuilt | 0.1.0-alpha.3; the converter in 0.1.0-alpha.4 | [Fuzzing 5](../tests/fuzz/README.md#5-findings); [Building 3](BUILDING.md#3-lint-and-static-analysis) |
+| Coding standards | A named coding standard for each language, each checked by a linter in CI, with the existing ShellCheck, PSScriptAnalyzer and wider Ruff findings fixed in the image source | 0.1.0-alpha.4 | [Section 5.3](#53-static-analysis-coding-standards-and-dependencies) |
+| C builds | The standard `CC`, `CFLAGS`, `CXXFLAGS` and `LDFLAGS` variables in every C build, a non-recursive build for the programs in `src/workstation/ship/u10/src`, warnings as errors for every C program, and stripping that can be turned off | 0.1.0-alpha.4 | [Section 5.3](#53-static-analysis-coding-standards-and-dependencies) |
+| The Workstation's C tests | The Workstation's C unit tests published under `tests/` with a recipe for an OpenBSD build host, and the portable ones run under the sanitizers on Linux | 0.1.0-alpha.4 | [Section 5.1](#51-tests-and-coverage) |
+| Each image built twice | Every image of the release built twice from the same commit, with the byte-for-byte comparison in the release notes | 0.1.0-alpha.4 | [Section 5.4](#54-builds) |
+| License headers | SPDX copyright and license lines in the image source, the license texts moved to `LICENSES/`, and `reuse lint` in CI | 0.1.0-alpha.4 | [Section 5.5](#55-license-metadata) |
+| Artwork and sounds | Deep32's own artwork and sounds are under CC BY-NC 4.0. I'll decide whether they move to CC BY 4.0, the documentation's license | 0.1.0-alpha.4 | [LICENSING.md](../licenses/LICENSING.md) |
+| Pull requests | Changes reach the main branch through pull requests | 0.1.0-alpha.4 | [GOVERNANCE.md](../.github/GOVERNANCE.md#reviews) |
+
+### 3.4 Answer quality
+
+The audit's quick fixes, all in 0.1.0-alpha.3. The [release notes](../CHANGELOG.md) have the details and the
+measurements.
+
 | Item | What changes | Described in |
 |---|---|---|
-| Dependency updates | Pins in the images move to fixed versions: opentelemetry-api 1.45.2 and certifi 2026.10.19 or later on the Workstation, and aiohttp, certifi, filelock and setuptools in the index builder. sentence-transformers, transformers and ujson wait for a pylate release that allows newer versions, and vLLM for a MinerU release that allows 0.32.0 | [Known vulnerabilities](security/README.md); [section 5.3](#53-static-analysis-coding-standards-and-dependencies) |
-| The engine token in its own file | The token between the Workstation's gateway and engine moves out of their root-only environment files into a protected file of its own, so it can be replaced like every other credential | [Assurance case 9.2](ASSURANCE-CASE.md#92-criteria) |
-| Analysis findings | Fixes for the five low-severity defects the fuzz targets found in the Library's JSON, WAVE and RFC text readers, and for the four findings worth a change in the recorded Ruff and Bandit run | [Fuzzing 5](../tests/fuzz/README.md#5-findings); [Building 3](BUILDING.md#3-lint-and-static-analysis) |
-| Coding standards | A named coding standard for each language, each checked by a linter in CI, with the existing ShellCheck, PSScriptAnalyzer and wider Ruff findings fixed in the image source | [Section 5.3](#53-static-analysis-coding-standards-and-dependencies) |
-| C builds | The standard `CC`, `CFLAGS`, `CXXFLAGS` and `LDFLAGS` variables in every C build, a non-recursive build for the programs in `src/workstation/ship/u10/src`, warnings as errors for every C program, and stripping that can be turned off | [Section 5.3](#53-static-analysis-coding-standards-and-dependencies) |
-| The Workstation's C tests | The Workstation's C unit tests published under `tests/` with a recipe for an OpenBSD build host, and the portable ones run under the sanitizers on Linux | [Section 5.1](#51-tests-and-coverage) |
-| Each image built twice | Every 0.1.0-alpha.3 image built twice from the same commit, with the byte-for-byte comparison in the release notes | [Section 5.4](#54-builds) |
-| License headers | SPDX copyright and license lines in the image source, the license texts moved to `LICENSES/`, and `reuse lint` in CI | [Section 5.5](#55-license-metadata) |
-| Artwork and sounds | Deep32's own artwork and sounds are under CC BY-NC 4.0. I'll decide whether they move to CC BY 4.0, the documentation's license | [LICENSING.md](../licenses/LICENSING.md) |
-| Pull requests | From 0.1.0-alpha.3 on, changes reach the main branch through pull requests | [GOVERNANCE.md](../.github/GOVERNANCE.md#reviews) |
+| Wider text for the top hits | The top 8 hits carry up to 3,200 characters, with the same hits in the same order; delivery@8 0.9092 to 0.9566 on replayed runs | [DR-35](DECISIONS.md#dr-35-text-windows-instead-of-snippets) |
+| Bounded quotation check | A quotation with "..." passes only within one section and with its parts at most 300 characters apart | [DR-37](DECISIONS.md#dr-37-quotations-checked-by-string-match) |
+| Tools that say more | Pinned releases' copies shown by default, the end of an RFC's obsoleted-by chain, several quotations per check, feature history in `lookup_id`, `get_section` opening at a hit and naming the same section in other releases | [DR-73](DECISIONS.md#dr-73-mcp-with-eleven-read-only-tools) |
+| Ask | Each agent gets its own skill in the order an answer needs it, conversations keep their context for 15 minutes, and a script check of each answer is available (off by default) | [DR-75](DECISIONS.md#dr-75-a-portable-ask-relay) |
+| Checks | The Forge's builder compares with an earlier generation, `deep32 selftest` compares spans the way `verify_quote` does, and the Forge's models can be checked with long known inputs | [DR-02](DECISIONS.md#dr-02-no-loss-in-retrieval-quality-at-any-level); [DR-107](DECISIONS.md#dr-107-the-paired-forge-check-allows-small-differences-between-cards) |
 
 ## 4. The next 12 months
 
-These follow 0.1.0-alpha.3. They set the direction; their order isn't fixed, and some may reach past November 2027.
+These follow 0.1.0-alpha.4. They set the direction; their order isn't fixed, and some may reach past November 2027.
 
 ### 4.1 Knowledge and lookups
 
@@ -117,13 +135,13 @@ These follow 0.1.0-alpha.3. They set the direction; their order isn't fixed, and
 | Item | What I intend | Background |
 |---|---|---|
 | Permissively licensed default models | A default embedding model and reranker under a permissive license, with the current Jina models, which are CC BY-NC 4.0, kept as an option. A new embedding model means embedding the whole corpus again, and it becomes the default only if it loses no retrieval quality at any level | [LICENSING.md](../licenses/LICENSING.md); [DR-24](DECISIONS.md#dr-24-embedding-model); [DR-02](DECISIONS.md#dr-02-no-loss-in-retrieval-quality-at-any-level) |
-| PDFium in the Library's renderer | The Library's renderer `e26-render` moves from MuPDF to PDFium. With the converter's move in 0.1.0-alpha.3, every part of Deep32's own code could then be under Apache-2.0 | [DR-110](DECISIONS.md#dr-110-apache-20-with-a-notice-file-for-code); [section 5.5](#55-license-metadata) |
+| PDFium in the Library's renderer | The Library's renderer `e26-render` moves from MuPDF to PDFium. With the converter's move in 0.1.0-alpha.4, every part of Deep32's own code could then be under Apache-2.0 | [DR-110](DECISIONS.md#dr-110-apache-20-with-a-notice-file-for-code); [section 5.5](#55-license-metadata) |
 
 ### 4.5 Evaluation, supply chain and the project
 
 | Item | What I intend | Background |
 |---|---|---|
-| Answer-level evaluation and the beta | Answers graded claim by claim, with verification on and off, on held-out questions and negative probes, against pass marks set before any result; then the beta, with a compact guided Workstation layout in place of the alpha's 160 GB | [Overview 8](../README.md#8-evaluation); [DR-104](DECISIONS.md#dr-104-answer-level-evaluation-is-designed-and-not-yet-run); [DR-57](DECISIONS.md#dr-57-guided-install-defaults) |
+| Answer-level evaluation and the beta | Answers graded claim by claim, with verification on and off, on held-out questions and negative probes, against pass marks set before any result; then the beta, with a compact guided Workstation layout in place of the alpha's 200 GB disk | [Overview 8](../README.md#8-evaluation); [DR-104](DECISIONS.md#dr-104-answer-level-evaluation-is-designed-and-not-yet-run); [DR-57](DECISIONS.md#dr-57-guided-install-defaults) |
 | Reproducible builds | A public build environment and rebuild guide for each of the three images, so someone else can rebuild one and compare it with the release | [Section 5.4](#54-builds) |
 | SBOMs and VEX for whole images | The vulnerability triage extended from the Python pins to every package the images' bills of materials list, including the Debian packages in the Forge's images and the Workstation's OpenBSD packages, with a weekly scan | [Section 5.3](#53-static-analysis-coding-standards-and-dependencies); [Known vulnerabilities 4](security/README.md#4-what-it-does-not-cover) |
 | Sigstore signatures | Sigstore signatures beside the OpenPGP signatures on the checksum list, commits and tags, so a release can also be checked against a public transparency log | [Section 5.4](#54-builds); [DR-86](DECISIONS.md#dr-86-openpgp-signatures-on-everything) |
@@ -137,13 +155,13 @@ I'm working through the OpenSSF Best Practices criteria for Deep32
 ([project 16932](https://www.bestpractices.dev/projects/16932)): the passing level first, then every Silver and Gold
 criterion I can meet. As of 19 November 2026 my answers for 0.1.0-alpha.2 meet every passing criterion marked MUST,
 and 37 of the 55 Silver criteria; the project page shows the level the badge site has awarded. Work outside the image
-source can land at any time; the rest waits for 0.1.0-alpha.3 ([section 3](#3-010-alpha3)).
+source can land at any time; the rest waits for a release that rebuilds the images ([section 3](#3-010-alpha3)).
 
 ### 5.1 Tests and coverage
 
 Each push and pull request to `main` runs `tests/run_all.py` on Windows with Python 3.12
 ([Building 2.5](BUILDING.md#25-continuous-integration)). On that runner the four suites that need Gpg4win are skipped,
-and below Python 3.14 the runner leaves out one release-tools test that hits a known problem 0.1.0-alpha.3 fixes
+and below Python 3.14 the runner left out one release-tools test until 0.1.0-alpha.3 fixed the problem it hit
 ([Building 2.4](BUILDING.md#24-results-for-010-alpha2)). On each push to `main` the Coverage workflow also measures
 statement and branch coverage of the Python, and `make coverage` does the same on a clone
 ([Building 2.6](BUILDING.md#26-coverage)).
@@ -174,7 +192,7 @@ documents, media and network input. OpenBSD has neither AddressSanitizer nor lib
 UndefinedBehaviorSanitizer, for the vector kernel, the Library's JSON, base64, text, image, document and media readers
 and its decompressor, the Ask link's framing and message parsing, and the address parser. The Fuzz workflow runs each
 target for two minutes on every push and pull request to `main` and for thirty minutes every week. A 15-minute run of
-every target on 19 November 2026 found five low-severity defects, which 0.1.0-alpha.3 fixes
+every target on 19 November 2026 found five low-severity defects, which 0.1.0-alpha.3 fixed
 ([section 3.3](#33-security-supply-chain-and-the-project)). What I intend:
 
 - A fuzzing run before each release, recorded in the release notes.
@@ -199,7 +217,7 @@ What I intend:
 
 - A named coding standard for each language (Python, C, shell, PowerShell and the JavaScript build tools) in
   [CONTRIBUTING.md](../.github/CONTRIBUTING.md), each checked by a linter in CI: in full outside the image source as soon as
-  it runs, and in the image source once 0.1.0-alpha.3 fixes the existing findings.
+  it runs, and in the image source once 0.1.0-alpha.4 fixes the existing findings.
 - The C build changes listed in [section 3.3](#33-security-supply-chain-and-the-project).
 - The pins the images are built from moved to fixed versions when the images are rebuilt, and a new OpenVEX document
   for each release.
@@ -214,7 +232,7 @@ producer builds its shared core twice and stops unless both builds are byte-iden
 building the images on your own machine ([Building 4](BUILDING.md#4-building-the-images)). What I intend:
 
 - Build every image twice from the same commit and publish the byte-for-byte comparison in the release notes, from
-  0.1.0-alpha.3 on. The design document's section on bills of materials and reproducibility says the release notes
+  0.1.0-alpha.4 on. The design document's section on bills of materials and reproducibility says the release notes
   name exactly the artifacts that were built twice and compared ([D32-TR-1](tr/README.md)).
 - Publish the build environments and a rebuild guide for each image, so that someone else can rebuild an image and
   compare it with the release. Where an input can't be published, the guide will say which one and why.
@@ -231,9 +249,9 @@ intend:
 
 - SPDX lines (`SPDX-FileCopyrightText` and `SPDX-License-Identifier`) in every file that takes a comment, a
   `REUSE.toml` for the files that can't, and `reuse lint` in CI.
-- Files outside the image source can get them at any time. The image source gets them in 0.1.0-alpha.3, together with
+- Files outside the image source can get them at any time. The image source gets them in 0.1.0-alpha.4, together with
   moving the license texts from `licenses/` to `LICENSES/`, which changes the image build.
-- PDFium in place of MuPDF: in the converter for 0.1.0-alpha.3, and in `e26-render` later
+- PDFium in place of MuPDF: in the converter for 0.1.0-alpha.4, and in `e26-render` later
   ([section 4.4](#44-licensing)).
 
 ### 5.6 Security

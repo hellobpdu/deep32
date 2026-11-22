@@ -22,7 +22,7 @@
   "ntp_service": "ntpd",
   "platform": "windows",
   "ports": [],
-  "release": "v0.1.0-alpha.2",
+  "release": "v0.1.0-alpha.3",
   "role": "workstation",
   "routes": [],
   "schema": "deep32.doctor-install.v1",

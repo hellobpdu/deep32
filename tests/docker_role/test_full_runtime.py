@@ -168,6 +168,29 @@ class Topology(Fixture):
         config['full']['model_bridge'].update(GPU_EXT_EMBED_PROBE_INPUT='synthetic query', GPU_EXT_EMBED_PROBE_SHA256='c' * 64)
         self.render(config=config)
 
+    def test_probe_always_needs_a_probe_file(self):
+        image_probes = '/opt/deep32/model-bridge/gpu-probes.json'
+        for fields, renders in (({'GPU_EXT_PROBE_ALWAYS': 'no'}, True),
+                                ({'GPU_EXT_PROBE_ALWAYS': 'yes', 'GPU_EXT_RERANK_PROBE': image_probes}, True),
+                                ({'GPU_EXT_PROBE_ALWAYS': 'yes'}, False), ({'GPU_EXT_PROBE_ALWAYS': 'maybe'}, False)):
+            config = copy.deepcopy(CONFIG)
+            config['full']['model_bridge'].update(fields)
+            with self.subTest(fields=fields):
+                if renders:
+                    self.render(config=config)
+                else:
+                    with self.assertRaises(ValueError):
+                        self.render(config=config)
+
+    def test_reranker_dtype_matches_the_service(self):
+        # reranker_api.py, the Forge form and first boot accept exactly float16 and float32
+        config = copy.deepcopy(CONFIG)
+        config['runtime']['reranker_dtype'] = 'float32'
+        self.render(config=config)
+        config['runtime']['reranker_dtype'] = 'bfloat16'
+        with self.assertRaises(ValueError):
+            self.render(config=config)
+
 
 class ImportAdapter(Fixture):
     def test_first_import_uses_same_signed_importer(self):
@@ -457,6 +480,9 @@ class OfflineBuild(Fixture):
         self.assertEqual((out / 'gateway/rag_edge.py').read_bytes(), (ROOT / 'src/gateway/rag_edge.py').read_bytes())
         self.assertEqual((out / 'import/d32import.py').read_bytes(), (KIT / 'import/d32import.py').read_bytes())
         self.assertEqual((out / 'model-bridge/node_layers.py').read_bytes(), (ROOT / 'src/workstation/node/shims/py/node_layers.py').read_bytes())
+        # the image's probe file (GPU_EXT_PROBE_ALWAYS) is the Workstation's, byte for byte
+        self.assertEqual((out / 'model-bridge/gpu-probes.json').read_bytes(),
+                         (ROOT / 'src/workstation/ship/u4/etc/d32/gpu-probes/rerank.json').read_bytes())
         self.assertTrue((out / 'gateway.lock').is_file())
 
     def test_wrong_platform_wheel_and_shared_pin_mismatch_fail(self):

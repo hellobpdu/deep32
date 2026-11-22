@@ -26,10 +26,12 @@ mid-sentence), and carries exactly one label:
 | **normalized** | `verify_quote` returned `normalized`: it matched after joining a page break, hyphenation or whitespace |
 | **unverified** | could not be checked; never present it as fact, and say why |
 
-Use `…` inside a quote only where you actually skipped words: at most 2 omissions per quote, and every piece
-between them at least 4 words or 20 characters. A shorter piece proves nothing and is scored invalid. Never
-paraphrase inside quotation marks, and never change case or punctuation: a quote that matches only after that is
-scored fuzzy and does not count as verified.
+A result with `scope` `document` matched outside the section you named, and the reply says `found outside <ref>:
+cite <section>`. Cite that section (its `cite`) with the `local` the check gave, never the section you asked about.
+
+A quote is one unbroken run of the source text: never put `…` or `...` in it. To cite two separated sentences, give
+two quotes, each with its own `verify_quote` check and its own marker. Never paraphrase inside quotation marks, and
+never change case or punctuation: a quote that matches only after that is not verified.
 
 ## Answer template
 

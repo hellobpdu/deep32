@@ -1,6 +1,6 @@
 # Ask relay
 
-The alpha.2 source enables a portable Ask relay for Claude Code or Codex through the existing Connect entry point.
+The alpha.3 source enables a portable Ask relay for Claude Code or Codex through the existing Connect entry point.
 Each installation owns an independent agent profile, loopback D32U/1 listener, SAS pins, reverse MCP proxy, startup action and passive doctor status.
 Ask spends that profile's model allowance; the relay never signs in automatically or imports an ordinary agent profile.
 
@@ -78,6 +78,18 @@ Repeat the same install with --relay-id INSTALL_ID after pairing, omitting --no-
 Windows uses a least-privilege per-user InteractiveToken logon task, Linux a systemd user unit and macOS a LaunchAgent.
 DPAPI, permissions, native startup/forwarder persistence and the real Workstation question/cancellation/restart/removal remain live host checks; offline command fakes do not establish these observations.
 
+## Instructions, settings and answer checks
+
+The installed source package carries the agent's instructions: RESEARCH.md for Claude Code and RESEARCH-codex.md for Codex, each generated from that agent's research skill by make_research.py with the skill's rules for a default answer first and its blueprint last.
+Claude Code receives the instructions with each question; Codex receives them once, as the thread's base instructions, with a boundary that says the session has no code mode.
+A conversation's earlier turns reach the agent labelled as earlier questions and answers; the oldest exchange is dropped when the history no longer fits beside the instructions.
+Operator settings come from the service's environment at start and are never fields of the recorded install configuration, so setting one leaves the receipt valid: DEEP32_RELAY_IDLE_SECONDS (60 to 900, default 900), DEEP32_RELAY_CHECKS (footer or off, default off), DEEP32_RELAY_MODEL and DEEP32_RELAY_EFFORT (unset: the agent's own default), DEEP32_RELAY_ANSWER_RECORD (on or off, default off).
+A present value that is not valid stops the service with invalid-relay-setting before any agent starts or port opens; the agent's environment never inherits these names.
+While another session waits for the only slot, an idle session is closed after 60 seconds whatever the setting; a session still ends one hour after it opened.
+deep32_relay/answer_check.py is standard library only, has no side effects and calls no model; with footer it runs once per finished answer and the footer is sent as one more agent.delta before turn.completed, so it never enters the history.
+The answer record (logs/answers/, newest 200 kept) holds no question, answer, passage, query or quotation; a record that cannot be written never fails the answer.
+[Agent adapters section 5](../README.md#5-the-ask-relay) describes the settings for users and how to set them on each system.
+
 ## Status and optional live selftest
 
 Status and the R6 doctor_status projection read only owned state and passive process identity; they do not run agents, read account files, bind listeners, open pairing or repair services.
@@ -129,7 +141,7 @@ Running it again with no stored pin changes nothing.
 While a pin is stored, a different Workstation's certificate ends the pairing console with peer-revocation-required and the paired Workstation reconnecting ends it with peer-already-paired; both print the unpair command.
 Stop the old Workstation's Ask link or turn it off before pairing a new one, because the first unpinned attempt consumes the window.
 
-Alpha.2 has no in-place upgrade; remove then install the new verified source with the same ID to retain identity/pins and rerun checks.
+Alpha.3 has no in-place upgrade; remove then install the new verified source with the same ID to retain identity/pins and rerun checks. The instructions an installed relay gives its agent change only this way.
 The source kit is covered by the release's signed metadata; local correspondence hashes do not replace release verification.
 Shipped asklink takes precedence over C9's draft: thirteen types, research-v1, channels 1/2/4, ten-word SAS and empty confirmations/commits, with no PAIR_SHARE, channel 7, Ask-password or engine-selection operation.
 Source-derived vectors supply offline evidence; the real Workstation R2 run supplies live interoperability evidence.

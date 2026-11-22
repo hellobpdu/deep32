@@ -58,7 +58,7 @@ command for you.
 | Forge | The NVIDIA machine that runs the embedding and reranking models in Docker | Disc 3, the GPU pack |
 | Headend | The PC where Claude Code or Codex runs | This clone: `adapters/` |
 
-| Layout | Machines | In 0.1.0-alpha.2 |
+| Layout | Machines | In 0.1.0-alpha.3 |
 |---|---|---|
 | J1 | Two Windows PCs: Hyper-V Workstation VM on one, Docker Desktop Forge on the other | Not yet run end to end |
 | J2 | A Windows PC with the Hyper-V Workstation VM and a Linux NVIDIA host for the Forge | The Linux Forge is tested; the Hyper-V Workstation isn't yet |
@@ -69,7 +69,7 @@ command for you.
 What I have run is a Workstation in a KVM VM on Proxmox VE with a Forge on a separate Linux host. The wizard's VM guide
 marks Proxmox VE as boot-tested and every other hypervisor as "not boot-tested yet". [docs/HARDWARE.md section
 6](docs/HARDWARE.md#6-hosts) lists Windows 11 Home, VirtualBox and VMware as not supported in this release; say so
-before the person picks one. macOS can only be a headend. In 0.1.0-alpha.2 the Windows Forge is installed by hand with
+before the person picks one. macOS can only be a headend. In 0.1.0-alpha.3 the Windows Forge is installed by hand with
 two commands the PowerShell wizard shows (the skills' `windows-forge.md`).
 
 Set the parts up in this order. Each later part needs the one before it.
@@ -258,7 +258,7 @@ the person decide. Never stop or move the person's own services, and never choos
 installer refuses a port or Serve route that is already in use.
 
 On Linux the wizard's Forge role (or `bash install/deep32-setup.sh forge`) checks, downloads, shows the plan, installs
-and shows the pairing code. On Windows in 0.1.0-alpha.2 the PowerShell wizard shows the two by-hand commands instead.
+and shows the pairing code. On Windows in 0.1.0-alpha.3 the PowerShell wizard shows the two by-hand commands instead.
 Afterwards the door answers `401` on ports 443 and 8443: it is up and wants a token.
 
 ## 11. Pairing, publication, Connect and the relay
@@ -294,7 +294,7 @@ Afterwards the door answers `401` on ports 443 and 8443: it is up and wants a to
 4. A question with a known answer, such as the BGP hold time in RFC 4271, is answered with a citation and a checked
    quotation ([INSTALL.md section 9](INSTALL.md#9-verify)).
 
-`deep32 doctor` and `deep32 selftest` are on the images but give no useful result in 0.1.0-alpha.2. The setup
+`deep32 doctor` and `deep32 selftest` are on the images but give no useful result in 0.1.0-alpha.3. The setup
 script's checks and the steps above are the verification.
 
 ## 13. Error codes

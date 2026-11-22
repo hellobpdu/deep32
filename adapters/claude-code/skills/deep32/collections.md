@@ -3,7 +3,7 @@
 Read this only for the three kinds of question below: PowerShell, ISE automation, and how Deep32 itself works.
 Nothing here changes SKILL.md sections 1 and 2: research stays corpus-only ("not in corpus" where the documents are
 silent; no web or other outside source, as the Web sources line of SKILL.md says), the default depth applies with
-every query carrying the collection's filter, and the answer keeps its usual shape. The five lens skills
+every query carrying the collection's filter, and the answer keeps its usual shape. In Codex, the five lens skills
 (deep32-configure, -describe, -design, -troubleshoot, -verify) never add the opt-in collections to their searches.
 
 ## The collections

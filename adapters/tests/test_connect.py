@@ -258,6 +258,23 @@ class ConnectorTests(unittest.TestCase):
                 settings=json.loads((home/'settings.json').read_bytes())
                 self.assertEqual(set(settings['permissions']['allow']),{'mcp__'+state['server_name']+'__'+tool for tool in c.TOOLS})
 
+    def test_each_agent_gets_its_own_standing_block(self):
+        for agent in ('codex','claude'):
+            home,state=self.connect(agent)
+            text=(home/('AGENTS.md' if agent=='codex' else 'CLAUDE.md')).read_text(encoding='utf-8')
+            ident=state['install_id']
+            block=text[text.index('<!-- deep32:'+ident+':begin -->'):text.index('<!-- deep32:'+ident+':end -->')]
+            self.assertNotIn('${',block)
+            self.assertNotIn('RAG:',block)
+            if agent=='codex':
+                self.assertIn('restart Codex',block)
+            else:
+                self.assertNotIn('Codex',block)
+            paths=re.findall('`('+re.escape(home.as_posix())+r'/skills/[^`\n]+)`',block)
+            self.assertTrue(paths)
+            for target in paths:
+                self.assertTrue(Path(target).exists(),target)
+
     def test_second_agent_failure_keeps_first_complete_and_resumes(self):
         _,first=self.connect()
         def fail(*args):

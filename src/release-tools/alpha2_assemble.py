@@ -47,7 +47,7 @@ from sbom.spdx import validate_document
 CLASSES = ('turing', 'ampere80', 'ampere86', 'ada', 'hopper', 'blackwell100', 'blackwell120')
 BUNDLES = ('core', *('embedder-' + value for value in CLASSES), 'ingestion')
 IMAGE_IDS = ('disc1', 'disc2', *BUNDLES)
-VERSION = '0.1.0-alpha.2'
+VERSION = '0.1.0-alpha.3'
 RELEASE = 'v' + VERSION
 
 

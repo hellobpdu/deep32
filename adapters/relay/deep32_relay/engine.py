@@ -97,6 +97,12 @@ class NativeAgent:
     models = ()
     efforts = ()
     reason = "native-agent-unqualified"
+    # The operator's pin (settings.py). When set, the default choice of a session (the first advertised model, the
+    # first advertised effort) runs this full model id and this effort; a choice made by name keeps its meaning.
+    pin_model = ""
+    pin_effort = ""
+    # SHA-256 of the instruction file this agent is given (native_from_owned sets it; the answer record names it).
+    instruction_sha256 = ""
 
     def __init__(self, agent, profile, *, executable=None, version="", platform=None,
                  qualification=None, gateway=None, model=None, effort=None,
@@ -151,6 +157,12 @@ class NativeAgent:
         effort = self.effort if effort is None else effort
         if not self.accepts(model, effort):
             raise EngineError("native-agent-unqualified")
+        # Only an advertised pair is accepted above. The pin then says what the default of each list runs.
+        pinned = bool(self.pin_model) and model == self.models[0]
+        if pinned:
+            model = self.pin_model
+        if self.pin_effort and effort == self.efforts[0]:
+            effort = self.pin_effort
         def live():
             return (capability.active and self.gateway.capabilities.get(capability.session) is capability
                     and self.gateway.clock() < capability.deadline)
@@ -162,7 +174,7 @@ class NativeAgent:
             endpoint.start()
             plan, protocol = self.launcher.prepare(self.executable, scratch, self.profile,
                 endpoint=endpoint.url, bearer=capability.bearer, model=model, effort=effort,
-                platform=self.platform, instruction=self.instruction)
+                platform=self.platform, instruction=self.instruction, pinned=pinned)
             tree = (self.tree_factory or native_tree)(self.platform)
             class GuardedTree:
                 def start(inner, *args, **kwargs):
@@ -260,17 +272,22 @@ def native_from_owned(owner, receipt, gateway=None):
     except Exception:
         # Never expose an underlying path or protected-state parse exception.
         qualification = None
-    instruction = ""
+    instruction = instruction_sha256 = ""
     if qualification:
         try:
             import hashlib
-            relative = "packages/" + receipt["release_id"] + "/RESEARCH.md"
+            from .selftest import instruction_file
+            # Each agent follows its own skill: RESEARCH-codex.md for Codex, RESEARCH.md for Claude Code.
+            relative = instruction_file(receipt)
             raw = owner.read(relative)
             if hashlib.sha256(raw).hexdigest() != receipt["owned_files"][relative]:
                 raise EngineError("binding-changed")
-            instruction = raw.decode("utf-8")
+            instruction, instruction_sha256 = raw.decode("utf-8"), receipt["owned_files"][relative]
         except Exception:
             qualification = None
-    return NativeAgent(agent, owner.root / "profiles" / agent, executable=receipt.get("agent_binary"),
-                       version=(qualification or {}).get("version", ""),
-                       qualification=qualification, gateway=gateway, instruction=instruction)
+            instruction = instruction_sha256 = ""
+    native = NativeAgent(agent, owner.root / "profiles" / agent, executable=receipt.get("agent_binary"),
+                         version=(qualification or {}).get("version", ""),
+                         qualification=qualification, gateway=gateway, instruction=instruction)
+    native.instruction_sha256 = instruction_sha256
+    return native

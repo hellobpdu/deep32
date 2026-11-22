@@ -270,6 +270,88 @@ class ReuseDenseTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "embedded by"):
             self.index(self.target, "rag_dense_gen-b", Embedder(SIZE), reuse=self.dense_source())
 
+    # --- --reuse-key text (WP-E E8)
+
+    def shift_one_document(self):
+        """In the target, one document gains a new first passage and every chunk of it a new id (a chunk id hashes
+        the ordinal), the embedding texts unchanged. Returns (doc_id, {new id: embedding text})."""
+        with db(self.target / "sqlite" / "rag.db") as conn:
+            doc = conn.execute("SELECT doc_id FROM chunks GROUP BY doc_id HAVING COUNT(*) >= 2 ORDER BY doc_id "
+                               "LIMIT 1").fetchone()[0]
+            conn.execute("UPDATE chunks SET ordinal = -(ordinal + 1), chunk_id = 'chk_shift_' || ordinal "
+                         "WHERE doc_id = ?", (doc,))
+            conn.execute("UPDATE chunks SET ordinal = -ordinal WHERE doc_id = ?", (doc,))
+            conn.execute("INSERT INTO chunks(chunk_id, chunk_sha256, doc_id, ordinal, heading_path_json, text, "
+                         "embedding_text, token_count, char_count) VALUES ('chk_shift_new', 'x', ?, 0, '[]', "
+                         "'inserted first', 'Document: t\nSection: s\n\ninserted first', 2, 14)", (doc,))
+            shifted = dict(conn.execute("SELECT chunk_id, embedding_text FROM chunks WHERE doc_id = ? "
+                                        "AND chunk_id != 'chk_shift_new'", (doc,)).fetchall())
+        return doc, shifted
+
+    def index_keyed(self, key, embedder):
+        source = self.dense_source()
+        try:
+            return self.script.index_dense_resumable(
+                self.target / "sqlite" / "rag.db", self.config("rag_dense_gen-b"), embedder, self.client,
+                sleep=[].append, reuse=source, reuse_key=key)
+        finally:
+            source.close()
+
+    def source_vectors_by_text(self):
+        old = self.vectors("rag_dense_gen-a")
+        with db(self.source / "sqlite" / "rag.db") as conn:
+            return {text.strip(): old[cid] for cid, text in conn.execute("SELECT chunk_id, embedding_text FROM chunks")}
+
+    def test_text_key_reuses_shifted_passages(self):
+        _, shifted = self.shift_one_document()
+        embedder = Embedder(SIZE)
+        result = self.index_keyed("text", embedder)
+        n = self.chunks(self.target)
+        self.assertEqual((result["embedded_this_run"], result["reused_this_run"]), (1, n - 1))
+        self.assertEqual(result["reused_by_text_this_run"], len(shifted))
+        new, by_text = self.vectors("rag_dense_gen-b"), self.source_vectors_by_text()
+        for chunk_id, text in shifted.items():
+            self.assertEqual(new[chunk_id], by_text[text.strip()])
+        with db(self.target / "sqlite" / "rag.db") as conn:
+            ids = {r[0] for r in conn.execute("SELECT chunk_id FROM chunks")}
+        self.assertEqual(set(new), ids)                          # exactly the new ids, under their own points
+        self.assertEqual(result["points"], n)
+
+    def test_id_key_embeds_shifted_passages_as_before(self):
+        _, shifted = self.shift_one_document()
+        result = self.index_keyed("id", Embedder(SIZE))
+        self.assertEqual(result["embedded_this_run"], len(shifted) + 1)
+        self.assertNotIn("reused_by_text_this_run", result)
+
+    def test_text_key_checks_the_source_points_payload(self):
+        _, shifted = self.shift_one_document()
+        with db(self.source / "sqlite" / "rag.db") as conn:
+            texts = {text.strip(): cid for cid, text in conn.execute("SELECT chunk_id, embedding_text FROM chunks")}
+        victim = texts[next(iter(shifted.values())).strip()]
+        self.client.set_payload(collection_name="rag_dense_gen-a", payload={"chunk_id": "chk_other"},
+                                points=[self.script.point_id_for_chunk(victim)], wait=True)
+        result = self.index_keyed("text", Embedder(SIZE))
+        self.assertEqual(result["embedded_this_run"], 2)
+        self.assertEqual(result["reused_by_text_this_run"], len(shifted) - 1)
+
+    def test_the_step_records_the_key(self):
+        self.shift_one_document()
+        (self.target / "config" / "dense.json").write_text(json.dumps({"collection": "rag_dense_gen-b"}))
+        embedder = Embedder(SIZE)
+        embedder.close = lambda: None
+        report = {}
+        with mock.patch.dict(os.environ), \
+                mock.patch.object(self.script, "make_qdrant_client", lambda config: SharedClient(self.client)), \
+                mock.patch.object(self.script, "JinaEmbeddingClient", lambda config: embedder):
+            for key in [k for k in os.environ if k.startswith("RAG_")]:
+                del os.environ[key]
+            self.script.step_dense(report, self.target, self.target / "sqlite" / "rag.db", "rag_dense_gen-b",
+                                   reuse_from="gen-a", reuse_key="text")
+        reuse = report["dense"]["reuse"]
+        self.assertEqual((reuse["key"], reuse["embedded"], reuse["reused"] + reuse["embedded"]),
+                         ("text", 1, self.chunks(self.target)))
+        self.assertGreater(reuse["reused_by_text"], 0)
+
     # --- preflight
 
     def args(self, **kw):
@@ -342,7 +424,26 @@ class CommandLineRefusalTests(unittest.TestCase):
             run = self.run_script(root, "--no-dense", "--rerank-url", "ftp://gpu/v1/rerank")
             self.assertEqual(run.returncode, 2, run.stdout)
             self.assertIn("not an http(s) URL", run.stdout)
+            run = self.run_script(root, "--reuse-key", "text")
+            self.assertEqual(run.returncode, 2, run.stdout)
+            self.assertIn("--reuse-key text reuses the vectors of the --reuse-dense-from generation", run.stdout)
             self.assertFalse(root.exists())
+
+    def test_a_resume_keeps_the_reuse_key(self):
+        script = load_script()
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d) / "rag-data" / "gen-c"
+            root.mkdir(parents=True)
+            for recorded, given in ((None, "text"), ("text", "id")):
+                dense = {"collection": "rag_dense_gen-c", "collection_owned": True}
+                if recorded:
+                    dense["reuse"] = {"key": recorded}
+                (root / "BUILD_REPORT.json").write_text(json.dumps({"builder": script.BUILDER, "generation": "gen-c",
+                                                                     "dense": dense}))
+                with self.subTest(recorded=recorded, given=given):
+                    run = self.run_script(root, "--resume", "--reuse-dense-from", "gen-a", "--reuse-key", given)
+                    self.assertEqual(run.returncode, 2, run.stdout)
+                    self.assertIn(f"started with --reuse-key {recorded or 'id'}", run.stdout)
 
 
 if __name__ == "__main__":

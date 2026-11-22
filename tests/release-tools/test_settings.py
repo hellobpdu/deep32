@@ -45,6 +45,35 @@ class SettingsTests(unittest.TestCase):
             with self.assertRaises(ValueError): settings.collect(path, {}, self.profiles)
             self.assertFalse(self.target.parent.exists())
 
+    def test_missing_choices_are_reported_together(self):
+        path = self.root / 'synthetic-partial.json'
+        path.write_bytes(settings.canonical({'format': 'deep32-settings', 'format_version': 1, 'role': 'forge',
+                                             'node_name': 'deep32-forge'}))
+        others = [field for field in settings.FIELDS if field != 'node_name']
+        self.assertEqual(len(others), 6)
+        self.assertEqual(settings.missing_choices(path, {}, split=True, tailnet=True),
+                         others + ['confirm-tailnet', 'forge_accept_ct'])
+        self.assertEqual(settings.missing_choices(path, {'user_name': 'deep32'}, split=False, tailnet=False),
+                         [field for field in others if field != 'user_name'])
+        with self.assertRaisesRegex(ValueError, 'missing ' + ', '.join(others) + ';'):
+            settings.collect(path, {}, self.profiles)
+        # The getter's check before any media read: every missing choice on one refusal line.
+        result = subprocess.run([sys.executable, '-I', '-B', str(ROOT / 'src/release-tools/deep32_settings.py'),
+                                 'check-settings', '--split', '--linux-forge-tailnet'],
+                                capture_output=True, text=True, timeout=60, stdin=subprocess.DEVNULL)
+        self.assertEqual(result.returncode, 1, result.stderr)
+        line = next(line for line in result.stderr.splitlines() if line.startswith('Settings refused: '))
+        self.assertEqual(line, 'Settings refused: missing non-interactive choices: '
+                         + ', '.join(list(settings.FIELDS) + ['confirm-tailnet', 'forge_accept_ct'])
+                         + '; supply them in --settings or as options')
+        complete = self.root / 'synthetic-complete.json'
+        complete.write_bytes(settings.canonical(dict(self.data, forge_accept_ct=True)))
+        result = subprocess.run([sys.executable, '-I', '-B', str(ROOT / 'src/release-tools/deep32_settings.py'),
+                                 'check-settings', '--split', '--linux-forge-tailnet', '--settings', str(complete),
+                                 '--confirm-tailnet', 'synthetic-tailnet.ts.net'],
+                                capture_output=True, text=True, timeout=60, stdin=subprocess.DEVNULL)
+        self.assertEqual((result.returncode, result.stdout, result.stderr), (0, '', ''))
+
     def test_invalid_unknown_secret_and_conflict_write_nothing(self):
         cases = [('profile', 'gpu'), ('profile', 'no-such-profile'), ('node_name', 'tskey-SYNTHETIC'),
                  ('node_name', 'token=SYNTHETIC'), ('user_name', 'root'), ('publish', 'tailnet-plain'),
@@ -177,6 +206,16 @@ class SettingsTests(unittest.TestCase):
                 with self.assertRaises(ValueError): settings.check_plan(changed, plan['digest'])
         self.assertFalse((self.root / 'forge').exists())
 
+    def test_split_media_with_or_without_ingestion(self):
+        rows = [{'component': 'core', 'size': 8, 'sha256': 'a' * 64},
+                {'component': 'embedder-turing', 'size': 13, 'sha256': 'b' * 64},
+                {'component': 'ingestion', 'size': 21, 'sha256': 'c' * 64}]
+        settings.validate_media_components(rows[:2], 'a' * 64)
+        settings.validate_media_components(rows, 'a' * 64)
+        for wrong in (rows[:1], rows + [{'component': 'ingestion', 'size': 34, 'sha256': 'd' * 64}]):
+            with self.subTest(rows=len(wrong)), self.assertRaisesRegex(ValueError, 'split media'):
+                settings.validate_media_components(wrong, 'a' * 64)
+
     def test_split_docker_plan_binds_all_three_component_records(self):
         components = [
             {'component': 'core', 'size': 8, 'sha256': 'a' * 64},
@@ -258,7 +297,8 @@ class SettingsTests(unittest.TestCase):
             other = make(changed)
             with self.assertRaisesRegex(ValueError, 'plan consent digest'):
                 settings.check_plan(other, plan['digest'])
-        for wrong_order in (components[:2], [components[1], components[0], components[2]]):
+        # Core and its embedder alone are a complete selection (ingestion is optional); one row is not.
+        for wrong_order in (components[:1], [components[1], components[0], components[2]]):
             with self.assertRaisesRegex(ValueError, 'split media'):
                 make(wrong_order)
         cache = settings.media_cache(settings.check_plan(plan, plan['digest']))

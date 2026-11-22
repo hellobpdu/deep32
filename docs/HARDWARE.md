@@ -13,7 +13,7 @@ What each part of Deep32 needs, and how to size a machine that runs more than on
 `install/matrix.json`, the file both the inventory program and the installer read, so `deep32-inventory` tells you
 which rows your machine meets.
 
-<sub>Applies to 0.1.0-alpha.2 · [1 Summary](#1-summary) · [2 Processor](#2-processor) · [3 Threads and memory](#3-threads-and-memory) · [4 Disk](#4-disk) · [5 Graphics card](#5-graphics-card) · [6 Hosts](#6-hosts) · [7 Network](#7-network)</sub>
+<sub>Applies to 0.1.0-alpha.3 · [1 Summary](#1-summary) · [2 Processor](#2-processor) · [3 Threads and memory](#3-threads-and-memory) · [4 Disk](#4-disk) · [5 Graphics card](#5-graphics-card) · [6 Hosts](#6-hosts) · [7 Network](#7-network)</sub>
 
 ## 1. Summary
 
@@ -57,11 +57,11 @@ Two threads and 4 GB always stay with the host. Threads are counted on the fast 
 | Part | Download | Installed |
 |---|---|---|
 | Workstation | 21.5 GB: the Workstation image (1.9 GB) and the content image (19.6 GB) | 200 GB guided layout: two system update slots, the Library content and swap. The disc 2 import copies the Library into the Library partition before it installs it, and the layout sizes that partition from the disk |
-| Forge | About 37.1 GB: the shared core (18.6 GB), your card's embedder (3.1 to 3.3 GB) and ingestion (15.3 GB) | A declared budget of about 244 to 247 GB, and about 281 to 284 GB free at the start, when the data folder and Docker's storage share one disk; [Installation 5](../INSTALL.md#5-install-the-forge) has the other layouts |
+| Forge | 21.7 to 21.9 GB on Linux: the shared core (18.6 GB) and your card's embedder (3.1 to 3.3 GB). About 37.1 GB with the ingestion image (15.3 GB), which you add with `--ingestion` and which a Windows Forge always gets | With ingestion, a declared budget of about 244 to 247 GB free at the start when the data folder and Docker's storage share one disk; less without it. [Installation 5](../INSTALL.md#5-install-the-forge) has the other layouts |
 
-The Forge installer joins the three images into one verified copy before it loads them, so leave room for the
-downloads, that copy and the installed services at the same time. The installer checks the free space against the
-signed storage budget before it writes anything, and again after it has written the joined copy.
+The Forge installer joins the images into one verified copy before it loads them, so leave room for the downloads,
+that copy and the installed services at the same time. The installer checks the free space against the signed storage
+budget before it writes anything, and again after it has written the joined copy, counting the copy already on disk.
 
 Solid-state storage is strongly recommended for both.
 
@@ -91,9 +91,10 @@ reads your card and the installer loads the matching build only.
 **Driver.** NVIDIA 580.65.06 or newer. On Windows the host driver serves Docker Desktop; do not install a Linux graphics
 driver inside its WSL 2 backend.
 
-**Docker's image store.** The alpha.2 Forge images load only into Docker's classic image store (`overlay2`), and
-Docker Engine 29 and Docker Desktop default to the containerd store. [INSTALL.md](../INSTALL.md#5-install-the-forge)
-shows how to switch and what switching hides. Supporting the containerd store is planned.
+**Docker's image store.** From 0.1.0-alpha.3 the Forge's images load into Docker Engine's containerd store, its
+default since Docker Engine 29, with the images in `/var/lib/containerd` under the system's containerd, as well as into
+the classic store (`overlay2`). Docker Desktop still needs the classic store. [INSTALL.md](../INSTALL.md#5-install-the-forge)
+shows how to switch Docker Desktop and what switching hides.
 
 **Host software.** `deep32-get` needs Python 3.10 or newer, and the Forge installer needs Python 3.12 or newer
 (Ubuntu 24.04 ships it). The Forge also needs Docker Engine with the Compose v2
@@ -106,31 +107,33 @@ runs Docker in another WSL distribution, keep integration for an existing produc
 Desktop's settings, so the two never share an engine, and leave the PC's own Tailscale setup as it is. The
 portable Windows Forge lifecycle is supplied in source; its full run on a Windows host comes after this release.
 
+A Forge in a WSL 2 distro shares one network stack with every other distro in that WSL VM. If another Docker engine
+runs there and sets its `FORWARD` policy to `DROP`, traffic between the Forge's containers is dropped; run one engine,
+or add `DOCKER-USER` accept rules for the Forge's bridges.
+
 On an appliance OS that doesn't let you add system packages, put a standalone Python and the Compose plugin in a
 folder of your own, and point `PATH` at the Python and `DOCKER_CONFIG` at a folder whose `cli-plugins` holds Compose.
-That runs the installer and the models. Pairing is different: the 0.1.0-alpha.2 pairing helper runs on the host's own
-`/usr/bin/python3`, which must be Python 3.10+ with `ssl`; `sh install/forge-host-python.sh` checks it.
+That runs the installer and the models, and from 0.1.0-alpha.3 the pairing helper too: it runs on the installer's own
+Python. In 0.1.0-alpha.2 it ran on the host's own `/usr/bin/python3`, which kept Unraid from pairing.
 
 | GPU host | Install and models | Pairing | Notes |
 | --- | --- | --- | --- |
-| Ubuntu, Debian, Fedora and other distributions with Python 3.10+ | Yes | Yes | Tested on Ubuntu 24.04 (headend) |
-| Unraid 7.4 (tested with an RTX 3080) | Yes | **No** | Its `/usr/bin/python3` can't load `ssl`, and `/usr` is rebuilt at every boot |
+| Ubuntu, Debian, Fedora and other distributions with Python 3.12+ | Yes | Yes | Tested on Ubuntu 24.04 (headend) |
+| Unraid 7.4 (tested with an RTX 3080 on alpha.2) | Yes | Expected | The pairing helper no longer uses its `/usr/bin/python3`, which can't load `ssl`; pairing not yet run there |
 | Ubuntu 24.04 on WSL 2 (Windows) | Yes | Yes | Docker Engine inside the distro with systemd on; parts checked on an RTX 2080 Ti, full run after release |
 | Windows with Docker Desktop | Yes | Yes | WSL 2 backend; parts checked on an RTX 2080 Ti, full run after release |
 | macOS | No GPU form | — | Not supported |
 
-0.1.0-alpha.3 runs the pairing helper with the installer's own Python, which removes the Unraid limit.
-
 **Card memory.**
 
-The 0.1.0-alpha.2 installer needs at least 10.5 GB (10,752 MiB) of graphics memory, which in practice means an 11 GB
+The installer needs at least 10.5 GB (10,752 MiB) of graphics memory, which in practice means an 11 GB
 card or larger: an RTX 2080 Ti, RTX 3060 12 GB, RTX 3080 12 GB or Ti, RTX 3090, RTX 4070 or larger, and the data-center
 cards above. `deep32-setup` checks this before it downloads anything.
 
 | Card memory | What runs |
 |---|---|
 | 11 GB or more | Both models; the PDF converter one job at a time, pausing the models while it runs and restoring them after |
-| 8 to 10 GB | Not installable in alpha.2. Both models fit for search (an RTX 3080 10 GB peaked at 6.6 GB on embeddings); the floor drops once reranking and the converter are measured on these cards |
+| 8 to 10 GB | Not installable yet. Both models fit for search (an RTX 3080 10 GB peaked at 6.6 GB on embeddings); the floor drops once reranking and the converter are measured on these cards |
 | 6 GB | Not installable; embeddings only, later |
 
 A locally served language model would need a card of its own; the Forge's card is sized for embeddings and reranking.

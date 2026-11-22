@@ -16,7 +16,7 @@
       "observed": {
         "matched": true,
         "present": true,
-        "version": "0.1.0-alpha.2"
+        "version": "0.1.0-alpha.3"
       }
     },
     {
@@ -114,7 +114,7 @@
       "observed": {
         "stage": "READY",
         "state": "ready",
-        "version": "0.1.0-alpha.2"
+        "version": "0.1.0-alpha.3"
       }
     },
     {

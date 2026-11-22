@@ -19,7 +19,7 @@ UNPROVEN = {'platform.recipe', 'host.membership-confirmed', 'gpu.release-envelop
 LIVE_CHECKS = {
     'host.tailscale-installed', 'host.tailscale-daemon', 'host.tailscale-signed-in',
     'host.magicdns', 'host.https-certificates', 'docker.local-context',
-    'docker.server', 'docker.compose', 'docker.nvidia-runtime',
+    'docker.server', 'docker.compose', 'docker.nvidia-runtime', 'docker.containerd',
 }
 FIXTURE_NAME = 'synthetic-host.synthetic-hidden-tailnet.ts.net'
 DOCKER_ENDPOINT = 'unix:///var/run/docker.sock'
@@ -52,11 +52,19 @@ case "$tool:$*" in
         ;;
     'python3:-I -B '*)
         case "$3" in */src/release-tools/deep32_get_whole.py) ;; *) exit 97 ;; esac
-        [ "$#" -eq 20 ] && [ "$4 $5 $6 $7" = 'disc3 --release v0.1.0-alpha.2 --from' ] || exit 97
-        [ "$8" = "$SYNTHETIC_FORGE_MEDIA" ] && [ "$9 ${10} ${11}" = '--gpu-class ampere86 --ingestion' ] || exit 97
-        [ "${12}" = --key ] && [ "${14}" = --fingerprint ] || exit 97
-        [ "${16} ${17}" = '--forge-storage --forge-data-root' ] || exit 97
-        [ "${18}" = "$SYNTHETIC_FORGE_DATA" ] && [ "${19} ${20}" = '--gpg synthetic-gpg' ] || exit 97
+        if [ "${11}" = --ingestion ]; then
+            [ "${SYNTHETIC_FORGE_INGESTION:-0}" = 1 ] || exit 97
+            a1=$1 a2=$2 a3=$3 a4=$4 a5=$5 a6=$6 a7=$7 a8=$8 a9=$9 a10=${10}
+            shift 11
+            set -- "$a1" "$a2" "$a3" "$a4" "$a5" "$a6" "$a7" "$a8" "$a9" "$a10" "$@"
+        else
+            [ "${SYNTHETIC_FORGE_INGESTION:-0}" = 0 ] || exit 97
+        fi
+        [ "$#" -eq 19 ] && [ "$4 $5 $6 $7" = 'disc3 --release v0.1.0-alpha.3 --from' ] || exit 97
+        [ "$8" = "$SYNTHETIC_FORGE_MEDIA" ] && [ "$9 ${10}" = '--gpu-class ampere86' ] || exit 97
+        [ "${11}" = --key ] && [ "${13}" = --fingerprint ] || exit 97
+        [ "${15} ${16}" = '--forge-storage --forge-data-root' ] || exit 97
+        [ "${17}" = "$SYNTHETIC_FORGE_DATA" ] && [ "${18} ${19}" = '--gpg synthetic-gpg' ] || exit 97
         [ "$(cat)" = "$SYNTHETIC_FORGE_DOCKER" ] || exit 97
         printf '%s\n' "$SYNTHETIC_FORGE_STORAGE"
         ;;
@@ -123,8 +131,9 @@ class ForgeHostTest(unittest.TestCase):
         self.unexpected = self.root / 'unexpected-argv.txt'
 
     def invoke(self, *extra, journey='J2', role='gpu-host', platform='Linux',
-               docker=None, tailscale=None, has_socket=True, storage=None, proof=None, text=False):
-        config = {'OSType': 'linux', 'Runtimes': {'nvidia': {}}, 'DockerRootDir': '/synthetic/docker'}
+               docker=None, tailscale=None, has_socket=True, storage=None, proof=None, text=False, ingestion=False):
+        config = {'OSType': 'linux', 'Runtimes': {'nvidia': {}}, 'DockerRootDir': '/synthetic/docker',
+                  'ContainerdCommit': {'ID': 'synthetic-containerd-revision'}}
         status = {'BackendState': 'Running', 'Self': {'Online': True, 'DNSName': FIXTURE_NAME + '.'},
                   'CurrentTailnet': {'MagicDNSEnabled': True, 'Name': FIXTURE_NAME},
                   'CertDomains': [FIXTURE_NAME]}
@@ -142,6 +151,8 @@ class ForgeHostTest(unittest.TestCase):
                    DOCKER_CONTEXT='synthetic-remote-selection')
         if proof is not None:
             env['SYNTHETIC_FORGE_PROOF'] = json.dumps(proof)
+        if ingestion:
+            env['SYNTHETIC_FORGE_INGESTION'] = '1'   # the stub then expects --ingestion from --forge-ingestion
         if storage is not None:
             env.update(SYNTHETIC_FORGE_MEDIA=shell_path(self.root / 'local-iso-set'),
                        SYNTHETIC_FORGE_DATA=shell_path(self.root / 'forge-data'),
@@ -206,6 +217,16 @@ class ForgeHostTest(unittest.TestCase):
         for key in ('docker.local-context', 'docker.nvidia-runtime'):
             self.assertEqual('missing', checks[key]['state'])
 
+    def test_unreachable_containerd_is_missing(self):
+        # The daemon reports containerd's revision only when it reaches containerd (a masked containerd.service).
+        config = {'OSType': 'linux', 'Runtimes': {'nvidia': {}}, 'DockerRootDir': '/synthetic/docker'}
+        for docker in (config, dict(config, ContainerdCommit={'ID': ''}), dict(config, ContainerdCommit={'ID': 'N/A'})):
+            with self.subTest(docker=docker):
+                _, checks = self.assert_status(self.invoke(docker=docker), 10)
+                self.assertTrue(checks['docker.containerd']['required'])
+                self.assertEqual('missing', checks['docker.containerd']['state'])
+                self.assertEqual('met', checks['docker.server']['state'])
+
     def test_absent_local_socket_never_queries_docker(self):
         _, checks = self.assert_status(self.invoke(has_socket=False), 10)
         self.assertNotEqual('met', checks['docker.server']['state'])
@@ -241,6 +262,20 @@ class ForgeHostTest(unittest.TestCase):
                          data['storage_plan'])
         self.assertNotIn('synthetic-shared-private-id', result.stdout)
 
+    def test_forge_storage_with_the_ingestion_add_on_passes_it_to_the_helper(self):
+        rows = [{'filesystem_id': 'synthetic-shared-private-id', 'needed_bytes': 50, 'free_bytes': 110},
+                {'filesystem_id': 'synthetic-shared-private-id', 'needed_bytes': 60, 'free_bytes': 100},
+                {'filesystem_id': 'synthetic-other-private-id', 'needed_bytes': 30, 'free_bytes': 50}]
+        result = self.invoke('--forge-media', shell_path(self.root / 'local-iso-set'), '--forge-class', 'ampere86',
+                             '--forge-data-root', shell_path(self.root / 'forge-data'), '--forge-gpg', 'synthetic-gpg',
+                             '--forge-ingestion', storage=rows, ingestion=True)
+        data, checks = self.assert_status(result, 10)
+        self.assertEqual('met', checks['docker.storage']['state'])
+        self.assertEqual('missing', checks['storage.plan']['state'])
+        self.assertEqual([{'filesystem': 'filesystem-1', 'needed_bytes': 110, 'free_bytes': 100},
+                          {'filesystem': 'filesystem-2', 'needed_bytes': 30, 'free_bytes': 50}],
+                         data['storage_plan'])
+
     def test_completed_forge_evidence_passes_every_mandatory_gate(self):
         rows = [{'filesystem_id': 'synthetic-volume', 'needed_bytes': 88, 'free_bytes': 100}]
         collected = {key: True for key in (
@@ -268,7 +303,7 @@ class ForgeHostTest(unittest.TestCase):
             'platform.recipe', 'host.membership-confirmed', 'gpu.release-envelope',
             'gpu.driver', 'gpu.capability', 'gpu.memory', 'gpu.ports', 'docker.storage',
         )}
-        notice = ('Note: this host type is accepted for 0.1.0-alpha.2 under an owner waiver dated 2026-11-18 '
+        notice = ('Note: this host type is accepted for 0.1.0-alpha.3 under an owner waiver dated 2026-11-18 '
                   '(recipe synthetic-waived-recipe). I have not yet run a full install on it; '
                   'FORGE-PREREQUISITES.json lists what was not run.')
         args = ('--forge-media', shell_path(self.root / 'synthetic-outer'), '--forge-class', 'ampere86',

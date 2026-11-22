@@ -88,7 +88,7 @@ class WholeTrust(unittest.TestCase):
             self.signatures.add(child_name + ".sig")
         (self.folder / "common.spdx.json").write_bytes(b'{"synthetic":"common SBOM"}\n')
         (self.folder / "ASSET-MAP.json").write_bytes(canonical({"format": "deep32-asset-map", "format_version": 1,
-             "release": "v0.1.0-alpha.2", "entries": [{"asset": "common.spdx.json", "install": [], "media_paths": []}]}))
+             "release": "v0.1.0-alpha.3", "entries": [{"asset": "common.spdx.json", "install": [], "media_paths": []}]}))
         self.write_index()
         for name in self.signatures:
             (self.folder / name).write_bytes(b"synthetic detached signature\n")
@@ -124,12 +124,12 @@ class WholeTrust(unittest.TestCase):
             self.validate(**kwargs)
 
     def test_metadata_and_whole_scopes(self):
-        self.assertEqual(self.validate()["release"], "v0.1.0-alpha.2")
+        self.assertEqual(self.validate()["release"], "v0.1.0-alpha.3")
         self.validate(scope="whole")
         self.validate(scope="whole", images={d["role"]: self.images / d["file"] for d in self.data["discs"]})
 
     def test_select_whole_and_release_binding(self):
-        selected = trust.select_whole(self.folder / "MIRRORS.json", self.folder / "SHA256SUMS", "disc2", "v0.1.0-alpha.2")
+        selected = trust.select_whole(self.folder / "MIRRORS.json", self.folder / "SHA256SUMS", "disc2", "v0.1.0-alpha.3")
         self.assertEqual(selected["role"], "disc2")
         self.refuse(release="v0.1.0-alpha.1")
 

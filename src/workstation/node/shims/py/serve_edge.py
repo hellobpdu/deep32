@@ -18,8 +18,8 @@ deep32-gateway reaches deep32-engine through its public API with no code change 
 The limits are Core's own (8 connections, 4 kept alive, 4 s expiry): httpx ignores the client's limits when it is
 given a transport, so they are repeated on the transport to keep production's connection behaviour.
 
-Environment file: RAG_CORE_URL (http://localhost: only Host: comes from it), RAG_CORE_API_TOKEN,
-TAILSCALE_DNS_NAME (the node's name; the DNS-rebinding allow-list), RAG_MCP_TOKENS_FILE, optional RAG_MCP_ALLOWED_IPS
+Environment file: RAG_CORE_URL (http://localhost: only Host: comes from it), RAG_CORE_API_TOKEN_FILE (the engine
+token's own file, root:_d32edge 0440, read before confinement), TAILSCALE_DNS_NAME (the node's name; the DNS-rebinding allow-list), RAG_MCP_TOKENS_FILE, optional RAG_MCP_ALLOWED_IPS
 (leave it EMPTY on the node: a UNIX-socket caller has no address and would get 403). Options:
   D32_EDGE_CODE   code tree (default /usr/local/d32/deep32-gateway/current)
   D32_CORE_SOCK   deep32-engine's socket (default /var/run/d32/core.sock)
@@ -42,7 +42,8 @@ sys.path.insert(0, HERE)
 
 import d32svc  # noqa: E402
 
-REQUIRED = ("RAG_CORE_URL", "RAG_CORE_API_TOKEN", "TAILSCALE_DNS_NAME")
+REQUIRED = ("RAG_CORE_URL", "RAG_CORE_API_TOKEN_FILE", "TAILSCALE_DNS_NAME")
+ENGINE_TOKEN_FILE = "/etc/d32/private/engine-client.token"  # nosec B105
 # (uvicorn's loop and protocol classes are imported by Config.load(), before the start-up and so before pledge;
 # production's edge venv has neither uvloop nor httptools, so uvicorn's "auto" picks asyncio and h11 there too)
 PRE_IMPORT = ("rag_edge", "httpx", "httpcore._async.connection_pool", "httpcore._backends.anyio", "anyio",
@@ -276,6 +277,10 @@ def main() -> None:
     if published_host:
         config_env['TAILSCALE_DNS_NAME'] = published_host
     config_env['RAG_MCP_TOKENS'] = load_mcp_tokens(credential_path)
+    engine_path = config_env.pop('RAG_CORE_API_TOKEN_FILE', '')
+    if engine_path != ENGINE_TOKEN_FILE or 'RAG_CORE_API_TOKEN' in os.environ:
+        raise SystemExit('deep32-gateway: engine credential unavailable; run gateway enrolment')
+    config_env['RAG_CORE_API_TOKEN'] = d32svc.read_credential(engine_path, '_d32edge', 'deep32-gateway')
     cfg = Config.from_env(config_env)
     config_env.clear()
     transport = httpx.AsyncHTTPTransport(

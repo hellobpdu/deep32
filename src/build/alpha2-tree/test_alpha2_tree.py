@@ -140,7 +140,7 @@ class TreeTests(unittest.TestCase):
         self.assertEqual((out / "TREE-HASH").read_bytes(), (digest(pin) + "\n").encode())
         patch = (out / "build.conf.patch").read_text()
         self.assertIn("-D32_TREE_HASH=" + digest((self.root / "input.PIN.sha256").read_bytes()), patch)
-        self.assertIn("+D32_RELEASE_ID=0.1.0-alpha.2", patch)
+        self.assertIn("+D32_RELEASE_ID=0.1.0-alpha.3", patch)
 
     def test_determinism_all_output_bytes_and_tar_metadata(self):
         archive, pin = self.archive()

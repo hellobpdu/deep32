@@ -140,3 +140,38 @@ def enrol_gateway(state, peer_id=None, root=Path('/')):
     _settings(root / 'etc/d32/edge.env', {'RAG_MCP_TOKENS_FILE': '/etc/d32/private/mcp-tokens'},
               remove=('RAG_MCP_TOKENS',))
     return {'headends': len(issued), 'local_token_kept': True}
+
+
+ENGINE_TOKEN_FILES = {'core.env': ('/etc/d32/private/engine-api.token', '_d32core'),
+                      'edge.env': ('/etc/d32/private/engine-client.token', '_d32edge')}
+
+
+def enrol_engine(root=Path('/')):
+    """Move the engine token from both environment files into one protected file per reading service."""
+    root = safe(root)
+    values, done = {}, {}
+    for name, (target, _group) in ENGINE_TOKEN_FILES.items():
+        lines = read_bytes(root / 'etc/d32' / name).decode('ascii').splitlines()
+        plain = [line.partition('=')[2] for line in lines if line.startswith('RAG_CORE_API_TOKEN=')]
+        named = [line.partition('=')[2] for line in lines if line.startswith('RAG_CORE_API_TOKEN_FILE=')]
+        if len(plain) + len(named) != 1:
+            raise StateError()
+        if named:
+            if named[0] != target:
+                raise StateError()
+            done[name] = read_token(root / target.lstrip('/'))
+        else:
+            values[name] = plain[0]
+    if done and values:
+        raise StateError()
+    tokens = set(done.values()) if done else set(values.values())
+    if len(tokens) != 1 or not re.fullmatch('[0-9a-f]{64}', next(iter(tokens))):
+        raise StateError()
+    if done:
+        return {'engine_token': 'kept'}  # nosec B105
+    token = tokens.pop()
+    private = _private(root)
+    for name, (target, group) in ENGINE_TOKEN_FILES.items():
+        _write(private / Path(target).name, (token + '\n').encode('ascii'), group, 0o440)
+        _settings(root / 'etc/d32' / name, {'RAG_CORE_API_TOKEN_FILE': target}, remove=('RAG_CORE_API_TOKEN',))
+    return {'engine_token': 'moved'}  # nosec B105

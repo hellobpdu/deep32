@@ -20,7 +20,7 @@ Anyone can propose a change in an issue or a pull request. The project lead deci
 
 ## Reviews
 
-From 0.1.0-alpha.3 on, changes reach the main branch through pull requests. Once the project has a co-maintainer,
+From 0.1.0-alpha.4 on, changes reach the main branch through pull requests. Once the project has a co-maintainer,
 at least half of the changes in each release are reviewed before the release by someone other than their author;
 until then I review every change myself. A review checks that the change is worthwhile, that the tests and
 checks pass, and that it brings in no known security problem. A co-maintainer may review the changes of a release in

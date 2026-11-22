@@ -70,6 +70,42 @@ def classic_docker_root(info):
     return root
 
 
+CONTAINERD_SYSTEM_SOCKET = '/run/containerd/containerd.sock'
+CONTAINERD_SYSTEM_ROOT = '/var/lib/containerd'
+CONTAINERD_MANAGED_PREFIX = '/var/run/docker/containerd/'
+
+
+def forge_docker_root(info):
+    """The local Linux Engine root that receives the Forge's images, in either image store.
+
+    The classic overlay2 store keeps them under DockerRootDir (classic_docker_root). With the containerd image
+    store, containerd keeps them: the system containerd that Docker Engine's packages run beside dockerd
+    (Containerd.Address /run/containerd/containerd.sock) under its default root /var/lib/containerd, and a
+    dockerd-managed containerd (an address under /var/run/docker/containerd/) under DockerRootDir. Any other
+    shape is refused as unknown. Docker Desktop keeps the classic-only rule (forge_preflight_windows).
+    host-requirements.py applies the same rule on the Forge; test_whole_get keeps the two equal.
+    """
+    try:
+        return classic_docker_root(info)
+    except DockerImageStoreRefusal as error:
+        if error.code != 'docker-store-containerd':
+            raise
+    unknown = DockerImageStoreRefusal(
+        'docker-store-unknown', 'Run the Forge check against the dedicated classic overlay2 engine with complete Docker info.')
+    root = info.get('DockerRootDir')
+    containerd = info.get('Containerd')
+    address = containerd.get('Address') if isinstance(containerd, dict) else None
+    if (info.get('Driver') != 'overlayfs' or type(root) is not str or type(address) is not str
+            or root.startswith('//') or '\\' in root or not PurePosixPath(root).is_absolute()
+            or '..' in PurePosixPath(root).parts or any(ord(char) < 32 or ord(char) == 127 for char in root)):
+        raise unknown
+    if address == CONTAINERD_SYSTEM_SOCKET:
+        return CONTAINERD_SYSTEM_ROOT
+    if address.startswith(CONTAINERD_MANAGED_PREFIX):
+        return root
+    raise unknown
+
+
 def protect_scratch(folder):
     """Restrict only a just-created host scratch directory, then inspect it."""
     module('deep32_settings').protect(folder, directory=True)
@@ -260,7 +296,9 @@ def select_bundles(capability, gpu_class, *, ingestion=False, full=False):
 
 
 def forge_budget_document(selected, discs, gpu_class, *, backend='docker-engine'):
-    component_names = ['core', 'embedder-' + gpu_class, 'ingestion']
+    component_names = ['core', 'embedder-' + gpu_class]
+    if len(selected) == 3:
+        component_names.append('ingestion')
     if [bundle['id'] for bundle in selected] != component_names or len(discs) != len(component_names):
         raise manifest.Refusal('The authenticated Forge budget has the wrong component selection.')
     if backend not in ('docker-engine', 'docker-desktop'):
@@ -295,6 +333,40 @@ def storage_row(filesystem_id, needed, free, budget):
     return row
 
 
+def joined_cache_bytes(data_root, components):
+    """Bytes of a complete joined Disc 3 copy already beside the data root, else 0.
+
+    The copy (deep32_settings.media_cache: <data root>.deep32-media/<sha256 of the component digests>) counts only
+    when every PAYLOAD.json row is a regular file of exactly its recorded size (no link) and the three metadata files
+    exist; the loader verifies every byte again before use (deep32_download.verify_output). The data root arrives as
+    a native absolute path on the host that runs the check.
+    """
+    if not isinstance(components, list) or not components:
+        return 0
+    try:
+        root = Path(data_root)
+        key = hashlib.sha256(''.join(row['sha256'] for row in components).encode('ascii')).hexdigest()
+        cache = root.with_name(root.name + '.deep32-media') / key
+        total = 0
+        for name in ('PAYLOAD.json', 'PAYLOAD.SHA256', 'RUNTIME.json'):
+            info = (cache / name).lstat()
+            if not stat.S_ISREG(info.st_mode):
+                return 0
+            total += info.st_size
+        rows = json.loads(read_checked(cache / 'PAYLOAD.json'), object_pairs_hook=manifest.unique_json)
+        for row in rows:
+            relative = PurePosixPath(row['path'])
+            if relative.is_absolute() or '..' in relative.parts or ':' in row['path'] or '\\' in row['path']:
+                return 0
+            info = (cache / 'payload' / relative).lstat()
+            if not stat.S_ISREG(info.st_mode) or info.st_size != row['size']:
+                return 0
+            total += row['size']
+        return total
+    except (OSError, ValueError, TypeError, KeyError, manifest.Refusal, transfer.DownloadError):
+        return 0
+
+
 def observed_volume(value, *, existing):
     if (not isinstance(value, str) or any(ord(char) < 32 or ord(char) == 127 for char in value)
             or value.startswith(("//", "\\\\")) or not Path(value).is_absolute()):
@@ -320,18 +392,18 @@ def linux_forge_storage(args, raw_docker_info, *, observe=observed_volume):
     The join checks the cache's exact unique bytes before writing it. The signed
     data and Docker peaks are checked independently and rechecked after joining.
     """
-    if (args.release != 'v0.1.0-alpha.2' or args.disc != 'disc3' or not args.source
-            or not args.gpu_class or not args.ingestion or args.full or not args.forge_data_root):
-        raise manifest.Refusal('Forge storage requires local alpha.2 Disc 3 media, class, ingestion and data root.')
+    if (args.release != 'v0.1.0-alpha.3' or args.disc != 'disc3' or not args.source
+            or not args.gpu_class or args.full or not args.forge_data_root):
+        raise manifest.Refusal('Forge storage requires local Disc 3 media, class and data root.')
     if len(raw_docker_info) > 1024 * 1024:
         raise manifest.Refusal('Local Docker info exceeds its size bound.')
     info = json.loads(raw_docker_info, object_pairs_hook=manifest.unique_json)
-    docker_root = classic_docker_root(info)
+    docker_root = forge_docker_root(info)
     with metadata(args) as (folder, index, source):
         if source is None or index is None or index['format_version'] != 2:
-            raise manifest.Refusal('Forge storage requires authenticated alpha.2 capability metadata.')
+            raise manifest.Refusal('Forge storage requires authenticated capability metadata.')
         capability = manifest.read_mirror_capabilities(index, folder / 'SHA256SUMS')
-        selected = select_bundles(capability, args.gpu_class, ingestion=True)
+        selected = select_bundles(capability, args.gpu_class, ingestion=args.ingestion)
         by_id = {row['bundle_id']: row for row in index['bundles']}
         discs = [by_id[bundle['id']] for bundle in selected]
         budget = forge_budget_document(selected, discs, args.gpu_class)
@@ -393,7 +465,7 @@ def get(args, *, opener=None, filesystem=None):
 def parser():
     result = argparse.ArgumentParser(description=__doc__)
     result.add_argument('disc', choices=sorted(manifest.ROLES))
-    result.add_argument('--release', default='v0.1.0-alpha.2')
+    result.add_argument('--release', default='v0.1.0-alpha.3')
     result.add_argument('--repo', default='hellobpdu/deep32')
     result.add_argument('--key', default=str(ROOT.parents[1] / 'install/release-key.gpg'))
     result.add_argument('--fingerprint', required=True)

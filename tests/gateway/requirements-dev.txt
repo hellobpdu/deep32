@@ -1,9 +1,6 @@
 # What tests/gateway needs: deep32-gateway's own packages, at the versions of
 # src/workstation/pyrag/locks/requirements-edge.lock, plus the three the Workstation takes from OpenBSD's packages
 # (cffi, cryptography, rpds-py). That lock's hashes are for the Workstation's wheels, so they are not repeated here.
-# Two exceptions: certifi 2026.10.23 (fixes GHSA-6q48-6c7w-9gw2) and opentelemetry-api 1.45.2 (fixes
-# GHSA-xcq7-p3pf-p88h and GHSA-mf5v-w3w3-f6cg) are newer here; the Workstation's own pins move at its next build,
-# and docs/security/README.md explains why they do not affect 0.1.0-alpha.2.
 # Tested with CPython 3.14:
 #   python -m pip install -r tests/gateway/requirements-dev.txt
 annotated-types==0.8.0

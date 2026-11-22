@@ -137,12 +137,12 @@ static jv *value(jp *j)
 		if (!v) return NULL;
 		v->str = str(j);
 		if (!v->str) { free(v); return NULL; }
-	} else if (!strncmp(j->p, "true", 4) || !strncmp(j->p, "false", 5)) {
+	} else if ((j->end - j->p >= 4 && !memcmp(j->p, "true", 4)) || (j->end - j->p >= 5 && !memcmp(j->p, "false", 5))) {
 		v = mk(J_BOOL);
 		if (!v) return NULL;
 		v->b = *j->p == 't';
 		j->p += v->b ? 4 : 5;
-	} else if (!strncmp(j->p, "null", 4)) {
+	} else if (j->end - j->p >= 4 && !memcmp(j->p, "null", 4)) {
 		v = mk(J_NULL);
 		j->p += 4;
 	} else {

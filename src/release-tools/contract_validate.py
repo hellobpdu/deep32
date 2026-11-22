@@ -16,7 +16,7 @@ import re
 import sys
 from urllib.parse import unquote, urlsplit
 
-RELEASE = "v0.1.0-alpha.2"
+RELEASE = "v0.1.0-alpha.3"
 CONCEPT_DOI = "https://doi.org/10.5281/zenodo.24272647"
 CONTRACTS = Path(__file__).resolve().parent / "contracts"
 MAX_JSON_BYTES = 4 * 1024 * 1024

@@ -1,0 +1,5 @@
+{
+  "pipeline": {
+    "rerank_gate": 1
+  }
+}

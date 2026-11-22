@@ -11,7 +11,7 @@ pairing                   OK     committed enrolment and protected identity agre
 peer-reachability         OK     enrolled peer HTTPS answered
 tailnet-path.workstation  WARN   workstation path relayed
 peer-clock                OK     peer offset interval -0.1 to 0.1 s
-first-start               OK     READY; ready; 0.1.0-alpha.2
+first-start               OK     READY; ready; 0.1.0-alpha.3
 driver                    OK     590.10; required 590.00
 docker-engine             OK     Linux engine; recorded local endpoint
 docker-compose            OK     2.30.0; required 2.24.0

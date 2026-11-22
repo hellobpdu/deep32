@@ -113,18 +113,29 @@ def collect(path, overrides, profiles, interactive=False, prompt=input):
     for field in FIELDS:
         probe.setdefault(field, DEFAULTS[field])
     validate_settings(probe, profiles)
-    for field in FIELDS:
-        if field not in data:
-            if not interactive:
-                raise ValueError('missing ' + field + '; supply --settings or the non-secret option')
-            value = prompt(field.replace('_', ' ') + ' [' + DEFAULTS[field] + ']: ').strip()
-            data[field] = value or DEFAULTS[field]
+    missing = [field for field in FIELDS if field not in data]
+    if missing and not interactive:
+        raise ValueError('missing ' + ', '.join(missing) + '; supply --settings or the non-secret options')
+    for field in missing:
+        value = prompt(field.replace('_', ' ') + ' [' + DEFAULTS[field] + ']: ').strip()
+        data[field] = value or DEFAULTS[field]
     return validate_settings(data, profiles)
 
 
+def missing_choices(path, overrides, *, split, tailnet):
+    """Every choice a non-interactive split Forge plan still lacks, in one list."""
+    data = read_json(path) if path else {}
+    names = [field for field in FIELDS if field not in data and field not in overrides]
+    if tailnet:
+        names.append('confirm-tailnet')
+    if split and data.get('forge_accept_ct') is not True:
+        names.append('forge_accept_ct')
+    return names
+
+
 def validate_media_components(rows, core_hash):
-    if not isinstance(rows, list) or len(rows) != 3:
-        raise ValueError('split media requires core, the selected embedder and ingestion')
+    if not isinstance(rows, list) or len(rows) not in (2, 3):
+        raise ValueError('split media requires core and the selected embedder, and ingestion when it was selected')
     classes = r'embedder-(turing|ampere80|ampere86|ada|hopper|blackwell100|blackwell120)'
     for index, row in enumerate(rows):
         if not isinstance(row, dict) or set(row) != {'component', 'size', 'sha256'}:
@@ -693,6 +704,14 @@ def main():
     plan.add_argument('--linux-forge-tailnet', action='store_true')
     plan.add_argument('--confirm-tailnet', metavar='EXPECTED_SUFFIX')
     plan.add_argument('--confirm-desktop-isolation', action='store_true')
+    # The Linux getter runs this before it reads any media, so a non-interactive install names every missing
+    # choice at once instead of one refusal per run after the media check.
+    check = commands.add_parser('check-settings')
+    check.add_argument('--settings', type=Path)
+    for field in FIELDS: check.add_argument('--' + field.replace('_', '-'))
+    check.add_argument('--confirm-tailnet', metavar='EXPECTED_SUFFIX')
+    check.add_argument('--split', action='store_true')
+    check.add_argument('--linux-forge-tailnet', action='store_true')
     for name in ('install', 'stage', 'wsl-program', 'media-cache'):
         command = commands.add_parser(name)
         command.add_argument('--plan', type=Path, required=True)
@@ -703,6 +722,17 @@ def main():
         if args.command == 'run-loader':
             argv = args.argv[1:] if args.argv[:1] == ['--'] else args.argv
             return run_loader(argv)
+        elif args.command == 'check-settings':
+            matrix = read_json(Path(__file__).resolve().parents[2] / 'install/matrix.json')
+            profiles = [row['id'] for row in matrix['profiles']]
+            choices = {field: getattr(args, field) for field in FIELDS if getattr(args, field) is not None}
+            # The supplied values with the defaults filled in, checked exactly as collect checks them.
+            collect(args.settings, choices, profiles, interactive=True, prompt=lambda question: '')
+            names = missing_choices(args.settings, choices, split=args.split,
+                                    tailnet=args.linux_forge_tailnet and args.confirm_tailnet is None)
+            if names:
+                raise ValueError('missing non-interactive choices: ' + ', '.join(names)
+                                 + '; supply them in --settings or as options')
         elif args.command == 'plan':
             matrix = read_json(Path(__file__).resolve().parents[2] / 'install/matrix.json')
             profiles = [row['id'] for row in matrix['profiles']]

@@ -28,7 +28,7 @@ from sbom.inputs import normalise_inputs
 from sbom.frozen import bind
 from sbom.workflow import contents, finalise, generator_sha256, verify
 
-RELEASE = 'v0.1.0-alpha.2'
+RELEASE = 'v0.1.0-alpha.3'
 PLAN = 'deep32-alpha2-sbom-plan/1'
 
 

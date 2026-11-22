@@ -85,6 +85,19 @@ class HostPreflight(unittest.TestCase):
             ['docker', 'compose', 'version', '--short'],
             ['docker', 'info', '--format', '{{json .}}']])
 
+    def test_containerd_store_is_measured_where_containerd_keeps_images(self):
+        self.info.update(Driver='overlayfs', DriverStatus=[['driver-type', 'io.containerd.snapshotter.v1']],
+                         Containerd={'Address': '/run/containerd/containerd.sock'})
+        store = self.root / 'var/lib/containerd'
+        store.mkdir(parents=True)
+        self.check()
+        self.assertIn(store, [call.args[0] for call in self.disks.call_args_list])
+        self.disks.reset_mock()
+        self.info['Containerd'] = {'Address': '/elsewhere.sock'}
+        with self.assertRaisesRegex(ValueError, 'Install Docker Engine with its classic overlay2 store'):
+            self.check()
+        self.disks.assert_not_called()
+
     def test_every_pinned_driver_floor_is_enforced(self):
         for platform in ('linux', 'windows'):
             names = list(self.pins)[:3] + (['windows_cuda13_driver_build'] if platform == 'windows' else [])

@@ -59,6 +59,17 @@ copied into the image or generation export. Place the mount beneath the existing
 kb-work bind mount, for example /var/lib/deep32-forge/kb-work/operator-eval, and
 add --eval-root with that container path to builder-job.sh build.
 
+To compare a build with an earlier one, also add --baseline-root with the
+earlier served generation's root, for example
+/var/lib/deep32-forge/rag-data/old-served. For each supplied set, validate_root
+then compares the new generation with that root's VALIDATION-<set>.json query
+by query, and the build stops when hit@1 or hit@8 has a net loss or delivery@8
+falls by more than 0.005. The comparison and its gates are in the new root's
+VALIDATION-<set>.json; BUILD_REPORT.json's quality_validation names the sets
+compared and those not compared (a probe set, or a set the earlier generation
+did not run). A baseline made with another version of a set stops the build.
+--baseline-root needs --eval-root.
+
 build/build-images.sh now also calls build/build-builder.sh. The latter can
 run separately with --stage STAGE --out NEW_OUTPUT. It verifies inputs, builds
 with --network none --pull=false, and records immutable ids and archive hashes.
@@ -111,7 +122,8 @@ The build command is:
 Choose new generation names and an expected corpus fingerprint. The command runs
 build_root with dense indexing and powershell,system opt-in; derive_root with
 the production reranker/fold/regex settings; validate_root with structural gates and, when supplied, every approved neutral
-set; and export_generation only after successful validation. The projected
+set, compared with --baseline-root when one is given; and export_generation only
+after successful validation. The projected
 doc_key fields of all supplied sets must be kept. An approved _probe with no
 qrels doc_key fields uses --min hit@1=off --min hit@8=off; all other gates remain,
 and judged sets retain both hit-rate floors. Without supplied eval data only the

@@ -7,166 +7,6 @@
 # file, so any known vulnerability in those pins still fails the workflow.
 
 [[IgnoredVulns]]
-id = "GHSA-24c4-3p7v-29cm"
-effectiveUntil = 2027-02-19
-reason = "aiohttp 3.14.3: not_affected, vulnerable_code_not_in_execute_path. server: base64 multipart parts bypass client_max_size. OpenVEX statement CVE-2026-128127 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
-
-[[IgnoredVulns]]
-id = "GHSA-28qf-cpwq-vmc2"
-effectiveUntil = 2027-02-19
-reason = "aiohttp 3.14.3: not_affected, vulnerable_code_not_in_execute_path. server, pure-Python parser: request replay behind a declined upgrade. OpenVEX statement CVE-2026-128130 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
-
-[[IgnoredVulns]]
-id = "GHSA-2g87-pp6c-29x5"
-effectiveUntil = 2027-02-19
-reason = "aiohttp 3.14.3: not_affected, vulnerable_code_not_in_execute_path. WebSocket frame reassembly memory growth. OpenVEX statement CVE-2026-123817 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
-
-[[IgnoredVulns]]
-id = "GHSA-3rp8-rxj8-mvjw"
-effectiveUntil = 2027-02-19
-reason = "aiohttp 3.14.3: not_affected, vulnerable_code_not_in_execute_path. WebSocket max_msg_size integer overflow. OpenVEX statement CVE-2026-128128 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
-
-[[IgnoredVulns]]
-id = "GHSA-494j-54xm-rwp3"
-effectiveUntil = 2027-02-19
-reason = "aiohttp 3.14.3: not_affected, vulnerable_code_not_in_execute_path. client: Secure attribute not enforced for shared cookie. OpenVEX statement CVE-2026-111063 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
-
-[[IgnoredVulns]]
-id = "GHSA-5pv8-vvhc-h7jv"
-effectiveUntil = 2027-02-19
-reason = "aiohttp 3.14.3: not_affected, vulnerable_code_not_in_execute_path. client: unbounded CookieJar storage. OpenVEX statement CVE-2026-128125 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
-
-[[IgnoredVulns]]
-id = "GHSA-5rmc-48h2-hvcm"
-effectiveUntil = 2027-02-19
-reason = "aiohttp 3.14.3: not_affected, vulnerable_code_not_in_execute_path. WebSocket receive-queue limits bypassed. OpenVEX statement CVE-2026-128132 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
-
-[[IgnoredVulns]]
-id = "GHSA-5wr8-gcqf-gqf3"
-effectiveUntil = 2027-02-19
-reason = "aiohttp 3.14.3: not_affected, vulnerable_code_not_in_execute_path. server: no initial request/header timeout. OpenVEX statement CVE-2026-111064 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
-
-[[IgnoredVulns]]
-id = "GHSA-6cjc-53gc-5rqm"
-effectiveUntil = 2027-02-19
-reason = "aiohttp 3.14.3: not_affected, vulnerable_code_not_in_execute_path. client: connector pool exhaustion via Max-Age overflow. OpenVEX statement CVE-2026-111065 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
-
-[[IgnoredVulns]]
-id = "GHSA-9xw5-w5jj-pvcg"
-effectiveUntil = 2027-02-19
-reason = "aiohttp 3.14.3: not_affected, vulnerable_code_not_in_execute_path. server: file-descriptor exhaustion in multipart Request.post(). OpenVEX statement CVE-2026-111066 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
-
-[[IgnoredVulns]]
-id = "GHSA-f9xw-jh8m-3mwq"
-effectiveUntil = 2027-02-19
-reason = "aiohttp 3.14.3: not_affected, vulnerable_code_not_in_execute_path. server: absolute-form targets spoof Request.scheme. OpenVEX statement CVE-2026-111748 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
-
-[[IgnoredVulns]]
-id = "GHSA-gx76-c99x-2c96"
-effectiveUntil = 2027-02-19
-reason = "aiohttp 3.14.3: not_affected, vulnerable_code_not_in_execute_path. client: subdomain cookie strips Host-Only scope. OpenVEX statement CVE-2026-111749 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
-
-[[IgnoredVulns]]
-id = "GHSA-h4cc-hm5h-fmm9"
-effectiveUntil = 2027-02-19
-reason = "aiohttp 3.14.3: not_affected, vulnerable_code_not_in_execute_path. concatenated compressed streams: quadratic decompression. OpenVEX statement CVE-2026-128131 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
-
-[[IgnoredVulns]]
-id = "GHSA-jm3w-gw2p-xjfj"
-effectiveUntil = 2027-02-19
-reason = "aiohttp 3.14.3: not_affected, vulnerable_code_not_in_execute_path. server: Application.add_domain wildcard regex stall. OpenVEX statement CVE-2026-128124 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
-
-[[IgnoredVulns]]
-id = "GHSA-pqxq-w44r-73xw"
-effectiveUntil = 2027-02-19
-reason = "aiohttp 3.14.3: not_affected, vulnerable_code_not_in_execute_path. server, pure-Python parser: request smuggling. OpenVEX statement CVE-2026-111750 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
-
-[[IgnoredVulns]]
-id = "GHSA-pw86-h8fm-j323"
-effectiveUntil = 2027-02-19
-reason = "aiohttp 3.14.3: not_affected, vulnerable_code_not_in_execute_path. server: unbounded buffering during an upgrade request. OpenVEX statement CVE-2026-128129 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
-
-[[IgnoredVulns]]
-id = "GHSA-xgw8-8ccx-rmqh"
-effectiveUntil = 2027-02-19
-reason = "aiohttp 3.14.3: not_affected, vulnerable_code_not_in_execute_path. server: too many URL-encoded form fields block the event loop. OpenVEX statement CVE-2026-128126 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
-
-[[IgnoredVulns]]
-id = "GHSA-6q48-6c7w-9gw2"
-effectiveUntil = 2027-02-19
-reason = "certifi 2026.7.22: not_affected, vulnerable_code_not_in_execute_path. bundled emSign ECC Root CA - G3 trusted (compromised eMudhra intermediates). OpenVEX statement GHSA-6q48-6c7w-9gw2 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
-
-[[IgnoredVulns]]
-id = "GHSA-567q-5qvw-pf92"
-effectiveUntil = 2027-02-19
-reason = "filelock 3.32.3: not_affected, vulnerable_code_not_in_execute_path. Windows oplock holds SoftFileLock.acquire past its timeout. OpenVEX statement CVE-2026-112907 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
-
-[[IgnoredVulns]]
-id = "GHSA-6627-m3xw-93mp"
-effectiveUntil = 2027-02-19
-reason = "filelock 3.32.3: not_affected, vulnerable_code_cannot_be_controlled_by_adversary. StrictSoftFileLock claim directories created without lock mode. OpenVEX statement CVE-2026-112908 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
-
-[[IgnoredVulns]]
-id = "GHSA-69hj-f68j-2879"
-effectiveUntil = 2027-02-19
-reason = "filelock 3.32.3: not_affected, vulnerable_code_cannot_be_controlled_by_adversary. UnixFileLock truncates/chmods a file another user renames or links onto the lock path. OpenVEX statement CVE-2026-112909 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
-
-[[IgnoredVulns]]
-id = "GHSA-8mx5-7m5m-r77g"
-effectiveUntil = 2027-02-19
-reason = "filelock 3.32.3: not_affected, vulnerable_code_not_in_execute_path. WindowsFileLock ignores mode. OpenVEX statement CVE-2026-112910 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
-
-[[IgnoredVulns]]
-id = "GHSA-9c4x-gm8v-wgc4"
-effectiveUntil = 2027-02-19
-reason = "filelock 3.32.3: not_affected, vulnerable_code_cannot_be_controlled_by_adversary. StrictSoftFileLock/SoftReadWriteLock adopt a directory another user created. OpenVEX statement CVE-2026-112911 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
-
-[[IgnoredVulns]]
-id = "GHSA-9vhv-jxww-xfm5"
-effectiveUntil = 2027-02-19
-reason = "filelock 3.32.3: not_affected, vulnerable_code_not_in_execute_path. ReadWriteLock on Windows acts on SQLite side files. OpenVEX statement CVE-2026-112913 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
-
-[[IgnoredVulns]]
-id = "GHSA-cwqr-hh33-gh44"
-effectiveUntil = 2027-02-19
-reason = "filelock 3.32.3: not_affected, vulnerable_code_cannot_be_controlled_by_adversary. crafted ReadWriteLock database stalls acquire. OpenVEX statement CVE-2026-112915 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
-
-[[IgnoredVulns]]
-id = "GHSA-fq56-3cx3-fjxp"
-effectiveUntil = 2027-02-19
-reason = "filelock 3.32.3: not_affected, vulnerable_code_not_in_execute_path. SoftFileLock stale-lock break on a reused inode admits two holders. OpenVEX statement CVE-2026-112935 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
-
-[[IgnoredVulns]]
-id = "GHSA-j8f7-rjxc-mr56"
-effectiveUntil = 2027-02-19
-reason = "filelock 3.32.3: not_affected, vulnerable_code_cannot_be_controlled_by_adversary. ReadWriteLock follows a symlink at the lock path into SQLite. OpenVEX statement CVE-2026-112936 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
-
-[[IgnoredVulns]]
-id = "GHSA-m462-7rxw-wvpg"
-effectiveUntil = 2027-02-19
-reason = "filelock 3.32.3: not_affected, vulnerable_code_cannot_be_controlled_by_adversary. StrictSoftFileLock follows a swapped symlink at <path>.filelock. OpenVEX statement CVE-2026-112938 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
-
-[[IgnoredVulns]]
-id = "GHSA-rfpc-qcw5-3pc4"
-effectiveUntil = 2027-02-19
-reason = "filelock 3.32.3: not_affected, vulnerable_code_cannot_be_controlled_by_adversary. SoftFileLock removes a live marker when another user forges its PID. OpenVEX statement CVE-2026-112939 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
-
-[[IgnoredVulns]]
-id = "GHSA-v4x8-3wr5-3wq8"
-effectiveUntil = 2027-02-19
-reason = "filelock 3.32.3: not_affected, vulnerable_code_cannot_be_controlled_by_adversary. ReadWriteLock SQLite reopens by name; planted symlink/journal overwrites files. OpenVEX statement CVE-2026-112940 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
-
-[[IgnoredVulns]]
-id = "GHSA-mf5v-w3w3-f6cg"
-effectiveUntil = 2027-02-19
-reason = "opentelemetry-api 1.45.0: not_affected, vulnerable_code_cannot_be_controlled_by_adversary. traceparent extraction quadratic regex (CPU DoS); MCP _meta named as a path. OpenVEX statement CVE-2026-126360 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
-
-[[IgnoredVulns]]
-id = "GHSA-xcq7-p3pf-p88h"
-effectiveUntil = 2027-02-19
-reason = "opentelemetry-api 1.45.0: not_affected, vulnerable_code_cannot_be_controlled_by_adversary. TraceState.from_header quadratic regex on a long tracestate (CPU DoS). OpenVEX statement CVE-2026-114603 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
-
-[[IgnoredVulns]]
 id = "GHSA-jhr6-gm9c-rqjv"
 effectiveUntil = 2027-02-19
 reason = "sentence-transformers 5.3.0: not_affected, vulnerable_code_cannot_be_controlled_by_adversary. import_module_class trust gate bypassed when the model path exists locally (modules.json custom code runs with trust_remote_code=False). OpenVEX statement CVE-2026-68770 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
@@ -375,3 +215,153 @@ reason = "vllm 0.28.0: not_affected, vulnerable_code_not_in_execute_path. MOSS-A
 id = "PYSEC-2026-4362"
 effectiveUntil = 2027-02-19
 reason = "vllm 0.28.0: not_affected, vulnerable_code_cannot_be_controlled_by_adversary. cache aliasing through EXIF ImageID or cache_salt. OpenVEX statement CVE-2026-114054 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-24c4-3p7v-29cm"
+effectiveUntil = 2027-02-19
+reason = "aiohttp 3.14.3: not_affected, vulnerable_code_not_in_execute_path. server: base64 multipart parts bypass client_max_size. OpenVEX statement CVE-2026-128127 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-28qf-cpwq-vmc2"
+effectiveUntil = 2027-02-19
+reason = "aiohttp 3.14.3: not_affected, vulnerable_code_not_in_execute_path. server, pure-Python parser: request replay behind a declined upgrade. OpenVEX statement CVE-2026-128130 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-2g87-pp6c-29x5"
+effectiveUntil = 2027-02-19
+reason = "aiohttp 3.14.3: not_affected, vulnerable_code_not_in_execute_path. WebSocket frame reassembly memory growth. OpenVEX statement CVE-2026-123817 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-3rp8-rxj8-mvjw"
+effectiveUntil = 2027-02-19
+reason = "aiohttp 3.14.3: not_affected, vulnerable_code_not_in_execute_path. WebSocket max_msg_size integer overflow. OpenVEX statement CVE-2026-128128 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-494j-54xm-rwp3"
+effectiveUntil = 2027-02-19
+reason = "aiohttp 3.14.3: not_affected, vulnerable_code_not_in_execute_path. client: Secure attribute not enforced for shared cookie. OpenVEX statement CVE-2026-111063 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-5pv8-vvhc-h7jv"
+effectiveUntil = 2027-02-19
+reason = "aiohttp 3.14.3: not_affected, vulnerable_code_not_in_execute_path. client: unbounded CookieJar storage. OpenVEX statement CVE-2026-128125 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-5rmc-48h2-hvcm"
+effectiveUntil = 2027-02-19
+reason = "aiohttp 3.14.3: not_affected, vulnerable_code_not_in_execute_path. WebSocket receive-queue limits bypassed. OpenVEX statement CVE-2026-128132 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-5wr8-gcqf-gqf3"
+effectiveUntil = 2027-02-19
+reason = "aiohttp 3.14.3: not_affected, vulnerable_code_not_in_execute_path. server: no initial request/header timeout. OpenVEX statement CVE-2026-111064 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-6cjc-53gc-5rqm"
+effectiveUntil = 2027-02-19
+reason = "aiohttp 3.14.3: not_affected, vulnerable_code_not_in_execute_path. client: connector pool exhaustion via Max-Age overflow. OpenVEX statement CVE-2026-111065 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-9xw5-w5jj-pvcg"
+effectiveUntil = 2027-02-19
+reason = "aiohttp 3.14.3: not_affected, vulnerable_code_not_in_execute_path. server: file-descriptor exhaustion in multipart Request.post(). OpenVEX statement CVE-2026-111066 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-f9xw-jh8m-3mwq"
+effectiveUntil = 2027-02-19
+reason = "aiohttp 3.14.3: not_affected, vulnerable_code_not_in_execute_path. server: absolute-form targets spoof Request.scheme. OpenVEX statement CVE-2026-111748 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-gx76-c99x-2c96"
+effectiveUntil = 2027-02-19
+reason = "aiohttp 3.14.3: not_affected, vulnerable_code_not_in_execute_path. client: subdomain cookie strips Host-Only scope. OpenVEX statement CVE-2026-111749 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-h4cc-hm5h-fmm9"
+effectiveUntil = 2027-02-19
+reason = "aiohttp 3.14.3: not_affected, vulnerable_code_not_in_execute_path. concatenated compressed streams: quadratic decompression. OpenVEX statement CVE-2026-128131 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-jm3w-gw2p-xjfj"
+effectiveUntil = 2027-02-19
+reason = "aiohttp 3.14.3: not_affected, vulnerable_code_not_in_execute_path. server: Application.add_domain wildcard regex stall. OpenVEX statement CVE-2026-128124 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-pqxq-w44r-73xw"
+effectiveUntil = 2027-02-19
+reason = "aiohttp 3.14.3: not_affected, vulnerable_code_not_in_execute_path. server, pure-Python parser: request smuggling. OpenVEX statement CVE-2026-111750 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-pw86-h8fm-j323"
+effectiveUntil = 2027-02-19
+reason = "aiohttp 3.14.3: not_affected, vulnerable_code_not_in_execute_path. server: unbounded buffering during an upgrade request. OpenVEX statement CVE-2026-128129 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-xgw8-8ccx-rmqh"
+effectiveUntil = 2027-02-19
+reason = "aiohttp 3.14.3: not_affected, vulnerable_code_not_in_execute_path. server: too many URL-encoded form fields block the event loop. OpenVEX statement CVE-2026-128126 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-6q48-6c7w-9gw2"
+effectiveUntil = 2027-02-19
+reason = "certifi 2026.7.22: not_affected, vulnerable_code_not_in_execute_path. bundled emSign ECC Root CA - G3 trusted (compromised eMudhra intermediates). OpenVEX statement GHSA-6q48-6c7w-9gw2 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-567q-5qvw-pf92"
+effectiveUntil = 2027-02-19
+reason = "filelock 3.32.3: not_affected, vulnerable_code_not_in_execute_path. Windows oplock holds SoftFileLock.acquire past its timeout. OpenVEX statement CVE-2026-112907 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-6627-m3xw-93mp"
+effectiveUntil = 2027-02-19
+reason = "filelock 3.32.3: not_affected, vulnerable_code_cannot_be_controlled_by_adversary. StrictSoftFileLock claim directories created without lock mode. OpenVEX statement CVE-2026-112908 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-69hj-f68j-2879"
+effectiveUntil = 2027-02-19
+reason = "filelock 3.32.3: not_affected, vulnerable_code_cannot_be_controlled_by_adversary. UnixFileLock truncates/chmods a file another user renames or links onto the lock path. OpenVEX statement CVE-2026-112909 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-8mx5-7m5m-r77g"
+effectiveUntil = 2027-02-19
+reason = "filelock 3.32.3: not_affected, vulnerable_code_not_in_execute_path. WindowsFileLock ignores mode. OpenVEX statement CVE-2026-112910 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-9c4x-gm8v-wgc4"
+effectiveUntil = 2027-02-19
+reason = "filelock 3.32.3: not_affected, vulnerable_code_cannot_be_controlled_by_adversary. StrictSoftFileLock/SoftReadWriteLock adopt a directory another user created. OpenVEX statement CVE-2026-112911 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-9vhv-jxww-xfm5"
+effectiveUntil = 2027-02-19
+reason = "filelock 3.32.3: not_affected, vulnerable_code_not_in_execute_path. ReadWriteLock on Windows acts on SQLite side files. OpenVEX statement CVE-2026-112913 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-cwqr-hh33-gh44"
+effectiveUntil = 2027-02-19
+reason = "filelock 3.32.3: not_affected, vulnerable_code_cannot_be_controlled_by_adversary. crafted ReadWriteLock database stalls acquire. OpenVEX statement CVE-2026-112915 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-fq56-3cx3-fjxp"
+effectiveUntil = 2027-02-19
+reason = "filelock 3.32.3: not_affected, vulnerable_code_not_in_execute_path. SoftFileLock stale-lock break on a reused inode admits two holders. OpenVEX statement CVE-2026-112935 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-j8f7-rjxc-mr56"
+effectiveUntil = 2027-02-19
+reason = "filelock 3.32.3: not_affected, vulnerable_code_cannot_be_controlled_by_adversary. ReadWriteLock follows a symlink at the lock path into SQLite. OpenVEX statement CVE-2026-112936 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-m462-7rxw-wvpg"
+effectiveUntil = 2027-02-19
+reason = "filelock 3.32.3: not_affected, vulnerable_code_cannot_be_controlled_by_adversary. StrictSoftFileLock follows a swapped symlink at <path>.filelock. OpenVEX statement CVE-2026-112938 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-rfpc-qcw5-3pc4"
+effectiveUntil = 2027-02-19
+reason = "filelock 3.32.3: not_affected, vulnerable_code_cannot_be_controlled_by_adversary. SoftFileLock removes a live marker when another user forges its PID. OpenVEX statement CVE-2026-112939 in docs/security/deep32-0.1.0-alpha.2.openvex.json."
+
+[[IgnoredVulns]]
+id = "GHSA-v4x8-3wr5-3wq8"
+effectiveUntil = 2027-02-19
+reason = "filelock 3.32.3: not_affected, vulnerable_code_cannot_be_controlled_by_adversary. ReadWriteLock SQLite reopens by name; planted symlink/journal overwrites files. OpenVEX statement CVE-2026-112940 in docs/security/deep32-0.1.0-alpha.2.openvex.json."

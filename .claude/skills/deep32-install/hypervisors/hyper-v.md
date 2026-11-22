@@ -52,7 +52,7 @@ Where: PowerShell as administrator, in the folder `{kit}`
 
 On screen, in order:
 
-1. These are commands.txt's lines with the switch filled in and the target at 200GB (commands.txt still says 160GB): `$root = (Get-Location).Path` `New-VHD -Path (Join-Path $root 'target.vhdx') -Dynamic -SizeBytes 200GB` `New-VM -Name {vm} -Generation 1 -MemoryStartupBytes 12GB -NoVHD -SwitchName '{switch}'` `Set-VMProcessor -VMName {vm} -Count 6` `Add-VMHardDiskDrive -VMName {vm} -ControllerType IDE -ControllerNumber 0 -ControllerLocation 0 -Path (Join-Path $root 'installer.vhd')` `Add-VMHardDiskDrive -VMName {vm} -ControllerType IDE -ControllerNumber 0 -ControllerLocation 1 -Path (Join-Path $root 'target.vhdx')`
+1. These are commands.txt's lines with the switch filled in and the target at 200GB: `$root = (Get-Location).Path` `New-VHD -Path (Join-Path $root 'target.vhdx') -Dynamic -SizeBytes 200GB` `New-VM -Name {vm} -Generation 1 -MemoryStartupBytes 12GB -NoVHD -SwitchName '{switch}'` `Set-VMProcessor -VMName {vm} -Count 6` `Add-VMHardDiskDrive -VMName {vm} -ControllerType IDE -ControllerNumber 0 -ControllerLocation 0 -Path (Join-Path $root 'installer.vhd')` `Add-VMHardDiskDrive -VMName {vm} -ControllerType IDE -ControllerNumber 0 -ControllerLocation 1 -Path (Join-Path $root 'target.vhdx')`
 
 What the wizard does on Enter: The wizard reads the VM's settings with the read-only tool above and applies the "create" checks. When it cannot read them, it shows "The VM's settings could not be read here, so confirm the step yourself." and the person confirms.
 

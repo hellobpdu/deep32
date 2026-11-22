@@ -154,6 +154,68 @@ class EnrolTests(unittest.TestCase):
                 edge.load_mcp_tokens(path)
             self.assertEqual(str(caught.exception), 'deep32-gateway: paired credentials unavailable; run gateway enrolment')
 
+    def engine_env(self, core_lines, edge_lines):
+        (self.etc / 'core.env').write_text('\n'.join(core_lines) + '\n', encoding='ascii', newline='\n')
+        (self.etc / 'edge.env').write_text('\n'.join(edge_lines) + '\n', encoding='ascii', newline='\n')
+
+    def test_engine_token_moves_to_one_file_per_service_and_is_kept_after(self):
+        token = 'ab' * 32  # synthetic test credential
+        self.engine_env(['RAG_ROOT=/synthetic', 'RAG_CORE_API_TOKEN=' + token],
+                        ['RAG_CORE_URL=http://localhost', 'RAG_CORE_API_TOKEN=' + token])
+        self.assertEqual(enrol.enrol_engine(self.root), {'engine_token': 'moved'})
+        for name, other, target in (('core.env', 'RAG_ROOT=/synthetic', 'engine-api.token'),
+                                    ('edge.env', 'RAG_CORE_URL=http://localhost', 'engine-client.token')):
+            self.assertEqual((self.etc / 'private' / target).read_text(encoding='ascii'), token + '\n')
+            lines = (self.etc / name).read_text(encoding='ascii').splitlines()
+            self.assertIn('RAG_CORE_API_TOKEN_FILE=/etc/d32/private/' + target, lines)
+            self.assertIn(other, lines)
+            self.assertFalse(any(line.startswith('RAG_CORE_API_TOKEN=') for line in lines))
+        self.assertEqual(enrol.enrol_engine(self.root), {'engine_token': 'kept'})
+
+    def test_engine_token_mismatch_or_missing_fails_closed(self):
+        first, second = 'ab' * 32, 'cd' * 32  # synthetic test credentials
+        cases = {
+            'different': (['RAG_CORE_API_TOKEN=' + first], ['RAG_CORE_API_TOKEN=' + second]),
+            'neither': (['RAG_ROOT=/synthetic'], ['RAG_CORE_URL=http://localhost']),
+            'empty': (['RAG_CORE_API_TOKEN='], ['RAG_CORE_API_TOKEN=']),
+            'other path': (['RAG_CORE_API_TOKEN_FILE=/etc/d32/private/engine-client.token'],
+                           ['RAG_CORE_API_TOKEN=' + first]),
+            'one moved': (['RAG_CORE_API_TOKEN_FILE=/etc/d32/private/engine-api.token'],
+                          ['RAG_CORE_API_TOKEN=' + first]),
+        }
+        private = self.etc / 'private'
+        for case, (core_lines, edge_lines) in cases.items():
+            with self.subTest(case=case):
+                if case == 'one moved':
+                    private.mkdir(exist_ok=True)
+                    write_secret(private / 'engine-api.token', first)
+                before = sorted(path.name for path in private.iterdir()) if private.exists() else []
+                self.engine_env(core_lines, edge_lines)
+                with self.assertRaises(StateError):
+                    enrol.enrol_engine(self.root)
+                after = sorted(path.name for path in private.iterdir()) if private.exists() else []
+                self.assertEqual(after, before)
+
+    def test_engine_credential_reader_returns_the_token_or_one_fixed_refusal(self):
+        reader = edge.d32svc.read_credential
+        path = self.root / 'engine-client.token'
+        path.write_bytes(b'ef' * 32 + b'\n')
+        self.assertEqual(reader(str(path), '_d32edge', 'deep32-gateway'), 'ef' * 32)
+        for content in (b'', b'ef' * 32 + b'\n' + b'ef' * 32 + b'\n', b'e' * 63 + b'\n', b'ef' * 32, b'EF' * 32 + b'\n'):
+            path.write_bytes(content)
+            with self.subTest(content=content[:8]), self.assertRaises(SystemExit) as caught:
+                reader(str(path), '_d32edge', 'deep32-gateway')
+            self.assertEqual(str(caught.exception), 'deep32-gateway: engine credential unavailable; run gateway enrolment')
+        path.write_bytes(b'ef' * 32 + b'\n')
+        link = self.root / 'engine-link.token'
+        try:
+            os.symlink(path, link)
+        except (OSError, NotImplementedError):
+            return  # this account may not create symbolic links (Windows without the privilege)
+        with self.assertRaises(SystemExit) as caught:
+            reader(str(link), '_d32core', 'deep32-engine')
+        self.assertEqual(str(caught.exception), 'deep32-engine: engine credential unavailable; run gateway enrolment')
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)

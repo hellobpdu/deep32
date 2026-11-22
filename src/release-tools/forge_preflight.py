@@ -35,11 +35,12 @@ ports = module('forge_ports')
 def signed_evidence(args, identity, *, backend='docker-engine'):
     with getter.metadata(args) as (folder, index, source):
         if source is None or index is None or index.get('format_version') != 2:
-            raise ValueError('Supply local alpha.2 capability release metadata.')
+            raise ValueError('Supply local capability release metadata.')
         if Path(identity['download_directory']) != source:
             raise ValueError('The accepted plan names a different local media folder.')
         cap = getter.manifest.read_mirror_capabilities(index, folder / 'SHA256SUMS')
-        chosen = getter.select_bundles(cap, args.gpu_class, ingestion=True)
+        # The Linux check passes --ingestion as the getter does; the Windows getter always installs the add-on.
+        chosen = getter.select_bundles(cap, args.gpu_class, ingestion=getattr(args, 'ingestion', True))
         by_id = {row['bundle_id']: row for row in index['bundles']}
         budget = getter.forge_budget_document(
             chosen, [by_id[row['id']] for row in chosen], args.gpu_class, backend=backend)
@@ -81,12 +82,21 @@ def gpu_checks(raw, gpu_class, envelope):
     return result
 
 
-def storage_checks(info, path, budget, observe):
-    docker_root = getter.classic_docker_root(info)
+def storage_checks(info, path, budget, observe, components=None):
+    docker_root = getter.forge_docker_root(info)
     rows = []
     for loc, domain in ((path, 'data'), (docker_root, 'docker')):
         device, free = observe(loc, existing=domain == 'docker')
-        rows.append(getter.storage_row(device, budget[domain + '_bytes'], free, budget))
+        needed = budget[domain + '_bytes']
+        if domain == 'data':
+            # The second pass runs after the getter wrote the joined copy beside the data root; the data budget
+            # already includes it, so a complete copy on the same filesystem is not asked for twice.
+            credit = getter.joined_cache_bytes(path, components)
+            if credit:
+                cache_device, _ = observe(str(Path(path).with_name(Path(path).name + '.deep32-media')), existing=True)
+                if cache_device == device:
+                    needed = max(0, needed - credit)
+        rows.append(getter.storage_row(device, needed, free, budget))
     return rows
 
 
@@ -124,7 +134,8 @@ def collect(args, observed, *, run=subprocess.run, observe=getter.observed_volum
 
     store_issue = None
     try:
-        rows = storage_checks(observed['docker'], identity['data_root'], budget, observe)
+        rows = storage_checks(observed['docker'], identity['data_root'], budget, observe,
+                              identity.get('media_components'))
     except getter.DockerImageStoreRefusal as error:
         rows = None
         if error.code == 'docker-store-containerd':
@@ -179,8 +190,9 @@ def main(argv=None):
                  'journey', 'os-id', 'os-version', 'architecture'):
         parser.add_argument('--' + name, required=True)
     parser.add_argument('--gpg', default='')
+    parser.add_argument('--ingestion', action='store_true')
     args = parser.parse_args(argv)
-    args.release = 'v0.1.0-alpha.2'
+    args.release = 'v0.1.0-alpha.3'
     try:
         raw = sys.stdin.buffer.read(METADATA_LIMIT + 1)
         if len(raw) > METADATA_LIMIT:

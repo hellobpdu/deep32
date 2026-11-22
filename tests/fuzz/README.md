@@ -4,7 +4,7 @@ These are the fuzz targets for the C parsers in the Workstation's source: libFuz
 AddressSanitizer and UndefinedBehaviorSanitizer on Linux, compiled straight from the files under `src/workstation`.
 This page is for anyone who wants to run them, add a target or check what they found.
 
-<sub>Applies to 0.1.0-alpha.2 · <a href="../README.md">Tests</a></sub>
+<sub>Applies to 0.1.0-alpha.3 · <a href="../README.md">Tests</a></sub>
 
 ## 1. What is fuzzed
 
@@ -118,8 +118,8 @@ for the full report. The workflow's token can only read the repository.
 ## 5. Findings
 
 On 19 November 2026 I ran every target for 15 minutes with both sanitizers (section 6). The fuzzers found five defects.
-All five are in source the signed images are built from, so each fix ships with the next release that rebuilds them,
-planned for 0.1.0-alpha.3. I rated them on the scale [SECURITY.md](../../.github/SECURITY.md) uses.
+All five are in source the signed images are built from, so their fixes waited for a release that rebuilds them:
+0.1.0-alpha.3 fixes all five. I rated them on the scale [SECURITY.md](../../.github/SECURITY.md) uses.
 
 | ID | Defect | Where | Severity |
 |---|---|---|---|

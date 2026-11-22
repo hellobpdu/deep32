@@ -31,6 +31,22 @@ _SHA256 = re.compile(r"[0-9a-f]{64}\Z", re.ASCII)
 _REVISION = re.compile(r"[0-9a-f]{40,64}\Z", re.ASCII)
 _LATTICE = 2520  # lcm(1, ..., 10), so every allowed reciprocal rank is exact.
 
+# The quotation check's comparison form (the engine's rag_core.reader.canonical, which diagnostics cannot import
+# on the Workstation): typographic quotes and dashes and the no-break space made ASCII, then every run of
+# whitespace and hyphens removed. A span taken from passage text (RFC line wraps joined) then matches a delivered
+# window that keeps the source's wraps and indentation. tests/diagnostics/test_selftest_quote_form.py keeps these
+# two tables equal to both engine copies.
+_QUOTE_CHARS = str.maketrans({
+    "\u2018": "'", "\u2019": "'", "\u201c": '"', "\u201d": '"', "\u00a0": " ",
+    "\u2010": "-", "\u2011": "-", "\u2012": "-", "\u2013": "-", "\u2014": "-",
+})
+_CANON_DROP = re.compile(r"[\s-]+")
+
+
+def quote_form(text):
+    """Return text in the quotation check's comparison form (see _QUOTE_CHARS)."""
+    return _CANON_DROP.sub("", text.translate(_QUOTE_CHARS))
+
 
 class ContractError(ValueError):
     """The bounded public bundle does not satisfy the selftest contract."""
@@ -218,6 +234,8 @@ def _questions(document):
             _object(label, ("doc_key", "exact_span"))
             _string(label["doc_key"], 256)
             _string(label["exact_span"], 4000)
+            if not quote_form(label["exact_span"]):
+                _refuse()
             identity = (label["doc_key"], label["exact_span"])
             if identity in identities:
                 _refuse()
@@ -328,16 +346,20 @@ def load_bundle(questions_bytes, reference_bytes, *, fixture_harness=False):
 
 
 def first_rank(question, hits):
-    """Return the first literal doc_key/span rank among the first ten hits.
+    """Return the first rank among the first ten hits whose doc_key is a label's
+    and whose text holds that label's span, both in quote_form.
 
     The runner validates transport, ordering, hit fields and health before this
     pure operation.  Aliases and additional hit fields confer no relevance.
     """
-    labels = question["labels"]
+    labels = tuple((label["doc_key"], quote_form(label["exact_span"]))
+                   for label in question["labels"])
     for rank, hit in enumerate(islice(hits, 10), 1):
-        if any(hit["doc_key"] == label["doc_key"] and
-               label["exact_span"] in hit["text"] for label in labels):
-            return rank
+        spans = [span for doc_key, span in labels if span and doc_key == hit["doc_key"]]
+        if spans:
+            text = quote_form(hit["text"])
+            if any(span in text for span in spans):
+                return rank
     return None
 
 

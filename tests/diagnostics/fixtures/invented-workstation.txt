@@ -11,7 +11,7 @@ pairing                   OK     committed enrolment and protected identity agre
 peer-reachability         OK     enrolled peer HTTPS answered
 tailnet-path.forge        OK     forge path direct
 peer-clock                OK     peer offset interval -0.1 to 0.1 s
-first-start               OK     READY; ready; 0.1.0-alpha.2
+first-start               OK     READY; ready; 0.1.0-alpha.3
 engine                    OK     running; local status passed
 gateway                   OK     running; local status passed
 index-generation          OK     invented-generation; committed import agrees

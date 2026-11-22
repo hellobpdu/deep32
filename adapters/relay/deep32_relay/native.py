@@ -13,6 +13,12 @@ from .proxy import MAX_RESPONSE
 
 MAX_INPUT = 512 * 1024
 MAX_DIAGNOSTIC = 65536
+# The agent's standard output in one turn. One line is at most MAX_RESPONSE. The lines a protocol turns into
+# events (the answer's text, its end) may add up to MAX_EVENT_OUTPUT. Everything else the agent prints only counts
+# against MAX_OUTPUT, a backstop against a runaway process: Claude Code's verbose stream repeats every tool result
+# it received, the relay discards those lines, and they must not end a finished answer.
+MAX_EVENT_OUTPUT = 2 * MAX_RESPONSE
+MAX_OUTPUT = 64 * MAX_RESPONSE
 
 
 class NativeError(RuntimeError):
@@ -55,7 +61,7 @@ class NativeSession:
         self.live, self.clock = live, clock
         self.lines = queue.Queue(maxsize=256)
         self.failure = None
-        self.output_bytes = self.diagnostic_bytes = 0
+        self.output_bytes = self.event_bytes = self.diagnostic_bytes = 0
         self.attested = self.released = self.completed = self.closed = False
         self.cleanup_complete = False
         self.readers = []
@@ -129,7 +135,7 @@ class NativeSession:
                             raise NativeError("native-diagnostic-limit")
                         continue
                     self.output_bytes += len(raw)
-                    if len(raw) > MAX_RESPONSE or self.output_bytes > 2 * MAX_RESPONSE:
+                    if len(raw) > MAX_RESPONSE or self.output_bytes > MAX_OUTPUT:
                         raise NativeError("native-output-limit")
                     raw.decode("utf-8", errors="strict")
                     self.lines.put_nowait(raw)
@@ -176,6 +182,14 @@ class NativeSession:
             self.cancel()
             raise
 
+    def describe(self):
+        """What answered this turn, for the answer record: the agent's version, the model it reported at start and
+        the effort it was started with. No account data and no text."""
+        protocol = self.protocol
+        return {"version": str(getattr(protocol, "version", "") or "")[:128],
+                "model": str(getattr(protocol, "resolved_model", "") or getattr(protocol, "model", "") or "")[:128],
+                "effort": str(getattr(protocol, "effort", "") or "")[:32]}
+
     def poll(self):
         try:
             return self._poll()
@@ -201,6 +215,11 @@ class NativeSession:
             events = self.protocol.events(line)
             if not isinstance(events, (tuple, list)) or len(events) > 256:
                 raise NativeError("native-output-failed")
+            if events:
+                # Only a line that became events counts against the answer's bound (MAX_EVENT_OUTPUT above).
+                self.event_bytes += len(line)
+                if self.event_bytes > MAX_EVENT_OUTPUT:
+                    raise NativeError("native-output-limit")
             for event in events:
                 if not isinstance(event, dict):
                     raise NativeError("native-output-failed")
@@ -245,9 +264,9 @@ class ClaudeCodeLauncher:
         "startup-model-cwd-tools-server", "readonly-profile", "scratch-writes-only")
 
     def prepare(self, executable=None, scratch=None, profile=None, *, endpoint=None,
-                bearer=None, model=None, effort=None, platform=None, instruction=""):
+                bearer=None, model=None, effort=None, platform=None, instruction="", pinned=False):
         return _prepare(self.agent, executable, scratch, profile, endpoint, bearer,
-                        model, effort, platform, instruction)
+                        model, effort, platform, instruction, pinned)
 
 
 class CodexLauncher:
@@ -260,9 +279,9 @@ class CodexLauncher:
         "eleven-tools", "readonly-profile", "scratch-writes-only")
 
     def prepare(self, executable=None, scratch=None, profile=None, *, endpoint=None,
-                bearer=None, model=None, effort=None, platform=None, instruction=""):
+                bearer=None, model=None, effort=None, platform=None, instruction="", pinned=False):
         return _prepare(self.agent, executable, scratch, profile, endpoint, bearer,
-                        model, effort, platform, instruction)
+                        model, effort, platform, instruction, pinned)
 
 
 SERVER = "deep32"
@@ -323,7 +342,8 @@ def _builtin_plugin_records_only(path):
     return True
 
 
-def _prepare(agent, executable, scratch, profile, endpoint, bearer, model, effort, platform, instruction):
+def _prepare(agent, executable, scratch, profile, endpoint, bearer, model, effort, platform, instruction,
+             pinned=False):
     from .engine import clean_environment, resolve_agent_binary
     from .proxy import token, TOOLS
     from .selftest import platform_name
@@ -375,7 +395,7 @@ def _prepare(agent, executable, scratch, profile, endpoint, bearer, model, effor
             if effort not in CLAUDE_EFFORTS:
                 raise NativeError("native-plan-incomplete")
             argv += ["--effort", effort]
-        protocol = ClaudeProtocol(scratch, model, instruction, effort=effort)
+        protocol = ClaudeProtocol(scratch, model, instruction, effort=effort, pinned=pinned)
     else:
         # The relay-owned profile may hold independent sign-in, never user settings.
         # An operator-created config is refused rather than merged or overwritten.
@@ -457,12 +477,16 @@ class ClaudeProtocol:
     """R16: control handshake before the user, exact init evidence afterwards."""
     second_stage_required = True
 
-    def __init__(self, cwd, model, instruction, *, install_check=False, effort=None):
+    def __init__(self, cwd, model, instruction, *, install_check=False, effort=None, pinned=False):
         self.cwd, self.model, self.instruction = Path(cwd), model, instruction
+        # pinned: `model` is the operator's full model id (settings.py), which Claude Code need not list by name.
+        self.pinned = pinned
+        self.resolved_model = ""
         self.version = ""
         self.effort = effort or "default"
         self.choices = None
         self.partial = False
+        self.spoken = False     # some answer text has gone out: a later assistant message starts a new paragraph
         self.install_check = install_check
         self.pending = []
         self.stage = "initialize"
@@ -506,17 +530,23 @@ class ClaudeProtocol:
                            or any(ord(c) < 33 or ord(c) > 126 for c in item["value"]) for item in models)):
                 raise NativeError("native-startup-unverified")
             names = [item["value"] for item in models]
-            if len(names) != len(set(names)) or self.model is not None and self.model not in names:
+            if (len(names) != len(set(names))
+                    or self.model is not None and not self.pinned and self.model not in names):
                 raise NativeError("native-startup-unverified")
             self.model = self.model or names[0]
             # These are Claude Code's model aliases (default, opus, ...); its init event reports the resolved model.
             self.aliases = frozenset(names)
             listed = dict(zip(names, models))
+            # A pinned full id is looked up by the model each alias resolves to; an id no alias resolves to has no
+            # entry, and then only --effort's own levels are checked (the init event still has to name the id).
+            entry = listed.get(self.model) or next(
+                (item for item in models if self.pinned and item.get("resolvedModel") == self.model), None)
             # A chosen effort must still be one this binary lists for the chosen model, or nothing starts.
             if self.effort != "default" and (self.effort not in CLAUDE_EFFORTS
-                                             or not _supports_effort(listed[self.model], self.effort)):
+                                             or entry is None and not self.pinned
+                                             or entry is not None and not _supports_effort(entry, self.effort)):
                 raise NativeError("native-startup-unverified")
-            self.choices = _claude_choices(names, listed, self.model)
+            self.choices = _claude_choices(names, listed, self.model) if self.model in listed else None
             self.version = version
             self.stage = "mcp-status"
             self.pending = [_json({"type": "control_request", "request_id": "relay-mcp-status",
@@ -575,14 +605,15 @@ class ClaudeProtocol:
                 or servers[0].get("status") != "connected"
                 or not self._model_matches(event.get("model"))):
             raise NativeError("native-startup-unverified")
+        self.resolved_model = event["model"]        # the model id Claude Code started with (the answer record)
         self.stage = "running"
         return True
 
     def turn(self, question, context):
         if self.stage != "pre-turn" or self.install_check:
             raise NativeError("native-startup-unverified")
-        value = _json({"type": "user", "message": {"role": "user", "content":
-            _prompt(self.instruction, question, context)}, "parent_tool_use_id": None})
+        value = _fit(lambda history: _json({"type": "user", "message": {"role": "user", "content":
+            _prompt(self.instruction, question, history)}, "parent_tool_use_id": None}), context)
         self.stage = "await-init"
         return value
 
@@ -599,8 +630,12 @@ class ClaudeProtocol:
             event = value.get("event", {})
             delta = event.get("delta", {})
             if event.get("type") == "content_block_delta" and delta.get("type") == "text_delta":
-                self.partial = True
+                self.partial = self.spoken = True
                 return [{"type": "delta", "text": delta["text"]}]
+            if event.get("type") == "message_start" and self.spoken:
+                # A further assistant message (the agent spoke, called tools, speaks again): the supervisor puts a
+                # paragraph break before its first text, so a progress line and the answer do not run together.
+                return [{"type": "break"}]
             return []
         if kind == "assistant":
             from .proxy import TOOLS
@@ -614,7 +649,11 @@ class ClaudeProtocol:
                 # comes before the failed result. It is not an answer; do not pass it on as one.
                 raise NativeError("claude-sign-in-required")
             if not self.partial:
-                return [{"type": "delta", "text": block["text"]} for block in content if block.get("type") == "text"]
+                text = [{"type": "delta", "text": block["text"]} for block in content if block.get("type") == "text"]
+                if text and self.spoken:
+                    text.insert(0, {"type": "break"})       # as for message_start above, without partial messages
+                self.spoken = self.spoken or bool(text)
+                return text
             return []
         if kind == "result":
             if value.get("is_error") is not False or value.get("subtype") != "success":
@@ -630,10 +669,50 @@ class ClaudeProtocol:
         raise NativeError("native-output-failed")
 
 
-def _prompt(instruction, question, context):
+EARLIER_QUESTION = "Earlier question:"
+EARLIER_ANSWER = "Earlier answer (its quotations were checked in that turn; check again any you reuse):"
+NEW_QUESTION = "New question:"
+
+
+def _conversation(question, context):
+    """The session's earlier turns (question, answer, question, answer, ...) and the new question, as the agent
+    reads them: each earlier turn under its label, oldest first. A first question stands alone. The agent of a
+    turn is a new process, so this text is all it knows of the conversation; the earlier answers' tool results
+    are gone, which is why their quotations are to be checked again."""
     if not isinstance(question, str) or not isinstance(context, (tuple, list)):
         raise NativeError("native-input-limit")
-    return instruction + "\n\n" + "\n".join(str(item) for item in context) + "\n\n" + question
+    if not context:
+        return question
+    if len(context) % 2:
+        # Not question and answer pairs: nothing to label. The supervisor only ever passes pairs.
+        return "\n".join(str(item) for item in context) + "\n\n" + question
+    parts = []
+    for asked, answered in zip(context[0::2], context[1::2]):
+        parts += [EARLIER_QUESTION + "\n" + str(asked), EARLIER_ANSWER + "\n" + str(answered)]
+    return "\n\n".join(parts + [NEW_QUESTION + "\n" + question])
+
+
+def _fit(build, context):
+    """build(context) with as much of the history as the input cap allows. When the line is over MAX_INPUT the
+    oldest exchange is left out and the line is built again, so a long conversation forgets its first turns
+    and never fails for its length."""
+    from .wire import Error, ProtocolError
+    context = tuple(context) if isinstance(context, (tuple, list)) else context
+    while True:
+        try:
+            line = build(context)
+            if len(line) <= MAX_INPUT:
+                return line
+        except ProtocolError as error:
+            if error.code != Error.LIMIT:
+                raise
+        if not isinstance(context, tuple) or len(context) < 2:
+            raise NativeError("native-input-limit")
+        context = context[2:]
+
+
+def _prompt(instruction, question, context):
+    return instruction + "\n\n" + _conversation(question, context)
 
 
 class CodexProtocol:
@@ -646,6 +725,8 @@ class CodexProtocol:
         self.thread = None
         self.usage = None
         self.endpoint = endpoint
+        self.spoken = False     # as in ClaudeProtocol: a later agent message starts a new paragraph
+        self.resolved_model = ""
 
     def startup(self):
         return _json({"id": 1, "method": "initialize", "params": {
@@ -696,7 +777,7 @@ class CodexProtocol:
                     or self.model is not None and selected_model != self.model
                     or Path(thread.get("cwd", "")).resolve() != self.cwd.resolve()):
                 raise NativeError("native-startup-unverified")
-            self.model = selected_model
+            self.model = self.resolved_model = selected_model
             self.pending = [_json({"id": 5, "method": "mcpServerStatus/list", "params": {"threadId": self.thread}})]
         elif ident == 5 and self.seen == {1, 2, 3, 4, 5}:
             servers = result.get("data")
@@ -749,8 +830,9 @@ class CodexProtocol:
         self.effort = config.get("model_reasoning_effort") or "default"
 
     def turn(self, question, context):
-        return _json({"id": 6, "method": "turn/start", "params": {"threadId": self.thread,
-            "input": [{"type": "text", "text": _prompt(self.instruction, question, context)}]}})
+        # The instruction is this thread's baseInstructions (thread/start above): Codex has it once, not again here.
+        return _fit(lambda history: _json({"id": 6, "method": "turn/start", "params": {"threadId": self.thread,
+            "input": [{"type": "text", "text": _conversation(question, history)}]}}), context)
 
     def events(self, line):
         value = _event(line)
@@ -762,6 +844,7 @@ class CodexProtocol:
         if "id" in value or params.get("threadId", self.thread) != self.thread:
             raise NativeError("native-tool-unavailable")
         if method == "item/agentMessage/delta":
+            self.spoken = True
             return [{"type": "delta", "text": params["delta"]}]
         if method == "thread/tokenUsage/updated":
             usage = params.get("tokenUsage", {}).get("last", {})
@@ -778,6 +861,8 @@ class CodexProtocol:
                 from .proxy import TOOLS
                 if item.get("server") != SERVER or item.get("tool") not in TOOLS:
                     raise NativeError("native-tool-unavailable")
+            if method == "item/started" and item.get("type") == "agentMessage" and self.spoken:
+                return [{"type": "break"}]
         elif method not in ("turn/started", "item/reasoning/summaryTextDelta", "item/reasoning/textDelta"):
             raise NativeError("native-output-failed")
         return []

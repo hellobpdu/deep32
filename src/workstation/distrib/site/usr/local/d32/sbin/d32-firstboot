@@ -106,17 +106,24 @@ _d32f_keys() {
     local _d32f1=${D32_ROOT-}/etc/d32/core.env _d32f2=${D32_ROOT-}/etc/d32/edge.env
     local _d32f3=${D32_ROOT-}/etc/d32/state/mcp.token _d32line _d32c1= _d32c2= _d32m= _d32stored=
     local _d32n1=0 _d32n2=0 _d32nm=0 _d32ns=0 _d32newc _d32newm _d32f _d32ln _d32mfile= _d32keep=0
+    local _d32c1file= _d32c2file=
     c6_set keys running || return 1
     if [ ! -f "$_d32f1" ] && [ ! -f "$_d32f2" ]; then
         c6_set keys done 'msg=no search engine on this image'; return $?
     fi
     [ -f "$_d32f1" ] && [ -f "$_d32f2" ] || { _d32f_fail keys WS_KEYS 'token files incomplete'; return 1; }
+    # The engine token is a RAG_CORE_API_TOKEN= line until the enrolment below moves it into its own protected
+    # file, which leaves a RAG_CORE_API_TOKEN_FILE= line (one file per reading service).
     while IFS= read -r _d32line; do
-        case $_d32line in RAG_CORE_API_TOKEN=*) _d32n1=$((_d32n1 + 1)); _d32c1=${_d32line#*=};; esac
+        case $_d32line in
+        RAG_CORE_API_TOKEN=*) _d32n1=$((_d32n1 + 1)); _d32c1=${_d32line#*=};;
+        RAG_CORE_API_TOKEN_FILE=*) _d32n1=$((_d32n1 + 1)); _d32c1file=${_d32line#*=};;
+        esac
     done <"$_d32f1"
     while IFS= read -r _d32line; do
         case $_d32line in
         RAG_CORE_API_TOKEN=*) _d32n2=$((_d32n2 + 1)); _d32c2=${_d32line#*=};;
+        RAG_CORE_API_TOKEN_FILE=*) _d32n2=$((_d32n2 + 1)); _d32c2file=${_d32line#*=};;
         RAG_MCP_TOKENS=*) _d32nm=$((_d32nm + 1)); _d32m=${_d32line#*=};;
         RAG_MCP_TOKENS_FILE=*) _d32nm=$((_d32nm + 1)); _d32mfile=${_d32line#*=};;
         esac
@@ -130,15 +137,17 @@ _d32f_keys() {
         case ",$_d32m," in *",$_d32stored,"*) _d32keep=1;; esac
         [ "$_d32mfile" != /etc/d32/private/mcp-tokens ] || _d32keep=1
     fi
-    if [ "$_d32keep" = 1 ] && _d32f_token "$_d32c1" && _d32f_token "$_d32c2" &&
-        [ "$_d32c1" = "$_d32c2" ]; then
+    # Kept: two equal valid tokens, or the two engine token files (d32-gateway-enrol checks those files).
+    if [ "$_d32keep" = 1 ] && { { _d32f_token "$_d32c1" && _d32f_token "$_d32c2" && [ "$_d32c1" = "$_d32c2" ]; } ||
+        { [ "$_d32c1file" = /etc/d32/private/engine-api.token ] &&
+          [ "$_d32c2file" = /etc/d32/private/engine-client.token ]; }; }; then
         "${D32_ROOT-}/usr/local/d32/libexec/d32-gateway-enrol" --firstboot </dev/null >/dev/null 2>&1 || {
             _d32f_fail keys WS_KEYS 'gateway credential enrolment failed'; return 1; }
         c6_set keys done 'msg=tokens kept'; return $?
     fi
     # Only empty first-install templates may create credentials. A damaged or
     # mismatched installed store needs recovery; it must not revoke existing users.
-    if [ -e "$_d32f3" ] || [ -n "$_d32c1" ] || [ -n "$_d32c2" ] ||
+    if [ -e "$_d32f3" ] || [ -n "$_d32c1" ] || [ -n "$_d32c2" ] || [ -n "$_d32c1file" ] || [ -n "$_d32c2file" ] ||
         [ -n "$_d32m" ] || [ -n "$_d32mfile" ]; then
         _d32f_fail keys WS_KEYS 'credential state needs recovery; existing tokens kept'; return 1
     fi

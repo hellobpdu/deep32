@@ -272,10 +272,10 @@ def install_files(agent, home, state):
             dest = home / 'skills' / skill_names[rel.parts[0]] / Path(*rel.parts[1:])
             content = src.read_bytes()
             planned[safe(dest)] = rewritten(content.decode('utf-8'),rel.parts[0]).encode('utf-8') if src.suffix in ('.md','.yaml','.yml') else content
-    block = rewritten((KIT/'codex/AGENTS.deep32.md').read_text(encoding='utf-8'))
+    # each agent's own standing block, the one the skills-only setup installs too (setup_skills.py)
+    source_block = 'codex/AGENTS.deep32.md' if agent == 'codex' else 'claude-code/CLAUDE.deep32.md'
+    block = rewritten((KIT/source_block).read_text(encoding='utf-8'))
     block = re.sub(r'<!-- deep32:begin.*?-->\n|<!-- deep32:end -->\n?', '', block)
-    if agent == 'claude':
-        block = block.replace('Codex','Claude Code')
     instructions = home / ('AGENTS.md' if agent == 'codex' else 'CLAUDE.md')
     planned[safe(instructions)] = merge_block(read(instructions), block, state['install_id'])
     if agent == 'claude':

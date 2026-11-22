@@ -56,7 +56,8 @@ Steps; progress and a summary go to stdout (the job journal):
   5. eval     every query of the golden set (default eval/golden/known_items, the generated known-item set)
               through /v2/search, each with its own filters when its record has them
               (eval_v2: queries.jsonl "filters"), relevance from the root's own rag.db: no errors, no degraded
-              answers, every hit id in rag.db, no hit of the root's opt-in doc types (/v2/status opt_in_doc_types)
+              answers (a backend the root is configured without, /v2/status backends.dense or .reranker enabled
+              false, is not counted: configured_off), every hit id in rag.db, no hit of the root's opt-in doc types (/v2/status opt_in_doc_types)
               for a query that names neither doc_type nor docs (eval.opt_in_leak), no hit outside the doc_type or
               docs a query names (eval.filter_scope), and the --min floors
   6. compare  with --baseline (another root's VALIDATION.json on the same golden set): per metric the means,
@@ -702,12 +703,40 @@ def filter_scope_gate(gates: Gates, report: dict[str, Any]) -> None:
     gates.check("eval.filter_scope", not strays, detail + (f", e.g. {strays[:5]}" if strays else ""))
 
 
-def eval_gates(gates: Gates, report: dict[str, Any], floors: dict[str, float]) -> None:
+def configured_off(status: dict[str, Any]) -> frozenset[str]:
+    """The backends the validated root is configured without, from /v2/status (backends.<name>.enabled false):
+    "dense" for a root that serves BM25 only (built or validated with --no-dense), "reranker" for a root without
+    one (a build without --rerank-url, the reranker-off arm of an A/B). Every search answer of such a root names
+    them in "degraded" (rag_core.api_v2: a keyword-only or unreranked answer never reads as complete); that is the
+    arm being measured, not a failure, so the degraded gates do not count them (degraded_answers)."""
+    backends = status.get("backends") or {}
+    return frozenset(name for name in ("dense", "reranker") if (backends.get(name) or {}).get("enabled") is False)
+
+
+def degraded_answers(overall: dict[str, Any], rows: list[dict[str, Any]], off: frozenset[str]) -> tuple[int, str]:
+    """(answers that count as degraded, the gate's detail). Without `off` (a root with dense and a reranker): the
+    evaluator's own count, as always. With it: the answered rows whose "degraded" names anything else. The rows
+    must account for the evaluator's count; when fewer rows name a degraded backend than it counted, which rows
+    are meant cannot be told, and its count stands (the gate fails as before)."""
+    if not off:
+        return overall["n_degraded"], f"{overall['n_degraded']} answers with degraded set"
+    named = sum(1 for r in rows if "error" not in r and r.get("degraded"))
+    if named < overall["n_degraded"]:
+        return overall["n_degraded"], (f"{overall['n_degraded']} answers with degraded set, {named} of them named "
+                                       f"in the rows: cannot tell which are {sorted(off)} only")
+    n = sum(1 for r in rows if "error" not in r and set(r.get("degraded") or ()) - off)
+    return n, (f"{n} answers with degraded set beyond {sorted(off)}, which this root is configured without "
+               f"({overall['n_degraded']} name those)")
+
+
+def eval_gates(gates: Gates, report: dict[str, Any], floors: dict[str, float],
+               off: frozenset[str] = frozenset()) -> None:
     o = report["overall"]
     gates.check("eval.errors", o["n_errors"] == 0,
                 f"{o['n_errors']} failed queries" + (f", e.g. {report['errors'][0]['error'][:160]}"
                                                      if report["errors"] else ""))
-    gates.check("eval.degraded", o["n_degraded"] == 0, f"{o['n_degraded']} answers with degraded set")
+    n_degraded, detail = degraded_answers(o, report["results"], off)
+    gates.check("eval.degraded", n_degraded == 0, detail)
     coverage = report.get("store_coverage") or {}
     gates.check("eval.index", report["relevance_basis"] == "chunk",
                 f"relevance basis {report['relevance_basis']!r}: {coverage.get('missing')} of {coverage.get('hits')} "
@@ -1219,7 +1248,7 @@ def main(argv: list[str] | None = None) -> int:
                     path = out / f"{time.strftime('%Y%m%d-%H%M%S')}-{report['label']}.json"
                     path.write_text(json.dumps(report, indent=1), encoding="utf-8")
                     result["eval"]["run_file"] = str(path)
-                eval_gates(gates, report, floors)
+                eval_gates(gates, report, floors, configured_off(status))
                 opt_in_leak_gate(gates, report, status)
                 filter_scope_gate(gates, report)
                 if baseline is not None:
@@ -1258,8 +1287,8 @@ def main(argv: list[str] | None = None) -> int:
                     log(f"many_plan: n={o['n']} hit@1={o['hit@1']} hit@8={o['hit@8']} ndcg@10={o['ndcg@10']} "
                         f"found_n@8={o['found_n@8']} p50={lat.get('p50')}ms p95={lat.get('p95')}ms errors={o['n_errors']}")
                     gates.check("many_plan.errors", o["n_errors"] == 0, f"{o['n_errors']} failed search_many")
-                    gates.check("many_plan.degraded", o["n_degraded"] == 0,
-                                f"{o['n_degraded']} search_many answers with degraded set")
+                    n_degraded, detail = degraded_answers(o, many["rows"], configured_off(status))
+                    gates.check("many_plan.degraded", n_degraded == 0, "search_many: " + detail)
     except Exception as exc:  # noqa: BLE001 - reported as a failed gate; the child is still stopped below
         gates.check("run", False, f"{type(exc).__name__}: {str(exc)[:300]}")
     finally:

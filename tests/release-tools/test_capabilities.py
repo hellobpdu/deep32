@@ -51,7 +51,7 @@ def fixture(include_full=True):
         for card in sorted(cap.GPU_CLASSES)}}, 'runtime': {},
         'builder': {'qdrant': {'image': 'synthetic/qdrant@sha256:' + 'b' * 64}}, 'models': {}}
     manifest = {'format': 'deep32-capability-manifest', 'format_version': 2,
-        'release': '0.1.0-alpha.2', 'concept_doi': '10.5281/zenodo.24272647',
+        'release': '0.1.0-alpha.3', 'concept_doi': '10.5281/zenodo.24272647',
         'code_licence': 'Apache-2.0', 'documentation_licence': 'CC-BY-4.0',
         'jina_model_licence': 'CC-BY-NC-4.0', 'source_commit': 'c' * 40,
         'pins_sha256': '0' * 64, 'image_index_sha256': '1' * 64,
@@ -422,7 +422,7 @@ class Capabilities(unittest.TestCase):
         raw = cv.canonical(self.manifest)
         path.write_bytes(raw)
         self.assertEqual(cap.read_authenticated(path, sha(raw)), self.manifest)
-        path.write_bytes(raw.replace(b'alpha.2', b'alpha.1'))
+        path.write_bytes(raw.replace(b'alpha.3', b'alpha.1'))
         with self.assertRaisesRegex(ValueError, 'authenticated'):
             cap.read_authenticated(path, sha(raw))
 

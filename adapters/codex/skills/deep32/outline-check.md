@@ -22,15 +22,19 @@ This check reads the outlines of the likeliest documents before a gap is written
 
 ## 1. The likeliest documents (at most 2 per open point)
 
-Take them in this order, and stop at 2:
-1. The Cisco doc_keys of the closest hits so far: the best-ranked ones, and those that matched the most queries.
-2. The Cisco doc_keys that `lookup_id` returned for the question's identifiers.
-3. If neither gives a document, `list_documents` with the `doc_type` (cisco or rfc). Pick the title that names the
-   feature's area: an IP routing, security or high-availability guide, for example.
+Take one document from each of the first two sources, so the check never rests only on the search that missed:
+1. A Cisco doc_key that `${CODEX_HOME}/skills/deep32/blueprint.md` names for the topic (SKILL.md section 2, step 2): the
+   first on the topic's line that fits the question's platform, in the release order of release-drift.md.
+2. A Cisco doc_key of the closest hits so far (the best-ranked one, or the one that matched the most queries), when
+   it is not the first document.
+3. Only when one of these gives no document: the Cisco doc_keys that `lookup_id` returned for the question's
+   identifiers, then `list_documents` with the `doc_type` (cisco or rfc). Pick the title that names the feature's
+   area: an IP routing, security or high-availability guide, for example.
 
 Prefer the configuration guide of the pinned release train (IOS XE 17.x for the 17.9 pin) and its command reference
-over an older release's book or a TechNote. Skip a document whose matching section you have already read: for that
-document the point is either settled or a real gap.
+over an older release's book or a TechNote. A document whose outline you already read in this answer for this point
+counts as checked: reuse that outline. A section read without its outline does not: a gap is written only after
+`get_outline` ran for that point.
 
 ## 2. The steps per document (about 3 calls)
 
@@ -53,10 +57,10 @@ document after step 1.
   `not in corpus (outline checked: <doc_key> > <chapter>; <doc_key> > <chapter>)`. If no chapter matched, write
   `<doc_key> > no matching chapter`.
 - **One label per open point, and it says what was done.** Write `outline checked:` only when `get_outline` ran on
-  that document in this answer. Each point left open carries exactly one of:
+  that document in this answer. A label that says the documents do not state the point (`not in corpus`,
+  `lab-only`, `inference`, `release drift`) is written only after that, except the budget label, which says the check
+  did not run. Each point left open carries exactly one of:
   - `not in corpus (outline checked: <doc_key> > <chapter>)`;
-  - `not in corpus (sections read: <section ids>)`, when section 1's skip rule applied (the document's matching
-    section was already read);
   - `lab-only (no document states it)`, with one lab check: the 17.9 command (confirmed with `find_command`) and
     what each outcome would show, labelled "lab check, not evidence";
   - `inference (from [cite] + [cite])`;
@@ -70,8 +74,9 @@ document after step 1.
 
 ## 4. Budget
 
-- The check sits outside the round budgets, like the confirmations (`${CODEX_HOME}/skills/deep32/deep-engine.md`, section 0).
-  It has its own caps:
+- The check sits outside every round budget: outside the default's round cap (`${CODEX_HOME}/skills/deep32/quick-default.md`)
+  and, in thorough and deep, outside the rounds like the confirmations (`${CODEX_HOME}/skills/deep32/deep-engine.md`,
+  section 0). It has its own caps:
   - up to 2 documents per open point;
   - about 3 calls per document;
   - about 12 calls per answer in all.
@@ -79,5 +84,4 @@ document after step 1.
 - `MAX_PARALLEL_CALLS = 4` (deep-engine.md section 0) still holds.
   - In Claude Code, never send more search calls in one message than that. Send the documents' outlines together,
     then their chapter outlines, then the reads.
-  - In Codex, make the calls after the round scripts and before the quote script, never while a script runs. Count
-    them in the answer's `RAG:` line.
+  - In Codex, make the calls after the round scripts and before the quote script, never while a script runs.

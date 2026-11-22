@@ -3035,6 +3035,6 @@
   "legacy_policy": "refuse-unsupported-version",
   "pins_sha256": "96fc4d6e49e9e0b80f7e1c19389a265c9fa74192cfd3a67c8898d7f8f06f853d",
   "previous_images": "retain-until-user-removes",
-  "release": "0.1.0-alpha.2",
+  "release": "0.1.0-alpha.3",
   "source_commit": "cccccccccccccccccccccccccccccccccccccccc"
 }

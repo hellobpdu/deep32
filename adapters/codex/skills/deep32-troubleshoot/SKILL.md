@@ -16,12 +16,18 @@ Weight the analysis toward finding faults fast and proving the root cause:
 - **Isolation method** per topic: the order of checks (dependencies first, then control plane, then data plane), as
   a decision tree where each branch is one command and the output that sends you left or right.
 - **Good vs bad output**: for each key show and debug command, the fields that matter, what healthy looks like and
-  what each failure looks like, taken from corpus output samples where they exist.
+  what each failure looks like, taken from corpus output samples where they exist, otherwise constructed under the
+  rule below.
 - **Syslog and error signatures**: the exact messages (%FACILITY-SEV-MNEMONIC) and the cause each one points to.
 - **Failure-mode table**: every dependency broken one at a time, plus two compound faults where one symptom hides
-  another.
+  another; each row cited, or labelled inference with its sources.
 - **Red herrings**: symptoms that point at the wrong layer, and the evidence that clears each one.
 - **Safe debugging**: conditional debugs, ACL-scoped debugs, and the cost of a debug on a busy device. Flag
   disruptive commands; never run them.
 - **Break-fix cases**: a few realistic faults, each with the symptom, then the isolating command and the cited
   evidence.
+
+Everything this lens adds beyond a retrieved passage (a table row, a scenario, a recommendation, a pattern) is cited,
+or labelled `inference (from [cite] + [cite])` with the sources it rests on. Constructed output (a configuration,
+show output, a log line) is built only from a sample checked with `verify_quote`, with every field you changed
+marked, and is labelled constructed: never present it as seen on a device.

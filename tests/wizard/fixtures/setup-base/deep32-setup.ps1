@@ -164,7 +164,7 @@ function Check-Forge {
             if ($os -match 'Docker Desktop') { Ok 'Docker Desktop running' } else { Info "Docker reports '$os'" }
             $store = (& docker info --format '{{.Driver}} {{json .DriverStatus}}' 2>$null | Select-Object -First 1)
             if ($store -match 'io\.containerd\.snapshotter' -or $store -match '^overlayfs') {
-                Need ("Docker Desktop keeps images in its containerd store; the alpha.2 Forge loads only into the classic store. " +
+                Need ("Docker Desktop keeps images in its containerd store; on Docker Desktop the Forge loads only into the classic store. " +
                       "In Docker Desktop: Settings, General, turn off 'Use containerd for pulling and storing images', then Apply & restart. " +
                       "Images and containers kept in the containerd store stay hidden until you turn it back on")
             } elseif ($store) { Ok 'Docker uses the classic image store' }

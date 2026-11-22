@@ -13,7 +13,7 @@ The decisions behind Deep32, from the first retrieval review in September 2026 t
 tried and dropped. Each entry gives when I decided it, where the decision came from, what I chose, what I ruled out,
 the evidence, and what it costs. Numbers come from my development setup unless an entry says otherwise.
 
-<sub>Applies to 0.1.0-alpha.2 · [1 Principles](#1-principles) · [2 Corpus](#2-corpus-and-content) · [3 Retrieval](#3-retrieval) · [4 Verification](#4-verification) · [5 Generations](#5-index-and-generations) · [6 Workstation](#6-workstation) · [7 Forge](#7-forge-and-gpu) · [8 Network](#8-network-and-trust) · [9 Agents](#9-agents-and-interface) · [10 Release](#10-release-and-distribution) · [11 Evaluation](#11-evaluation)</sub>
+<sub>Applies to 0.1.0-alpha.3 · [1 Principles](#1-principles) · [2 Corpus](#2-corpus-and-content) · [3 Retrieval](#3-retrieval) · [4 Verification](#4-verification) · [5 Generations](#5-index-and-generations) · [6 Workstation](#6-workstation) · [7 Forge](#7-forge-and-gpu) · [8 Network](#8-network-and-trust) · [9 Agents](#9-agents-and-interface) · [10 Release](#10-release-and-distribution) · [11 Evaluation](#11-evaluation)</sub>
 
 Origin is one of: **requirement** (a direction I set), **measurement** (an evaluation result decided it), **design
 review**, **incident** (something broke) or **release work**.
@@ -36,13 +36,19 @@ review**, **incident** (something broke) or **release work**.
 
 ### DR-02. No loss in retrieval quality at any level
 
-- **Decided:** November 2026 (a latency budget existed since September) · requirement
+- **Decided:** November 2026 (a latency budget existed since September), reviewed November 2026 · requirement
 - **Decision:** every change passes a non-inferiority gate: no net loss at hit@1 or hit@8 overall, none at hit@8 in any
   topic, delivery no worse, and every MCP tool at least as good. Latency limits stay as tripwires that I relax only for
   a measured quality gain.
 - **Why:** in research work a better answer is worth a few more seconds.
 - **Trade-off:** several measured improvements were turned down because one small topic lost one question (DR-28,
   DR-35).
+- **Reviewed later:** the checks I run hold the overall rule with no slack. Per topic, my script counts net losses at
+  hit@8 in each topic, allows one per 40 questions, and reports the count without failing the run. Delivery has a
+  fixed floor of 0.85, and of the MCP tools only search is scored. The Forge's builder in alpha.2 compared a new
+  generation with nothing; it ran the build checks and, with a question set, two sanity floors. From 0.1.0-alpha.3 the
+  builder compares with an earlier generation you name (`--baseline-root`): no net loss at hit@1 or hit@8, and
+  delivery@8 at most 0.005 lower.
 
 ### DR-03. Changes go on as layers
 
@@ -151,11 +157,14 @@ review**, **incident** (something broke) or **release work**.
 
 ### DR-16. Lookup tables beside ranked search
 
-- **Decided:** September 2026 · design review
+- **Decided:** September 2026, reviewed November 2026 · design review
 - **Context:** 15 obsolete RFCs carried no warning, and documents spanned releases 17.2 to 17.18.
 - **Decision:** each build produces an RFC index with status and relations, errata, IANA registries, a CLI index with
   abbreviation expansion, a glossary and feature history, served by `lookup_id`, `lookup_rfc` and `find_command`.
 - **Why:** some questions are lookups, and a ranked search can return a close but wrong passage for them.
+- **Reviewed later:** in alpha.2 the build filled the feature-history table (2,578 entries from 54 documents), and no
+  tool read it. From 0.1.0-alpha.3 `lookup_id` reads it with `kind` `feature`. The kinds `history`, `default` and
+  `deprecation` are there too, and answer once a disc 2 is built with their tables.
 
 ### DR-17. The public corpus holds four collections
 
@@ -193,12 +202,16 @@ review**, **incident** (something broke) or **release work**.
 
 ### DR-21. Keyword and dense search, merged by rank
 
-- **Decided:** September 2026 · measurement
+- **Decided:** September 2026, reviewed November 2026 · measurement
 - **Decision:** BM25 and dense search run in parallel (50 candidates each) and are merged by reciprocal rank fusion with
   k = 60 and equal weights; the top 30 are kept.
 - **Why:** they miss different questions: hit@1 is 0.710 with BM25 alone, 0.783 with dense alone and 0.822 merged.
 - **Instead of:** score blending (the scales aren't comparable); reweighted or reversed fusion (reversed lost 35 questions
   net at hit@1); k = 20 (1 win, 9 losses).
+- **Reviewed later:** the weights are equal per list, and the identifier variant of a query (DR-23) adds a second BM25
+  list at weight 0.95. Almost every question has that variant, so BM25 counts 1.95 against 1.0 for dense, and the
+  trials above ran that way. Through the v2 API the merged list keeps 24 passages for a search of 8 hits and 60 for
+  the 32-hit result; 30 applies to the older `/search` route.
 
 ### DR-22. BM25 settings and a fast path
 
@@ -235,13 +248,16 @@ review**, **incident** (something broke) or **release work**.
 
 ### DR-26. Cross-encoder reranking on by default
 
-- **Decided:** September 2026 · measurement
+- **Decided:** September 2026, reviewed November 2026 · measurement
 - **Context:** reranking raised hit@1 from 0.723 to 0.824 at the time, and the median search went from 231 ms to about
   600 ms.
 - **Decision:** I took the reranker and set the latency budget at an 800 ms median and a 1,000 ms p95.
 - **Why:** the largest single gain (0.822 to 0.955 at hit@1 today). Most misses already had a correct passage in the top
   8, so order was the problem.
 - **Trade-off:** about 400 ms of a 540 ms search, and requests queue on the GPU under concurrent use.
+- **Reviewed later:** the reranker is listwise. It reads the question and all the candidates of a call in one causal
+  pass, so a passage's score depends on the other candidates and their order in that call, and scores from two calls
+  are on different scales. `search_many` compares scores from separate calls (DR-28).
 
 ### DR-27. Reranker model
 
@@ -252,7 +268,7 @@ review**, **incident** (something broke) or **release work**.
 
 ### DR-28. Rerank the top 15 through a 1,600-character window
 
-- **Decided:** October 2026 · measurement
+- **Decided:** October 2026, reviewed November 2026 · measurement
 - **Decision:** the reranker reads the top 15 fused candidates through a 1,600-character window centered on each
   passage's best-matching lines (10 per query in `search_many`).
 - **Instead of:** the top 10 read from the passage head (the earlier setting); the top 20 (lost 13 questions and failed
@@ -260,6 +276,12 @@ review**, **incident** (something broke) or **release work**.
   candidates (5 wins and 2 losses, but two small topics each lost one, and 110 ms more, so I said no).
 - **Why:** hit@8 gained 4 questions and lost none (p = 0.002) for 52 ms.
 - **Trade-off:** a few questions have no relevant passage in the top 15 at all.
+- **Reviewed later:** in `search_many` the reranker reads the top 10 of the list merged from all its queries. Each query
+  gets one reranker call with the ones among those 10 that it found itself, and a passage that several queries found
+  keeps its best score. I kept that head at 10 when `/v2/search` went to 15, so that `search_many` would stay as it
+  was, and I haven't measured that size on `search_many` calls. From 0.1.0-alpha.3, when one of those calls fails, the
+  others keep their scores and the response says `reranker` in `degraded`; before, the first failure ended the rerank
+  for every query.
 
 ### DR-29. Fold identical passages into one hit
 
@@ -278,16 +300,25 @@ review**, **incident** (something broke) or **release work**.
   copy from the chosen release among identical passages without changing rank or text; hits from another release are
   marked. Release pins are settings.
 - **Why:** answers have to match the release the user runs, and the corpus keeps several (DR-12).
+- **Changed later:** from 0.1.0-alpha.3 a search that names no release shows the pinned releases' copies, as if it had
+  asked for them with `prefer_release`. Ranks and text stay the same.
 
 ### DR-31. Thirty-two hits in three tiers, by default
 
-- **Decided:** November 2026 · requirement
+- **Decided:** November 2026, reviewed November 2026 · requirement
 - **Context:** I wanted a deeper result than 8 hits; 32 full passages would have cost about four times the tokens.
 - **Decision:** ranks 1 to 8 in full (2,400 characters), 9 to 16 trimmed (800), 17 to 32 as pointers (250). An explicit
   `limit` is honored.
 - **Why:** the agent sees more candidates for about 40 to 60 percent more text per call.
 - **Trade-off:** I made it the default before the answer-level comparison it was meant to wait for; that comparison is
   still to run (DR-104).
+- **Reviewed later:** a first answer-level comparison ran on 2 November 2026, with Codex and my own skill of that day
+  against my production index. Only 6 of its 15 questions produced a graded answer in each arm, and the three
+  questions without an answer in the corpus produced none. On those six the 32-hit arm had fewer unsupported claims
+  (1.7% against 2.4%) and scored lower on correctness (95.8% against 100%). That is too few to decide anything, so the
+  default stays until the evaluation in DR-104 runs.
+- **Changed later:** from 0.1.0-alpha.3 ranks 1 to 8 carry up to 3,200 characters when the request asks for 2,400 or
+  more, with the same hits in the same order (DR-35).
 
 ### DR-32. The GPU machine treated as unreliable
 
@@ -297,6 +328,9 @@ review**, **incident** (something broke) or **release work**.
 - **Decision:** after three failed calls in a row a circuit breaker skips that service for 30 seconds, then lets one trial
   call through. BM25 always answers, and every response lists what it couldn't reach in a `degraded` field.
 - **Trade-off:** on slow wide-area links the query-embedding timeout decides whether dense search runs at all.
+- **Changed later:** a generation configured without dense search or without the reranker answered with an empty
+  `degraded`, so a keyword-only answer read as complete. From 0.1.0-alpha.3 `degraded` names a backend that is switched
+  off in the settings too.
 
 ### DR-33. Bounded admission
 
@@ -321,16 +355,27 @@ review**, **incident** (something broke) or **release work**.
 - **Why:** the ranking was already good; the agent couldn't see the evidence.
 - **Open:** a window chosen by the reranker delivered more labeled text (0.9092 to 0.9229) but lost units in one small
   topic and added 277 ms. A one-call version is still to be built and measured.
+- **Changed later:** in 0.1.0-alpha.3 the hits delivered in full get a window of 3,200 characters when the request asks
+  for 2,400 or more. The hits are still chosen and ordered on the 2,400-character window, and only the delivered text
+  is rebuilt wider. Replaying recorded production runs gave identical hit lists and delivery@8 0.9566 against 0.9092,
+  142 questions gaining and none losing, for about 21% more text per hit. 4,000 characters gave 0.9711 for 36% more
+  text, and waits for the answer-level evaluation (DR-104). With it come the titles of the sections a merged passage
+  covers and, for a window that starts inside a table, its caption and header row.
 
 ### DR-36. Chunking policy
 
-- **Decided:** September 2026; revisions rejected November 2026 · measurement
+- **Decided:** September 2026; revisions rejected November 2026, reviewed November 2026 · measurement
 - **Decision:** heading-scoped merges within one top-level section, and table splits that repeat the caption and header
   row.
 - **Why:** nDCG@10 improved by 0.100 over the previous policy on the RFC set, though the larger chunks hid answers in
   snippets until DR-35.
 - **Rejected later:** a revision that took heading paths from the majority section and dropped trailing text from the
   previous section cut hit@1 from 0.955 to 0.935 and delivered less text intact, so it failed validation.
+- **Reviewed later:** the repeated caption and header row is a build option (`--table-header-repeat`) that is off in
+  the alpha.2 knowledge base, so none of its 67,808 passages carries it, and a passage that continues a split table
+  starts with bare rows. Turning it on changes the text of those passages and can shift the IDs of the passages after
+  them, which then need new embeddings (DR-42). From 0.1.0-alpha.3 the engine adds the caption and header row to a hit
+  whose window starts inside a table, at delivery, without changing the passage (DR-35).
 
 ## 4. Verification
 
@@ -342,6 +387,11 @@ review**, **incident** (something broke) or **release work**.
 - **Instead of:** asking a model whether a quotation is supported.
 - **Why:** the same result every time, with no model in the loop.
 - **Trade-off:** it shows the words are in the source and doesn't check the reasoning built on them.
+- **Changed later:** a quotation with "..." passed when its parts were anywhere in the document. From 0.1.0-alpha.3 it
+  passes only when all its parts lie in one section and no two neighboring parts are more than 300 characters of
+  source text apart; otherwise it is `not_found` with the reason `parts-too-far`. Each result also says whether the
+  match lies in the section the agent cited (`scope`), and one call can check up to 16 quotations. The research skill
+  has the agent quote one unbroken run of the text anyway.
 
 ### DR-38. RFC status checked for every RFC cited
 
@@ -390,16 +440,24 @@ review**, **incident** (something broke) or **release work**.
 - **Decided:** September and November 2026 · design review
 - **Decision:** a built generation can be cloned with a different serving configuration, so reranker, folding and depth
   changes are tested without a rebuild, behind guards that the corpus, passage counts and build code are unchanged.
+- **Changed later:** a Workstation serves with the settings of the generation it imported from disc 2, so a serving
+  change used to need a new disc 2. From 0.1.0-alpha.3 disc 1 carries a settings overlay
+  (`/usr/local/d32/etc/engine-overlay`, named by `RAG_CONFIG_OVERLAY_DIR`) that the engine merges key by key over the
+  generation's own settings. That is how alpha.3's wider window and bounded quotation check reach a Workstation that
+  keeps alpha.2's disc 2.
 
 ### DR-44. A paired, per-question validation gate
 
-- **Decided:** September 2026, zero slack from November 2026 · measurement
+- **Decided:** September 2026, zero slack from November 2026, reviewed November 2026 · measurement
 - **Decision:** the labeled question set runs against the new and the served generation; wins and losses are counted
   per question with a sign test and a bootstrap interval; no net loss at hit@1 or hit@8, none at hit@8 in any topic, a
   delivery floor, and no opt-in leak, out-of-scope hit, degraded answer or retried query.
 - **Why:** averages hide losses.
 - **Trade-off:** new passages nobody has judged yet look like losses until they're labeled. Two documented exceptions
   were each proven to be a label artifact.
+- **Reviewed later:** the per-topic count allows one net loss per 40 questions in a topic, and it is reported
+  without stopping a run (DR-02). The delivery floor is 0.85. From 0.1.0-alpha.3 a backend that a generation's own
+  settings switch off no longer counts as a degraded answer; any other degraded answer still fails.
 
 ### DR-45. Clone the previous vector snapshot
 
@@ -656,6 +714,9 @@ review**, **incident** (something broke) or **release work**.
 - **Decided:** September 2026 · design review
 - **Decision:** a stateless MCP gateway (Streamable HTTP, JSON responses, a bearer token compared in constant time)
   exposes eleven tools that search, read, look up and verify. None writes an answer.
+- **Changed later:** 0.1.0-alpha.3 adds abilities as parameters of the existing tools (a list of quotations for
+  `verify_quote`, a `kind` for `lookup_id`, `around` for `get_section`, filters for `list_documents`), so there are
+  still eleven.
 
 ### DR-74. Tool output is untrusted
 
@@ -672,6 +733,11 @@ review**, **incident** (something broke) or **release work**.
   pinned certificates. An unknown certificate is accepted only while a pairing window opened on the relay's own console
   is running, and the ten-word comparison in DR-69 then decides.
 - **Instead of:** a Windows-only relay; a certificate authority for the link.
+- **Changed later:** in 0.1.0-alpha.3 each agent gets its own skill, with the rules every default answer follows first
+  and the exam blueprint last; Codex used to get the Claude Code skill twice per turn and now gets its own once. A
+  conversation keeps its session for up to 15 minutes between questions, where it was 60 seconds. A script with no
+  model can check each finished answer against the turn's tool calls and add a Checks section under it; that is off by
+  default, because on 12 graded answers it flagged 8 of 19 unsupported claims with about two false alarms per answer.
 
 ### DR-76. An Ask session can only search
 
@@ -693,12 +759,15 @@ review**, **incident** (something broke) or **release work**.
 
 ### DR-79. Fast research by default, deep on request
 
-- **Decided:** October and November 2026 · measurement, then requirement
+- **Decided:** October and November 2026, reviewed November 2026 · measurement, then requirement
 - **Context:** a deeper research mode won a blind comparison 4 to 0 but added about 140 seconds per answer, and default
   answers had grown past ten minutes.
 - **Decision:** the default runs at most three bounded search rounds plus one quotation batch; "thorough" and "deep"
   modes are there on request.
 - **Why:** the searches took seconds; the time went to the model reasoning over long instructions.
+- **Reviewed later:** the skill shipped in alpha.2 caps the default at 4 search rounds with the 32-hit result, 5 with
+  16 hits and 6 with 8, plus the quotation checks, and tells the agent to stop as soon as every part of the question
+  has a section read that settles it. 0.1.0-alpha.3 keeps those caps and gives each depth one budget and one stop rule.
 
 ### DR-80. Read the outline before saying "not in the corpus"
 
@@ -849,6 +918,10 @@ review**, **incident** (something broke) or **release work**.
 - **Decision:** `doctor` checks every link of an install, read-only, and prints a fix for anything that fails;
   `selftest` runs a public RFC-only question set through the install and compares its retrieval with the release's
   reference values. I pick that question set.
+- **Changed later:** selftest credited a hit only when a label's span appeared letter for letter in the delivered
+  window, and the engine keeps an RFC's line wraps there, so 104 of its 107 spans could never match. From 0.1.0-alpha.3
+  it compares both the way `verify_quote` does. The signed reference values and doctor's reading of the install record
+  are still to come, in 0.1.0-alpha.4.
 
 ### DR-95. Software bills of materials beside the images
 
@@ -919,6 +992,8 @@ review**, **incident** (something broke) or **release work**.
   evidence for fabrication, correctness, citation accuracy and release labeling, with pass marks set before any result:
   fabrication at most 2%, all negative probes passed, every citation exact.
 - **Trade-off:** until it runs, I don't claim anything about answer accuracy, and the beta waits for it.
+- **Reviewed later:** the partial run of 2 November 2026 (DR-31) tried the grading on six questions per arm. It doesn't
+  meet the pass marks' conditions, so the evaluation itself is still to run.
 
 ### DR-105. Retrieval parity for the release
 
@@ -936,15 +1011,25 @@ review**, **incident** (something broke) or **release work**.
   embedder and ingestion. The images on the archive stay as they are.
 - **Trade-off:** about 15.3 GB more to download for a Forge that never converts a PDF. Making ingestion optional again
   needs a change to the core, planned for a later release.
+- **Changed later:** from 0.1.0-alpha.3 the Linux getter installs the core and the card's embedder, and adds ingestion
+  only with `--ingestion`. The Windows getter still includes it.
 
 ### DR-107. The paired-Forge check allows small differences between cards
 
-- **Decided:** 18 November 2026 · measurement
+- **Decided:** 18 November 2026, reviewed November 2026 · measurement
 - **Context:** the Workstation checks a newly paired Forge with known inputs. The first check compared the outputs'
   exact bytes against one card's results, so a Forge on another card generation failed it.
 - **Decision:** the embedding must reach a cosine of at least 0.999 against the reference vector, and each rerank
   score must be within 0.005 of its reference. DR-65's 1e-4 still describes how close the two measured cards came.
 - **Why:** an RTX 3080 Forge now passes against the RTX 2080 Ti reference while a wrong or damaged model still fails.
+- **Reviewed later:** when the Forge reports the expected revision, the check accepts it and skips the known inputs.
+  TEI reports the revision it was started with and the reranker reports a fixed string, so on that path the check
+  confirms the configuration and says nothing about the model's output. The known inputs run only where no revision is
+  configured, and the reranker's input is four sentences, far shorter than a real call of 15 passages. 0.1.0-alpha.3
+  adds the setting `GPU_EXT_PROBE_ALWAYS`: with it on, a matching revision is no longer enough, the short inputs run on
+  every check, and long inputs (a 15-passage rerank call and a 7,089-character document for the embedder) run when the
+  link starts and whenever the Forge reports another model, revision or card. It ships off until the long inputs'
+  reference values are recorded on both card generations.
 
 ### DR-108. The alpha.2 Forge needs 10.5 GB of graphics memory
 

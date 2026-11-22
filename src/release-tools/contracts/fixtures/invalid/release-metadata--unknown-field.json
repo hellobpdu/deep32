@@ -8,8 +8,8 @@
     "embedding": "CC-BY-NC-4.0",
     "reranker": "CC-BY-NC-4.0"
   },
-  "release": "v0.1.0-alpha.2",
+  "release": "v0.1.0-alpha.3",
   "signer_fingerprint": "B205B406548627AABF5250D8A078C5F25D025DD6",
   "unknown_field": true,
-  "version": "0.1.0-alpha.2"
+  "version": "0.1.0-alpha.3"
 }

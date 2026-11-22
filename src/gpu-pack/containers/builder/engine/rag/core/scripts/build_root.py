@@ -4,7 +4,7 @@
 usage: build_root.py --corpus-ref refs/heads/corpus-v1
                      --root /var/lib/deep32/rag-data/<generation>
                      [--corpus-repo PATH] [--generation ID] [--no-dense] [--resume] [--rerank-url URL]
-                     [--reuse-dense-from <generation or root path>] [--table-header-repeat]
+                     [--reuse-dense-from <generation or root path> [--reuse-key id|text]] [--table-header-repeat]
                      [--opt-in-doc-types TYPE[,TYPE...]] [--dense-base upsert|snapshot [--qdrant-snapshots-dir DIR]]
 
 Steps, each safe to repeat; progress lines go to stdout:
@@ -41,6 +41,10 @@ Steps, each safe to repeat; progress lines go to stdout:
                 must name the same chunk and document) instead of TEI; only new or changed chunks are
                 embedded. Progress lines and the report count reused and embedded chunks. The step ends when
                 Qdrant has indexed the collection (status green, up to 20 min; report dense.index).
+                --reuse-key text (with --reuse-dense-from; default id, the above): a chunk whose id changed but
+                whose embedding text that generation embedded also takes that vector (DenseSource.by_text), under
+                its new id; the report's dense.reuse says key "text" and counts reused_by_text, and a --resume run
+                must give the same key
                 --dense-base snapshot (with --reuse-dense-from; default upsert, the above): the collection starts as
                 Qdrant's recovery of a snapshot of that generation's collection (its segments, HNSW graphs included,
                 checked against it: restore_from_snapshot), its points that no chunk of this build can reuse are
@@ -252,7 +256,13 @@ class DenseSource:
     embedded from which text by which model, and its Qdrant collection holds the vectors. A chunk of the new
     build reuses a vector only when the chunk id and the embedding text are the same (the text carries the
     document title from the manifest, which the chunk id does not), the source is not mixing models, and the
-    vector has the configured size and is finite."""
+    vector has the configured size and is finite.
+
+    With --reuse-key text (vectors(key="text")), a chunk that does not qualify by its id is looked up by the hash of
+    its embedding text among all the source's dense-indexed chunks: a chunk id hashes its ordinal, so one passage
+    inserted early in a document changes every later id although the texts are unchanged. The match is exact for
+    the vector because the source holds one embedding model and the revision this build writes (checked before
+    the build starts); the point fetched must still name that source chunk and its document."""
 
     PAGE = 256
 
@@ -262,6 +272,8 @@ class DenseSource:
         self.collection = collection
         self.client = client
         self.vector_size = vector_size
+        self._by_text: dict[bytes, tuple[str, str]] | None = None
+        self.reused_by_text = 0     # vectors handed out by the text key, over this source's life
         db_path = root / "sqlite" / "rag.db"
         self.db = sqlite3.connect(db_path.resolve().as_uri() + "?mode=ro", uri=True, timeout=30,
                                   check_same_thread=False)
@@ -287,14 +299,40 @@ class DenseSource:
             (doc_id,),
         ).fetchall())
 
-    def vectors(self, doc_id: str, chunks: list[dict[str, Any]]) -> dict[str, list[float]]:
+    def by_text(self) -> dict[bytes, tuple[str, str]]:
+        """sha256 of the stripped embedding text -> (chunk id, doc id) of the source's dense-indexed chunks, the first
+        of equal texts (read once, on first use)."""
+        if self._by_text is None:
+            table: dict[bytes, tuple[str, str]] = {}
+            for chunk_id, doc_id, text in self.db.execute(
+                    "SELECT c.chunk_id, c.doc_id, c.embedding_text FROM chunks AS c "
+                    "JOIN index_state AS s ON s.chunk_id = c.chunk_id WHERE s.dense_indexed = 1"):
+                table.setdefault(hashlib.sha256(str(text or "").strip().encode("utf-8", "surrogatepass")).digest(),
+                                 (chunk_id, doc_id))
+            self._by_text = table
+        return self._by_text
+
+    def vectors(self, doc_id: str, chunks: list[dict[str, Any]], key: str = "id") -> dict[str, list[float]]:
         """Vectors for the chunks of `chunks` that can reuse one, by chunk id: the source collection's points
         fetched by their ids (point_id_for_chunk, as every build writes them), read-only. A point counts only when
         its payload names the same chunk and document, so a stray point that carries the chunk id under another
-        id, or a point whose payload names another chunk, is never copied."""
+        id, or a point whose payload names another chunk, is never copied. With key "text", a chunk the id rule
+        leaves out takes the vector of the source chunk with the same stripped embedding text (by_text), under the
+        same payload check against that source chunk."""
         known = self.texts(doc_id)
-        wanted = {point_id_for_chunk(c["chunk_id"]): c["chunk_id"]
+        wanted = {point_id_for_chunk(c["chunk_id"]): (c["chunk_id"], c["chunk_id"], doc_id)
                   for c in chunks if known.get(c["chunk_id"]) == c["embedding_text"]}
+        if key == "text":
+            taken = {chunk_id for chunk_id, _, _ in wanted.values()}
+            table = self.by_text()
+            for c in chunks:
+                if c["chunk_id"] in taken:
+                    continue
+                text = str(c["embedding_text"] or "").strip().encode("utf-8", "surrogatepass")
+                match = table.get(hashlib.sha256(text).digest())
+                if match is not None:
+                    source_id, source_doc = match
+                    wanted.setdefault(point_id_for_chunk(source_id), (c["chunk_id"], source_id, source_doc))
         if not wanted:
             return {}
         found: dict[str, list[float]] = {}
@@ -305,13 +343,16 @@ class DenseSource:
                 with_payload=["chunk_id", "doc_id"], with_vectors=True,
             )
             for point in points:
-                chunk_id = wanted.get(canonical_point_id(point.id))
+                chunk_id, source_id, source_doc = wanted.get(canonical_point_id(point.id), (None, None, None))
                 payload = point.payload or {}
                 vector = point.vector
-                if (chunk_id is not None and payload.get("chunk_id") == chunk_id and payload.get("doc_id") == doc_id
+                if (chunk_id is not None and payload.get("chunk_id") == source_id
+                        and payload.get("doc_id") == source_doc
                         and isinstance(vector, list) and len(vector) == self.vector_size
                         and all(isinstance(v, (int, float)) and math.isfinite(v) for v in vector)):
                     found[chunk_id] = [float(v) for v in vector]
+                    if source_id != chunk_id:
+                        self.reused_by_text += 1
         return found
 
 
@@ -381,6 +422,9 @@ def preflight(args: argparse.Namespace, root: Path, generation: str, collection:
     """Every refusal happens here, before anything is written. Returns (report so far, corpus commit)."""
     if args.reuse_dense_from and args.no_dense:
         raise Refused("--reuse-dense-from needs dense indexing; it cannot go with --no-dense")
+    reuse_key = getattr(args, "reuse_key", "id")
+    if reuse_key == "text" and not args.reuse_dense_from:
+        raise Refused("--reuse-key text reuses the vectors of the --reuse-dense-from generation; give one")
     if args.dense_base == "snapshot":
         if not args.reuse_dense_from:
             raise Refused("--dense-base snapshot starts the collection from the --reuse-dense-from generation's; "
@@ -418,6 +462,10 @@ def preflight(args: argparse.Namespace, root: Path, generation: str, collection:
     based_on = (dense_started.get("base") or {}).get("mode", "upsert")
     if dense_started.get("collection_owned") and based_on != args.dense_base:
         raise Refused(f"this root's dense step started with --dense-base {based_on}; resume it the same way or build "
+                      "a new generation")
+    keyed_on = (dense_started.get("reuse") or {}).get("key", "id")
+    if dense_started.get("collection_owned") and keyed_on != reuse_key:
+        raise Refused(f"this root's dense step started with --reuse-key {keyed_on}; resume it the same way or build "
                       "a new generation")
     try:
         commit = git(Path(args.corpus_repo), "rev-parse", "--verify", f"{args.corpus_ref}^{{commit}}")
@@ -755,11 +803,12 @@ def with_retry(what: str, fn: Callable[[], Any], *, attempts: int = DENSE_ATTEMP
 
 def index_dense_resumable(db_path: Path, config: DenseConfig, embedder, client, *,
                           sleep: Callable[[float], None] = time.sleep,
-                          reuse: DenseSource | None = None) -> dict[str, Any]:
+                          reuse: DenseSource | None = None, reuse_key: str = "id") -> dict[str, Any]:
     """Embed and upsert every document that has chunks not yet dense-indexed.
 
     Per document: the vectors `reuse` (an earlier generation) holds for chunks with the same id and embedding
-    text, then the other chunks embedded in batches (config.batch_size) with retry and backoff, then
+    text (reuse_key "text": or with the same embedding text alone, DenseSource.vectors), then the other chunks
+    embedded in batches (config.batch_size) with retry and backoff, then
     rag_core.dense's own steps (reset state, delete the document's points, upsert in bounded batches, mark
     indexed). A document is either fully marked or not, so a rerun resumes. With embedder None nothing is
     embedded: a chunk without a reusable vector fails the step (derive_root copies, it never embeds)."""
@@ -784,6 +833,7 @@ def index_dense_resumable(db_path: Path, config: DenseConfig, embedder, client, 
     model = next(iter(models_seen), None)
     total = sum(row["n"] for row in pending)
     done = reused = embedded = 0
+    by_text_before = reuse.reused_by_text if reuse is not None else 0
     started = time.monotonic()
     source = f", reusing {reuse.generation} ({reuse.collection}, read-only)" if reuse is not None else ""
     log(f"dense: {len(pending)} documents, {total} chunks to index into {config.collection}{source}")
@@ -794,7 +844,7 @@ def index_dense_resumable(db_path: Path, config: DenseConfig, embedder, client, 
         vectors: dict[str, list[float]] = {}
         if reuse is not None:
             vectors = with_retry(f"reading vectors of {doc_id[:16]} from {reuse.collection}",
-                                 lambda: reuse.vectors(doc_id, chunks), sleep=sleep)
+                                 lambda: reuse.vectors(doc_id, chunks, key=reuse_key), sleep=sleep)
             if vectors:
                 if model is None:
                     model = reuse.model
@@ -844,7 +894,7 @@ def index_dense_resumable(db_path: Path, config: DenseConfig, embedder, client, 
     if not points_total == indexed == chunks_total:
         raise RuntimeError(f"dense index incomplete: {chunks_total} chunks, {indexed} marked, "
                            f"{points_total} points in {config.collection}")
-    return {
+    result = {
         "collection": config.collection,
         "collection_created": created,
         "embedding_model": model,
@@ -854,6 +904,9 @@ def index_dense_resumable(db_path: Path, config: DenseConfig, embedder, client, 
         "embedded_this_run": embedded,
         "points": points_total,
     }
+    if reuse is not None and reuse_key == "text":
+        result["reused_by_text_this_run"] = reuse.reused_by_text - by_text_before
+    return result
 
 
 def wait_until_indexed(client, collection: str, *, timeout: float | None = None,
@@ -1198,7 +1251,7 @@ def stored_points(client, collection: str, ids: list[str]) -> dict[str, Any]:
 
 
 def index_dense_on_base(db_path: Path, config: DenseConfig, embedder, client, reuse: DenseSource, *,
-                        sleep: Callable[[float], None] = time.sleep) -> dict[str, Any]:
+                        sleep: Callable[[float], None] = time.sleep, reuse_key: str = "id") -> dict[str, Any]:
     """--dense-base snapshot, after the base (recovered, pruned): index_dense_resumable with `reuse`, except that the
     collection already holds the vectors this build reuses, so a reused point is checked in place instead of written
     again. Per document with chunks not yet dense-indexed: reuse.vectors (the same rule as the upsert path) and the
@@ -1206,7 +1259,8 @@ def index_dense_on_base(db_path: Path, config: DenseConfig, embedder, client, re
     write is left untouched (kept), any other chunk with a reusable vector is written with it as the upsert path writes
     it (rewritten: e.g. a payload that changed), the rest is embedded and written. Nothing is deleted here (prune_base
     did), so every kept point keeps its place in the recovered graph. Then the upsert path's checks, and the
-    collection's ids are exactly the chunks'."""
+    collection's ids are exactly the chunks'. With reuse_key "text", a vector taken by its embedding text is under a
+    new id, so it is written (rewritten), never kept; prune_base has deleted the point of its old id."""
     if not client.collection_exists(collection_name=config.collection):
         raise RuntimeError(f"{config.collection} does not exist: the dense base step recovers it first")
     ensure_collection(client, config)                       # checks its vector size and distance
@@ -1230,6 +1284,7 @@ def index_dense_on_base(db_path: Path, config: DenseConfig, embedder, client, re
     model = next(iter(models_seen), None)
     total = sum(row["n"] for row in pending)
     done = kept = rewritten = embedded = 0
+    by_text_before = reuse.reused_by_text
     started = time.monotonic()
     log(f"dense: {len(pending)} documents, {total} chunks to index into {config.collection} on its base (reusing "
         f"{reuse.generation}'s vectors in place)")
@@ -1238,7 +1293,7 @@ def index_dense_on_base(db_path: Path, config: DenseConfig, embedder, client, re
         doc_id = row["doc_id"]
         chunks = load_chunks(db_path, doc_id=doc_id)
         vectors = with_retry(f"reading vectors of {doc_id[:16]} from {reuse.collection}",
-                             lambda: reuse.vectors(doc_id, chunks), sleep=sleep)
+                             lambda: reuse.vectors(doc_id, chunks, key=reuse_key), sleep=sleep)
         if vectors:
             if model is None:
                 model = reuse.model
@@ -1302,7 +1357,7 @@ def index_dense_on_base(db_path: Path, config: DenseConfig, embedder, client, re
     if found != expected:
         raise RuntimeError(f"{config.collection} holds {len(found - expected)} points no chunk has and lacks "
                            f"{len(expected - found)} chunks' points")
-    return {
+    result = {
         "collection": config.collection,
         "collection_created": False,
         "embedding_model": model,
@@ -1314,10 +1369,28 @@ def index_dense_on_base(db_path: Path, config: DenseConfig, embedder, client, re
         "kept_this_run": kept,
         "rewritten_this_run": rewritten,
     }
+    if reuse_key == "text":
+        result["reused_by_text_this_run"] = reuse.reused_by_text - by_text_before
+    return result
+
+
+def reuse_counts(dense: dict, reuse: DenseSource, result: dict, reuse_key: str) -> dict[str, Any]:
+    """The report's dense.reuse after a run: the counts of the runs so far plus this one's; with --reuse-key text
+    also the key (a --resume run must give the same) and the vectors taken by their embedding text."""
+    counts = dense.get("reuse") or {}
+    out = {
+        "from_generation": reuse.generation, "from_root": str(reuse.root), "collection": reuse.collection,
+        "reused": counts.get("reused", 0) + result["reused_this_run"],
+        "embedded": counts.get("embedded", 0) + result["embedded_this_run"],
+    }
+    if reuse_key == "text":
+        out["key"] = "text"
+        out["reused_by_text"] = counts.get("reused_by_text", 0) + result["reused_by_text_this_run"]
+    return out
 
 
 def step_dense_snapshot(report: dict, root: Path, db_path: Path, collection: str, reuse_from: str,
-                        snapshots_dir: str = DEFAULT_SNAPSHOTS_DIR) -> None:
+                        snapshots_dir: str = DEFAULT_SNAPSHOTS_DIR, reuse_key: str = "id") -> None:
     """Step dense with --dense-base snapshot: the base (once: restore_from_snapshot of the reuse generation's
     collection, then prune_base), index_dense_on_base, the wait for green. A base that fails is deleted (the
     collection and the snapshot), so a --resume run makes it again; once made, a resume continues on it."""
@@ -1326,6 +1399,8 @@ def step_dense_snapshot(report: dict, root: Path, db_path: Path, collection: str
         raise RuntimeError(f"dense config resolves to {config.collection}, expected {collection}")
     dense = report.setdefault("dense", {})
     dense.update({"collection": collection, "collection_owned": True})
+    if reuse_key == "text":                     # on disk before the step starts: a --resume run is checked against it
+        dense.setdefault("reuse", {})["key"] = "text"
     base = dense.setdefault("base", {"mode": "snapshot"})
 
     def write() -> None:
@@ -1369,14 +1444,9 @@ def step_dense_snapshot(report: dict, root: Path, db_path: Path, collection: str
             write()
             log(f"dense: base {collection}: {base['pruned']['deleted']} points deleted (chunks gone or changed), "
                 f"{base['pruned']['kept']} kept")
-        result = index_dense_on_base(db_path, config, embedder, client, reuse)
+        result = index_dense_on_base(db_path, config, embedder, client, reuse, reuse_key=reuse_key)
         dense.update(result)
-        counts = dense.get("reuse") or {}
-        dense["reuse"] = {
-            "from_generation": reuse.generation, "from_root": str(reuse.root), "collection": reuse.collection,
-            "reused": counts.get("reused", 0) + result["reused_this_run"],
-            "embedded": counts.get("embedded", 0) + result["embedded_this_run"],
-        }
+        dense["reuse"] = reuse_counts(dense, reuse, result, reuse_key)
         base["kept"] = base.get("kept", 0) + result["kept_this_run"]
         base["rewritten"] = base.get("rewritten", 0) + result["rewritten_this_run"]
         base["verified"] = {"points": result["points"], "ids": "the chunks'", "at": now()}
@@ -1394,11 +1464,13 @@ def step_dense_snapshot(report: dict, root: Path, db_path: Path, collection: str
 
 
 def step_dense(report: dict, root: Path, db_path: Path, collection: str, reuse_from: str | None = None,
-               dense_base: str = "upsert", snapshots_dir: str = DEFAULT_SNAPSHOTS_DIR) -> None:
+               dense_base: str = "upsert", snapshots_dir: str = DEFAULT_SNAPSHOTS_DIR, reuse_key: str = "id") -> None:
+    if reuse_key == "text" and not reuse_from:
+        raise RuntimeError("--reuse-key text needs --reuse-dense-from")
     if dense_base == "snapshot":
         if not reuse_from:
             raise RuntimeError("--dense-base snapshot needs --reuse-dense-from")
-        step_dense_snapshot(report, root, db_path, collection, reuse_from, snapshots_dir)
+        step_dense_snapshot(report, root, db_path, collection, reuse_from, snapshots_dir, reuse_key)
         return
     config = load_dense_config(root=root)
     if config.collection != collection:
@@ -1406,6 +1478,8 @@ def step_dense(report: dict, root: Path, db_path: Path, collection: str, reuse_f
     client = make_qdrant_client(config)
     dense = report.setdefault("dense", {})
     dense.update({"collection": collection, "collection_owned": True})
+    if reuse_key == "text":                     # on disk before the step starts: a --resume run is checked against it
+        dense.setdefault("reuse", {})["key"] = "text"
     write_json(root / REPORT_NAME, report)       # ownership is on disk before the collection exists
     embedder = JinaEmbeddingClient(config)
     reuse = None
@@ -1414,15 +1488,10 @@ def step_dense(report: dict, root: Path, db_path: Path, collection: str, reuse_f
             source = resolve_dense_source(reuse_from, root)
             generation, source_collection = dense_source_settings(source, root)
             reuse = DenseSource(source, source_collection, client, config.vector_size, generation)
-        result = index_dense_resumable(db_path, config, embedder, client, reuse=reuse)
+        result = index_dense_resumable(db_path, config, embedder, client, reuse=reuse, reuse_key=reuse_key)
         dense.update(result)
         if reuse is not None:
-            counts = dense.get("reuse") or {}
-            dense["reuse"] = {
-                "from_generation": reuse.generation, "from_root": str(reuse.root), "collection": reuse.collection,
-                "reused": counts.get("reused", 0) + result["reused_this_run"],
-                "embedded": counts.get("embedded", 0) + result["embedded_this_run"],
-            }
+            dense["reuse"] = reuse_counts(dense, reuse, result, reuse_key)
         dense["index"] = wait_until_indexed(client, collection)
     finally:
         if reuse is not None:
@@ -1463,6 +1532,10 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
     ap.add_argument("--reuse-dense-from", metavar="GENERATION",
                     help="copy the vectors of unchanged chunks from this generation's collection (read-only); "
                          "embed only new or changed chunks")
+    ap.add_argument("--reuse-key", choices=("id", "text"), default="id",
+                    help="with --reuse-dense-from: id (default) reuses a vector when the chunk id and its embedding "
+                         "text are unchanged; text also when only the text is (a passage inserted earlier in a "
+                         "document changes the later chunk ids)")
     ap.add_argument("--table-header-repeat", action="store_true",
                     help="chunking.table_header_repeat: each continuation chunk of a split table starts with "
                          "the table's caption line and header row (default: off)")
@@ -1546,7 +1619,7 @@ def main(argv: list[str] | None = None) -> int:
         else:
             report.get("dense", {}).pop("skipped", None)
             attempt("dense", lambda: step_dense(report, root, db_path, collection, args.reuse_dense_from,
-                                                args.dense_base, args.qdrant_snapshots_dir))
+                                                args.dense_base, args.qdrant_snapshots_dir, args.reuse_key))
         attempt("kb", lambda: step_kb(report, root))
         with connect(db_path) as conn:
             conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")

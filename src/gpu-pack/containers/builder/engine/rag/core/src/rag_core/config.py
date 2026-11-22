@@ -4,11 +4,30 @@ config/<name>.json in the repo holds the defaults. A data root may carry
 $RAG_ROOT/config/<name>.json; its top-level keys replace the repo's. A root
 built by scripts/build_root.py uses this to ship its own Qdrant collection
 (dense.json), retriever set, technical-variant routing and rerank settings
-(retrieval.json), and admission limit and generation id (serving.json). The
+(retrieval.json), and admission limit and generation id (serving.json).
+The passage classes a search moves behind the other candidates
+("passage_class": {"demote"}, none unless set:
+rag_core.fusion.passage_class_demote), the
+order of equal BM25 scores ("bm25": {"tie_order"}, "engine" unless a
+root says "rowid": rag_core.retrievers.lexical.TIE_ORDERS) and the
+technical variant's weight and token rule ("technical_variant":
+{"weight", "tokens"}, 0.95 and "v1" unless set:
+rag_core.query_plan.TechnicalVariantSettings) live in retrieval.json too. So
+do two additions to what the reranker reads of a candidate ("reranker":
+{"title", "covered_titles"}, each off unless true: rag_core.rerank). The
 dense leg's Qdrant search settings ("dense": {"exact", "hnsw_ef"}, off unless
 set: rag_core.retrievers.dense.DenseSearchSettings) live in retrieval.json too,
 and so does the identical-text fold of the hits ("fold_identical", off unless
-true: rag_core.api_v2.fold_identical).
+true: rag_core.api_v2.fold_identical), and the size of the top-tier evidence
+window and the two fields a hit may carry besides its text ("evidence":
+{"tier1_chars", "covered_titles", "table_context"}, each off unless a root
+sets it: rag_core.api_v2.EvidenceSettings), and the rule /v2/verify_quote applies
+to a quotation with omissions ("verify": {"ellipsis", "max_gap_chars"}, "any"
+unless a root says "bounded": rag_core.api_v2.VerifySettings).
+
+search_many's settings ("search_many_parallel", "search_many_rerank" and the
+object "search_many": {"rerank_isolation"}, off unless true:
+rag_core.api_v2.SearchManySettings) live in retrieval.json as well.
 
 Precedence, lowest first:
   1. repo config/<name>.json

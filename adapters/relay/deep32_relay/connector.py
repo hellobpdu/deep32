@@ -43,8 +43,10 @@ def source_package(source=None):
         candidates.append(lock)
     if (source / 'requirements.lock').is_file():
         candidates.append(source / 'requirements.lock')
-    if (source / 'RESEARCH.md').is_file():
-        candidates.append(source / 'RESEARCH.md')
+    # RESEARCH.md is the Claude Code instruction and RESEARCH-codex.md the Codex one (make_research.py writes both).
+    for name in ('RESEARCH.md', 'RESEARCH-codex.md'):
+        if (source / name).is_file():
+            candidates.append(source / name)
     candidates += sorted((source / 'deep32_relay').glob('*.py'))
     candidates += sorted((source / 'deep32_relay').glob('*.txt'))
     if (not candidates[0].is_file() or not (source / 'deep32_relay/__init__.py').is_file() or

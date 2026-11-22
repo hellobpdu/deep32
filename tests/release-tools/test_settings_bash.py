@@ -62,6 +62,8 @@ if len(args)>1 and pathlib.Path(args[0]).name=='deep32_settings.py' and args[1]=
     spec=importlib.util.spec_from_file_location('synthetic_settings',args[0]);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
     staged=pathlib.Path(args[args.index('--settings')+1]);plan=m.read_json(staged.parent/'plan.json')
     assert args[args.index('--docker-role')+1]=='forge' and '--content' not in args
+    if os.environ.get('SYNTHETIC_LOADER_FAIL'):
+        raise SystemExit(1)
     m.install(plan,plan['digest'],pathlib.Path(os.environ['SYNTHETIC_SETTINGS_TARGET']),staging=True)
     with open(os.environ['SYNTHETIC_SETTINGS_EVENTS'],'a',encoding='ascii') as stream: stream.write('loader\n')
     raise SystemExit(0)
@@ -120,6 +122,12 @@ source "$1" "${@:2}"
         run('synthetic-repeat-idempotent', ['--settings', choice_path, '--accept-plan', plan['digest']], 0)
         suite.check('repeat-does-not-rewrite-settings', target.stat().st_mtime_ns == before)
         suite.check('repeat-one-loader', events.read_text(encoding='ascii').splitlines().count('loader') == 1)
+        # A failed Forge loader ends the getter with a non-zero status (set -e passes the helper's 1 through), and the
+        # handoff line is never printed.
+        suite.env['SYNTHETIC_LOADER_FAIL'] = '1'
+        failed = run('synthetic-loader-failure-exits-nonzero', ['--settings', choice_path, '--accept-plan', plan['digest']], 1)
+        suite.check('loader-failure-no-handoff-line', 'Disc3 loader returned; settings handoff completed.' not in failed.stdout)
+        del suite.env['SYNTHETIC_LOADER_FAIL']
         # An early prerequisite failure creates no destination/cache at all.
         denied_root = suite.root / 'synthetic-denied'
         denied_root.mkdir()

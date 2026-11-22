@@ -1,15 +1,16 @@
 # Upgrading Deep32
 
 How to move a Deep32 install to a new release: what each part keeps, what it makes again, and the order of the steps.
-For anyone running 0.1.0-alpha.2.
+For anyone running 0.1.0-alpha.2 or later.
 
-<sub>Applies to 0.1.0-alpha.2 · [1 Before you start](#1-before-you-start) · [2 What each part keeps](#2-what-each-part-keeps) · [3 Moving to a new release](#3-moving-to-a-new-release) · [4 From 0.1.0-alpha.1](#4-from-010-alpha1)</sub>
+<sub>Applies to 0.1.0-alpha.3 · [1 Before you start](#1-before-you-start) · [2 What each part keeps](#2-what-each-part-keeps) · [3 Moving to a new release](#3-moving-to-a-new-release) · [4 From 0.1.0-alpha.1](#4-from-010-alpha1)</sub>
 
 ## 1. Before you start
 
-0.1.0-alpha.2 is the first release whose images install with one command per machine and pair with each other, so I
-haven't yet moved an install from one working release to another. This page describes what the tools in this release
-support. Starting with 0.1.0-alpha.3, each release's notes will say how to move to it from the release before.
+0.1.0-alpha.2 was the first release whose images install with one command per machine and pair with each other. This
+page describes what the tools support. From 0.1.0-alpha.3 on, each release's notes say how to move to it from the
+release before; for 0.1.0-alpha.3 that is Procedure 1 below, because both the Workstation and the Forge have new
+images, and disc 2 stays the same.
 
 Read the new release's [notes](../CHANGELOG.md) first; they say which parts changed. Then, on each machine, check out
 the new release's tag in your clone and check its signature as in [INSTALL.md section 3](../INSTALL.md#3-get-and-verify-the-source):
@@ -71,10 +72,10 @@ I haven't run these sequences between two releases yet. If a step fails, please 
 
 ### 3.3 When the Workstation changes
 
-A reinstalled Workstation has new keys, so everything pairs with it again. In 0.1.0-alpha.2 that includes the Forge: a
-Forge that is already paired opens no new pairing window ([INSTALL.md section 8](../INSTALL.md#8-pair-the-parts)), and
-revoking a Workstation on the Forge leaves the Forge unable to restart until 0.1.0-alpha.3
-([INSTALL.md section 10](../INSTALL.md#10-afterwards)). So the Forge is installed again too.
+A reinstalled Workstation has new keys, so everything pairs with it again. That includes the Forge: a Forge that is
+already paired opens no new pairing window ([INSTALL.md section 8](../INSTALL.md#8-pair-the-parts)), and on an
+0.1.0-alpha.2 Forge, revoking a Workstation leaves the Forge unable to restart (0.1.0-alpha.3 fixes that,
+[INSTALL.md section 10](../INSTALL.md#10-afterwards)). So the Forge is installed again too.
 
 Agents and the Ask relay also keep what tied them to the old Workstation, and 0.1.0-alpha.2 has no command that drops
 it. Connect keeps using the credential it holds for the Workstation's address and doesn't pair again, so an agent

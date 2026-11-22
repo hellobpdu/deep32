@@ -29,7 +29,7 @@ TOOLS = frozenset(('rag_status', 'search_rag', 'search_many', 'get_section',
 PROXY = {'Proxy': 'http://127.0.0.1:8766/mcp'}
 PAIR = {'TCPForward': '127.0.0.1:7454'}
 CT_NOTICE = ('HTTPS certificates put this machine name in public Certificate Transparency logs; '
-             'run d32-publish publish --accept-ct to agree or leave publication off.')
+             'run /usr/local/d32/sbin/d32-publish publish --accept-ct to agree or leave publication off.')
 
 
 class Refusal(Exception):
@@ -47,27 +47,27 @@ def dns_name(value):
     if (len(value) > 253 or not value.endswith('.ts.net') or len(value.split('.')) < 4
             or any(not re.fullmatch(r'[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?', label)
                    for label in value.split('.'))):
-        refuse('dns-name-unavailable', 'The Tailscale DNS name is unavailable; sign in and run d32-publish resume.')
+        refuse('dns-name-unavailable', 'The Tailscale DNS name is unavailable; sign in and run /usr/local/d32/sbin/d32-publish resume.')
     return value
 
 
 def identity(status):
     if not isinstance(status, dict) or status.get('BackendState') != 'Running':
-        refuse('signin-required', 'Tailscale is signed out or stopped; run d32-link login and then d32-publish resume.', 10)
+        refuse('signin-required', 'Tailscale is signed out or stopped; run doas /usr/local/d32/sbin/d32-link login and then /usr/local/d32/sbin/d32-publish resume.', 10)
     node, tailnet = status.get('Self'), status.get('CurrentTailnet')
     if (not isinstance(node, dict) or node.get('Online') is not True
             or node.get('KeyExpired') is True or node.get('Expired') is True):
-        refuse('signin-required', 'The Tailscale node is offline or its key has expired; run d32-link login and then d32-publish resume.', 10)
+        refuse('signin-required', 'The Tailscale node is offline or its key has expired; run doas /usr/local/d32/sbin/d32-link login and then /usr/local/d32/sbin/d32-publish resume.', 10)
     if not isinstance(tailnet, dict) or tailnet.get('MagicDNSEnabled') is not True:
-        refuse('magicdns-disabled', 'MagicDNS is off or unknown; enable MagicDNS in Tailscale admin console > DNS > MagicDNS and run d32-publish resume.', 10)
+        refuse('magicdns-disabled', 'MagicDNS is off or unknown; enable MagicDNS in Tailscale admin console > DNS > MagicDNS and run /usr/local/d32/sbin/d32-publish resume.', 10)
     host = dns_name(node.get('DNSName'))
     certificates = status.get('CertDomains')
     if not isinstance(certificates, list) or host not in [v.rstrip('.') for v in certificates if isinstance(v, str)]:
-        refuse('https-disabled', 'HTTPS certificates are off or unknown; enable HTTPS Certificates in Tailscale admin console > DNS > HTTPS Certificates and run d32-publish resume.', 10)
+        refuse('https-disabled', 'HTTPS certificates are off or unknown; enable HTTPS Certificates in Tailscale admin console > DNS > HTTPS Certificates and run /usr/local/d32/sbin/d32-publish resume.', 10)
     addresses = node.get('TailscaleIPs', status.get('TailscaleIPs', []))
     address = next((v for v in addresses if isinstance(v, str) and _tailnet_ip(v)), None) if isinstance(addresses, list) else None
     if address is None:
-        refuse('address-unavailable', 'The Tailscale address is unavailable; restore the network link and run d32-publish resume.')
+        refuse('address-unavailable', 'The Tailscale address is unavailable; restore the network link and run /usr/local/d32/sbin/d32-publish resume.')
     return host, address
 
 
@@ -120,7 +120,7 @@ def route_check(config, host, owned=False):
         refuse('serve-state-invalid', 'The Serve route table is unsupported; check the pinned Tailscale version before retrying publication.')
     for path in table:
         if not isinstance(path, str) or path == '/' or path.startswith('/mcp/'):
-            refuse('route-conflict', 'An existing Serve route overlaps MCP; remove the conflicting route yourself and run d32-publish resume.')
+            refuse('route-conflict', 'An existing Serve route overlaps MCP; remove the conflicting route yourself and run /usr/local/d32/sbin/d32-publish resume.')
     for path, value in table.items():
         if path == '/mcp' and (not owned or value != PROXY):
             refuse('route-conflict', 'The MCP Serve route belongs to another configuration; review it before retrying publication.')
@@ -145,7 +145,7 @@ class Platform:
         self.root, self.emit = root, emit
 
     def command(self, args, reason, *, json_output=False, check=True):
-        self.emit(reason + '; if it stops, correct the reported prerequisite and run d32-publish resume.')
+        self.emit(reason + '; if it stops, correct the reported prerequisite and run /usr/local/d32/sbin/d32-publish resume.')
         executable = '/usr/local/bin/tailscale' if args[0] == 'tailscale' else '/usr/sbin/rcctl'
         try:
             result = subprocess.run([executable, *args[1:]], capture_output=True, timeout=10, check=False)
@@ -158,7 +158,7 @@ class Platform:
                 return value
             return result.returncode
         except (OSError, ValueError, subprocess.TimeoutExpired):
-            refuse('platform-unavailable', 'The Tailscale or gateway operation failed; check the installed service and pinned Serve support before running d32-publish resume.')
+            refuse('platform-unavailable', 'The Tailscale or gateway operation failed; check the installed service and pinned Serve support before running /usr/local/d32/sbin/d32-publish resume.')
 
     def status(self):
         return self.command(['tailscale', 'status', '--json'], 'Waiting for local Tailscale status', json_output=True)
@@ -210,11 +210,11 @@ class Platform:
         kernel delivers it locally), so the probe goes to the loopback gateway front instead; the route itself is
         checked separately against PROXY. It does not assert an external agent's DNS or model readiness.
         """
-        self.emit('Waiting for gateway TLS, authentication and eleven tools; restore publication and run d32-publish resume if this fails.')
+        self.emit('Waiting for gateway TLS, authentication and eleven tools; restore publication and run /usr/local/d32/sbin/d32-publish resume if this fails.')
         try:
             token = self._token()
             def request(path, authenticated=False):
-                self.emit('Waiting for the published ' + path + ' authentication and path check; restore the gateway and run d32-publish resume if it fails.')
+                self.emit('Waiting for the published ' + path + ' authentication and path check; restore the gateway and run /usr/local/d32/sbin/d32-publish resume if it fails.')
                 deadline = time.monotonic() + 10
                 conn = http.client.HTTPConnection('127.0.0.1', 8766, timeout=10)
                 try:
@@ -256,7 +256,7 @@ class Platform:
                 if request(path, True)[0] != 404:
                     raise ValueError()
         except (OSError, ValueError, KeyError, TypeError, http.client.HTTPException):
-            refuse('gateway-unverified', 'Gateway TLS, authentication or tools could not be verified; restore the gateway and run d32-publish resume.')
+            refuse('gateway-unverified', 'Gateway TLS, authentication or tools could not be verified; restore the gateway and run /usr/local/d32/sbin/d32-publish resume.')
 
 
 class Publication:
@@ -299,14 +299,14 @@ class Publication:
     def status(self):
         state = self.load()
         if state and state['phase'] == 'removing':
-            refuse('removal-incomplete', 'Publication removal is incomplete; run d32-publish resume to finish removing its owned routes.')
+            refuse('removal-incomplete', 'Publication removal is incomplete; run /usr/local/d32/sbin/d32-publish resume to finish removing its owned routes.')
         if not state or not state['desired']:
             return self._result(state)
         host, address = identity(self.platform.status())
         if host != state['host']:
             refuse('identity-changed', 'The published Tailscale name has changed; unpublish the recorded route before publishing the new name.')
         if not routes_present(self.platform.serve_status(), host):
-            refuse('route-missing', 'The owned publication route is missing; run d32-publish resume to restore it.')
+            refuse('route-missing', 'The owned publication route is missing; run /usr/local/d32/sbin/d32-publish resume to restore it.')
         self.platform.verify_gateway(host, address)
         return self._result(state, True)
 
@@ -315,7 +315,7 @@ class Publication:
         if resume and state and state['phase'] == 'removing':
             return self.unpublish()
         if state and state['phase'] == 'removing':
-            refuse('removal-incomplete', 'Publication removal is incomplete; run d32-publish resume before publishing again.')
+            refuse('removal-incomplete', 'Publication removal is incomplete; run /usr/local/d32/sbin/d32-publish resume before publishing again.')
         if resume and (not state or not state['desired']):
             return self._result(state)
         host, address = identity(self.platform.status())
@@ -332,7 +332,7 @@ class Publication:
                     state = {'format': 'deep32-publication', 'version': 1, 'desired': False,
                              'phase': 'off', 'host': host, 'previous_front': 'off', 'ct_notice': True}
                     self.save(state)
-                refuse('ct-consent-required', 'Certificate Transparency agreement is required; run d32-publish publish --accept-ct or leave publication off.', 10)
+                refuse('ct-consent-required', 'Certificate Transparency agreement is required; run /usr/local/d32/sbin/d32-publish publish --accept-ct or leave publication off.', 10)
         if continuing and state['phase'] == 'ready' and routes_present(config, host):
             try:
                 self.platform.verify_gateway(host, address)
@@ -355,7 +355,7 @@ class Publication:
         if self.platform.serve_status().get('TCP', {}).get('7454') != PAIR:
             self._change(host, ['--bg', '--tcp=7454', 'tcp://127.0.0.1:7454'])
         if not routes_present(self.platform.serve_status(), host):
-            refuse('route-unverified', 'Serve did not preserve the required MCP and pairing routes; check pinned path support before running d32-publish resume.')
+            refuse('route-unverified', 'Serve did not preserve the required MCP and pairing routes; check pinned path support before running /usr/local/d32/sbin/d32-publish resume.')
         self.platform.verify_gateway(host, address)
         state['phase'] = 'ready'
         self.save(state)
@@ -406,7 +406,7 @@ def publication_lock(root):
         try:
             fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
-            refuse('publication-busy', 'Another publication action is running; let it finish and run d32-publish status.', 11)
+            refuse('publication-busy', 'Another publication action is running; let it finish and run /usr/local/d32/sbin/d32-publish status.', 11)
         yield
     finally:
         os.close(fd)
@@ -415,7 +415,7 @@ def publication_lock(root):
 def main(argv=None):
     class Parser(argparse.ArgumentParser):
         def error(self, message):
-            refuse('usage', 'Use d32-publish publish [--accept-ct], unpublish, status or resume.', 1)
+            refuse('usage', 'Use /usr/local/d32/sbin/d32-publish publish [--accept-ct], unpublish, status or resume.', 1)
     parser = Parser(description='Publish only the owned tailnet MCP and pairing routes.')
     parser.add_argument('action', choices=('publish', 'unpublish', 'status', 'resume'))
     parser.add_argument('--accept-ct', action='store_true')
@@ -425,7 +425,7 @@ def main(argv=None):
         if args.accept_ct and args.action != 'publish':
             parser.error('--accept-ct is valid only with publish')
         if not hasattr(os, 'geteuid') or os.geteuid() != 0:
-            refuse('root-required', 'Publication needs local administrator access; run doas d32-publish with the same action.', 10)
+            refuse('root-required', 'Publication needs local administrator access; run /usr/local/d32/sbin/d32-publish as root with the same action.', 10)
         controller = Publication(Platform(emit=emit), emit=emit)
         if args.action == 'status':  # Status creates no file and acquires no write lock.
             result = controller.status()
@@ -444,5 +444,5 @@ def main(argv=None):
         print(str(error), file=sys.stderr)
         return error.code
     except Exception:
-        print('Publication state or service is unavailable; check its private files and run d32-publish resume.', file=sys.stderr)
+        print('Publication state or service is unavailable; check its private files and run /usr/local/d32/sbin/d32-publish resume.', file=sys.stderr)
         return 14

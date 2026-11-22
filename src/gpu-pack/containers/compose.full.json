@@ -384,7 +384,9 @@
       ],
       "environment": {
         "RAG_CORE_URL": "http://engine:8765",
-        "TAILSCALE_DNS_NAME": "${TAILSCALE_DNS_NAME}"
+        "TAILSCALE_DNS_NAME": "${TAILSCALE_DNS_NAME}",
+        "RAG_EDGE_DEFAULT_PREFER": "pins",
+        "RAG_EDGE_DEGRADED_ADVICE": "on"
       },
       "secrets": [
         "core-token",

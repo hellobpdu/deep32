@@ -16,11 +16,10 @@
 # first of clang, clang-21 ... clang-14 found on PATH. Assertions stay on: NDEBUG is never defined, and an
 # undefined-behavior report stops the program like a memory error does.
 #
-# Known findings: the fuzzers found defects in code that can change only with a release (README.md, section
-# "Findings"). So that the routine runs keep checking everything else, the default build steps around exactly those
-# defects: known() below leaves two undefined-behavior checks out of import/wav.c alone (F-2, F-5), and the appjson,
-# wav and rfctext harnesses avoid the inputs of F-1, F-3 and F-4 (each harness says how). FUZZ_STRICT=1 builds
-# without any of these exceptions, and the seed-finding-* inputs in corpus/ then reproduce every report.
+# Findings: the five defects the fuzzers found (README.md, section "Findings", F-1 to F-5) are fixed in the
+# Library's readers, so the default build has no exceptions left and FUZZ_STRICT=1 builds the same thing. known()
+# stays as the place for a check that a future finding must leave out until its release; the seed-finding-* inputs
+# in corpus/ are now regression inputs that every build replays.
 set -eu
 
 here=$(cd "$(dirname "$0")" && pwd)
@@ -70,12 +69,12 @@ cflags() {
 	esac
 }
 
-# The checks left out for one source file while its findings wait for a release (see the header): in wav.c, the
-# shift of a negative 8-bit sample (F-2) and the unbounded WAVE ADPCM step size (F-5). AddressSanitizer stays on.
+# The checks left out for one source file while its findings wait for a release (see the header). None at present:
+# it prints nothing for every file. AddressSanitizer stays on.
 known() {
 	[ "$strict" = 1 ] && return 0
 	case $1 in
-	"$L/import/wav.c") echo "-fno-sanitize=shift-base,signed-integer-overflow" ;;
+	*) ;;
 	esac
 }
 

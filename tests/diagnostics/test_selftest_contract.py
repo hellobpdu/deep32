@@ -45,7 +45,7 @@ class ContractTests(unittest.TestCase):
     def test_valid_bundle_bindings_and_exact_reference(self):
         bundle = load_bundle(self.qbytes, self.rbytes, fixture_harness=True)
         self.assertEqual(bundle.bundle_id, "fixture-beacons-v1")
-        self.assertEqual(bundle.release, "0.1.0-alpha.2")
+        self.assertEqual(bundle.release, "0.1.0-alpha.3")
         self.assertTrue(bundle.fixture_only)
         self.assertEqual(bundle.questions_sha256, hashlib.sha256(self.qbytes).hexdigest())
         self.assertEqual(bundle.reference["reference"].exact["mrr_at_10"], Fraction(3, 4))
@@ -255,6 +255,13 @@ class ContractTests(unittest.TestCase):
             self.assertEqual(rank, 1)
             self.assertTrue(all(passes(aggregate([rank, 2]), bundle.reference["reference"]).values()))
 
+    def test_span_without_comparable_text_is_refused(self):
+        for span in ("-", " - ", "\u2014\u00a0\u2010"):
+            question = deepcopy(self.q)
+            question["questions"][0]["labels"][0]["exact_span"] = span
+            with self.subTest(span=span), self.assertRaises(ContractError):
+                self.bundle(q=question)
+
 
 class ScoringTests(unittest.TestCase):
     def question(self, span="Amber beacon.\nCaf\u00e9 kite."):
@@ -266,13 +273,22 @@ class ScoringTests(unittest.TestCase):
     def test_exact_literal_unicode_newline_and_surrounding_text(self):
         self.assertEqual(first_rank(self.question(), [self.hit("prefix Amber beacon.\nCaf\u00e9 kite. suffix")]), 1)
 
-    def test_wrong_doc_case_whitespace_punctuation_and_unicode_do_not_match(self):
+    def test_wrong_doc_case_punctuation_and_unicode_do_not_match(self):
         for hit in (self.hit(doc_key="fixture-other"), self.hit("amber beacon.\nCaf\u00e9 kite."),
-                    self.hit("Amber beacon. Caf\u00e9 kite."), self.hit("Amber beacon!\nCaf\u00e9 kite."),
-                    self.hit("Amber beacon.\r\nCaf\u00e9 kite."), self.hit("Amber beacon.\nCafe\u0301 kite."),
-                    self.hit("Amber  beacon.\nCaf\u00e9 kite."), self.hit("Caf\u00e9 kite.")):
+                    self.hit("Amber beacon!\nCaf\u00e9 kite."), self.hit("Amber beacon.\nCafe\u0301 kite."),
+                    self.hit("Caf\u00e9 kite."), self.hit("Amber beacon.\nCaf\u00e9 kites")):
             with self.subTest(hit=hit):
                 self.assertIsNone(first_rank(self.question(), [hit]))
+
+    def test_line_wraps_whitespace_hyphens_and_typographic_marks_match(self):
+        # the quotation check's form: RFC wraps, indentation and hyphenation breaks do not hide a span
+        for hit in (self.hit("Amber beacon. Caf\u00e9 kite."), self.hit("Amber beacon.\r\nCaf\u00e9 kite."),
+                    self.hit("Amber  beacon.\n      Caf\u00e9 kite."), self.hit("Am-\nber beacon.\nCaf\u00e9 kite."),
+                    self.hit("prefix Amber\u00a0beacon.\nCaf\u00e9 kite. suffix")):
+            with self.subTest(hit=hit):
+                self.assertEqual(first_rank(self.question(), [hit]), 1)
+        quoted = {"labels": [{"doc_key": "fixture-labelled", "exact_span": "the \"amber\" beacon - lit"}]}
+        self.assertEqual(first_rank(quoted, [self.hit("the \u201camber\u201d beacon \u2013\n   lit")]), 1)
 
     def test_alias_and_section_metadata_do_not_prove_delivered_body(self):
         self.assertIsNone(first_rank(self.question(), [self.hit(doc_key="fixture-other", also_in=["fixture-labelled"])]))

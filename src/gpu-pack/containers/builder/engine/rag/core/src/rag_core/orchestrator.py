@@ -24,7 +24,13 @@ from rag_core.errors import (
     public_error,
 )
 
+from rag_core.db import (
+    connect,
+)
+
 from rag_core.fusion import (
+    demoted,
+    passage_class_demote,
     rrf_fuse,
 )
 
@@ -33,11 +39,16 @@ from rag_core.paths import (
 )
 
 from rag_core.query_plan import (
+    TechnicalVariantSettings,
     build_query_plan,
+    technical_variant_settings,
+    technical_vocabulary,
 )
 
 from rag_core.rerank import (
     Reranker,
+    covered_titles_of,
+    title_lines,
 )
 
 from rag_core.traces import (
@@ -51,9 +62,6 @@ from rag_core.retrieval_types import (
 
 from rag_core.retrievers.dense import (
     DenseRetriever,
-)
-from rag_core.retrievers.colbert import (
-    ColBERTRetriever,
 )
 from rag_core.retrievers.lexical import (
     LexicalRetriever,
@@ -72,10 +80,24 @@ CHALLENGE_PURPOSES = {
     "contradiction",
 }
 
+def colbert_retriever(
+    paths: RAGPaths,
+):
+    """The late-interaction retriever, made (and its module imported) only for a root whose
+    "retrievers" names colbert: rag_core.retrievers.colbert imports torch and pylate at load,
+    which a host that serves bm25 and dense does not need. A failed import is a failed start
+    of this retriever alone: it is reported as degraded, like a missing index."""
+    from rag_core.retrievers.colbert import (
+        ColBERTRetriever,
+    )
+
+    return ColBERTRetriever(paths)
+
+
 RETRIEVER_FACTORIES = {
     "bm25": LexicalRetriever,
     "dense": DenseRetriever,
-    "colbert": ColBERTRetriever,
+    "colbert": colbert_retriever,
 }
 
 # Retrievers behind a remote service get a circuit breaker (rag_core.breaker).
@@ -91,6 +113,16 @@ class RetrievalOrchestrator:
     # serving.json pipeline.rerank_gate (rag_core.pipeline): the FIFO gate every rerank of this
     # process passes, set by rag_core.api at start; None (the default): no gate, as before
     rerank_gate = None
+
+    # retrieval.json technical_variant (rag_core.query_plan): the technical variant's weight and
+    # token rule, and the long words rule v2 keeps; class defaults, so an orchestrator made
+    # without __init__ (tests' stand-ins) plans as before
+    technical = TechnicalVariantSettings()
+    vocabulary: frozenset[str] = frozenset()
+
+    # retrieval.json passage_class.demote (rag_core.fusion): the passage classes moved behind the
+    # other candidates after the fusion; () (the default, and on a root without the table): none
+    demote: tuple[str, ...] = ()
 
     def __init__(
         self,
@@ -155,6 +187,31 @@ class RetrievalOrchestrator:
             if check is not None:
                 check(options)
 
+        # the technical variant's settings: a value they cannot take stops the start
+        self.technical = technical_variant_settings(self.config)
+        if self.technical.tokens == "v2":
+            self.vocabulary = technical_vocabulary(paths.root / "kb" / "kb.sqlite")
+            if not self.vocabulary:
+                logger.warning(
+                    "technical_variant.tokens v2: no command or glossary words in the knowledge "
+                    "base, so no plain long word is kept"
+                )
+
+        # the passage classes to demote: a value the setting cannot take stops the start; a root
+        # whose rag.db has no passage_class table has nothing to demote by
+        self.demote = passage_class_demote(self.config)
+        if self.demote:
+            with connect(paths.sqlite / "rag.db") as conn:
+                known = conn.execute(
+                    "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'passage_class'"
+                ).fetchone()
+            if known is None:
+                logger.warning(
+                    "passage_class.demote %s: this root has no passage_class table, nothing is demoted",
+                    list(self.demote),
+                )
+                self.demote = ()
+
         self.enabled = enabled
         self.retrievers = {}
         self.degraded: dict[str, str] = {}
@@ -203,6 +260,12 @@ class RetrievalOrchestrator:
         if self.rerank_enabled:
             try:
                 self.reranker = Reranker(rcfg)
+                # reranker.title and reranker.covered_titles read the root's structure index
+                db_path = paths.sqlite / "rag.db"
+                if self.reranker.title:
+                    self.reranker.titles = title_lines(db_path)
+                if self.reranker.covered_titles:
+                    self.reranker.covered = lambda chunk_ids: covered_titles_of(db_path, chunk_ids)
             except Exception as exc:
                 self.rerank_error = public_error(exc)
                 logger.warning(
@@ -455,6 +518,22 @@ class RetrievalOrchestrator:
             )
         return ranked, {**info, "wait_ms": wait_ms}
 
+    def _classed(
+        self,
+        chunk_ids: list[str],
+    ) -> set[str]:
+        """Those of `chunk_ids` whose passage class (rag.db passage_class) is one of self.demote."""
+        marks = ",".join("?" for _ in chunk_ids)
+        classes = ",".join("?" for _ in self.demote)
+        with connect(self.paths.sqlite / "rag.db") as conn:
+            return {
+                row[0]
+                for row in conn.execute(
+                    f"SELECT chunk_id FROM passage_class WHERE chunk_id IN ({marks}) AND class IN ({classes})",  # nosec B608 - only "?" placeholders are interpolated; the values are bound
+                    [*chunk_ids, *self.demote],
+                )
+            }
+
     def query_vectors(
         self,
         queries: list[str],
@@ -481,6 +560,8 @@ class RetrievalOrchestrator:
                 technical_retrievers=self.config.get(
                     "technical_variant_retrievers"
                 ),
+                technical=self.technical,
+                vocabulary=self.vocabulary,
             )
             if variant.text
             and (variant.retrievers is None or "dense" in variant.retrievers)
@@ -527,6 +608,8 @@ class RetrievalOrchestrator:
             technical_retrievers=self.config.get(
                 "technical_variant_retrievers"
             ),
+            technical=self.technical,
+            vocabulary=self.vocabulary,
         )
 
         per_query_limit = int(
@@ -731,6 +814,11 @@ class RetrievalOrchestrator:
             limit=pool_size,
             keep_text=reranker is not None,
         )
+
+        # passage_class.demote: the candidates of those classes go behind the others, in the
+        # fused list as it was cut, before the reranker takes its candidates from its front
+        if self.demote and main:
+            main = demoted(main, self._classed([c["chunk_id"] for c in main]))
 
         rerank_info = None
 

@@ -361,6 +361,14 @@ async def lifespan(
     api_v2.fold_identical(
         getattr(orchestrator, "config", None) or {}
     )
+    # and what a hit is delivered with: the top-tier window, covered titles, table context (api_v2.evidence_settings)
+    api_v2.evidence_settings(
+        getattr(orchestrator, "config", None) or {}
+    )
+    # and /v2/verify_quote's settings (api_v2.verify_settings)
+    api_v2.verify_settings(
+        getattr(orchestrator, "config", None) or {}
+    )
     # every rerank of this process passes the gate, when there is one
     gate = StageGate.from_settings(pipeline)
     if gate is not None:

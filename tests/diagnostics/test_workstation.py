@@ -73,7 +73,7 @@ class WorkstationTests(unittest.TestCase):
         self.scratch = Path(os.environ['DEEP32_DIAG_TEST_ROOT'])
         if not self.scratch.is_absolute() or not self.scratch.is_dir() or self.scratch.is_symlink():
             raise AssertionError('Expected an existing absolute synthetic test root')
-        self.receipt = InstallReceipt('workstation', 'openbsd', '0.1.0-alpha.2', MANIFEST,
+        self.receipt = InstallReceipt('workstation', 'openbsd', '0.1.0-alpha.3', MANIFEST,
                                       {'models': MODELS}, GENERATION, FINGERPRINT)
         self.options = {
             'engine': ws.project_engine_status(encode(status())),

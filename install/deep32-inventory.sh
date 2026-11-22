@@ -80,7 +80,7 @@ usage() {
     printf '%s\n' 'usage: deep32-inventory.sh [report] [--json] [--net] [--matrix FILE] [--facts FILE]' \
         '       deep32-inventory.sh bench quick [--seconds N] [--json] [--guard-file FILE]' \
         '       deep32-inventory.sh --journey J1..J5 --role workstation-host|gpu-host|agent|all --check-prereqs [--format text|json]' \
-        '       for local alpha.2 Forge add --forge-media DIR --forge-class CLASS --forge-data-root DIR' \
+        '       for a local Forge add --forge-media DIR --forge-class CLASS --forge-data-root DIR [--forge-ingestion]' \
         '       to check the complete reviewed Forge plan add --forge-plan FILE --accept-plan DIGEST' \
         'exit codes: 0 done, 1 other error, 2 bad arguments, 3 legacy refused, 10 prerequisite action needed'
 }
@@ -88,7 +88,7 @@ usage() {
 # ------------------------------------------------------------------ arguments
 MODE=""; SUB=""; JSON=0; NET=0; BENCH_SECS=120; SECS_GIVEN=0
 CHECK_PREREQS=0; JOURNEY=""; ROLE=""; PR_FORMAT=""; FORMAT_GIVEN=0
-FORGE_MEDIA=""; FORGE_CLASS=""; FORGE_DATA=""; FORGE_KEY=""; FORGE_GPG=""
+FORGE_MEDIA=""; FORGE_CLASS=""; FORGE_DATA=""; FORGE_KEY=""; FORGE_GPG=""; FORGE_INGESTION=""
 FORGE_FINGERPRINT=""; FORGE_PLAN=""; FORGE_ACCEPT=""
 MATRIX=""; FACTS=""; GUARD="$DEFAULT_GUARD"; GUARD_EXTRA=""
 GUARD_ONLY=0
@@ -104,6 +104,7 @@ while [ $# -gt 0 ]; do
         --check-prereqs) CHECK_PREREQS=1 ;;
         --help|-h|-help) usage; exit 0 ;;
         --version|-version) printf 'deep32-inventory %s\n' "$TOOL_VERSION"; exit 0 ;;
+        --forge-ingestion) FORGE_INGESTION=1 ;;
         --seconds|--matrix|--facts|--guard-file|--journey|--role|--format|--forge-media|--forge-class|--forge-data-root|--forge-key|--forge-fingerprint|--forge-gpg|--forge-plan|--accept-plan)
             if [ $# -lt 2 ]; then err "$a needs a value"; usage >&2; exit 2; fi
             v="$2"; shift
@@ -757,7 +758,7 @@ function prsetup(   j,r,f,e,ok) {
     if(PRWS&&f!="windows" && !(f=="linux"&&e=="ubuntu"&&V["x.facts.os.version"]=="24.04"))ok=0
     PRSCOPES="base publish download"; if(f!="windows")PRSCOPES=PRSCOPES " unix-download"; if(PRWS||PRGPU)PRSCOPES=PRSCOPES " host"
     if(PRWS) { PRSCOPES=PRSCOPES " vm"; if(f=="windows")PRSCOPES=PRSCOPES " windows-vm"; else PRSCOPES=PRSCOPES " linux-vm" }
-    if(PRGPU) { PRSCOPES=PRSCOPES " gpu docker"; if(j=="J3")PRSCOPES=PRSCOPES " full"; if(f=="windows")PRSCOPES=PRSCOPES " windows-gpu" }
+    if(PRGPU) { PRSCOPES=PRSCOPES " gpu docker"; if(j=="J3")PRSCOPES=PRSCOPES " full"; if(f=="windows")PRSCOPES=PRSCOPES " windows-gpu"; else PRSCOPES=PRSCOPES " linux-gpu" }
     if(PRAGENT)PRSCOPES=PRSCOPES " agent"
     return ok
 }
@@ -875,7 +876,10 @@ END {
         for(dkey in T) if(dkey~/^dk\.(CDIDevices|DiscoveredDevices)([.]|\[|$)/ &&
                 ((T[dkey]=="s" && V[dkey]~/^nvidia\.com\/gpu=[A-Za-z0-9_.:-]+$/) ||
                  dkey~/[.]nvidia\.com\/gpu=[A-Za-z0-9_.:-]+$/)) gpu=1
-        printf ",\"docker.local-context\":%s,\"docker.nvidia-runtime\":%s",engine?"true":(JERR?"null":"false"),(engine&&gpu)?"true":(JERR?"null":"false")
+        # The daemon reports containerd's revision only when it reaches containerd (a masked or stopped containerd
+        # still lets docker version and image loading work, but every container start fails).
+        ctr=(T["dk.ContainerdCommit.ID"]=="s" && V["dk.ContainerdCommit.ID"]!="" && V["dk.ContainerdCommit.ID"]!="N/A")
+        printf ",\"docker.local-context\":%s,\"docker.nvidia-runtime\":%s,\"docker.containerd\":%s",engine?"true":(JERR?"null":"false"),(engine&&gpu)?"true":(JERR?"null":"false"),(engine&&ctr)?"true":(JERR?"null":"false")
         exit
     }
     if(("D32_CHECK_PREREQS" in ENVIRON) && ENVIRON["D32_CHECK_PREREQS"]=="1")prcheck()
@@ -1627,8 +1631,9 @@ pr_forge_capability() {
 }
 pr_forge_storage() {
     local args
-    args=(disc3 --release v0.1.0-alpha.2 --from "$FORGE_MEDIA" --gpu-class "$FORGE_CLASS" --ingestion
-          --key "$FORGE_KEY" --fingerprint "$FORGE_FINGERPRINT" --forge-storage --forge-data-root "$FORGE_DATA")
+    args=(disc3 --release v0.1.0-alpha.3 --from "$FORGE_MEDIA" --gpu-class "$FORGE_CLASS")
+    if [ "$FORGE_INGESTION" = 1 ]; then args+=(--ingestion); fi
+    args+=(--key "$FORGE_KEY" --fingerprint "$FORGE_FINGERPRINT" --forge-storage --forge-data-root "$FORGE_DATA")
     if [ -n "$FORGE_GPG" ]; then args+=(--gpg "$FORGE_GPG"); fi
     # The helper reauthenticates release metadata and observes the filesystems.
     # Docker info is from the explicit native socket above; never print it.
@@ -1641,6 +1646,7 @@ pr_forge_evidence() {
           --accept-plan "$FORGE_ACCEPT" --journey "$JOURNEY" --os-id "$_edition"
           --os-version "$_version" --architecture "$_arch")
     if [ -n "$FORGE_GPG" ]; then args+=(--gpg "$FORGE_GPG"); fi
+    if [ "$FORGE_INGESTION" = 1 ]; then args+=(--ingestion); fi
     printf '{"docker":%s,"tailscale":%s}' "${_runtime:-null}" "${_ts:-null}" |
         run_to 45 python3 -I -B "$SCRIPT_DIR/../src/release-tools/forge_preflight.py" "${args[@]}" 2>/dev/null
 }
@@ -1725,9 +1731,9 @@ pr_live() {
                     pr_put docker.storage null
                 fi
             fi
-        else _runtime=''; pr_put docker.local-context null; pr_put docker.nvidia-runtime null; fi
+        else _runtime=''; pr_put docker.local-context null; pr_put docker.nvidia-runtime null; pr_put docker.containerd null; fi
     elif [ "$_gpu" = 1 ] && [ "$_family" = linux ]; then
-        pr_put docker.server false; pr_put docker.nvidia-runtime false
+        pr_put docker.server false; pr_put docker.nvidia-runtime false; pr_put docker.containerd false
         if ! have docker; then pr_put docker.compose false; pr_put docker.local-context false; fi
     fi
     if [ "$_agent" = 1 ]; then

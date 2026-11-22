@@ -146,8 +146,16 @@ def identities(root, kit, committed=False, key_factory=None):
     expected = {'schema': 'deep32.forge-identity/1', 'files': {
         name: hashlib.sha256((private / name).read_bytes()).hexdigest() for name in members}}
     if marker.exists():
-        if common.read_json(marker) != expected:
+        recorded = common.read_json(marker)
+        # The knowledge-base key pair is the Forge's lasting authority and never changes. The bearer is meant to
+        # rotate: unpair rotates it when a Workstation is revoked (INTERFACES.md, Removal), and read_token above
+        # has checked the new one. Record its digest so later starts compare against it.
+        if (not isinstance(recorded, dict) or recorded.get('schema') != expected['schema']
+                or not isinstance(recorded.get('files'), dict) or set(recorded['files']) != set(members)
+                or any(recorded['files'][name] != expected['files'][name] for name in ('kb-private.pem', 'kb-public.pem'))):
             raise common.Refusal('Restore the original Forge identity files before restarting.')
+        if recorded['files']['forge-token'] != expected['files']['forge-token']:
+            common.atomic_json(marker, expected)
     elif committed:
         raise common.Refusal('Restore the retained Forge identity record before restarting.')
     else:
@@ -250,10 +258,15 @@ class Lifecycle(common.Lifecycle):
         except (OSError, ValueError, TypeError, KeyError):
             raise common.Refusal('No valid Forge installation was found; use its original dedicated data directory.') from None
 
-    def image_roles(self, selection, config):
-        wanted = {'tei-' + selection, 'reranker', 'door', 'converter'}
-        if 'builder' in config:
-            wanted.update(('builder', 'qdrant'))
+    def image_roles(self, selection, config, rows=None):
+        wanted = {'tei-' + selection, 'reranker', 'door'}
+        # The ingestion add-on (the converter, and the builder with Qdrant) is optional (DR-64): a Forge installed from
+        # the core and its embedder serves search, and forge_jobs refuses conversion and build jobs. The verified
+        # payload index says which was installed; without one, keep the full set.
+        if rows is None or any(isinstance(row, dict) and row.get('role') == 'converter' for row in rows):
+            wanted.add('converter')
+            if 'builder' in config:
+                wanted.update(('builder', 'qdrant'))
         return wanted
 
     def storage_image(self, images):

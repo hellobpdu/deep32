@@ -240,6 +240,16 @@ class ForgeRequirements(unittest.TestCase):
 EVIDENCE = 'SYNTHETIC-COMPONENT-EVIDENCE.md'
 ALPHA2_RECIPES = TOOLS / 'forge-recipes-0.1.0-alpha.2.json'
 ALPHA2_EVIDENCE = ('LINUX-MINERU-R3-EVIDENCE.md', 'WINDOWS-RAW-QUALIFICATION.md')
+
+
+def alpha2_recipes():
+    """ALPHA2_RECIPES is alpha.2's signed waiver record, kept as history. Its recipes still apply, so the tests read it
+    with every waiver's release set to the release under test, in memory only."""
+    rows = json.loads(ALPHA2_RECIPES.read_bytes())
+    for row in rows:
+        if isinstance(row.get('waiver'), dict):
+            row['waiver']['release'] = subject.RELEASE
+    return rows
 WINDOWS_ID = 'windows-11-docker-desktop-wsl2-j1'
 
 
@@ -273,7 +283,7 @@ class OwnerWaiver(unittest.TestCase):
         self.assertEqual(set(document), set(json.loads(self.build())))
         self.assertIsNone(subject.waiver_notice(passed))
         self.assertEqual(subject.waiver_notice(waived),
-                         'Note: this host type is accepted for 0.1.0-alpha.2 under an owner waiver dated 2026-11-18 '
+                         'Note: this host type is accepted for 0.1.0-alpha.3 under an owner waiver dated 2026-11-18 '
                          '(recipe synthetic-ubuntu-j2). I have not yet run a full install on it; '
                          'FORGE-PREREQUISITES.json lists what was not run.')
         longest = self.waived(dict(passed, id='a' * 96))
@@ -330,7 +340,7 @@ class OwnerWaiver(unittest.TestCase):
         malformed = {
             'granted_by': ['owner', '', None, ['release-owner'], 'Release-Owner'],
             'granted_on': ['2026-11-19', '2026-11-17', '2026-02-30', '', '18 November 2026', 20261118, None],
-            'release': ['0.1.0-alpha.1', '0.1.0-alpha.3', 'v0.1.0-alpha.2', '', None, ['0.1.0-alpha.2']],
+            'release': ['0.1.0-alpha.1', '0.1.0-alpha.2', 'v0.1.0-alpha.3', '', None, ['0.1.0-alpha.3']],
             'recipe_id': ['synthetic-ubuntu-j4', 'synthetic-ubuntu', '', None],
             'not_run': [[], 'The full install.', None, [''], [' leading space'], ['trailing space '], ['x' * 301],
                         ['caf' + chr(233)], ['two\nlines'], [7], [None], ['same', 'same'], ['line %d' % n for n in range(17)]],
@@ -355,17 +365,17 @@ class OwnerWaiver(unittest.TestCase):
         swapped = (dict(first, waiver=second['waiver']), dict(second, waiver=first['waiver']))
         with self.assertRaisesRegex(ValueError, 'another grantor, date, release or recipe'):
             self.verify(self.signed(*swapped))
-        for row in (self.waived(release='0.1.0-alpha.1'), self.waived(release='0.1.0-alpha.3'),
+        for row in (self.waived(release='0.1.0-alpha.1'), self.waived(release='0.1.0-alpha.2'),
                     dict(first, accepted_on='2026-11-19'), dict(first, id='synthetic-renamed')):
             with self.subTest(row=row), self.assertRaisesRegex(ValueError, 'another grantor, date, release or recipe'):
                 self.verify(self.signed(row))
         raw = self.signed(first)
         with self.assertRaises(ValueError):
             subject.validate(raw, capability_sha256=sha(canonical(self.cap)), pins_sha256=sha(self.pins),
-                             release='0.1.0-alpha.3')
+                             release='0.1.0-alpha.2')
         with self.assertRaises(ValueError):
-            subject.validate_recipes([first], '0.1.0-alpha.3')
-        self.assertFalse(subject.validate_recipes([first], '0.1.0-alpha.2'))
+            subject.validate_recipes([first], '0.1.0-alpha.2')
+        self.assertFalse(subject.validate_recipes([first], '0.1.0-alpha.3'))
 
     def named(self, row=None, **changes):
         """Return a waived recipes-input row: evidence by file name, for the builder to hash."""
@@ -440,13 +450,13 @@ class OwnerWaiver(unittest.TestCase):
         self.assertEqual(json.loads(build([self.records[0]], None))['recipes'], self.records)
 
     def test_alpha2_recipes_input_builds_into_three_waived_recipes(self):
-        rows = json.loads(ALPHA2_RECIPES.read_bytes())
+        rows = alpha2_recipes()
         self.pins = canonical({'runtime': dict(tei_minimum_driver='575.51.03', cuda_minimum_driver='580.65.06',
                                               mineru_minimum_driver='580.65.06',
                                               windows_cuda13_driver_build='580.00')})
         self.cap['pins_sha256'] = sha(self.pins)
         recipe = (TOOLS.parents[1] / 'install/prerequisites.json').read_bytes()
-        raw = subject.build(canonical(self.cap), self.pins, ALPHA2_RECIPES.read_bytes(),
+        raw = subject.build(canonical(self.cap), self.pins, canonical(rows),
                             recipe_files={'prerequisites.json': sha(recipe)},
                             evidence_files={file: sha(file.encode('ascii')) for file in ALPHA2_EVIDENCE})
         self.assertLess(len(raw), subject.LIMIT)
@@ -467,7 +477,7 @@ class OwnerWaiver(unittest.TestCase):
             self.assertNotIn('acceptance_sha256', row)
             self.assertEqual(row['recipe_sha256'], sha(recipe))
             self.assertEqual((waiver['granted_by'], waiver['granted_on'], waiver['release'], waiver['recipe_id']),
-                             ('release-owner', '2026-11-18', '0.1.0-alpha.2', row['id']))
+                             ('release-owner', '2026-11-18', '0.1.0-alpha.3', row['id']))
             self.assertEqual(row['accepted_on'], '2026-11-18')
             self.assertTrue(set(entry['file'] for entry in waiver['evidence']) <= set(ALPHA2_EVIDENCE))
             self.assertGreaterEqual(len(waiver['not_run']), 5)
@@ -489,12 +499,12 @@ class OwnerWaiver(unittest.TestCase):
                       'Docker Engine 29.0.0 or later', 'without a run'):
             self.assertIn(words, floors[0])
         self.assertEqual(subject.waiver_notice(windows),
-                         'Note: this host type is accepted for 0.1.0-alpha.2 under an owner waiver dated 2026-11-18 '
+                         'Note: this host type is accepted for 0.1.0-alpha.3 under an owner waiver dated 2026-11-18 '
                          '(recipe windows-11-docker-desktop-wsl2-j1). I have not yet run a full install on it; '
                          'FORGE-PREREQUISITES.json lists what was not run.')
 
     def test_alpha2_windows_waiver_still_binds_release_recipe_and_date(self):
-        rows = subject.cite(json.loads(ALPHA2_RECIPES.read_bytes()), {'prerequisites.json': 'a' * 64},
+        rows = subject.cite(alpha2_recipes(), {'prerequisites.json': 'a' * 64},
                             {file: 'b' * 64 for file in ALPHA2_EVIDENCE})
         self.assertTrue(subject.validate_recipes(rows))
         windows = rows[2]
@@ -503,11 +513,11 @@ class OwnerWaiver(unittest.TestCase):
                       dict(windows, accepted_on='2026-11-19'),
                       dict(windows, waiver=dict(windows['waiver'], recipe_id='windows-11-26200.9974-docker-desktop-4.99.0-j1')),
                       dict(windows, waiver=dict(windows['waiver'], granted_on='2026-11-19')),
-                      dict(windows, waiver=dict(windows['waiver'], release='0.1.0-alpha.3'))):
+                      dict(windows, waiver=dict(windows['waiver'], release='0.1.0-alpha.2'))):
             with self.subTest(wrong=wrong), self.assertRaisesRegex(ValueError, 'another grantor, date, release or recipe'):
                 subject.validate_recipes(rows[:2] + [wrong])
         with self.assertRaises(ValueError):
-            subject.validate_recipes(rows, '0.1.0-alpha.3')
+            subject.validate_recipes(rows, '0.1.0-alpha.2')
 
 
 if __name__ == '__main__':

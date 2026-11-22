@@ -793,7 +793,7 @@ function Invoke-Deep32Main {
     $ErrorActionPreference = 'Stop'
     $role = $null
     $destination = Join-Path (Get-Location).Path 'deep32-downloads'
-    $release = 'v0.1.0-alpha.2'
+    $release = 'v0.1.0-alpha.3'
     $key = Join-Path $script:Deep32ScriptDirectory '..\..\install\release-key.gpg'
     $source = $null
     $repository = 'hellobpdu/deep32'
@@ -860,7 +860,7 @@ function Invoke-Deep32Main {
         } elseif ($null -eq $role -and $argument -cin @('disc1', 'disc2', 'disc3')) {
             $role = $argument
         } else {
-            throw 'Usage: deep32-get.ps1 disc1|disc2|disc3 [--to DIR | --from DIR] [--release v0.1.0-alpha.2] [--install] [--key FILE]'
+            throw 'Usage: deep32-get.ps1 disc1|disc2|disc3 [--to DIR | --from DIR] [--release v0.1.0-alpha.3] [--install] [--key FILE]'
         }
     }
     if ($null -eq $role) { throw 'Select disc1, disc2 or disc3.' }

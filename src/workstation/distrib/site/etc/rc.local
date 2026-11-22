@@ -1,14 +1,20 @@
 # /etc/rc.local: Deep32 Workstation (BASE lane; schg). rc runs this after pkg_scripts, before cron and the login
 # manager, at the securelevel already set by rc.securelevel.
 
+# dock and lid policy (update 2): docked or not at boot, and machdep.lidaction for that state; hotplugd keeps it
+# current afterwards (d32-dock starts hotplugd itself on the one boot whose boot window enabled it)
+[ -x /usr/local/d32/sbin/d32-dock ] && /usr/local/d32/sbin/d32-dock boot
+
+# the d32-link watcher (update 4): pkg_scripts starts it at every boot; this starts it on the one boot whose boot
+# window installed it (rc read rc.conf.local before the window), and does nothing on any other boot
+[ -x /etc/rc.d/d32link ] && ! /usr/sbin/rcctl check d32link >/dev/null 2>&1 && /usr/sbin/rcctl start d32link >/dev/null 2>&1
+
 # upstream resolvers from the DHCP lease into pf <dns> and unbound (ISO 2.6.3); table edit only
 [ -x /usr/local/d32/sbin/d32-dnsup ] && /usr/local/d32/sbin/d32-dnsup -w 30
 
-# Restore only an explicitly requested publication after the package services.
-# This is bounded and reports the prerequisite and resume command on failure.
-if [ -f /etc/d32/state/publication.json ] && [ -x /usr/local/d32/sbin/d32-publish ]; then
-	/usr/local/d32/sbin/d32-publish resume
-fi
+# the first start (disc 1): follows the Tailscale sign-in and waits for disc 2, writing C6 status lines; it
+# returns at once on every start after the first start is complete (d32-firstboot)
+[ -x /usr/local/d32/sbin/d32-firstboot ] && /usr/local/d32/sbin/d32-firstboot resume </dev/null >/dev/null 2>&1 &
 
 # test images only: the first-boot check, once, on the console and in /var/log/d32-firstboot-check.log
 if [ -f /var/db/d32/firstboot-check ] && [ -x /usr/local/d32/libexec/d32-firstboot-check ]; then

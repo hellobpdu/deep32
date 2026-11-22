@@ -77,9 +77,15 @@ status boundaries. Search arrays retain delivered order, unique valid hit IDs,
 literal text/doc keys, expected generation, no degradation, and reranking
 evidence for the first min(10, length) hits.
 
-The scorer accepts only exact document plus case-sensitive decoded-Unicode
-substring matches among the first ten delivered passages. Alias metadata and
-expanded sections receive no credit. Exact rational metrics and the signed
+The scorer credits a hit among the first ten delivered passages when its
+document key equals a label's and its text holds that label's span, both
+compared in the quotation check's form (`selftest_contract.quote_form`, the
+engine's `reader.canonical`): typographic quotes, dashes and the no-break space
+made ASCII, then every run of whitespace and hyphens removed, so RFC line wraps
+and hyphenation breaks in the delivered window do not hide a span. Matching
+stays case-sensitive and applies no other Unicode normalization. A label whose
+span has nothing left in that form is refused. Alias metadata and expanded
+sections receive no credit. Exact rational metrics and the signed
 1/50 tolerance are compared before display rounding. Reference counts/sums
 must recompute and be attainable at ranks 1-10. The signed reference asserts
 three complete identical calibration runs; the separate lead producer supplies

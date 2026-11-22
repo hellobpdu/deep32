@@ -13,7 +13,7 @@
       "scope": "components"
     }
   ],
-  "release": "v0.1.0-alpha.2",
+  "release": "v0.1.0-alpha.3",
   "subject_path": "payload/images/full.tar",
   "unknown_field": true
 }

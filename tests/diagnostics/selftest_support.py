@@ -16,7 +16,7 @@ def bundle_bytes(*, fixture_only=True, questions=None, ranks=None):
     """Return invented q/ref bytes; no filesystem, clock or service access.
 
     Default: two public-demo beacon/kite questions, first ranks 1 and 2,
-    release 0.1.0-alpha.2, sample-generation and all-zero corpus fingerprint.
+    release 0.1.0-alpha.3, sample-generation and all-zero corpus fingerprint.
     Optional ``questions`` is a replacement question array; ``ranks`` must
     match its length. The fixture flag is explicit in both documents.
     """
@@ -34,7 +34,7 @@ def bundle_bytes(*, fixture_only=True, questions=None, ranks=None):
     if len(ranks) != len(questions):
         raise ValueError("Invented ranks must match the question count.")
     document = {"schema_version": 1, "bundle_id": "fixture-beacons-v1",
-                "release": "0.1.0-alpha.2", "fixture_only": fixture_only,
+                "release": "0.1.0-alpha.3", "fixture_only": fixture_only,
                 "questions": deepcopy(questions)}
     questions_raw = encode(document)
     settings = {"fold_identical": False, "reranker": {

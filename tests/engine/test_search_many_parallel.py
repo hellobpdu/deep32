@@ -184,7 +184,7 @@ class ParallelSearchManyTests(unittest.TestCase):
         with mock.patch.dict(self.orch.retrievers, {"dense": dense}), self.parallel():
             body = self.post({"queries": queries})
         self.assertEqual(dense.most, 3)                     # all three legs waited together
-        self.assertEqual(body["degraded"], [])
+        self.assertEqual(body["degraded"], ["reranker"])      # rerank auto on a root without a reranker
         self.assertEqual(body["hits"][0]["id"], target)
         self.assertEqual(body["hits"][0]["per_query_ranks"], {"0": 1, "1": 1, "2": 1})
 
@@ -195,7 +195,7 @@ class ParallelSearchManyTests(unittest.TestCase):
             dense = BarrierDense(0, doc_of(self.root, target), target, pause=0.2)
             with self.subTest(search_many_parallel=value), \
                     mock.patch.dict(self.orch.retrievers, {"dense": dense}), self.parallel(value):
-                self.assertEqual(self.post({"queries": queries})["degraded"], [])
+                self.assertEqual(self.post({"queries": queries})["degraded"], ["reranker"])
             self.assertEqual(dense.most, most)
 
     def test_the_dense_queries_are_embedded_in_one_call(self):
@@ -274,7 +274,7 @@ class ParallelSearchManyTests(unittest.TestCase):
             body = self.post({"queries": queries})
         self.assertEqual(dense.most, 1)
         self.assertEqual(breaker.state, "closed")               # the first query's leg was the trial, and passed
-        self.assertEqual(body["degraded"], [])
+        self.assertEqual(body["degraded"], ["reranker"])
         self.assertEqual(body["hits"][0]["per_query_ranks"], {"0": 1, "1": 1})
 
     def test_a_service_failing_one_call_fails_one_query(self):
@@ -288,7 +288,7 @@ class ParallelSearchManyTests(unittest.TestCase):
                 self.parallel():
             body = self.post({"queries": queries})
         self.assertEqual(dense.calls, 2)
-        self.assertEqual(body["degraded"], ["dense"])
+        self.assertEqual(body["degraded"], ["dense", "reranker"])
         hit = next(h for h in body["hits"] if h["id"] == target)
         self.assertIn("dense", hit["matched"])
         self.assertIn(1, hit["per_query_ranks"].values())                  # the dense query ranked it first

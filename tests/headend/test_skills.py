@@ -28,6 +28,65 @@ CODEX_KIT_FILES = [os.path.join(WORK, 'adapters', 'codex', n) for n in
 # Restricted-wording policy is supplied by the release checker; private policy never ships.
 ALLOW = []
 
+# The alpha.3 skill-text package (WP-A): a rule it retired never comes back in a skill or standing block, and a rule
+# it added stays. Each item of the package adds its own entries.
+STANDING = [os.path.join(WORK, 'adapters', 'claude-code', 'CLAUDE.deep32.md'),
+            os.path.join(WORK, 'adapters', 'codex', 'AGENTS.deep32.md')]
+RETIRED = [
+    (r'(?<![\d.])2\.4\.\d(?![\d.])', 'A1: a gateway version number'),
+    (r'version before', 'A1: a gateway version test'),
+    (r'sections read: <section ids>', 'A2: a gap label with no outline read'),
+    (r'Skip a document whose matching section', 'A2: the skip rule that wrote gaps without an outline'),
+    (r'belongs in How it works', 'A3: a background rule narrower than expanded-answer.md'),
+    (r'scored (?:invalid|fuzzy)', 'A5: a quote scorer that does not ship'),
+    (r'at most 2 omissions', 'A5: quotes stitched with omissions'),
+    (r'not an error', 'A6: a backend that is off presented as full strength'),
+    (r'first answer of the session', 'A6: rag_status once per session'),
+    (r'has not called it yet', 'A6: rag_status once per thread'),
+    (r'Budget: about 8 to 15', 'A7: a second call budget'),
+    (r'two independent sources agree', 'A7: a second stop rule'),
+    (r'RAG: <n>', 'A8: a call count written by the model'),
+    (r'`RAG:` line', 'A8: a RAG line as the last line'),
+    (r'web unless the user asks', 'A8: a web allowance against the skill'),
+    (r"answer's last line|last line may offer|You may end with one line", 'A8: a last line other than Read'),
+    (r'labelled as constructed', 'A9: constructed output not tied to a verified sample'),
+    (r'all in one batch', 'A11: a quote batch with no size limit'),
+    # retired rules: each WP-A item adds its entries above this line
+]
+REQUIRED = [
+    ('adapters/claude-code/skills/deep32/deep-engine.md', 'comes back with hits and no tier header', 'A1'),
+    ('adapters/codex/skills/deep32/deep-engine.md', 'at most 8 plain hits and no tier header line', 'A1'),
+    ('adapters/claude-code/skills/deep32/outline-check.md', '`${CLAUDE_SKILL_DIR}/blueprint.md` names for the topic', 'A2'),
+    ('adapters/claude-code/skills/deep32/quick-default.md', 'outside the cap, with its own budget', 'A2'),
+    ('adapters/claude-code/skills/deep32/expanded-answer.md', '## When the main point is not covered', 'A3'),
+    ('adapters/codex/skills/deep32/expanded-answer.md', '## When the main point is not covered', 'A3'),
+    ('adapters/claude-code/skills/deep32/SKILL.md', 'pins of section 0 as bare release numbers', 'A4'),
+    ('adapters/codex/skills/deep32/SKILL.md', 'pins of section 0 as bare release numbers', 'A4'),
+    ('adapters/claude-code/skills/deep32/SKILL.md', '`pin="other"` on a hit', 'A4'),
+    ('adapters/codex/skills/deep32/SKILL.md', '`pin="other"` on a hit', 'A4'),
+    ('adapters/claude-code/skills/deep32/quick-default.md', '`search_many` with `prefer_release`', 'A4'),
+    ('adapters/codex/skills/deep32/deep-engine.md', 'j.args.prefer_release ??= PREFER;', 'A4'),
+    ('adapters/claude-code/skills/deep32/quick-default.md', 'stop as soon as each part of the question has a section read that settles it', 'A7'),
+    ('adapters/codex/skills/deep32-configure/SKILL.md', 'labelled `inference (from [cite] + [cite])`', 'A9'),
+    ('adapters/codex/skills/deep32-describe/SKILL.md', 'labelled `inference (from [cite] + [cite])`', 'A9'),
+    ('adapters/codex/skills/deep32-design/SKILL.md', 'labelled `inference (from [cite] + [cite])`', 'A9'),
+    ('adapters/codex/skills/deep32-troubleshoot/SKILL.md', 'labelled `inference (from [cite] + [cite])`', 'A9'),
+    ('adapters/codex/skills/deep32-verify/SKILL.md', 'labelled `inference (from [cite] + [cite])`', 'A9'),
+    ('adapters/claude-code/skills/deep32/collections.md', 'In Codex, the five lens skills', 'A9'),
+    ('adapters/claude-code/skills/deep32/quick-default.md', 'In every mode send no `max_chars`', 'A11'),
+    ('adapters/claude-code/skills/deep32/SKILL.md', 'go on until a reply names no successor', 'A12'),
+    ('adapters/codex/skills/deep32/SKILL.md', 'go on until a reply names no successor', 'A12'),
+    ('adapters/claude-code/skills/deep32/SKILL.md', 'one call checks up to 16 quotes', 'A14'),
+    ('adapters/codex/skills/deep32/SKILL.md', 'one call checks up to 16 quotes', 'A14'),
+    ('adapters/claude-code/skills/deep32/SKILL.md', "`around=<the hit's id>`", 'A16'),
+    ('adapters/claude-code/skills/deep32/release-drift.md', '`same section in other releases:`', 'A16'),
+    ('adapters/claude-code/skills/deep32/SKILL.md', "A hit's `platform`", 'A17'),
+    ('adapters/claude-code/skills/deep32/SKILL.md', '`covers="..."` on a hit', 'A17'),
+    ('adapters/claude-code/skills/deep32/citation-style.md', '`found outside <ref>:', 'A18'),
+    ('adapters/claude-code/skills/deep32/release-drift.md', 'kind="history"', 'A15'),
+    # added rules: each WP-A item adds its entries above this line
+]
+
 
 def files(roots, exts=('.md', '.cs', '.ps1', '.toml', '.yaml', '.sh')):
     for r in roots:
@@ -146,6 +205,28 @@ class Skills(unittest.TestCase):
                                 if os.path.isdir(os.path.join(CODEX_SKILLS, n))),
                          ['deep32', 'deep32-configure', 'deep32-describe', 'deep32-design',
                           'deep32-troubleshoot', 'deep32-verify'])
+
+    def test_7_retired_rules_stay_out(self):
+        hits = []
+        for p in files([CLAUDE, CODEX_SKILLS] + STANDING):
+            for n, line in enumerate(read(p).splitlines(), 1):
+                for pattern, why in RETIRED:
+                    if re.search(pattern, line):
+                        hits.append('%s:%d [%s] %s' % (rel(p), n, why, line.strip()[:90]))
+        self.assertEqual(hits, [], '\n' + '\n'.join(hits))
+
+    def test_9_blueprint_names_1718_beside_26x(self):
+        text = read(os.path.join(CLAUDE, 'blueprint.md'))
+        for area in ('inthw', 'ip', 'lyr2', 'nmgmt', 'qos', 'rtng', 'sec', 'sysmgmt', 'vlan'):
+            newer = re.findall(r'(?<![A-Za-z0-9-])c9300-26x-%s(?![A-Za-z0-9-])' % area, text)
+            twins = re.findall(r'c9300-1718-%s, c9300-26x-%s(?![A-Za-z0-9-])' % (area, area), text)
+            self.assertTrue(newer, area)
+            self.assertEqual(len(twins), len(newer), area)
+
+    def test_8_added_rules_stay(self):
+        missing = [(path, phrase, item) for path, phrase, item in REQUIRED
+                   if phrase not in read(os.path.join(WORK, *path.split('/')))]
+        self.assertEqual(missing, [])
 
 
 if __name__ == '__main__':

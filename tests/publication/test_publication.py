@@ -401,15 +401,30 @@ class GatewayPublicationTests(unittest.TestCase):
             self.assertEqual(asyncio.run(check(path)), ([], 404))
         self.assertEqual(asyncio.run(check('/mcp', call='admin/reload')), ([], 200))
 
-    def test_ship_site_and_boot_resume_include_publication_entrypoint(self):
+    def test_ship_site_includes_publication_entrypoint_and_boot_never_publishes(self):
         wrapper = RUNTIME / 'sbin/d32-publish'
         self.assertTrue(wrapper.is_file())
         source = (REPO / 'src/workstation/ship/tools/mksite-ship.sh').read_text(encoding='ascii')
         self.assertIn('cp -Rp $S/distrib/site/. $st/', source)
         self.assertIn('$st/usr/local/d32/sbin/*', source)
+        # The published rc.local is the one the image carries (the disc 1 build takes it from distrib/site only
+        # when the bytes equal the tree's, otherwise it overlays its own copy): the first-start follower and the
+        # d32link start, and no publication step. rc.local runs before the link brings Tailscale up, and Serve
+        # routes persist in tailscaled's state, so a boot-time resume would only refuse with "signed out".
         rc = (REPO / 'src/workstation/distrib/site/etc/rc.local').read_text(encoding='ascii')
-        self.assertIn('/usr/local/d32/sbin/d32-publish resume', rc)
-        self.assertNotIn('d32-publish publish', rc)
+        self.assertIn('/usr/local/d32/sbin/d32-firstboot resume', rc)
+        self.assertIn('/usr/sbin/rcctl start d32link', rc)
+        self.assertNotIn('d32-publish', rc)
+
+    def test_hints_name_the_full_command_path(self):
+        # doas matches the command as typed against the rule's full path, and d32-publish is not on a user's PATH.
+        link = (REPO / 'src/workstation/ship/u4/usr/local/d32/sbin/d32-link').read_text(encoding='ascii')
+        self.assertNotIn('doas d32-link ', link)
+        # The whole source, so a message in any kind of literal (an f-string too) is covered.
+        source = (RUNTIME / 'publication.py').read_text(encoding='ascii')
+        for relative in ('run d32-publish', 'doas d32-publish', 'doas d32-link ', 'run d32-link'):
+            self.assertNotIn(relative, source)
+        self.assertGreaterEqual(source.count('/usr/local/d32/sbin/d32-publish'), 20)
 
     def test_actual_site_copy_and_mode_recipe_carries_publication_files(self):
         bash = Path('C:/Program Files/Git/bin/bash.exe') if os.name == 'nt' else Path('/bin/bash')

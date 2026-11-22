@@ -12,6 +12,7 @@
 #          --workstation HOST (forge: pair over SSH when the Workstation allows root SSH with your key;
 #                          headend: the https://.../mcp address the Workstation printed at publication),
 #          --agent claude|codex|both (headend), --hypervisor kvm|hyper-v (workstation, default kvm).
+#          --journey J2|J4 (forge: the Workstation is elsewhere, or a KVM VM on this host; found by itself when the VM is named Deep32Workstation)
 #
 # The script stops only for what a person has to do: sign in to Tailscale in a browser, accept the installer's plan,
 # and type the pairing code on the Workstation (unless --workstation pairs over SSH). Every line it prints starts
@@ -73,6 +74,7 @@ check_tailscale() {
             state=$(ts_field "d.get('BackendState','')")
         fi
         [ "$state" = Running ] || return
+        problems=$((problems - 1))
     fi
     ok "Tailscale signed in"
     [ "$(ts_field "t.get('MagicDNSEnabled', False)")" = True ] && ok "MagicDNS on" ||
@@ -146,8 +148,7 @@ check_forge() {
         as_root docker compose version >/dev/null 2>&1 && ok "Docker Compose v2" ||
             need "install the Docker Compose v2 plugin (docker compose)"
         case $(as_root docker info --format '{{.Driver}} {{json .DriverStatus}}' 2>/dev/null) in
-            *io.containerd.snapshotter*|overlayfs*)
-                need "Docker keeps images in its containerd store; the alpha.2 Forge loads only into the classic store (overlay2). To switch, add \"features\": {\"containerd-snapshotter\": false} to /etc/docker/daemon.json and restart Docker. Images and containers in the containerd store stay hidden until you switch back" ;;
+            *io.containerd.snapshotter*|overlayfs*) ok "Docker uses the containerd image store" ;;
             '') ;;
             *) ok "Docker uses the classic image store" ;;
         esac
@@ -155,17 +156,6 @@ check_forge() {
             need "install the NVIDIA Container Toolkit, then: sudo nvidia-ctk runtime configure --runtime=docker && sudo systemctl restart docker"
     else
         need "Docker is not installed or not running: https://docs.docker.com/engine/install/"
-    fi
-    if ! sh "$here/forge-host-python.sh" >/dev/null 2>&1; then
-        need "the pairing helper needs /usr/bin/python3 3.10+ with ssl"
-        if confirm "Install it with your package manager?"; then
-            as_root sh "$here/forge-host-python.sh" --install | sed 's/^/[info] /'
-        else
-            sh "$here/forge-host-python.sh" | sed 's/^/[info] /'
-        fi
-        sh "$here/forge-host-python.sh" >/dev/null 2>&1 && { problems=$((problems - 1)); ok "pairing helper Python"; }
-    else
-        ok "pairing helper Python"
     fi
     check_tailscale forge
 }

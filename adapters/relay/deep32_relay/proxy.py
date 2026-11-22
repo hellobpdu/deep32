@@ -14,10 +14,68 @@ TOOLS = frozenset(("rag_status", "search_rag", "search_many", "get_section",
 METHODS = frozenset(("initialize", "notifications/initialized", "tools/list", "tools/call"))
 MAX_REQUEST = 65536
 MAX_RESPONSE = 1048576
+IN_FLIGHT = 4           # tool calls of one turn that may be at the Workstation at once (its own limit is 4 as well)
+CALL_BUDGET = 300       # MCP requests of one turn
+# The session endpoint accepts more connections than calls may be in flight, so that a call over IN_FLIGHT can be
+# read and answered with a text the agent can act on; a connection over this number is closed unanswered.
+CONNECTIONS = 8
+# What the agent reads when the relay itself does not run one of its tool calls: the fixed reason, and what to do.
+REFUSALS = {
+    "request-limit": "Deep32 relay: at most 4 tool calls can run at once, and this one was not run. "
+                     "Send this call again after one of the others has returned.",
+    "call-budget": "Deep32 relay: this answer has used all 300 of its tool calls, so this call was not run and no "
+                   "later one will be. Write the answer from what you have and say which points are still open.",
+}
+
+
+# The tool calls of a turn are kept in memory, until the turn ends, for its answer check and answer record: at most
+# CAPTURE_MAX characters of result text in all; past that a result keeps only its first CAPTURE_HEAD characters.
+CAPTURE_MAX = 8 * 1024 * 1024
+CAPTURE_HEAD = 4096
 
 
 class ProxyError(ValueError):
     """Only fixed, non-secret reason codes cross this boundary."""
+
+
+def keep_call(cap, body, result):
+    """Keep one answered tools/call in the form answer_check.py reads: {"tool", "arguments", "result",
+    "is_error"}, the result being the text parts of the MCP result joined by line feeds (another kind of part is
+    written as [its type]), or the error's message. Never raises: a call that cannot be kept is left out."""
+    try:
+        params = body.get("params", {})
+        failed = "error" in result
+        if failed:
+            error = result["error"]
+            text = str(error.get("message", "")) if isinstance(error, dict) else ""
+        else:
+            value = result["result"]
+            blocks = value.get("content") if isinstance(value, dict) else None
+            text = "\n".join(
+                block["text"] if isinstance(block, dict) and block.get("type") == "text"
+                and isinstance(block.get("text"), str)
+                else "[%s]" % (block.get("type") if isinstance(block, dict) else "unknown")
+                for block in (blocks if isinstance(blocks, list) else ()))
+            failed = isinstance(value, dict) and value.get("isError") is True
+        event = {"tool": params.get("name"), "arguments": params.get("arguments", {}), "result": text,
+                 "is_error": failed}
+        if cap.captured + len(text) > CAPTURE_MAX:
+            event["result"], event["truncated"] = text[:CAPTURE_HEAD], True
+        cap.captured += len(event["result"])
+        cap.events.append(event)
+        return True
+    except Exception:
+        return False
+
+
+def refusal(reason, request):
+    """The answer to a tools/call that the relay refuses for a reason the agent can act on: an MCP tool result
+    marked isError whose text says what to do. None for any other refusal, which stays a bare HTTP 400."""
+    if (reason not in REFUSALS or not isinstance(request, dict) or request.get("method") != "tools/call"
+            or type(request.get("id")) not in (str, int)):
+        return None
+    return encoded({"jsonrpc": "2.0", "id": request["id"], "result": {
+        "content": [{"type": "text", "text": REFUSALS[reason]}], "isError": True}}, MAX_REQUEST)
 
 
 def encoded(value, limit):
@@ -69,6 +127,10 @@ class Capability:
     active: bool = False
     inflight: int = 0
     calls: int = 0
+    refused: int = 0            # calls not run because of IN_FLIGHT or CALL_BUDGET (the turn log counts them)
+    capture: bool = False       # keep this turn's tool calls (the supervisor sets it for the answer check or record)
+    events: list = field(default_factory=list, repr=False)
+    captured: int = 0           # characters of result text kept so far
     mcp_session_id: str | None = None
     protocol_version: str | None = None
     initialised: bool = False
@@ -138,7 +200,12 @@ class Gateway:
         # code points, non-finite numbers and oversized nested tool arguments.
         with self.lock:
             self._live(cap)
-            if cap.inflight >= 4 or cap.calls >= 300:
+            # Two refusals with their own reasons: the budget lasts for the rest of the turn, the other one passes.
+            if cap.calls >= CALL_BUDGET:
+                cap.refused += 1
+                raise ProxyError("call-budget")
+            if cap.inflight >= IN_FLIGHT:
+                cap.refused += 1
                 raise ProxyError("request-limit")
             if method != "initialize" and not cap.initialised:
                 raise ProxyError("not-initialised")
@@ -189,6 +256,8 @@ class Gateway:
                     or result.get("id") != body["id"]
                     or ("result" in result) == ("error" in result)):
                     raise ProxyError("invalid-response")
+                if method == "tools/call" and cap.capture:
+                    keep_call(cap, body, result)
                 if "error" in result:
                     return response
                 if method == "initialize":
@@ -307,6 +376,7 @@ class HTTPProxy:
                     self.wfile.write(raw)
 
             def do_POST(self):
+                peek = None
                 try:
                     # Reject ambiguous framing, duplicate credential/session
                     # headers and HTTP upgrades before reading the body.
@@ -367,8 +437,14 @@ class HTTPProxy:
                     result = b"" if value["body"] is None else encoded(value["body"], MAX_RESPONSE)
                     self.respond(value["http_status"], result, value["mcp_session_id"])
                 except ProxyError as exc:
-                    code = 401 if str(exc) == "unauthorised" else 400
-                    self.respond(code, b'{"error":"request-refused"}')
+                    # Too many calls at once, or the turn's budget spent: the bearer was accepted before either
+                    # is raised (Gateway.http_request), and the agent gets a text that says what to do.
+                    told = refusal(str(exc), peek)
+                    if told is not None:
+                        self.respond(200, told, owner.cap.mcp_session_id)
+                    else:
+                        code = 401 if str(exc) == "unauthorised" else 400
+                        self.respond(code, b'{"error":"request-refused"}')
                 except (OSError, ValueError, TimeoutError):
                     self.close_connection = True
 
@@ -399,7 +475,7 @@ class HTTPProxy:
                     self.server_port = self.server_address[1]
 
                 def __init__(self, *args, **kwargs):
-                    self.slots = threading.BoundedSemaphore(4)
+                    self.slots = threading.BoundedSemaphore(CONNECTIONS)
                     self.worker_lock = threading.RLock()
                     self.workers = {}
                     super().__init__(*args, **kwargs)

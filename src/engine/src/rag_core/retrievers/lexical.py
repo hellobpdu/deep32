@@ -125,6 +125,31 @@ STATEMENTS = {
     for table in (DEFAULT_FTS, OPTIN_FTS)
 }
 
+# retrieval.json "bm25": {"tie_order": "engine" | "rowid"}. engine (default): rows of equal BM25 score come in the
+# order the SQLite build's sorter yields them (ORDER BY raw_score alone), stable on one build and not promised
+# across builds. rowid: equal scores are ordered by row id (the order the chunks were written), on every build.
+TIE_ORDERS = ("engine", "rowid")
+SCORE_ORDER = "ORDER BY raw_score ASC\n"
+
+
+def by_rowid(sql: str) -> str:
+    """One of the ranking statements with equal scores ordered by row id."""
+    if sql.count(SCORE_ORDER) != 1:
+        raise ValueError("a BM25 ranking statement without its ORDER BY raw_score")
+    return sql.replace(SCORE_ORDER, f"ORDER BY raw_score ASC, {'chunks.rowid' if 'JOIN chunks' in sql else 'rowid'} ASC\n")
+
+
+ROWID_STATEMENTS = {table: tuple(by_rowid(sql) for sql in statements) for table, statements in STATEMENTS.items()}
+
+
+def bm25_tie_order(options: dict | None) -> str:
+    """bm25.tie_order of the retriever's options (None: the default). ValueError names a value it cannot take;
+    the orchestrator checks it before any retriever starts (LexicalRetriever.check_options)."""
+    value = (options or {}).get("tie_order", TIE_ORDERS[0])
+    if value not in TIE_ORDERS:
+        raise ValueError(f"retrieval.json bm25.tie_order must be one of {list(TIE_ORDERS)}, not {value!r}")
+    return value
+
 # the documents of a split root's chunk_fts_optin (rag_core.db.split_optin_fts) that have chunks
 OPTIN_CHUNKED_SQL = """
 SELECT DISTINCT doc_id FROM chunks WHERE doc_id IN (SELECT doc_id FROM chunk_fts_optin_docs)
@@ -236,14 +261,16 @@ def read_high_df_terms(conn, table: str = DEFAULT_FTS) -> frozenset[str]:
     )
 
 
-def merge_ranked(parts: list[list[tuple]], limit: int) -> list[tuple]:
+def merge_ranked(parts: list[list[tuple]], limit: int, rowid_ties: bool = False) -> list[tuple]:
     """The ranked (row, raw_score) lists of a split root's two BM25 tables as one: by raw score, the
     lower (better) first; a tie goes to the earlier list (chunk_fts before chunk_fts_optin), then to
-    the order within its list; the top `limit`. Each list is in raw-score order (ORDER BY raw_score),
+    the order within its list (rowid_ties, bm25.tie_order "rowid": to the lower row id, whichever
+    list holds it); the top `limit`. Each list is in raw-score order (ORDER BY raw_score),
     so this is deterministic. Each table scores with its own N, document frequencies and average
     length, so scores of the two compare only roughly: a search asks both only when docs names
     documents of both kinds, or the root serves fewer opt-in doc types than it was built with."""
-    return list(itertools.islice(heapq.merge(*parts, key=lambda pair: pair[1]), limit))
+    key = (lambda pair: (pair[1], pair[0]["rowid"])) if rowid_ties else (lambda pair: pair[1])
+    return list(itertools.islice(heapq.merge(*parts, key=key), limit))
 
 
 class IndexFacts:
@@ -290,6 +317,8 @@ class IndexFacts:
 
 class LexicalRetriever:
     name = "bm25"
+    # the orchestrator checks the options with it before anything starts
+    check_options = staticmethod(bm25_tie_order)
 
     def __init__(
         self,
@@ -306,6 +335,9 @@ class LexicalRetriever:
         self.prune_high_df = bool(
             options.get("prune_high_df", True)
         )
+        # retrieval.json "bm25": {"tie_order": "rowid"} orders equal scores by row id (ROWID_STATEMENTS)
+        self.tie_order = bm25_tie_order(options)
+        self.statements = ROWID_STATEMENTS if self.tie_order == TIE_ORDERS[1] else STATEMENTS
         self.facts = IndexFacts(lambda: self.db_path)
 
     @property
@@ -371,7 +403,7 @@ class LexicalRetriever:
         the joined SQL answers then, as it always did. `exclude`: documents whose chunks are left
         out (EXCLUDING_RANK_SQL), in the pruned query and the full one alike. The high-df terms are
         those of `table`."""
-        rank_sql, excluding_sql, _ = STATEMENTS[table]
+        rank_sql, excluding_sql, _ = self.statements[table]
         sql, left_out = rank_sql, ()
         if exclude:
             sql = excluding_sql.format(marks=",".join("?" for _ in exclude))
@@ -421,7 +453,7 @@ class LexicalRetriever:
             ordered = [
                 (row, row["raw_score"])
                 for row in conn.execute(
-                    STATEMENTS[table][2].format(only=restriction),
+                    self.statements[table][2].format(only=restriction),
                     (
                         match_expression(tokens),
                         *sorted(listed or ()),
@@ -505,7 +537,8 @@ class LexicalRetriever:
                     self._table_rows(conn, tokens, limit, table, only, left_out)
                     for table, only, left_out in self._split_parts(split, doc_ids, exclude)
                 ]
-                ordered = parts[0] if len(parts) == 1 else merge_ranked(parts, limit)
+                ordered = parts[0] if len(parts) == 1 else merge_ranked(
+                    parts, limit, self.tie_order == TIE_ORDERS[1])
 
         hits = []
 

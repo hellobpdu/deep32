@@ -13,7 +13,7 @@ body:
     attributes:
       label: Release
       description: The release you installed, or the tag or commit of your clone.
-      placeholder: 0.1.0-alpha.2
+      placeholder: 0.1.0-alpha.3
     validations:
       required: true
   - type: dropdown

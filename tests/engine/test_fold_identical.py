@@ -34,7 +34,7 @@ from rag_core.status import StatusService
 
 import fold_root
 import test_derive_root
-from fold_root import AUTH, REQUESTS, capture, load_pinned, post
+from fold_root import AUTH, REQUESTS, alpha2_form, capture, load_pinned, post
 from test_api_v2 import HIT_KEYS, RootClient
 from test_derive_trials import SAFE_ARG
 from test_status import Clock, make_root
@@ -147,10 +147,11 @@ class Fixture:
         cls.root.close()
 
     def body(self, name):
+        """The answer in its alpha.2 form (fold_root.alpha2_form): the pinned bodies are compared with it."""
         path, body, rerank = REQUESTS[name]
         r = post(self.c, path, body, rerank)
         self.assertEqual(r.status_code, 200, r.text)
-        return r.json()
+        return json.loads(alpha2_form(r.content, body))
 
 
 class OffTests(Fixture, unittest.TestCase):

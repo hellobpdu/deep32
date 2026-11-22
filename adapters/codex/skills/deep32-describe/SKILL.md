@@ -19,8 +19,15 @@ Weight the analysis toward a mental model that holds however the question is wor
   sequence (a packet or message walk) with citations.
 - **RFC vs Cisco**: where the implementation adds, omits or changes defaults compared with the standard.
 - **Compare and contrast**: a table against the nearest sibling technologies (versions, alternatives, predecessors)
-  covering purpose, transport, security, scale, defaults and failure behaviour.
+  covering purpose, transport, security, scale, defaults and failure behaviour; every cell cited or labelled
+  inference.
 - **Misconceptions**: the wrong mental models people hold, and the cited evidence that breaks each.
-- **The general pattern** behind the topic, and where else in networking it repeats.
+- **The general pattern** behind the topic, and where else in networking it repeats: labelled inference, with the
+  cites it rests on.
 - **A short plain-words summary** of the mechanism, and one lab check that makes it visible (the debugs or captures
   that show the state machine), proposed, never run.
+
+Everything this lens adds beyond a retrieved passage (a table row, a scenario, a recommendation, a pattern) is cited,
+or labelled `inference (from [cite] + [cite])` with the sources it rests on. Constructed output (a configuration,
+show output, a log line) is built only from a sample checked with `verify_quote`, with every field you changed
+marked, and is labelled constructed: never present it as seen on a device.

@@ -88,26 +88,54 @@ class Loopback(unittest.TestCase):
     def test_connection_bound_and_close_joins_slow_request_workers(self):
         sockets=[]
         self.addCleanup(lambda:[value.close() for value in sockets])
-        # Stalled clients remain inside the per-connection timeout; at most four
-        # request threads can exist before any application/Gateway checks.
+        # Stalled clients remain inside the per-connection timeout; at most eight
+        # request threads (proxy.CONNECTIONS) can exist before any application/Gateway checks.
         self.endpoint.timeout=2
-        for _ in range(4):
+        for _ in range(8):
             value=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
             value.settimeout(2)
             value.connect(self.endpoint.server.server_address)
             sockets.append(value)
         end=time.monotonic()+2
-        while len(self.endpoint.server.active_workers())<4 and time.monotonic()<end:
+        while len(self.endpoint.server.active_workers())<8 and time.monotonic()<end:
             time.sleep(.005)
-        self.assertEqual(len(self.endpoint.server.active_workers()),4)
+        self.assertEqual(len(self.endpoint.server.active_workers()),8)
         extra=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
         sockets.append(extra)
         extra.settimeout(2)
         extra.connect(self.endpoint.server.server_address)
         self.assertEqual(extra.recv(1),b'')
-        self.assertEqual(len(self.endpoint.server.active_workers()),4)
+        self.assertEqual(len(self.endpoint.server.active_workers()),8)
         self.assertTrue(self.endpoint.close())
         self.assertEqual(self.endpoint.server.active_workers(),[])
+
+    def test_a_fifth_call_in_flight_is_answered_with_what_to_do(self):
+        from deep32_relay import proxy
+        for value in (rpc('initialize'),rpc('notifications/initialized'),rpc('tools/list',ident=2)):
+            self.request(value)
+        entered,release=threading.Semaphore(0),threading.Event()
+        dispatch=Dispatch()
+        def waiting(*args):
+            entered.release()
+            if not release.wait(5):raise RuntimeError('synthetic bounded wait')
+            return dispatch(*args)
+        self.gateway.dispatch=waiting
+        results=[]
+        workers=[threading.Thread(target=lambda n=n:results.append(self.request(
+            rpc('tools/call',ident=10+n,name='rag_status',arguments={})))) for n in range(4)]
+        try:
+            for worker in workers:worker.start()
+            for _ in workers:self.assertTrue(entered.acquire(timeout=5))
+            # four calls are at the gateway; the fifth connection is accepted, read and answered at once
+            status,body=self.request(rpc('tools/call',ident=99,name='verify_quote',arguments={}))
+        finally:
+            release.set()
+            for worker in workers:worker.join(5)
+        value=json.loads(body)
+        self.assertEqual((status,value['id'],value['result']['isError']),(200,99,True))
+        self.assertEqual(value['result']['content'][0]['text'],proxy.REFUSALS['request-limit'])
+        self.assertEqual(sorted(code for code,_ in results),[200,200,200,200])
+        self.assertEqual((self.cap.inflight,self.cap.refused),(0,1))
 
     def test_revoke_unblocks_inflight_dispatch_before_cleanup_is_certified(self):
         entered,release=threading.Event(),threading.Event()

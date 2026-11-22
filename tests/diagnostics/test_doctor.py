@@ -52,7 +52,7 @@ def common(role):
         pairing_authority=common_fixtures.authority(),
         peers=(probes.PeerEvidence(peer_role, peer_role, 'enrolled', True, True, 401),),
         clock_samples={peer_role: samples()},
-        c6=b'D32S/1 1 workstation boot=12345678 stage=ready state=done version=0.1.0-alpha.2\n'
+        c6=b'D32S/1 1 workstation boot=12345678 stage=ready state=done version=0.1.0-alpha.3\n'
             if role == 'workstation' else None,
         first_start_completed=True, lifecycle_complete=True, pairing_committed=True, c6_fresh=True,
         storage_budgets=(storage.StorageBudget(alias, 'synthetic-volume', 10, 20),),
@@ -97,7 +97,7 @@ class DispatcherTests(unittest.TestCase):
                 forge=doctor.ForgeEvidence(forge_fixtures.policy(), forge_fixtures.observation(platform),
                                           forge_fixtures.RULES, platform == 'windows'))
         if role == 'workstation':
-            receipt = InstallReceipt(role, 'openbsd', '0.1.0-alpha.2', ws_fixtures.MANIFEST,
+            receipt = InstallReceipt(role, 'openbsd', '0.1.0-alpha.3', ws_fixtures.MANIFEST,
                 {'models': ws_fixtures.MODELS}, ws_fixtures.GENERATION, ws_fixtures.FINGERPRINT)
             return doctor.DoctorEvidence(receipt=install_storage(receipt, 'content'), common=common(role),
                                          workstation=workstation_evidence(), snapshots=self.snapshots)
@@ -110,7 +110,7 @@ class DispatcherTests(unittest.TestCase):
                                            True, True, '1.2.3', True),
             gateway=headend.GatewayObservation(selected.state_path, selected.url, True, True,
                                               workstation_evidence().engine.status), pairing_committed=True)
-        receipt = InstallReceipt(role, platform or 'linux', '0.1.0-alpha.2', 'b' * 64, {})
+        receipt = InstallReceipt(role, platform or 'linux', '0.1.0-alpha.3', 'b' * 64, {})
         return doctor.DoctorEvidence(receipt=receipt, common=common(role), headend=observed,
                                      snapshots=self.snapshots)
 

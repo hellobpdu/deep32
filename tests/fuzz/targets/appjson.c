@@ -6,11 +6,10 @@
  * the taxonomy file, the render helper's answers and the helpers' request bodies. An accepted tree is walked and
  * every string read.
  *
- * The reader takes a pointer and a length, but it compares the literals true, false and null with strncmp, which
- * can read up to four bytes past the length when the text is not NUL-terminated (finding F-1 in README.md). The
- * helpers' and the render client's callers pass NUL-terminated bodies, so by default the harness does the same and
- * keeps fuzzing the rest of the reader. Built with FUZZ_STRICT=1 (build.sh), it passes the bytes without a
- * terminator, as the taxonomy loader does, and the finding's input in corpus/appjson reproduces the over-read.
+ * The reader takes a pointer and a length. It used to compare the literals true, false and null with strncmp, which
+ * could read up to four bytes past the length when the text is not NUL-terminated (finding F-1 in README.md, fixed:
+ * the comparison now stays inside the length). The harness passes the bytes without a terminator, as the taxonomy
+ * loader does, and corpus/appjson/seed-finding-F1 is now a regression input.
  */
 #include "fuzz.h"
 #include "app/json.h"
@@ -41,13 +40,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
 	char err[160];
 	jv *v;
-#ifdef FUZZ_STRICT
 	v = json_parse((const char *)data, size, err, sizeof err);
-#else
-	char *text = fuzz_cstr(data, size);
-	v = json_parse(text, size, err, sizeof err);
-	free(text);
-#endif
 	if (!v) return 0;
 	walk(v);
 	json_free(v);
