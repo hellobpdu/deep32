@@ -8,6 +8,9 @@ identifiers:
   - type: doi
     value: 10.5281/zenodo.24272647
     description: "Concept DOI: always resolves to the latest version"
+  - type: doi
+    value: 10.5281/zenodo.24448841
+    description: "Version DOI of 0.1.0-alpha.3"
 date-released: "2026-11-22"
 title: "Deep32: Retrieval-augmented question answering for network and security engineering"
 abstract: >-

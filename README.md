@@ -830,8 +830,8 @@ Docker Engine on Linux, Docker Engine inside an Ubuntu 24.04 WSL 2 distro, and D
 ```
 
 The entry cites Deep32's concept DOI, [10.5281/zenodo.24272647](https://doi.org/10.5281/zenodo.24272647), which always
-resolves to the latest version. Each release also has a DOI of its own; 0.1.0-alpha.2's is
-[10.5281/zenodo.24371692](https://doi.org/10.5281/zenodo.24371692).
+resolves to the latest version. Each release also has a DOI of its own; 0.1.0-alpha.3's is
+[10.5281/zenodo.24448841](https://doi.org/10.5281/zenodo.24448841).
 
 ## Contributing and support
 

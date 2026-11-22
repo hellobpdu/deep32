@@ -10,7 +10,7 @@ identify, verify and cite this version. docs/release/RELEASE.json records the sa
 | Version | 0.1.0-alpha.3 |
 | Git tag | v0.1.0-alpha.3 |
 | Release date | 22 November 2026 |
-| Release DOI | Added after the release is archived; until then, cite the concept DOI |
+| Release DOI | 10.5281/zenodo.24448841 |
 | Concept DOI, all versions | 10.5281/zenodo.24272647 |
 | Signing key fingerprint | B205 B406 5486 27AA BF52  50D8 A078 C5F2 5D02 5DD6 |
 
