@@ -140,10 +140,10 @@ A locally served language model would need a card of its own; the Forge's card i
 
 ## 6. Hosts
 
-| Host | Workstation | Forge | Tested for alpha.2 |
+| Host | Workstation | Forge | Tested for alpha.3 |
 |---|---|---|---|
-| Windows 11 Pro, Enterprise or Education | Hyper-V | Docker Desktop with WSL 2 and NVIDIA GPU support, or Docker Engine in an Ubuntu 24.04 WSL 2 distro | Workstation not yet; Forge parts checked, full run after release |
-| Linux | KVM | Docker with the NVIDIA Container Toolkit | Yes: a KVM Workstation (Proxmox), an Ubuntu 24.04 headend; the Forge's parts checked, full run after release |
+| Windows 11 Pro, Enterprise or Education | Hyper-V | Docker Desktop with WSL 2 and NVIDIA GPU support, or Docker Engine in an Ubuntu 24.04 WSL 2 distro | Workstation not yet; Forge in an Ubuntu 24.04 WSL 2 distro with Docker Engine: install, pairing, both models and a restart (lab run); converter and removal not yet |
+| Linux | KVM | Docker with the NVIDIA Container Toolkit | Yes: a KVM Workstation (Proxmox) and an Ubuntu 24.04 headend with the Ask relay; the native Linux Forge's parts checked, full run not yet |
 | Windows 11 Home, VirtualBox, VMware, ESXi | VirtualBox, VMware Workstation or ESXi, with the setup wizard's VM guide; on Windows without Hyper-V the wizard writes the raw-image kit | Not supported in this release | Workstation not boot-tested yet on these |
 | macOS | Headend only | Headend only | Not yet |
 

@@ -142,6 +142,13 @@ how they get this release's skill.
 - At boot the Workstation lists `kiwix_serve(failed)` among its services until disc 2 is imported.
 - Behind a router whose DNS strips DNSSEC signatures from some answers, the Workstation's validating resolver can
   refuse the name that Let's Encrypt's service resolves to, and publishing the gateway fails with exit 14.
+- In my alpha.3 lab run, publishing the gateway while the disc 2 import was still installing the Library stopped twice
+  with exit 14 (`gateway-unverified`), although the gateway answered correctly when I checked it by hand. Once the
+  import had finished, `/usr/local/d32/sbin/d32-publish resume` completed. Publish after the import, or resume then.
+- Ask lists each citation as "not in the Library" and shows no Library links. The Library itself works; Ask, which runs as the desktop user, can't read which knowledge base is in use, so it never binds the Library's citation maps. This was already so in 0.1.0-alpha.2. Fixing it is the first item for 0.1.0-alpha.4.
+- In WSL, `sudo` drops `/usr/lib/wsl/lib`, where WSL keeps `nvidia-smi`, so a Forge install started with plain `sudo
+  bash` fails its GPU checks with exit 10. Start it with `sudo env "PATH=$PATH" bash ...` as
+  [INSTALL.md](INSTALL.md) shows.
 - A Forge in a WSL 2 distro shares the network stack of every other distro in that WSL VM. If another Docker engine
   there sets its `FORWARD` policy to `DROP`, traffic between the Forge's containers is dropped and its door reports
   unhealthy. Run one Docker engine per WSL VM, or add `DOCKER-USER` accept rules for the Forge's bridges.

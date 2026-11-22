@@ -55,9 +55,9 @@ page come from my development setup, which runs the same engine, models and corp
 
 | Part | In 0.1.0-alpha.3 |
 |---|---|
-| Workstation and content | Tested on a clean install: the guided install, first boot, Tailscale, the import of disc 2 and publishing the gateway. Disc 2 is the content image of 0.1.0-alpha.2, unchanged |
-| Your agent | Claude Code and Codex connect over MCP and answer from the corpus with checked quotations. Connect has paired a headend with a clean install of this release's Workstation: gateway authentication and all eleven tools passed |
-| Forge | Installs from the signed images on Linux, in WSL 2 and on Docker Desktop. I checked each of its parts on an RTX 2080 Ti; the full run on each kind of host is still to come |
+| Workstation and content | Tested on a clean install: the guided install, first boot, Tailscale, the import of disc 2 from the Internet Archive mirror and publishing the gateway. Disc 2 is the content image of 0.1.0-alpha.2, unchanged |
+| Your agent | Claude Code and Codex connect over MCP and answer from the corpus with checked quotations. In my lab run the Ask relay on a headend paired with a clean install of this release's Workstation and answered 17 test questions, the question modifiers included; the published gateway passed authentication and all eleven tools |
+| Forge | Installs from the signed images on Linux, in WSL 2 and on Docker Desktop. In my lab run it installed from the signed images in an Ubuntu 24.04 WSL 2 distro with Docker Engine on an RTX 2080 Ti, paired with the Workstation, served both models and came back after a stop. The PDF converter and removal weren't part of that run, so every host type still installs under an owner waiver |
 | Ask window | Pairs and keeps its link. A question asked in the Ask window on a Workstation is answered through the relay with Claude Code, with the model and strength you choose, and a conversation keeps its context for 15 minutes between questions |
 | `deep32 doctor` and `deep32 selftest` | On the images. doctor doesn't read the install record yet, and selftest has no signed reference values, so neither gives a useful result |
 

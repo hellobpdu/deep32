@@ -187,10 +187,17 @@ powershell -NoProfile -ExecutionPolicy Bypass -File install\deep32-setup.ps1 for
    release: `SHA256SUMS`, `SHA256SUMS.sig`, `MIRRORS.json`, `CAPABILITIES.json` and `FORGE-PREREQUISITES.json`. If you
    downloaded with `deep32-get`, they are already in `./deep32-downloads`, the signed files in its
    `.deep32-v0.1.0-alpha.3/revision-*` snapshot.
-2. Run the installer. On Linux or in WSL:
+2. Run the installer. On Linux:
 
    ```sh
    sudo bash src/release-tools/deep32-get.sh disc3 --gpu-class CLASS --install --journey J2 --data-root /opt/deep32 --from ./deep32-downloads
+   ```
+
+   In WSL, keep your `PATH`: WSL puts `nvidia-smi` in `/usr/lib/wsl/lib`, which `sudo` drops, and without it the
+   GPU checks fail with exit 10:
+
+   ```sh
+   sudo env "PATH=$PATH" bash src/release-tools/deep32-get.sh disc3 --gpu-class CLASS --install --journey J2 --data-root /opt/deep32 --from ./deep32-downloads
    ```
 
    On Windows, from an elevated PowerShell with Docker Desktop running:
@@ -209,7 +216,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File install\deep32-setup.ps1 for
    host check prints one line just before its result. On Ubuntu 24.04 for J2 it reads:
 
    ```text
-   Note: this host type is accepted for 0.1.0-alpha.2 under an owner waiver dated 2026-11-18 (recipe ubuntu-24.04-docker-engine-j2). I have not yet run a full install on it; FORGE-PREREQUISITES.json lists what was not run.
+   Note: this host type is accepted for 0.1.0-alpha.3 under an owner waiver dated 2026-11-18 (recipe ubuntu-24.04-docker-engine-j2). I have not yet run a full install on it; FORGE-PREREQUISITES.json lists what was not run.
    ```
 
    For J4 the recipe is `ubuntu-24.04-docker-engine-j4`, and on Windows `windows-11-docker-desktop-wsl2-j1`. The line

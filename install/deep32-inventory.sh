@@ -876,9 +876,11 @@ END {
         for(dkey in T) if(dkey~/^dk\.(CDIDevices|DiscoveredDevices)([.]|\[|$)/ &&
                 ((T[dkey]=="s" && V[dkey]~/^nvidia\.com\/gpu=[A-Za-z0-9_.:-]+$/) ||
                  dkey~/[.]nvidia\.com\/gpu=[A-Za-z0-9_.:-]+$/)) gpu=1
-        # The daemon reports containerd's revision only when it reaches containerd (a masked or stopped containerd
-        # still lets docker version and image loading work, but every container start fails).
-        ctr=(T["dk.ContainerdCommit.ID"]=="s" && V["dk.ContainerdCommit.ID"]!="" && V["dk.ContainerdCommit.ID"]!="N/A")
+        # The daemon reports "N/A" when it cannot reach containerd (a masked or stopped containerd still lets docker
+        # version and image loading work, but every container start fails); otherwise containerd's own revision,
+        # which is empty for Ubuntu 24.04's packaged containerd 2.2.1 (measured 2026-11-22: reachable {"ID":""},
+        # stopped {"ID":"N/A"}). So only "N/A" or no field means unreachable.
+        ctr=(T["dk.ContainerdCommit.ID"]=="s" && V["dk.ContainerdCommit.ID"]!="N/A")
         printf ",\"docker.local-context\":%s,\"docker.nvidia-runtime\":%s,\"docker.containerd\":%s",engine?"true":(JERR?"null":"false"),(engine&&gpu)?"true":(JERR?"null":"false"),(engine&&ctr)?"true":(JERR?"null":"false")
         exit
     }

@@ -218,14 +218,22 @@ class ForgeHostTest(unittest.TestCase):
             self.assertEqual('missing', checks[key]['state'])
 
     def test_unreachable_containerd_is_missing(self):
-        # The daemon reports containerd's revision only when it reaches containerd (a masked containerd.service).
+        # The daemon reports "N/A" when it cannot reach containerd (a masked or stopped containerd.service).
         config = {'OSType': 'linux', 'Runtimes': {'nvidia': {}}, 'DockerRootDir': '/synthetic/docker'}
-        for docker in (config, dict(config, ContainerdCommit={'ID': ''}), dict(config, ContainerdCommit={'ID': 'N/A'})):
+        for docker in (config, dict(config, ContainerdCommit={'ID': 'N/A'})):
             with self.subTest(docker=docker):
                 _, checks = self.assert_status(self.invoke(docker=docker), 10)
                 self.assertTrue(checks['docker.containerd']['required'])
                 self.assertEqual('missing', checks['docker.containerd']['state'])
                 self.assertEqual('met', checks['docker.server']['state'])
+
+    def test_reachable_containerd_without_revision_is_met(self):
+        # Ubuntu 24.04's packaged containerd 2.2.1 reports an empty revision while Docker reaches it (lab, 2026-11-22).
+        config = {'OSType': 'linux', 'Runtimes': {'nvidia': {}}, 'DockerRootDir': '/synthetic/docker',
+                  'ContainerdCommit': {'ID': ''}}
+        _, checks = self.assert_status(self.invoke(docker=config), 10)   # 10: the fixture leaves other checks open
+        self.assertEqual('met', checks['docker.containerd']['state'])
+        self.assertEqual('met', checks['docker.server']['state'])
 
     def test_absent_local_socket_never_queries_docker(self):
         _, checks = self.assert_status(self.invoke(has_socket=False), 10)
