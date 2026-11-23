@@ -30,6 +30,25 @@ def tls_context(server=False, identity=None):
         ctx.load_cert_chain(str(safe(identity.cert_path)),str(safe(identity.key_path)))
     return ctx
 
+def drain(sock, seconds=1.0, limit=65536):
+    """After an error frame: half-close, then read and drop what the peer still sends until it closes (at most
+    one second and 64 KiB). Closing with bytes still arriving resets the connection, and a reset can make the peer
+    lose the error frame before reading it, so a refusal would show as 'connection' instead of its reason."""
+    try:
+        sock.shutdown(socket.SHUT_WR)
+        end = time.monotonic()+seconds
+        while limit > 0:
+            left = end-time.monotonic()
+            if left <= 0:
+                return
+            sock.settimeout(left)
+            data = sock.recv(min(4096,limit))
+            if not data:
+                return
+            limit -= len(data)
+    except (OSError,ValueError):
+        pass
+
 class Channel:
     def __init__(self, sock, kind, window):
         self.sock,self.kind,self.window = sock,kind,window
@@ -51,7 +70,8 @@ class Channel:
             self.sock.settimeout(0.25)
             self.sock.sendall(wire.encode_frame(11,code.to_bytes(4,'big')))
         except OSError:
-            pass
+            return
+        drain(self.sock)
 
     def expect(self, type):
         left = self.window.remaining_seconds()

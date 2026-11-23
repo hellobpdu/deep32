@@ -171,6 +171,24 @@ class TestPairingE2E(Case):
         self.join(server,state='other')
         self.finished(t,box)
 
+    def test_E12_refusal_reaches_a_slow_joiner(self):
+        # The listener refuses and is done before the joiner sends its ack. The late ack must not reset the
+        # connection: a reset can drop the refusal before the joiner reads it, which then shows as 'connection'.
+        a = self.identity('a','forge')
+        b = self.identity('b','workstation')
+        store.save_record(self.root/'a',store.record('forge','joined',b.id,'workstation',b.pin,a.pin,'loopback',1700000000))
+        real = store.has_record
+        def slow(state, kind, role, peer):
+            if role == 'joiner':
+                time.sleep(0.3)
+            return real(state,kind,role,peer)
+        server,t,box = self.server()
+        with patch.object(store,'has_record',slow), self.assertRaises(NetError) as caught:
+            self.join(server)
+        self.assertEqual((caught.exception.exit_code,caught.exception.reason),(4,'peer-refused'))
+        self.join(server,state='other')
+        self.finished(t,box)
+
     def test_E13_bad_code_no_connection(self):
         with socket.socket() as listener:
             listener.bind(('127.0.0.1',0))
