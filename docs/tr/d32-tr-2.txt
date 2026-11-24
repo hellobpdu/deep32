@@ -1,0 +1,1008 @@
+
+
+
+
+Deep32 Technical Report                                   J. A. Cummings
+                                                                  Deep32
+                                                        24 November 2026
+
+
+  Deep32: Measured Retrieval, Research Behaviour and Answer Quality in
+                         Release 0.1.0-alpha.3
+                                D32-TR-2
+
+Abstract
+
+   D32-TR-1 described how Deep32 is built.  This report measures it.  It
+   covers release 0.1.0-alpha.3 and brings together three kinds of
+   evidence: the retrieval evaluation on 696 labelled questions, the
+   recorded telemetry of four research answers produced through the Ask
+   window, and a blind comparison of Deep32 with three general
+   assistants on three hard routing benchmarks.
+
+   In the blind comparison all four systems derived the core results
+   correctly.  Deep32, answering from its local corpus with web search
+   disabled, scored 272 of 300 against 276 for Claude with web research,
+   and its answers carried the most checkable evidence (71 of 75);
+   Gemini and ChatGPT scored 226 and 220.  The comparison is small and
+   its limits are stated with it.
+
+   Every number in this report is labelled by where it comes from: the
+   source code, a log or build record, a calculation on recorded values,
+   or the author's judgement.  Where the record is missing, the report
+   says so.  The limits of the evidence, and the evaluation still to be
+   run before a beta, are stated in full.
+
+Status of This Document
+
+   This is Deep32 Technical Report 2 (D32-TR-2), the measurement report
+   for Deep32 release 0.1.0-alpha.3, published by its author.  It is not
+   a product of the IETF or of any other standards body and has no
+   standing there.  It uses the RFC format to match D32-TR-1 [D32-TR-1].
+
+   Errors can be reported on the project's issue tracker.  This version
+   has not yet been deposited with a DOI.
+
+Copyright Notice
+
+   Copyright (C) 2026 Jeffrey A. Cummings.  This document is licensed
+   under the Creative Commons Attribution 4.0 International License (CC
+   BY 4.0).  Text quoted from RFCs remains subject to the IETF Trust's
+   Legal Provisions Relating to IETF Documents.
+
+
+
+
+Cummings                      Informational                     [Page 1]
+
+                           Deep32 Measurements             November 2026
+
+
+Table of Contents
+
+   1.  Introduction  . . . . . . . . . . . . . . . . . . . . . . . .   2
+     1.1.  How Evidence Is Labelled  . . . . . . . . . . . . . . . .   3
+     1.2.  Terminology . . . . . . . . . . . . . . . . . . . . . . .   3
+   2.  System Under Test . . . . . . . . . . . . . . . . . . . . . .   3
+   3.  Corpus  . . . . . . . . . . . . . . . . . . . . . . . . . . .   4
+   4.  Retrieval Quality . . . . . . . . . . . . . . . . . . . . . .   5
+   5.  How an Answer Is Researched . . . . . . . . . . . . . . . . .   6
+     5.1.  Time  . . . . . . . . . . . . . . . . . . . . . . . . . .   6
+     5.2.  What the Model Did  . . . . . . . . . . . . . . . . . . .   7
+     5.3.  Tokens and Context  . . . . . . . . . . . . . . . . . . .   8
+   6.  Answer Quality: A Blind Comparison  . . . . . . . . . . . . .   9
+     6.1.  Benchmarks  . . . . . . . . . . . . . . . . . . . . . . .   9
+     6.2.  Systems and Conditions  . . . . . . . . . . . . . . . . .  10
+     6.3.  Grading . . . . . . . . . . . . . . . . . . . . . . . . .  10
+     6.4.  Results . . . . . . . . . . . . . . . . . . . . . . . . .  11
+     6.5.  What Decided the Scores . . . . . . . . . . . . . . . . .  12
+     6.6.  Threats to Validity . . . . . . . . . . . . . . . . . . .  13
+   7.  Evidence in the Answers . . . . . . . . . . . . . . . . . . .  14
+     7.1.  One Answer in Detail  . . . . . . . . . . . . . . . . . .  14
+     7.2.  What "Verified" Means . . . . . . . . . . . . . . . . . .  14
+   8.  What the Code Enforces and What the Model Is Asked To Do  . .  14
+   9.  Limitations . . . . . . . . . . . . . . . . . . . . . . . . .  15
+   10. Evaluation Plan for the Beta  . . . . . . . . . . . . . . . .  16
+   11. Security Considerations . . . . . . . . . . . . . . . . . . .  17
+   12. IANA Considerations . . . . . . . . . . . . . . . . . . . . .  17
+   13. References  . . . . . . . . . . . . . . . . . . . . . . . . .  17
+     13.1.  Informative References . . . . . . . . . . . . . . . . .  17
+   Data and Provenance . . . . . . . . . . . . . . . . . . . . . . .  18
+   Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .  18
+
+1.  Introduction
+
+   Deep32 lets an agentic language model answer networking questions
+   from a local corpus of RFCs and vendor documentation, and check its
+   quotations against the stored text [D32-TR-1].  The design report
+   explains how.  Three questions remained open after it:
+
+   *  How well does the retrieval pipeline put the right passage in
+      front of the model?
+
+   *  What does the model actually do with eleven tools when it
+      researches a hard question?
+
+   *  Are the answers better than those of capable assistants that
+      search the open web?
+
+
+
+
+Cummings                      Informational                     [Page 2]
+
+                           Deep32 Measurements             November 2026
+
+
+   This report answers the first two with recorded measurements, and the
+   third with a blind comparison that is small and is described with its
+   limits.  Release 0.1.0-alpha.3 [DEEP32] is the system measured.
+
+1.1.  How Evidence Is Labelled
+
+   Each statement of fact carries one of four labels:
+
+   [Code]  Read from the source code or the shipped configuration of the
+      release.
+   [Record]  A value written by the system itself: a log, a build
+      report, a database count.
+   [Calc]  Arithmetic on recorded values; the method is given.
+   [Judgement]  The author's assessment, including the grading in
+      Section 6.
+
+1.2.  Terminology
+
+   Run  One question asked through the Ask window and answered, from
+      submission to the end of the answer.
+   Model request  One call from the headend to the hosted model.  A run
+      makes many.
+   Tool call  One call of one of the eleven Deep32 tools, such as
+      get_section or verify_quote.
+   Context  The tokens the headend sends with one model request:
+      instructions, tool definitions, the question and everything
+      researched so far in the run.
+   Headend  The program that runs the model for Ask: here, a relay on
+      the user's PC that starts the Codex app-server for each turn.
+
+2.  System Under Test
+
+   The measured deployment is release 0.1.0-alpha.3 at update sequence
+   4, on the three machines D32-TR-1 describes: the Workstation
+   (OpenBSD), which holds the corpus, the indexes, the engine, the
+   gateway and the Ask window; the Forge, a GPU host that computes query
+   embeddings and reranker scores; and the headend PC, which runs the
+   relay.  [Code]
+
+   Every tool call goes from the model, through the relay and the pinned
+   D32U/1 link, back to the Workstation's own gateway and engine.  The
+   PC holds no index.  [Code]
+
+   Changes since D32-TR-1 that bear on the measurements:
+
+   *  The top eight hits of a search now carry up to 3,200 characters of
+      text instead of 2,400.  [Code]
+
+
+
+
+Cummings                      Informational                     [Page 3]
+
+                           Deep32 Measurements             November 2026
+
+
+   *  The default answer depth caps its search rounds by search size:
+      Full 4, Half 5, Light 6, plus one batch of quotation checks.
+      D32-TR-1 described at most three rounds.  [Code]
+
+   *  The engine serves one search at a time with a queue of 16, behind
+      a first-in, first-out gate for the reranker.  [Code]
+
+   *  Quotations with omissions are checked part by part within one
+      section, each part at most 300 characters after the previous one.
+      [Code]
+
+   *  The Ask headend runs a fresh, isolated Codex app-server process
+      for every turn, read-only, with shell, web search and automatic
+      delegation to other agents disabled.  Before it serves any tool
+      call it checks the process's configuration, its feature flags, its
+      tool list (exactly eleven tools) and its model list.  [Code]
+
+   The hosted model in every measured run was gpt-6.2-sol.  One run used
+   the reasoning effort "max" and three used "ultra".  Because the
+   headend disables delegation, "ultra" runs at the same reasoning depth
+   as "max" in this setting.  [Code] [Record]
+
+3.  Corpus
+
+   The public knowledge-base generation of this release, d32kb-
+   20261115cr, holds the collections in Table 1.  [Record]
+
+         +====================+===========+========+============+
+         | Collection         | Documents | Chunks | Searched   |
+         +====================+===========+========+============+
+         | cisco              | 489       | 49,923 | by default |
+         +--------------------+-----------+--------+------------+
+         | rfc                | 365       | 12,041 | by default |
+         +--------------------+-----------+--------+------------+
+         | powershell         | 241       | 5,149  | when named |
+         +--------------------+-----------+--------+------------+
+         | system (Deep32's   | 85        | 695    | when named |
+         | own documentation) |           |        |            |
+         +--------------------+-----------+--------+------------+
+         | Total              | 1,180     | 67,808 |            |
+         +--------------------+-----------+--------+------------+
+
+                       Table 1: Public Collections
+
+
+
+
+
+
+
+
+Cummings                      Informational                     [Page 4]
+
+                           Deep32 Measurements             November 2026
+
+
+   The chunks hold about 24.9 million lexical tokens (a regular-
+   expression count, not a model tokenizer count) in 156,294 sections.
+   Side tables add the metadata of 9,858 RFCs, of which 9,493 are
+   metadata only; 1,235 errata over 282 RFCs; 2,374 IANA registry rows;
+   and a command-line index of 150,917 rows.  [Record]
+
+   The Cisco documents are 263 TechNotes, 126 configuration guides, 48
+   command references and 52 other documents. 91 carry an IOS XE 17.x
+   release, 11 a 26.x release, and 320 carry no release at all, 237 of
+   them TechNotes.  There are no exact duplicate documents; 4,361 chunks
+   share their text with another and are folded into one hit at query
+   time.  [Record]
+
+   A deployment can add its own local collections.  The measured
+   deployment had some; they are outside this report, and the four
+   measured answers cite only documents from the public collections
+   above.  [Record]
+
+4.  Retrieval Quality
+
+   The retrieval evaluation of D32-TR-1 is restated here because it
+   remains the strongest measurement of the system. 696 answerable
+   questions, each with its relevant passages labelled in the source
+   text, were run through the gateway on 2 November 2026, against the
+   release 0.1.0-alpha.2 design and an earlier corpus generation; it was
+   not repeated on the deployment measured in Section 5, which differs
+   in the width of the top hits, in serving one search at a time, and in
+   searching vectors exactly rather than through an approximate index.
+   Searches fuse a BM25 and a dense ranking by reciprocal rank fusion
+   [RRF] and rerank the first 15 candidates with a cross-encoder.  A
+   question is a hit at rank k when a labelled passage is among the
+   first k results.  [Record]
+
+     BM25 only    |###############################              71.0 %
+     Dense only   |##################################           78.3 %
+     Fused (RRF)  |###################################          82.2 %
+     Reranked     |#########################################    95.5 %
+                  +-------------------------------------------+
+                  0                                      100 %
+
+             Figure 1: Hit@1 by Pipeline Stage (696 Questions)
+
+
+
+
+
+
+
+
+
+
+Cummings                      Informational                     [Page 5]
+
+                           Deep32 Measurements             November 2026
+
+
+         +====================+========+========+===============+
+         | Pipeline           | Hit@1  | Hit@8  | Median search |
+         +====================+========+========+===============+
+         | BM25 only          | 71.0 % | 92.8 % | 125 ms        |
+         +--------------------+--------+--------+---------------+
+         | Dense only         | 78.3 % | 97.0 % | 122 ms        |
+         +--------------------+--------+--------+---------------+
+         | Fused              | 82.2 % | 98.3 % | 140 ms        |
+         +--------------------+--------+--------+---------------+
+         | Fused and reranked | 95.5 % | 99.1 % | 542 ms        |
+         +--------------------+--------+--------+---------------+
+
+                       Table 2: Retrieval by Stage
+
+   Paired over the 696 questions, reranking won 102 questions and lost 9
+   at rank 1, and won 6 and lost none in the top eight.  The mean
+   reciprocal rank at 10 rose from 0.882 to 0.970.  Of the 31 questions
+   still missed at rank 1, 7 had an answering passage that carried no
+   label, 21 were reranker misorderings, and 3 left the relevant passage
+   outside the reranker's first 15 candidates.  [Record]
+
+   Three limits apply.  The questions were written with a language model
+   and labelled from pooled results; two small blind audits agreed with
+   the labels on 22 of 27 and 15 of 16 items; and the 30 out-of-scope
+   questions of the set have no reported result.  Retrieval quality is
+   also not answer quality: a hit puts the right passage in front of the
+   model, and the answer can still misuse it.  [Record]
+
+5.  How an Answer Is Researched
+
+   Four runs were recorded on 23 November 2026: an introductory OSPF
+   question ("Explain OSPF from the ground up ...", with the modifiers
+   d, v, o and g) and Benchmarks 001 to 003 of Section 6.  The benchmark
+   answers were kept by hand; their link to the logged runs rests on run
+   order and the author's record.  The relay and the Codex app-server
+   logged every tool call, every turn's token use and, for the last run
+   in full, the context of every model request.  [Record]
+
+5.1.  Time
+
+   +==============+========+============+==========+=========+=========+
+   | Run          | Effort | Start to   | Research | Writing | Total   |
+   |              |        | first      |          |         |         |
+   |              |        | tool       |          |         |         |
+   +==============+========+============+==========+=========+=========+
+   | OSPF         | max    | 12.4 s     | 760 s    | 241 s   | 1,013.4 |
+   | introduction |        |            |          |         | s       |
+   +--------------+--------+------------+----------+---------+---------+
+
+
+
+Cummings                      Informational                     [Page 6]
+
+                           Deep32 Measurements             November 2026
+
+
+   | Benchmark    | ultra  | 10.5 s     | 301 s    | 147 s   | 458.5 s |
+   | 001          |        |            |          |         |         |
+   +--------------+--------+------------+----------+---------+---------+
+   | Benchmark    | ultra  | 7.9 s      | 378 s    | 182 s   | 567.9 s |
+   | 002          |        |            |          |         |         |
+   +--------------+--------+------------+----------+---------+---------+
+   | Benchmark    | ultra  | 7.8 s      | 282 s    | 206 s   | 495.8 s |
+   | 003          |        |            |          |         |         |
+   +--------------+--------+------------+----------+---------+---------+
+
+                         Table 3: Wall Time per Run
+
+   Research is the time from the first to the last tool call; writing is
+   the time from the last tool call to the end of the answer, and
+   includes the model's last reasoning.  The tools themselves account
+   for little of the research time: a section read took a median of 72
+   to 98 ms and a search 2.3 to 4.3 s, and in Benchmark 003 all code
+   cells together took 26.3 s of its 282 s of research.  Most of the
+   time is the model thinking between calls.  [Record] [Calc]
+
+5.2.  What the Model Did
+
+            +==============+============+======+======+======+
+            | Tool         | OSPF intro | B001 | B002 | B003 |
+            +==============+============+======+======+======+
+            | get_section  | 72         | 38   | 58   | 61   |
+            +--------------+------------+------+------+------+
+            | find_command | 22         | 21   | 26   | 11   |
+            +--------------+------------+------+------+------+
+            | verify_quote | 19         | 8    | 9    | 9    |
+            +--------------+------------+------+------+------+
+            | search_many  | 10         | 5    | 5    | 8    |
+            +--------------+------------+------+------+------+
+            | lookup_rfc   | 4          | 2    | 8    | 12   |
+            +--------------+------------+------+------+------+
+            | grep_corpus  | 4          | 2    | 5    | 2    |
+            +--------------+------------+------+------+------+
+            | lookup_id    | 2          | 3    | 4    | 2    |
+            +--------------+------------+------+------+------+
+            | get_outline  | 0          | 1    | 1    | 6    |
+            +--------------+------------+------+------+------+
+            | rag_status   | 2          | 1    | 3    | 2    |
+            +--------------+------------+------+------+------+
+            | Total        | 135        | 81   | 119  | 113  |
+            +--------------+------------+------+------+------+
+
+                       Table 4: Tool Calls per Run
+
+
+
+
+Cummings                      Informational                     [Page 7]
+
+                           Deep32 Measurements             November 2026
+
+
+   Reading whole sections dominates: 229 of the 448 calls, 51 %. The
+   model searches a few times, then reads the sections the searches
+   point to, checks every command it will print against the command
+   index at the pinned release, and checks its quotations.  Every call
+   returned HTTP 200 and the relay refused none.  Four calls returned a
+   tool-level error (two malformed quotation batches, one unknown
+   section, one RFC not in the corpus), and in each case the model
+   corrected its next call.  [Record]
+
+5.3.  Tokens and Context
+
+   +==============+==========+============+=====+=============+=======+
+   | Run          | Model    | Input      |Read | Output      |Largest|
+   |              | requests | tokens     |from | (reasoning) |context|
+   |              |          |            |cache|             |       |
+   +==============+==========+============+=====+=============+=======+
+   | OSPF         | 137      | 29,183,313 |98.9 | 37,921      |298,101|
+   | introduction |          |            |%    | (16,278)    |       |
+   +--------------+----------+------------+-----+-------------+-------+
+   | Benchmark    | 86       | 13,592,367 |98.4 | 14,819      |211,813|
+   | 001          |          |            |%    | (2,362)     |       |
+   +--------------+----------+------------+-----+-------------+-------+
+   | Benchmark    | 120      | 18,921,765 |98.8 | 19,053      |204,809|
+   | 002          |          |            |%    | (3,372)     |       |
+   +--------------+----------+------------+-----+-------------+-------+
+   | Benchmark    | 34       | 6,039,450  |95.9 | 19,507      |241,629|
+   | 003          |          |            |%    | (3,606)     |       |
+   +--------------+----------+------------+-----+-------------+-------+
+
+                         Table 5: Tokens per Run
+
+   Input reaches millions of tokens because every model request sends
+   the whole context again: about 100,000 tokens of instructions, tool
+   definitions and question, plus everything researched so far.
+   Benchmark 003, the one run whose log kept every request, shows it
+   directly: its 33 recorded contexts grew from 102,749 to 241,629
+   tokens and sum to 5,923,371, which is 98.1 % of its recorded input.
+   Almost all of that input is read from the provider's prompt cache,
+   because each request begins with the previous request's context.
+   [Record] [Calc]
+
+
+
+
+
+
+
+
+
+
+
+Cummings                      Informational                     [Page 8]
+
+                           Deep32 Measurements             November 2026
+
+
+     tokens
+      250k |                                #
+      200k |                #################
+      150k |        #########################
+      100k |#################################
+       50k |#################################
+           +---------------------------------
+            1       9       17      25      33
+            model request; 102,749 tokens at the first,
+            241,629 at the last
+
+             Figure 2: Context per Model Request, Benchmark 003
+
+   Benchmark 003 used less than half the input of Benchmark 001 although
+   it made more tool calls (113 against 81).  It sent 3.3 tool calls per
+   model request (3.4 per code cell), in parallel, where the other runs
+   sent about one, so it needed 34 requests where they needed 86 to 137.
+   The number of requests, more than the work done, decides the input.
+   [Record] [Calc]
+
+6.  Answer Quality: A Blind Comparison
+
+   Three benchmarks, written by the author, test whether an answer can
+   derive results from protocol rules rather than recall them.  Deep32
+   and three general assistants each answered all three once, and every
+   answer was graded blind against an answer key solved first from the
+   question and the standards.  [Judgement]
+
+6.1.  Benchmarks
+
+   Benchmark 001  OSPFv2 external route selection: five Type 5 LSAs for
+      one prefix at an ABR, with forwarding addresses, ASBR entries in
+      two areas and both settings of RFC1583Compatibility.  Eight
+      questions: eligibility, the selected route under each setting,
+      three variants, ECMP, the order of evaluation and verification
+      commands by layer [RFC2328].
+
+   Benchmark 002  BGP route-reflection oscillation: two route
+      reflectors, three exits in two neighbouring ASes, MED and IGP
+      cost.  Nine question groups: proof that no stable state exists,
+      the IGP-cost threshold at which one appears, always-compare-med,
+      four ADD-PATH cases, forwarding deflection, identical cluster IDs
+      and configuration [RFC4456].
+
+   Benchmark 003  An MPLS L3VPN escalation: overlapping routes in two
+
+
+
+
+
+
+Cummings                      Informational                     [Page 9]
+
+                           Deep32 Measurements             November 2026
+
+
+      VRFs, an OSPF sham link and backdoor, PE-CE domain IDs and the DN
+      bit, label traces through a failure and a micro-loop, a routing
+      feedback loop, and ten conflicting operator reports to reconcile
+      [RFC4364].
+
+6.2.  Systems and Conditions
+
+    +=========+====================================+=================+
+    | System  | Setting                            | Sources         |
+    +=========+====================================+=================+
+    | Deep32  | gpt-6.2-sol, effort ultra,         | Local corpus    |
+    | (Ask)   | modifiers d, v, o and g (recorded) | only; web       |
+    |         |                                    | search disabled |
+    +---------+------------------------------------+-----------------+
+    | Claude  | Opus 5.5, Extra, Research (as      | Open web        |
+    |         | selected)                          |                 |
+    +---------+------------------------------------+-----------------+
+    | ChatGPT | GPT-6 Pro, maximum, Deep Research  | Open web        |
+    |         | (as selected)                      |                 |
+    +---------+------------------------------------+-----------------+
+    | Gemini  | Gemini 4 Neon, High, Deep Research | Open web        |
+    |         | (as selected)                      |                 |
+    +---------+------------------------------------+-----------------+
+
+                        Table 6: The Four Systems
+
+   Only Deep32's settings are recorded by the system.  The settings of
+   the other three are those I selected in each application; the answers
+   show web use (links to RFC Editor, Cisco and community pages) but
+   carry no record of model or date.  The conditions are not matched:
+   the general assistants could search the whole web, and Deep32's
+   question carried four modifier sentences asking for deep research, a
+   long answer, verification steps and troubleshooting.  The comparison
+   is between systems as an engineer would use them, not between models.
+
+   The answers were captured as text: copied from Deep32, Claude and
+   ChatGPT, and converted from Gemini's PDF exports.  Two capture
+   effects matter.  ChatGPT's citations, links in its own interface,
+   survive in the copy only as opaque markers; and the PDF conversion
+   fused some of Gemini's footnote numbers into values and broke some
+   tables.
+
+6.3.  Grading
+
+   1.  Masking.  Each benchmark's four answers were given the letters A
+       to D in a different order, system names were replaced, and the
+       Deep32 question line was removed.  The key to the letters was
+       held apart from the graders.
+
+
+
+Cummings                      Informational                    [Page 10]
+
+                           Deep32 Measurements             November 2026
+
+
+   2.  Key first.  One grader per benchmark solved the benchmark from
+       its question alone, with the derivation, the governing rule and
+       its source line for each item, before opening any answer.
+
+   3.  Sources.  Facts could come only from the question, the RFC and
+       Cisco texts of the corpus (read as plain files, not through
+       Deep32), and arithmetic.  No web and no facts from memory: vendor
+       behaviour that those texts do not document was marked
+       unverifiable and neither rewarded nor penalised.
+
+   4.  Scoring.  Correctness 40 (agreement with the key), evidence 25
+       (primary, specific citations that say what the answer claims; at
+       least five spot-checked per answer against the texts),
+       completeness 15, caution 10 (assumptions, release qualification,
+       labelled inference) and clarity 10.
+
+   5.  Re-check.  The grader then tried to refute its own key on every
+       point where the answers differed.  No key item changed.
+
+   The graders were instances of Claude Opus 5.5 working from files;
+   Section 6.6 discusses what that implies.
+
+6.4.  Results
+
+         +=========+=====+=====+=====+============+==============+
+         | System  | 001 | 002 | 003 | Total /300 | Evidence /75 |
+         +=========+=====+=====+=====+============+==============+
+         | Claude  | 91  | 92  | 93  | 276        | 61           |
+         +---------+-----+-----+-----+------------+--------------+
+         | Deep32  | 92  | 91  | 89  | 272        | 71           |
+         +---------+-----+-----+-----+------------+--------------+
+         | Gemini  | 75  | 78  | 73  | 226        | 41           |
+         +---------+-----+-----+-----+------------+--------------+
+         | ChatGPT | 63  | 83  | 74  | 220        | 31           |
+         +---------+-----+-----+-----+------------+--------------+
+
+              Table 7: Blind Scores (out of 100 per Benchmark)
+
+     Claude   |##############################################     276
+     Deep32   |#############################################      272
+     Gemini   |######################################             226
+     ChatGPT  |#####################################              220
+              +--------------------------------------------------+
+              0                                               300
+
+             Figure 3: Total Blind Score over Three Benchmarks
+
+
+
+
+
+Cummings                      Informational                    [Page 11]
+
+                           Deep32 Measurements             November 2026
+
+
+        +===================+========+========+========+=========+
+        | Part (maximum)    | Claude | Deep32 | Gemini | ChatGPT |
+        +===================+========+========+========+=========+
+        | Correctness (120) | 115    | 113    | 107    | 106     |
+        +-------------------+--------+--------+--------+---------+
+        | Evidence (75)     | 61     | 71     | 41     | 31      |
+        +-------------------+--------+--------+--------+---------+
+        | Completeness (45) | 44     | 38     | 44     | 36      |
+        +-------------------+--------+--------+--------+---------+
+        | Caution (30)      | 29     | 27     | 19     | 23      |
+        +-------------------+--------+--------+--------+---------+
+        | Clarity (30)      | 27     | 23     | 15     | 24      |
+        +-------------------+--------+--------+--------+---------+
+
+         Table 8: Score by Part, Summed over the Three Benchmarks
+
+   Deep32 placed first on Benchmark 001, second on 002 by one point and
+   second on 003 by four.  On each benchmark the grader rated its
+   confidence in the order of the top two as low or moderate, and on 001
+   and 002 called them tied.  Claude and Deep32 lead the other two by
+   about 50 points.  [Judgement]
+
+6.5.  What Decided the Scores
+
+   All four systems got every core computed result right in all three
+   benchmarks: the eligible LSAs and selected routes of 001, the absence
+   of a stable state and the threshold of 002, the cost ranges, the TTL
+   trace of the micro-loop and the minimum set of false reports of 003.
+   None fell into the planted traps, such as using the reflector's
+   router ID in the tie-break of 002.  Correctness spans only nine
+   points of 120.  The scores were decided by evidence, by errors
+   outside the core results, and by completeness.  [Judgement]
+
+   Evidence.  Every citation the graders checked in a Deep32 answer, 10
+   to 16 per benchmark, matched the corpus text at the cited document
+   and lines; one in Benchmark 001 pointed at a neighbouring section.
+   Claude quoted RFC and Cisco text exactly by section, without line
+   numbers, and every checkable quotation matched; a few rested on
+   documents outside the corpus, such as RFC 3345.  Gemini mixed primary
+   sources with forums, blogs and links its export left as
+   "unknown_url".  ChatGPT's citations could not be resolved from the
+   text.  [Judgement]
+
+   Errors outside the core results, by system:
+
+
+
+
+
+
+
+Cummings                      Informational                    [Page 12]
+
+                           Deep32 Measurements             November 2026
+
+
+   *  Gemini: that disabling RFC1583Compatibility also changes the
+      summary-cost calculation (001); "MUST NOT" for the "should not
+      assume" of RFC 7911 (002); that RFC 4577 copies the MED into the
+      Type 3 metric (003); and a Cisco command's effect on DN-bit checks
+      stated from another platform's note (003).
+
+   *  ChatGPT: an ECMP rationale built on a wrong premise about the
+      associated area of external paths (001); a cycle summary that
+      skips a state (002); a wrong section number (003).
+
+   *  Claude: none affecting a result.  It was the only system to point
+      out that Benchmark 003 contains an equal-cost tie that contradicts
+      its own "no ECMP" premise.
+
+   *  Deep32: none affecting a result.  It lost points for configuration
+      given as templates, a thin treatment of the operational effects in
+      002, and leftovers of its working process in the answer text
+      ("Full search, deep mode.", "I'll verify ...").
+
+   Removing clarity from the totals leaves Claude and Deep32 at 249
+   each.  Removing evidence leaves Claude at 215 and Deep32 at 201:
+   Deep32's place at the top depends on its evidence, and its shortfall
+   against Claude is in completeness and clarity.  [Calc]
+
+6.6.  Threats to Validity
+
+   *  The graders are Claude models, and one of the systems compared is
+      Claude.  Names were masked, but style can identify a model.
+      Deep32's own model, gpt-6.2-sol, is not from Anthropic.
+
+   *  Evidence was checked against the RFC and Cisco texts that Deep32
+      indexes.  Answers that cite those texts by line are easier to
+      confirm, and web sources outside them could only be marked
+      unverifiable.  This favours Deep32's evidence score, although an
+      unverifiable source was not counted against an answer.
+
+   *  Capture lowered ChatGPT's evidence and Gemini's clarity scores
+      (Section 6.2).  Their totals should be read with that in mind;
+      their correctness and caution scores are not affected.
+
+   *  One grader per benchmark, one answer per system, three benchmarks.
+      There is no second grader and no measure of agreement.  A
+      difference of four points between the top two is within what a
+      second grader could reverse.
+
+   *  An earlier grading of the same twelve answers, done once with the
+      system names visible, placed all four within eight points with
+      Deep32 first.  It is superseded by this one and is not used.
+
+
+
+Cummings                      Informational                    [Page 13]
+
+                           Deep32 Measurements             November 2026
+
+
+7.  Evidence in the Answers
+
+7.1.  One Answer in Detail
+
+   The introductory OSPF answer (the first run) is the one whose full
+   text and full telemetry are both on record.  It cites 17 source
+   documents, all primary: four RFCs (2328 [RFC2328], 3101, 5340, 5838),
+   six Cisco configuration guides and command references pinned to the
+   Catalyst 9300 17.9 release, and seven Cisco TechNotes.  It carries
+   about 107 citations to a document and line range, and 18 quotations:
+   14 marked exact and 4 marked normalized, against 18 accepted
+   quotation-check calls.  Its last lines list every section it read.
+   [Record]
+
+   It also found a contradiction in Cisco's own guide: one passage gives
+   the OSPF reference bandwidth as "10" and another as 100 Mbps.  The
+   answer quoted both, preferred the default table and the command
+   reference, and told the reader how to check a live device.  [Record]
+
+7.2.  What "Verified" Means
+
+   verify_quote looks for the quotation in the stored source text of the
+   cited document: first verbatim and case-sensitive, inside the cited
+   section and then anywhere in the document; failing that, after
+   mapping typographic quotes and dashes and removing whitespace and
+   hyphen runs.  It returns where it matched, by section and source
+   line.  [Code]
+
+   A label of exact or normalized therefore proves that the words exist
+   in the source, and where.  It does not prove that the passage
+   supports the sentence it is attached to, and most claims in an answer
+   are paraphrases with a citation, which no mechanism checks for
+   support.  An optional script on the relay compares an answer's
+   quotations, RFC citations and specific values with what its tool
+   calls returned; it was off in the measured deployment.  [Code]
+   [Record]
+
+8.  What the Code Enforces and What the Model Is Asked To Do
+
+   Deep32 splits its guarantees between code and instructions.  The
+   split matters for any claim about answer quality, because instructed
+   behaviour depends on the model following it.
+
+
+
+
+
+
+
+
+
+Cummings                      Informational                    [Page 14]
+
+                           Deep32 Measurements             November 2026
+
+
+      +=====================================+=======================+
+      | Behaviour                           | How it is assured     |
+      +=====================================+=======================+
+      | Only the eleven read-only tools; no | Code (headend         |
+      | shell, web or delegation            | attestation)          |
+      +-------------------------------------+-----------------------+
+      | At most 300 tool calls and 3,600 s  | Code                  |
+      | per turn; 4 calls in flight         |                       |
+      +-------------------------------------+-----------------------+
+      | Hybrid search, reranking, tiers,    | Code                  |
+      | release filters, quotation matching |                       |
+      +-------------------------------------+-----------------------+
+      | Searching the corpus before         | Instruction           |
+      | answering; no answers from memory   |                       |
+      +-------------------------------------+-----------------------+
+      | Reading whole sections; checking    | Instruction           |
+      | every command at the pinned release |                       |
+      +-------------------------------------+-----------------------+
+      | Stopping rules for rounds; counter- | Instruction           |
+      | evidence searches; marking disputes |                       |
+      +-------------------------------------+-----------------------+
+      | Checking the corpus outline before  | Instruction           |
+      | writing "not in corpus"             |                       |
+      +-------------------------------------+-----------------------+
+      | Question modifiers such as d, v, o  | Instruction: each     |
+      | and g                               | adds a fixed sentence |
+      |                                     | to the question       |
+      +-------------------------------------+-----------------------+
+
+                 Table 9: Enforced and Instructed Behaviour
+
+   The four recorded runs show the instructions being followed: section
+   reads and command checks dominate the tool mix, and the one answer on
+   record quotes only what it checked.  Four runs do not show how often
+   a model departs from them.  [Record] [Judgement]
+
+9.  Limitations
+
+   *  The comparison in Section 6 is three benchmarks, one answer per
+      system, graded once.  It is evidence, not a ranking that would
+      survive a larger study.
+
+   *  The benchmark answers of the other systems were produced in their
+      own applications with web access; their models, settings and dates
+      were not recorded with the same care as Deep32's.
+
+
+
+
+
+
+Cummings                      Informational                    [Page 15]
+
+                           Deep32 Measurements             November 2026
+
+
+   *  No answer was tested on a router.  Correctness was judged against
+      an answer key derived from the questions' own data and the RFC and
+      Cisco texts of the corpus.
+
+   *  The relay does not keep question texts, answer texts, tool
+      arguments or the result of each quotation check.  The three
+      benchmark answers were kept by hand; their association with the
+      logged runs rests on run order and the author's record.
+
+   *  Codex keeps only its last 1,000 log rows per thread, so the per-
+      request record is complete for one run of four.
+
+   *  Release metadata is missing on 320 of 489 Cisco documents, mostly
+      TechNotes; release pinning cannot act on them.
+
+10.  Evaluation Plan for the Beta
+
+   The beta release waits on a claim-level evaluation designed to remove
+   the limits above:
+
+   *  40 to 60 held-out questions, stratified by kind (defaults and
+      timers, command syntax at a release, RFC against Cisco behaviour,
+      troubleshooting, design), each with a reference answer split into
+      atomic claims and their sources.
+
+   *  The same model and effort in every arm: Deep32; the same model
+      with no tools; the same model with plain dense retrieval over the
+      same chunks; and ablations of reranking, section reads and
+      quotation checks.
+
+   *  Scores for correctness, support of each claim by its cited
+      passage, citation precision, release qualification and calibrated
+      refusal; graded blind by two judges, with disagreements and a
+      random fifth adjudicated by a person.
+
+   *  Paired analysis by question with effect sizes and bootstrap
+      intervals; every question, answer, tool call and quotation result
+      kept with the run.
+
+   The gates set for the beta are at most 2 % fabricated claims, every
+   out-of-corpus probe refused, and every printed citation exact.
+
+
+
+
+
+
+
+
+
+
+Cummings                      Informational                    [Page 16]
+
+                           Deep32 Measurements             November 2026
+
+
+11.  Security Considerations
+
+   The hosted model sees the question, the retrieved passages and its
+   own reasoning; nothing else leaves the user's machines.  Retrieved
+   text can carry instructions; the tools mark it as data and the model
+   is told to treat it so, but a passage can still steer the model
+   within the eleven tools.  The measurements in this report were taken
+   from logs that hold no question or answer text, and local collections
+   outside the release are not described.
+
+12.  IANA Considerations
+
+   This document has no IANA actions.
+
+13.  References
+
+13.1.  Informative References
+
+   [D32-TR-1] Cummings, J. A., "Deep32: Design of a Local Retrieval
+              System for Agentic Network Research", Deep32 Technical
+              Report 1, DOI 10.5281/zenodo.24326998, November 2026,
+              <https://hellobpdu.github.io/deep32/tr/d32-tr-1.html>.
+
+   [DEEP32]   Cummings, J. A., "Deep32: Retrieval-augmented question
+              answering for network and security engineering", Version
+              0.1.0-alpha.3, 2026,
+              <https://github.com/hellobpdu/deep32>.
+
+   [RFC2328]  Moy, J., "OSPF Version 2", STD 54, RFC 2328,
+              DOI 10.17487/RFC2328, April 1998,
+              <https://www.rfc-editor.org/info/rfc2328>.
+
+   [RFC4364]  Rosen, E., "BGP/MPLS IP Virtual Private Networks (VPNs)",
+              RFC 4364, DOI 10.17487/RFC4364, February 2006,
+              <https://www.rfc-editor.org/info/rfc4364>.
+
+   [RFC4456]  Bates, T., "BGP Route Reflection: An Alternative to Full
+              Mesh Internal BGP (IBGP)", RFC 4456, DOI 10.17487/RFC4456,
+              April 2006, <https://www.rfc-editor.org/info/rfc4456>.
+
+   [RRF]      Cormack, G. V., "Reciprocal Rank Fusion Outperforms
+              Condorcet and Individual Rank Learning Methods", SIGIR
+              2009, 2009.
+
+
+
+
+
+
+
+
+Cummings                      Informational                    [Page 17]
+
+                           Deep32 Measurements             November 2026
+
+
+Data and Provenance
+
+   The run telemetry was read from the relay's call, usage and event
+   logs and from the Codex app-server's log database, all on the headend
+   PC, opened read-only.  The corpus figures come from the bundle
+   metadata, the build reports and database counts of the public
+   generation.  The retrieval figures are those of D32-TR-1, Section 13.
+   The per-run summary and the per-call timeline are published beside
+   this report in the data folder.
+
+Author's Address
+
+   Jeffrey A. Cummings
+   Deep32
+   Email: jacummings@acm.org
+   URI:   https://github.com/hellobpdu/deep32
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Cummings                      Informational                    [Page 18]

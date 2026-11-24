@@ -191,12 +191,42 @@
       </div>
     </section>
 
+    <section class="section win" aria-labelledby="measured-title">
+      <h2 id="measured-title" class="tb">Measured answers</h2>
+      <div class="pane">
+      <p class="sub">I gave Deep32 and three general assistants the same three hard routing problems, on OSPF external
+      routes, BGP route reflection and an MPLS VPN escalation, and had every answer graded blind against a key worked out
+      first from the RFCs and Cisco documents. Deep32 answered from its own corpus with web search off; the others
+      searched the web.</p>
+      <figure>
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="figures/tr2-compare-dark.svg">
+          <img src="figures/tr2-compare-light.svg" width="1000" height="316" loading="lazy" alt="Blind scores out of 300 over three benchmarks: Claude (Opus) 276 (91, 92, 93), Deep32 272 (92, 91, 89), Gemini 226 (75, 78, 73), ChatGPT 220 (63, 83, 74).">
+        </picture>
+        <figcaption><b>Figure 3.</b> Blind scores over three benchmarks. All four got the core results right; evidence,
+        completeness and caution decided the order. One answer per system and one grader per benchmark, so read the top
+        two as close to even.</figcaption>
+      </figure>
+      <figure>
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="figures/tr2-evidence-dark.svg">
+          <img src="figures/tr2-evidence-light.svg" width="1000" height="316" loading="lazy" alt="Evidence scores out of 75 from the same grading: Deep32 71 (23, 24, 24), Claude (Opus) 61 (19, 20, 22), Gemini 41 (14, 14, 13), ChatGPT 31 (5, 15, 11).">
+        </picture>
+        <figcaption><b>Figure 4.</b> The evidence part of the same grading: whether each cited passage exists and says
+        what the answer claims. <a href="tr/d32-tr-2.html">D32-TR-2</a> has the method, the telemetry of each run and
+        the limits of the comparison.</figcaption>
+      </figure>
+      </div>
+    </section>
+
     <section class="section win" aria-labelledby="more-title">
       <h2 id="more-title" class="tb">Read more</h2>
       <div class="pane">
       <div class="links-grid">
         <a class="link-card" href="tr/d32-tr-1.html"><strong>Technical report D32-TR-1</strong><span>The design in RFC form: corpus, retrieval, tools, deployment, release format and evaluation.</span></a>
         <a class="link-card" href="tr/d32-tr-1.pdf"><strong>D32-TR-1 as PDF</strong><span>The same report, printed from its HTML form.</span></a>
+        <a class="link-card" href="tr/d32-tr-2.html"><strong>Technical report D32-TR-2</strong><span>The measurements: retrieval quality, how an answer is researched, and a blind comparison with three general assistants.</span></a>
+        <a class="link-card" href="tr/d32-tr-2.pdf"><strong>D32-TR-2 as PDF</strong><span>The same report, printed from its HTML form, with its data files.</span></a>
         <a class="link-card" href="https://github.com/hellobpdu/deep32"><strong>Repository</strong><span>The source, the README and the full document set.</span></a>
         <a class="link-card" href="https://github.com/hellobpdu/deep32/releases/tag/v0.1.0-alpha.3"><strong>Release 0.1.0-alpha.3</strong><span>The signed checksum list and the signed index of mirrors.</span></a>
         <a class="link-card" href="https://github.com/hellobpdu/deep32/blob/main/CHANGELOG.md"><strong>Release notes</strong><span>What changed in each release, and the known issues.</span></a>
@@ -234,6 +264,7 @@
         <li><a href="https://github.com/hellobpdu/deep32/blob/main/docs/HARDWARE.md">Hardware</a></li>
         <li><a href="https://github.com/hellobpdu/deep32/blob/main/docs/OPTIONAL-FEATURES.md">Optional features</a></li>
         <li><a href="tr/d32-tr-1.html">Design</a></li>
+        <li><a href="tr/d32-tr-2.html">Measurements</a></li>
         <li><a href="https://github.com/hellobpdu/deep32/blob/main/docs/DECISIONS.md">Decision record</a></li>
         <li><a href="https://github.com/hellobpdu/deep32/blob/main/docs/contracts/README.md">Contracts</a></li>
         <li><a href="https://github.com/hellobpdu/deep32/blob/main/adapters/README.md">Agent adapters</a></li>

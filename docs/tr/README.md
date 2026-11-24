@@ -1,4 +1,6 @@
-# D32-TR-1: Deep32 design
+# Deep32 technical reports
+
+## D32-TR-1: Deep32 design
 
 The design reference for Deep32 0.1.0-alpha.2, written in the RFC format: the corpus and index format, the retrieval
 pipeline, the agent tools, the three parts of a deployment and the protocols between them, the signed release format,
@@ -16,6 +18,20 @@ This version of the report is archived on Zenodo as [10.5281/zenodo.24326998](ht
 The reasons behind each design choice, with the alternatives and measurements, are in the
 [Decision Record](../DECISIONS.md).
 
+## D32-TR-2: Deep32 measurements
+
+The measurement report for release 0.1.0-alpha.3: retrieval quality on 696 labelled questions, the recorded telemetry
+of four research answers (time, tool calls, tokens and context), and a blind comparison of Deep32 with three general
+assistants on three hard routing benchmarks, with its limits and the evaluation planned for the beta.
+
+| Form | File |
+|---|---|
+| HTML | [d32-tr-2.html](https://hellobpdu.github.io/deep32/tr/d32-tr-2.html) |
+| PDF | [d32-tr-2.pdf](d32-tr-2.pdf) |
+| Plain text | [d32-tr-2.txt](d32-tr-2.txt) |
+| Source (xml2rfc v3) | [d32-tr-2.xml](d32-tr-2.xml) |
+| Data | [data/](data/): per-run summary, per-call timeline, Benchmark 003 context series, comparison scores |
+
 ## Building
 
 The text and HTML forms are generated from the XML source with xml2rfc 3.35.0:
@@ -23,9 +39,10 @@ The text and HTML forms are generated from the XML source with xml2rfc 3.35.0:
 ```sh
 pip install xml2rfc==3.35.0
 xml2rfc --text --html d32-tr-1.xml
+xml2rfc --text --html d32-tr-2.xml
 ```
 
-The PDF is the HTML form printed by a browser.
+Each PDF is the HTML form printed by a browser.
 
 Copyright (C) 2026 Jeffrey A. Cummings. Licensed under CC BY 4.0.
 

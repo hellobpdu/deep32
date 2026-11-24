@@ -1,0 +1,11 @@
+{
+  "graded": "2026-11-24, blind, one key-first grader per benchmark, rubric correctness 40 / evidence 25 / completeness 15 / caution 10 / clarity 10",
+  "desc": "Totals: Claude (Opus) 276, Deep32 272, Gemini 226, ChatGPT 220. Deep32 answered from its local corpus with web search disabled; the other three used the open web.",
+  "desc_evidence": "Totals: Deep32 71, Claude (Opus) 61, Gemini 41, ChatGPT 31.",
+  "rows": [
+    {"system": "Claude (Opus)", "totals": [91, 92, 93], "evidence": [19, 20, 22], "correctness": [38, 39, 38], "completeness": [15, 15, 14], "caution": [10, 9, 10], "clarity": [9, 9, 9]},
+    {"system": "Deep32", "totals": [92, 91, 89], "evidence": [23, 24, 24], "correctness": [38, 38, 37], "completeness": [14, 12, 12], "caution": [9, 9, 9], "clarity": [8, 8, 7]},
+    {"system": "Gemini", "totals": [75, 78, 73], "evidence": [14, 14, 13], "correctness": [35, 37, 35], "completeness": [15, 15, 14], "caution": [6, 7, 6], "clarity": [5, 5, 5]},
+    {"system": "ChatGPT", "totals": [63, 83, 74], "evidence": [5, 15, 11], "correctness": [33, 37, 36], "completeness": [11, 13, 12], "caution": [6, 9, 8], "clarity": [8, 9, 7]}
+  ]
+}

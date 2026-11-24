@@ -27,7 +27,7 @@
 ```text
 Deep32                                                                        J. A. Cummings
 Release: 0.1.0-alpha.3                                                         November 2026
-Category: Experimental                                             Design document: D32-TR-1
+Category: Experimental                                           Reports: D32-TR-1, D32-TR-2
 ```
 
 ## Abstract
@@ -316,7 +316,7 @@ passage ranked well by both lists ends up near the top.
 The reranker is a second, slower model. It reads the question together with the whole list of candidates in one pass
 and scores how well each passage answers it, so a passage's score also depends on the other passages in that call.
 It's too slow to run over the whole corpus, so it only sees the top 15 of the fused list. It's the biggest gain in the
-pipeline, and also most of the search time (Figure 8).
+pipeline, and also most of the search time (Figure 9).
 
 | Stage | What happens | Setting |
 |---|---|---|
@@ -515,8 +515,8 @@ RFCs fall under the IETF Trust's provisions, and the Cisco documentation is Cisc
 ## 8. Evaluation
 
 So far I've measured retrieval: whether a labeled passage comes back, and at what rank. Apart from a six-question pilot
-of the answer grading in November, too small to show anything (DR-31), I haven't measured answer accuracy yet, and
-that's next. hit@1 is the share of questions whose top result is a labeled passage, one that answers the question or
+of the answer grading in November (DR-31) and the small blind comparison in [section 8.1](#81-answers-a-blind-comparison), I
+haven't measured answer accuracy yet; a claim-level evaluation is next. hit@1 is the share of questions whose top result is a labeled passage, one that answers the question or
 one that supports the answer, and hit@8 the share with one anywhere in the top 8. Counting only the passages that
 answer the question, 0.793 of the questions have one at rank 1 in the run below. The agent reads the top 8 in full, so
 hit@8 is close to a ceiling on what it can answer from the first search. It isn't a hard limit, because the agent can
@@ -575,6 +575,36 @@ values, so it can't score a run yet, and until it can, a public install has no c
 
 </details>
 
+### 8.1 Answers: a blind comparison
+
+I gave Deep32 and three general assistants (Claude, ChatGPT and Gemini, each in its research mode with web search) the
+same three hard routing problems: OSPF external route selection, BGP route-reflection oscillation and an MPLS L3VPN
+escalation. Deep32 answered through Ask with gpt-6.2-sol at effort ultra, from its own corpus with web search off. The
+answers were graded blind. With the names masked, a grader solved each problem first from the question and the RFC and
+Cisco texts, then scored the four answers on correctness (40), evidence (25), completeness (15), caution (10) and
+clarity (10), spot-checking citations against the texts.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/figures/tr2-compare-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="docs/figures/tr2-compare-light.svg">
+  <img alt="Blind scores out of 300 over three benchmarks: Claude (Opus) 276 (91, 92, 93), Deep32 272 (92, 91, 89), Gemini 226 (75, 78, 73), ChatGPT 220 (63, 83, 74)." src="docs/figures/tr2-compare-light.svg" width="100%">
+</picture>
+<p align="center"><sub><b>Figure 8.</b> Blind scores over three benchmarks, one answer per system, 23 and 24 November 2026.</sub></p>
+
+| Out of | Claude | Deep32 | Gemini | ChatGPT |
+|---|:---:|:---:|:---:|:---:|
+| Total (300) | **276** | 272 | 226 | 220 |
+| Correctness (120) | **115** | 113 | 107 | 106 |
+| Evidence (75) | 61 | **71** | 41 | 31 |
+| Completeness (45) | **44** | 38 | **44** | 36 |
+
+All four got every core result right, so the order comes from evidence, completeness and caution. Every citation the
+graders checked in a Deep32 answer matched the corpus text at the cited lines. Claude's answers were the most complete,
+and Claude was the only one to catch a flaw in one of the questions. Deep32 lost points for configuration left as
+templates and for working notes left in its answers. Three problems, one answer each and one grader per benchmark is a
+small sample, and the graders were Claude models, so I read the top two as even. [[D32-TR-2]](#references) has the
+method, the telemetry of each run and the threats to validity.
+
 ## 9. Hardware and performance
 
 I built and tested Deep32 on a 2013 Xeon without AVX2 and one consumer graphics card, which is close to the minimum.
@@ -586,7 +616,7 @@ card with 11 GB or more of memory. Supported cards and layouts are in [docs/HARD
   <source media="(prefers-color-scheme: light)" srcset="docs/figures/latency-light.svg">
   <img alt="Approximate timeline of a median reranked search: keyword leg about 125 ms and vector leg about 122 ms in parallel, fusion and folding to about 140 ms, reranking of the top 15 to about 542 ms." src="docs/figures/latency-light.svg" width="100%">
 </picture>
-<p align="center"><sub><b>Figure 8.</b> Where a median reranked search spends its time. Approximate, derived from the medians of separate runs.</sub></p>
+<p align="center"><sub><b>Figure 9.</b> Where a median reranked search spends its time. Approximate, derived from the medians of separate runs.</sub></p>
 
 Latency on my development setup, measured through the gateway with one client on 2 November 2026. A search leg takes
 about 125 ms including the gateway round trip, and the reranker adds about 400 ms.
@@ -674,8 +704,8 @@ non-commercial reference; Deep32 is free and is not affiliated with or endorsed 
     <td width="50%"><img alt="The Pinpointer search panel with the query ospf: a list of matching RFCs, Internet-Drafts and local glossary entries with scope, type and sort controls." src="docs/screenshots/library-search.png"></td>
   </tr>
   <tr>
-    <td><sub><b>Figure 9.</b> The Deep32 Library from the content image, open at Border Gateway Protocol (article text from Wikipedia, CC BY-SA 4.0).</sub></td>
-    <td><sub><b>Figure 10.</b> Pinpointer search for "ospf" across the RFCs, Internet-Drafts and the local glossary.</sub></td>
+    <td><sub><b>Figure 10.</b> The Deep32 Library from the content image, open at Border Gateway Protocol (article text from Wikipedia, CC BY-SA 4.0).</sub></td>
+    <td><sub><b>Figure 11.</b> Pinpointer search for "ospf" across the RFCs, Internet-Drafts and the local glossary.</sub></td>
   </tr>
 </table>
 
@@ -710,6 +740,7 @@ The key is on [keys.openpgp.org](https://keys.openpgp.org/search?q=B205B40654862
 - [x] Retrieval evaluation on a labeled question set
 - [x] Source release under Apache-2.0 (the parts that use MuPDF under AGPL-3.0-or-later), archived with a DOI
 - [x] Design document [D32-TR-1](docs/tr/README.md): architecture and verification method
+- [x] Measurement report [D32-TR-2](docs/tr/README.md): retrieval, research telemetry and a blind comparison of answers
 - [x] Signed images, one-command setup, pairing by short code and publication on your tailnet (0.1.0-alpha.2)
 - [ ] Full Forge acceptance on Linux, WSL 2 and Docker Desktop, with measured storage budgets
 - [x] Ask answers end to end, from the Ask window on a Workstation through the relay, with a choice of model and strength (0.1.0-alpha.2)
@@ -732,7 +763,8 @@ Deep32 will not do.
   false alarms per answer, and it can't see a wrong recommendation or inference at all.
 - Answers are limited to what the corpus covers: RFCs, Cisco documentation and, when asked for, Microsoft's
   PowerShell documentation. Other network vendors aren't in it.
-- Answer accuracy hasn't been measured yet, apart from a six-question pilot ([section 8](#8-evaluation)).
+- Answer accuracy has been measured only in a six-question pilot and in the three-problem blind comparison of
+  [section 8.1](#81-answers-a-blind-comparison); a claim-level evaluation comes before the beta.
 - A public install has no check of its own ranking until `deep32 selftest` gets its signed reference values.
 - The test set was generated with an LLM pipeline, and its labels have gaps: 7 of the 31 recorded misses at rank 1 were
   missing labels.
@@ -810,6 +842,7 @@ Docker Engine on Linux, Docker Engine inside an Ubuntu 24.04 WSL 2 distro, and D
 | [BM25] | Robertson, S. and H. Zaragoza, "The Probabilistic Relevance Framework: BM25 and Beyond", *Foundations and Trends in Information Retrieval* 3(4), 2009. |
 | [ColBERT] | Khattab, O. and M. Zaharia, "ColBERT: Efficient and Effective Passage Search via Contextualized Late Interaction over BERT", SIGIR 2020. |
 | [D32-TR-1] | Cummings, J. A., "Deep32: Design of a Local Retrieval System for Agentic Network Research", Deep32 Technical Report 1, November 2026, <https://hellobpdu.github.io/deep32/tr/d32-tr-1.html> ([PDF](docs/tr/d32-tr-1.pdf), [text](docs/tr/d32-tr-1.txt)). |
+| [D32-TR-2] | Cummings, J. A., "Deep32: Measured Retrieval, Research Behaviour and Answer Quality in Release 0.1.0-alpha.3", Deep32 Technical Report 2, November 2026, <https://hellobpdu.github.io/deep32/tr/d32-tr-2.html> ([PDF](docs/tr/d32-tr-2.pdf), [text](docs/tr/d32-tr-2.txt)). |
 | [MCP] | Model Context Protocol, specification, <https://modelcontextprotocol.io/specification>. |
 | [RAG] | Lewis, P. et al., "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks", NeurIPS 2020. |
 | [RFC4271] | Rekhter, Y., Ed., Li, T., Ed., and S. Hares, Ed., "A Border Gateway Protocol 4 (BGP-4)", RFC 4271, DOI 10.17487/RFC4271, January 2006. |
