@@ -24,8 +24,10 @@ Abstract
    correctly.  Deep32, answering from its local corpus with web search
    disabled, scored 272 of 300 against 276 for Claude with web research,
    and its answers carried the most checkable evidence (71 of 75);
-   Gemini and ChatGPT scored 226 and 220.  The comparison is small and
-   its limits are stated with it.
+   Gemini and ChatGPT scored 226 and 220.  A second rater put the top
+   two at 270 and 268.5 and differed from the first by 2.3 points per
+   answer on average.  The comparison is small and its limits are stated
+   with it.
 
    Every number in this report is labelled by where it comes from: the
    source code, a log or build record, a calculation on recorded values,
@@ -45,10 +47,8 @@ Status of This Document
 
 Copyright Notice
 
-   Copyright (C) 2026 Jeffrey A. Cummings.  This document is licensed
-   under the Creative Commons Attribution 4.0 International License (CC
-   BY 4.0).  Text quoted from RFCs remains subject to the IETF Trust's
-   Legal Provisions Relating to IETF Documents.
+
+
 
 
 
@@ -57,6 +57,11 @@ Cummings                      Informational                     [Page 1]
 
                            Deep32 Measurements             November 2026
 
+
+   Copyright (C) 2026 Jeffrey A. Cummings.  This document is licensed
+   under the Creative Commons Attribution 4.0 International License (CC
+   BY 4.0).  Text quoted from RFCs remains subject to the IETF Trust's
+   Legal Provisions Relating to IETF Documents.
 
 Table of Contents
 
@@ -75,20 +80,20 @@ Table of Contents
      6.2.  Systems and Conditions  . . . . . . . . . . . . . . . . .  10
      6.3.  Grading . . . . . . . . . . . . . . . . . . . . . . . . .  10
      6.4.  Results . . . . . . . . . . . . . . . . . . . . . . . . .  11
-     6.5.  What Decided the Scores . . . . . . . . . . . . . . . . .  12
-     6.6.  Threats to Validity . . . . . . . . . . . . . . . . . . .  13
+     6.5.  What Decided the Scores . . . . . . . . . . . . . . . . .  13
+     6.6.  Threats to Validity . . . . . . . . . . . . . . . . . . .  14
    7.  Evidence in the Answers . . . . . . . . . . . . . . . . . . .  14
-     7.1.  One Answer in Detail  . . . . . . . . . . . . . . . . . .  14
-     7.2.  What "Verified" Means . . . . . . . . . . . . . . . . . .  14
-   8.  What the Code Enforces and What the Model Is Asked To Do  . .  14
-   9.  Limitations . . . . . . . . . . . . . . . . . . . . . . . . .  15
-   10. Evaluation Plan for the Beta  . . . . . . . . . . . . . . . .  16
-   11. Security Considerations . . . . . . . . . . . . . . . . . . .  17
-   12. IANA Considerations . . . . . . . . . . . . . . . . . . . . .  17
-   13. References  . . . . . . . . . . . . . . . . . . . . . . . . .  17
-     13.1.  Informative References . . . . . . . . . . . . . . . . .  17
-   Data and Provenance . . . . . . . . . . . . . . . . . . . . . . .  18
-   Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .  18
+     7.1.  One Answer in Detail  . . . . . . . . . . . . . . . . . .  15
+     7.2.  What "Verified" Means . . . . . . . . . . . . . . . . . .  15
+   8.  What the Code Enforces and What the Model Is Asked To Do  . .  15
+   9.  Limitations . . . . . . . . . . . . . . . . . . . . . . . . .  16
+   10. Evaluation Plan for the Beta  . . . . . . . . . . . . . . . .  17
+   11. Security Considerations . . . . . . . . . . . . . . . . . . .  18
+   12. IANA Considerations . . . . . . . . . . . . . . . . . . . . .  18
+   13. References  . . . . . . . . . . . . . . . . . . . . . . . . .  18
+     13.1.  Informative References . . . . . . . . . . . . . . . . .  18
+   Data and Provenance . . . . . . . . . . . . . . . . . . . . . . .  19
+   Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .  19
 
 1.  Introduction
 
@@ -100,11 +105,6 @@ Table of Contents
    *  How well does the retrieval pipeline put the right passage in
       front of the model?
 
-   *  What does the model actually do with eleven tools when it
-      researches a hard question?
-
-   *  Are the answers better than those of capable assistants that
-      search the open web?
 
 
 
@@ -113,6 +113,12 @@ Cummings                      Informational                     [Page 2]
 
                            Deep32 Measurements             November 2026
 
+
+   *  What does the model actually do with eleven tools when it
+      researches a hard question?
+
+   *  Are the answers better than those of capable assistants that
+      search the open web?
 
    This report answers the first two with recorded measurements, and the
    third with a blind comparison that is small and is described with its
@@ -157,18 +163,17 @@ Cummings                      Informational                     [Page 2]
    D32U/1 link, back to the Workstation's own gateway and engine.  The
    PC holds no index.  [Code]
 
-   Changes since D32-TR-1 that bear on the measurements:
-
-   *  The top eight hits of a search now carry up to 3,200 characters of
-      text instead of 2,400.  [Code]
-
-
 
 
 Cummings                      Informational                     [Page 3]
 
                            Deep32 Measurements             November 2026
 
+
+   Changes since D32-TR-1 that bear on the measurements:
+
+   *  The top eight hits of a search now carry up to 3,200 characters of
+      text instead of 2,400.  [Code]
 
    *  The default answer depth caps its search rounds by search size:
       Full 4, Half 5, Light 6, plus one batch of quotation checks.
@@ -213,11 +218,6 @@ Cummings                      Informational                     [Page 3]
          +--------------------+-----------+--------+------------+
 
                        Table 1: Public Collections
-
-
-
-
-
 
 
 
@@ -475,8 +475,8 @@ Cummings                      Informational                     [Page 8]
    Three benchmarks, written by the author, test whether an answer can
    derive results from protocol rules rather than recall them.  Deep32
    and three general assistants each answered all three once, and every
-   answer was graded blind against an answer key solved first from the
-   question and the standards.  [Judgement]
+   answer was graded blind, by two raters, against an answer key solved
+   first from the question and the standards.  [Judgement]
 
 6.1.  Benchmarks
 
@@ -581,8 +581,16 @@ Cummings                      Informational                    [Page 10]
    5.  Re-check.  The grader then tried to refute its own key on every
        point where the answers differed.  No key item changed.
 
-   The graders were instances of Claude Opus 5.5 working from files;
-   Section 6.6 discusses what that implies.
+   6.  Second rater.  A second grader, a different model, then scored
+       the same masked answers on the same rubric against the same key,
+       without seeing the first scores, and was asked to show any key
+       item wrong from the RFC text.  It upheld every item.
+
+   The first raters were instances of Claude Opus 5.5 and the second
+   raters instances of Claude Mythos 5.2, all working from files;
+   Section 6.6 discusses what that implies.  Table 7, Table 8 and
+   Figure 3 give the first rater's scores, and Table 9 the second
+   rater's.
 
 6.4.  Results
 
@@ -600,14 +608,6 @@ Cummings                      Informational                    [Page 10]
 
               Table 7: Blind Scores (out of 100 per Benchmark)
 
-     Claude   |##############################################     276
-     Deep32   |#############################################      272
-     Gemini   |######################################             226
-     ChatGPT  |#####################################              220
-              +--------------------------------------------------+
-              0                                               300
-
-             Figure 3: Total Blind Score over Three Benchmarks
 
 
 
@@ -617,6 +617,15 @@ Cummings                      Informational                    [Page 11]
 
                            Deep32 Measurements             November 2026
 
+
+     Claude   |##############################################     276
+     Deep32   |#############################################      272
+     Gemini   |######################################             226
+     ChatGPT  |#####################################              220
+              +--------------------------------------------------+
+              0                                               300
+
+             Figure 3: Total Blind Score over Three Benchmarks
 
         +===================+========+========+========+=========+
         | Part (maximum)    | Claude | Deep32 | Gemini | ChatGPT |
@@ -639,6 +648,40 @@ Cummings                      Informational                    [Page 11]
    confidence in the order of the top two as low or moderate, and on 001
    and 002 called them tied.  Claude and Deep32 lead the other two by
    about 50 points.  [Judgement]
+
+   +=========+=====+======+=====+============+==========+=============+
+   | System  | 001 | 002  | 003 | Total /300 | Evidence | Mean of     |
+   |         |     |      |     |            | /75      | both totals |
+   +=========+=====+======+=====+============+==========+=============+
+   | Claude  | 91  | 89   | 90  | 270        | 56       | 273         |
+   +---------+-----+------+-----+------------+----------+-------------+
+   | Deep32  | 90  | 90.5 | 88  | 268.5      | 69       | 270.25      |
+   +---------+-----+------+-----+------------+----------+-------------+
+   | Gemini  | 76  | 77   | 73  | 226        | 40       | 226         |
+   +---------+-----+------+-----+------------+----------+-------------+
+   | ChatGPT | 67  | 74.5 | 70  | 211.5      | 25       | 215.75      |
+   +---------+-----+------+-----+------------+----------+-------------+
+
+                      Table 9: Second Rater's Scores
+
+
+
+
+
+
+Cummings                      Informational                    [Page 12]
+
+                           Deep32 Measurements             November 2026
+
+
+   Over the twelve answers the two raters differ by 2.3 points on
+   average and by 8.5 at most (ChatGPT on 002, where the second rater
+   gave less for citations that cannot be resolved).  Both raters put
+   Claude and Deep32 first and second on every benchmark and more than
+   40 points ahead of the other two in total.  The order of those two
+   differs between the raters on Benchmarks 001 and 002, and the second
+   rater has them 1.5 points apart.  Both raters give Deep32 the highest
+   evidence score.  [Judgement] [Calc]
 
 6.5.  What Decided the Scores
 
@@ -663,17 +706,6 @@ Cummings                      Informational                    [Page 11]
 
    Errors outside the core results, by system:
 
-
-
-
-
-
-
-Cummings                      Informational                    [Page 12]
-
-                           Deep32 Measurements             November 2026
-
-
    *  Gemini: that disabling RFC1583Compatibility also changes the
       summary-cost calculation (001); "MUST NOT" for the "should not
       assume" of RFC 7911 (002); that RFC 4577 copies the MED into the
@@ -688,6 +720,16 @@ Cummings                      Informational                    [Page 12]
       out that Benchmark 003 contains an equal-cost tie that contradicts
       its own "no ECMP" premise.
 
+
+
+
+
+
+Cummings                      Informational                    [Page 13]
+
+                           Deep32 Measurements             November 2026
+
+
    *  Deep32: none affecting a result.  It lost points for configuration
       given as templates, a thin treatment of the operational effects in
       002, and leftovers of its working process in the answer text
@@ -700,9 +742,13 @@ Cummings                      Informational                    [Page 12]
 
 6.6.  Threats to Validity
 
-   *  The graders are Claude models, and one of the systems compared is
+   *  Both raters are Claude models, and one of the systems compared is
       Claude.  Names were masked, but style can identify a model.
       Deep32's own model, gpt-6.2-sol, is not from Anthropic.
+
+   *  Masking was weaker for Deep32 than for the others: its answers end
+      with the list of sections read and cite corpus documents by key,
+      which a grader can recognise.
 
    *  Evidence was checked against the RFC and Cisco texts that Deep32
       indexes.  Answers that cite those texts by line are easier to
@@ -714,23 +760,31 @@ Cummings                      Informational                    [Page 12]
       (Section 6.2).  Their totals should be read with that in mind;
       their correctness and caution scores are not affected.
 
-   *  One grader per benchmark, one answer per system, three benchmarks.
-      There is no second grader and no measure of agreement.  A
-      difference of four points between the top two is within what a
-      second grader could reverse.
+   *  Two raters, one answer per system, three benchmarks.  The second
+      rater scored against the first rater's key, so the two are
+      independent in scoring and not in the key, and both are from one
+      model family.  The difference between the top two is smaller than
+      the difference between the raters.
 
    *  An earlier grading of the same twelve answers, done once with the
       system names visible, placed all four within eight points with
       Deep32 first.  It is superseded by this one and is not used.
 
+7.  Evidence in the Answers
 
 
-Cummings                      Informational                    [Page 13]
+
+
+
+
+
+
+
+
+Cummings                      Informational                    [Page 14]
 
                            Deep32 Measurements             November 2026
 
-
-7.  Evidence in the Answers
 
 7.1.  One Answer in Detail
 
@@ -781,7 +835,9 @@ Cummings                      Informational                    [Page 13]
 
 
 
-Cummings                      Informational                    [Page 14]
+
+
+Cummings                      Informational                    [Page 15]
 
                            Deep32 Measurements             November 2026
 
@@ -815,7 +871,7 @@ Cummings                      Informational                    [Page 14]
       |                                     | to the question       |
       +-------------------------------------+-----------------------+
 
-                 Table 9: Enforced and Instructed Behaviour
+                Table 10: Enforced and Instructed Behaviour
 
    The four recorded runs show the instructions being followed: section
    reads and command checks dominate the tool mix, and the one answer on
@@ -824,9 +880,9 @@ Cummings                      Informational                    [Page 14]
 
 9.  Limitations
 
-   *  The comparison in Section 6 is three benchmarks, one answer per
-      system, graded once.  It is evidence, not a ranking that would
-      survive a larger study.
+   *  The comparison in Section 6 is three benchmarks and one answer per
+      system, graded by two raters of one model family.  It is evidence,
+      not a ranking that would survive a larger study.
 
    *  The benchmark answers of the other systems were produced in their
       own applications with web access; their models, settings and dates
@@ -837,7 +893,7 @@ Cummings                      Informational                    [Page 14]
 
 
 
-Cummings                      Informational                    [Page 15]
+Cummings                      Informational                    [Page 16]
 
                            Deep32 Measurements             November 2026
 
@@ -893,7 +949,7 @@ Cummings                      Informational                    [Page 15]
 
 
 
-Cummings                      Informational                    [Page 16]
+Cummings                      Informational                    [Page 17]
 
                            Deep32 Measurements             November 2026
 
@@ -949,7 +1005,7 @@ Cummings                      Informational                    [Page 16]
 
 
 
-Cummings                      Informational                    [Page 17]
+Cummings                      Informational                    [Page 18]
 
                            Deep32 Measurements             November 2026
 
@@ -1005,4 +1061,4 @@ Author's Address
 
 
 
-Cummings                      Informational                    [Page 18]
+Cummings                      Informational                    [Page 19]

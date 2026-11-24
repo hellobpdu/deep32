@@ -23,8 +23,9 @@
       assistants on three hard routing benchmarks.</t>
       <t>In the blind comparison all four systems derived the core results correctly. Deep32, answering from its
       local corpus with web search disabled, scored 272 of 300 against 276 for Claude with web research, and its
-      answers carried the most checkable evidence (71 of 75); Gemini and ChatGPT scored 226 and 220. The comparison is
-      small and its limits are stated with it.</t>
+      answers carried the most checkable evidence (71 of 75); Gemini and ChatGPT scored 226 and 220. A second rater
+      put the top two at 270 and 268.5 and differed from the first by 2.3 points per answer on average. The comparison
+      is small and its limits are stated with it.</t>
       <t>Every number in this report is labelled by where it comes from: the source code, a log or build record, a
       calculation on recorded values, or the author's judgement. Where the record is missing, the report says so.
       The limits of the evidence, and the evaluation still to be run before a beta, are stated in full.</t>
@@ -260,7 +261,8 @@
       <name>Answer Quality: A Blind Comparison</name>
       <t>Three benchmarks, written by the author, test whether an answer can derive results from protocol rules
       rather than recall them. Deep32 and three general assistants each answered all three once, and every answer was
-      graded blind against an answer key solved first from the question and the standards. [Judgement]</t>
+      graded blind, by two raters, against an answer key solved first from the question and the standards.
+      [Judgement]</t>
       <section anchor="benchmarks">
         <name>Benchmarks</name>
         <dl newline="false" spacing="normal">
@@ -316,9 +318,14 @@
           caution 10 (assumptions, release qualification, labelled inference) and clarity 10.</li>
           <li>Re-check. The grader then tried to refute its own key on every point where the answers differed. No key
           item changed.</li>
+          <li>Second rater. A second grader, a different model, then scored the same masked answers on the same rubric
+          against the same key, without seeing the first scores, and was asked to show any key item wrong from the RFC
+          text. It upheld every item.</li>
         </ol>
-        <t>The graders were instances of Claude Opus 5.5 working from files; <xref target="validity"/> discusses what
-        that implies.</t>
+        <t>The first raters were instances of Claude Opus 5.5 and the second raters instances of Claude Mythos 5.2,
+        all working from files; <xref target="validity"/> discusses what that implies. <xref target="tab-results"/>, <xref target="tab-parts"/>
+        and <xref target="fig-results"/> give the first rater's scores, and <xref target="tab-second"/> the second
+        rater's.</t>
       </section>
       <section anchor="results">
         <name>Results</name>
@@ -357,6 +364,21 @@
         <t>Deep32 placed first on Benchmark 001, second on 002 by one point and second on 003 by four. On each
         benchmark the grader rated its confidence in the order of the top two as low or moderate, and on 001 and 002
         called them tied. Claude and Deep32 lead the other two by about 50 points. [Judgement]</t>
+        <table anchor="tab-second">
+          <name>Second Rater's Scores</name>
+          <thead><tr><th>System</th><th>001</th><th>002</th><th>003</th><th>Total /300</th><th>Evidence /75</th><th>Mean of both totals</th></tr></thead>
+          <tbody>
+            <tr><td>Claude</td><td>91</td><td>89</td><td>90</td><td>270</td><td>56</td><td>273</td></tr>
+            <tr><td>Deep32</td><td>90</td><td>90.5</td><td>88</td><td>268.5</td><td>69</td><td>270.25</td></tr>
+            <tr><td>Gemini</td><td>76</td><td>77</td><td>73</td><td>226</td><td>40</td><td>226</td></tr>
+            <tr><td>ChatGPT</td><td>67</td><td>74.5</td><td>70</td><td>211.5</td><td>25</td><td>215.75</td></tr>
+          </tbody>
+        </table>
+        <t>Over the twelve answers the two raters differ by 2.3 points on average and by 8.5 at most (ChatGPT on 002,
+        where the second rater gave less for citations that cannot be resolved). Both raters put Claude and Deep32
+        first and second on every benchmark and more than 40 points ahead of the other two in total. The order of
+        those two differs between the raters on Benchmarks 001 and 002, and the second rater has them 1.5 points
+        apart. Both raters give Deep32 the highest evidence score. [Judgement] [Calc]</t>
       </section>
       <section anchor="decided">
         <name>What Decided the Scores</name>
@@ -391,16 +413,18 @@
       <section anchor="validity">
         <name>Threats to Validity</name>
         <ul>
-          <li>The graders are Claude models, and one of the systems compared is Claude. Names were masked, but style
+          <li>Both raters are Claude models, and one of the systems compared is Claude. Names were masked, but style
           can identify a model. Deep32's own model, gpt-6.2-sol, is not from Anthropic.</li>
+          <li>Masking was weaker for Deep32 than for the others: its answers end with the list of sections read and
+          cite corpus documents by key, which a grader can recognise.</li>
           <li>Evidence was checked against the RFC and Cisco texts that Deep32 indexes. Answers that cite those texts
           by line are easier to confirm, and web sources outside them could only be marked unverifiable. This favours
           Deep32's evidence score, although an unverifiable source was not counted against an answer.</li>
           <li>Capture lowered ChatGPT's evidence and Gemini's clarity scores (<xref target="systems"/>). Their totals
           should be read with that in mind; their correctness and caution scores are not affected.</li>
-          <li>One grader per benchmark, one answer per system, three benchmarks. There is no second grader and no
-          measure of agreement. A difference of four points between the top two is within what a second grader could
-          reverse.</li>
+          <li>Two raters, one answer per system, three benchmarks. The second rater scored against the first
+          rater's key, so the two are independent in scoring and not in the key, and both are from one model family.
+          The difference between the top two is smaller than the difference between the raters.</li>
           <li>An earlier grading of the same twelve answers, done once with the system names visible, placed all four
           within eight points with Deep32 first. It is superseded by this one and is not used.</li>
         </ul>
@@ -460,8 +484,8 @@
     <section anchor="limits">
       <name>Limitations</name>
       <ul>
-        <li>The comparison in <xref target="blind"/> is three benchmarks, one answer per system, graded once. It is
-        evidence, not a ranking that would survive a larger study.</li>
+        <li>The comparison in <xref target="blind"/> is three benchmarks and one answer per system, graded by two
+        raters of one model family. It is evidence, not a ranking that would survive a larger study.</li>
         <li>The benchmark answers of the other systems were produced in their own applications with web access; their
         models, settings and dates were not recorded with the same care as Deep32's.</li>
         <li>No answer was tested on a router. Correctness was judged against an answer key derived from the

@@ -13,8 +13,9 @@
       assistants on three hard routing benchmarks. 
        In the blind comparison all four systems derived the core results correctly. Deep32, answering from its
       local corpus with web search disabled, scored 272 of 300 against 276 for Claude with web research, and its
-      answers carried the most checkable evidence (71 of 75); Gemini and ChatGPT scored 226 and 220. The comparison is
-      small and its limits are stated with it. 
+      answers carried the most checkable evidence (71 of 75); Gemini and ChatGPT scored 226 and 220. A second rater
+      put the top two at 270 and 268.5 and differed from the first by 2.3 points per answer on average. The comparison
+      is small and its limits are stated with it. 
        Every number in this report is labelled by where it comes from: the source code, a log or build record, a
       calculation on recorded values, or the author's judgement. Where the record is missing, the report says so.
       The limits of the evidence, and the evaluation still to be run before a beta, are stated in full. 
@@ -1270,8 +1271,9 @@ li > p:last-of-type:only-child {
       assistants on three hard routing benchmarks.<a href="#section-abstract-1" class="pilcrow">¶</a></p>
 <p id="section-abstract-2">In the blind comparison all four systems derived the core results correctly. Deep32, answering from its
       local corpus with web search disabled, scored 272 of 300 against 276 for Claude with web research, and its
-      answers carried the most checkable evidence (71 of 75); Gemini and ChatGPT scored 226 and 220. The comparison is
-      small and its limits are stated with it.<a href="#section-abstract-2" class="pilcrow">¶</a></p>
+      answers carried the most checkable evidence (71 of 75); Gemini and ChatGPT scored 226 and 220. A second rater
+      put the top two at 270 and 268.5 and differed from the first by 2.3 points per answer on average. The comparison
+      is small and its limits are stated with it.<a href="#section-abstract-2" class="pilcrow">¶</a></p>
 <p id="section-abstract-3">Every number in this report is labelled by where it comes from: the source code, a log or build record, a
       calculation on recorded values, or the author's judgement. Where the record is missing, the report says so.
       The limits of the evidence, and the evaluation still to be run before a beta, are stated in full.<a href="#section-abstract-3" class="pilcrow">¶</a></p>
@@ -1924,7 +1926,8 @@ li > p:last-of-type:only-child {
       </h2>
 <p id="section-6-1">Three benchmarks, written by the author, test whether an answer can derive results from protocol rules
       rather than recall them. Deep32 and three general assistants each answered all three once, and every answer was
-      graded blind against an answer key solved first from the question and the standards. [Judgement]<a href="#section-6-1" class="pilcrow">¶</a></p>
+      graded blind, by two raters, against an answer key solved first from the question and the standards.
+      [Judgement]<a href="#section-6-1" class="pilcrow">¶</a></p>
 <div id="benchmarks">
 <section id="section-6.1">
         <h3 id="name-benchmarks">
@@ -2032,9 +2035,15 @@ li > p:last-of-type:only-child {
           <li id="section-6.3-1.5">Re-check. The grader then tried to refute its own key on every point where the answers differed. No key
           item changed.<a href="#section-6.3-1.5" class="pilcrow">¶</a>
 </li>
+          <li id="section-6.3-1.6">Second rater. A second grader, a different model, then scored the same masked answers on the same rubric
+          against the same key, without seeing the first scores, and was asked to show any key item wrong from the RFC
+          text. It upheld every item.<a href="#section-6.3-1.6" class="pilcrow">¶</a>
+</li>
         </ol>
-<p id="section-6.3-2">The graders were instances of Claude Opus 5.5 working from files; <a href="#validity" class="auto internal xref">Section 6.6</a> discusses what
-        that implies.<a href="#section-6.3-2" class="pilcrow">¶</a></p>
+<p id="section-6.3-2">The first raters were instances of Claude Opus 5.5 and the second raters instances of Claude Mythos 5.2,
+        all working from files; <a href="#validity" class="auto internal xref">Section 6.6</a> discusses what that implies. <a href="#tab-results" class="auto internal xref">Table 7</a>, <a href="#tab-parts" class="auto internal xref">Table 8</a>
+        and <a href="#fig-results" class="auto internal xref">Figure 3</a> give the first rater's scores, and <a href="#tab-second" class="auto internal xref">Table 9</a> the second
+        rater's.<a href="#section-6.3-2" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="results">
@@ -2167,6 +2176,68 @@ li > p:last-of-type:only-child {
 <p id="section-6.4-4">Deep32 placed first on Benchmark 001, second on 002 by one point and second on 003 by four. On each
         benchmark the grader rated its confidence in the order of the top two as low or moderate, and on 001 and 002
         called them tied. Claude and Deep32 lead the other two by about 50 points. [Judgement]<a href="#section-6.4-4" class="pilcrow">¶</a></p>
+<span id="name-second-raters-scores"></span><div id="tab-second">
+<table class="center" id="table-9">
+          <caption>
+<a href="#table-9" class="selfRef">Table 9</a>:
+<a href="#name-second-raters-scores" class="selfRef">Second Rater's Scores</a>
+          </caption>
+<thead>
+            <tr>
+              <th class="text-left" rowspan="1" colspan="1">System</th>
+              <th class="text-left" rowspan="1" colspan="1">001</th>
+              <th class="text-left" rowspan="1" colspan="1">002</th>
+              <th class="text-left" rowspan="1" colspan="1">003</th>
+              <th class="text-left" rowspan="1" colspan="1">Total /300</th>
+              <th class="text-left" rowspan="1" colspan="1">Evidence /75</th>
+              <th class="text-left" rowspan="1" colspan="1">Mean of both totals</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Claude</td>
+              <td class="text-left" rowspan="1" colspan="1">91</td>
+              <td class="text-left" rowspan="1" colspan="1">89</td>
+              <td class="text-left" rowspan="1" colspan="1">90</td>
+              <td class="text-left" rowspan="1" colspan="1">270</td>
+              <td class="text-left" rowspan="1" colspan="1">56</td>
+              <td class="text-left" rowspan="1" colspan="1">273</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Deep32</td>
+              <td class="text-left" rowspan="1" colspan="1">90</td>
+              <td class="text-left" rowspan="1" colspan="1">90.5</td>
+              <td class="text-left" rowspan="1" colspan="1">88</td>
+              <td class="text-left" rowspan="1" colspan="1">268.5</td>
+              <td class="text-left" rowspan="1" colspan="1">69</td>
+              <td class="text-left" rowspan="1" colspan="1">270.25</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Gemini</td>
+              <td class="text-left" rowspan="1" colspan="1">76</td>
+              <td class="text-left" rowspan="1" colspan="1">77</td>
+              <td class="text-left" rowspan="1" colspan="1">73</td>
+              <td class="text-left" rowspan="1" colspan="1">226</td>
+              <td class="text-left" rowspan="1" colspan="1">40</td>
+              <td class="text-left" rowspan="1" colspan="1">226</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">ChatGPT</td>
+              <td class="text-left" rowspan="1" colspan="1">67</td>
+              <td class="text-left" rowspan="1" colspan="1">74.5</td>
+              <td class="text-left" rowspan="1" colspan="1">70</td>
+              <td class="text-left" rowspan="1" colspan="1">211.5</td>
+              <td class="text-left" rowspan="1" colspan="1">25</td>
+              <td class="text-left" rowspan="1" colspan="1">215.75</td>
+            </tr>
+          </tbody>
+        </table>
+</div>
+<p id="section-6.4-6">Over the twelve answers the two raters differ by 2.3 points on average and by 8.5 at most (ChatGPT on 002,
+        where the second rater gave less for citations that cannot be resolved). Both raters put Claude and Deep32
+        first and second on every benchmark and more than 40 points ahead of the other two in total. The order of
+        those two differs between the raters on Benchmarks 001 and 002, and the second rater has them 1.5 points
+        apart. Both raters give Deep32 the highest evidence score. [Judgement] [Calc]<a href="#section-6.4-6" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="decided">
@@ -2213,22 +2284,25 @@ li > p:last-of-type:only-child {
 <a href="#section-6.6" class="section-number selfRef">6.6. </a><a href="#name-threats-to-validity" class="section-name selfRef">Threats to Validity</a>
         </h3>
 <ul class="normal">
-<li class="normal" id="section-6.6-1.1">The graders are Claude models, and one of the systems compared is Claude. Names were masked, but style
+<li class="normal" id="section-6.6-1.1">Both raters are Claude models, and one of the systems compared is Claude. Names were masked, but style
           can identify a model. Deep32's own model, gpt-6.2-sol, is not from Anthropic.<a href="#section-6.6-1.1" class="pilcrow">¶</a>
 </li>
-          <li class="normal" id="section-6.6-1.2">Evidence was checked against the RFC and Cisco texts that Deep32 indexes. Answers that cite those texts
+          <li class="normal" id="section-6.6-1.2">Masking was weaker for Deep32 than for the others: its answers end with the list of sections read and
+          cite corpus documents by key, which a grader can recognise.<a href="#section-6.6-1.2" class="pilcrow">¶</a>
+</li>
+          <li class="normal" id="section-6.6-1.3">Evidence was checked against the RFC and Cisco texts that Deep32 indexes. Answers that cite those texts
           by line are easier to confirm, and web sources outside them could only be marked unverifiable. This favours
-          Deep32's evidence score, although an unverifiable source was not counted against an answer.<a href="#section-6.6-1.2" class="pilcrow">¶</a>
+          Deep32's evidence score, although an unverifiable source was not counted against an answer.<a href="#section-6.6-1.3" class="pilcrow">¶</a>
 </li>
-          <li class="normal" id="section-6.6-1.3">Capture lowered ChatGPT's evidence and Gemini's clarity scores (<a href="#systems" class="auto internal xref">Section 6.2</a>). Their totals
-          should be read with that in mind; their correctness and caution scores are not affected.<a href="#section-6.6-1.3" class="pilcrow">¶</a>
+          <li class="normal" id="section-6.6-1.4">Capture lowered ChatGPT's evidence and Gemini's clarity scores (<a href="#systems" class="auto internal xref">Section 6.2</a>). Their totals
+          should be read with that in mind; their correctness and caution scores are not affected.<a href="#section-6.6-1.4" class="pilcrow">¶</a>
 </li>
-          <li class="normal" id="section-6.6-1.4">One grader per benchmark, one answer per system, three benchmarks. There is no second grader and no
-          measure of agreement. A difference of four points between the top two is within what a second grader could
-          reverse.<a href="#section-6.6-1.4" class="pilcrow">¶</a>
+          <li class="normal" id="section-6.6-1.5">Two raters, one answer per system, three benchmarks. The second rater scored against the first
+          rater's key, so the two are independent in scoring and not in the key, and both are from one model family.
+          The difference between the top two is smaller than the difference between the raters.<a href="#section-6.6-1.5" class="pilcrow">¶</a>
 </li>
-          <li class="normal" id="section-6.6-1.5">An earlier grading of the same twelve answers, done once with the system names visible, placed all four
-          within eight points with Deep32 first. It is superseded by this one and is not used.<a href="#section-6.6-1.5" class="pilcrow">¶</a>
+          <li class="normal" id="section-6.6-1.6">An earlier grading of the same twelve answers, done once with the system names visible, placed all four
+          within eight points with Deep32 first. It is superseded by this one and is not used.<a href="#section-6.6-1.6" class="pilcrow">¶</a>
 </li>
         </ul>
 </section>
@@ -2281,9 +2355,9 @@ li > p:last-of-type:only-child {
 <p id="section-8-1">Deep32 splits its guarantees between code and instructions. The split matters for any claim about answer
       quality, because instructed behaviour depends on the model following it.<a href="#section-8-1" class="pilcrow">¶</a></p>
 <span id="name-enforced-and-instructed-beh"></span><div id="tab-enforced">
-<table class="center" id="table-9">
+<table class="center" id="table-10">
         <caption>
-<a href="#table-9" class="selfRef">Table 9</a>:
+<a href="#table-10" class="selfRef">Table 10</a>:
 <a href="#name-enforced-and-instructed-beh" class="selfRef">Enforced and Instructed Behaviour</a>
         </caption>
 <thead>
@@ -2339,8 +2413,8 @@ li > p:last-of-type:only-child {
 <a href="#section-9" class="section-number selfRef">9. </a><a href="#name-limitations" class="section-name selfRef">Limitations</a>
       </h2>
 <ul class="normal">
-<li class="normal" id="section-9-1.1">The comparison in <a href="#blind" class="auto internal xref">Section 6</a> is three benchmarks, one answer per system, graded once. It is
-        evidence, not a ranking that would survive a larger study.<a href="#section-9-1.1" class="pilcrow">¶</a>
+<li class="normal" id="section-9-1.1">The comparison in <a href="#blind" class="auto internal xref">Section 6</a> is three benchmarks and one answer per system, graded by two
+        raters of one model family. It is evidence, not a ranking that would survive a larger study.<a href="#section-9-1.1" class="pilcrow">¶</a>
 </li>
         <li class="normal" id="section-9-1.2">The benchmark answers of the other systems were produced in their own applications with web access; their
         models, settings and dates were not recorded with the same care as Deep32's.<a href="#section-9-1.2" class="pilcrow">¶</a>

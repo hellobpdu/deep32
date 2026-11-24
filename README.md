@@ -589,7 +589,7 @@ clarity (10), spot-checking citations against the texts.
   <source media="(prefers-color-scheme: light)" srcset="docs/figures/tr2-compare-light.svg">
   <img alt="Blind scores out of 300 over three benchmarks: Claude (Opus) 276 (91, 92, 93), Deep32 272 (92, 91, 89), Gemini 226 (75, 78, 73), ChatGPT 220 (63, 83, 74)." src="docs/figures/tr2-compare-light.svg" width="100%">
 </picture>
-<p align="center"><sub><b>Figure 8.</b> Blind scores over three benchmarks, one answer per system, 23 and 24 November 2026.</sub></p>
+<p align="center"><sub><b>Figure 8.</b> Blind scores over three benchmarks from the first of two raters, one answer per system, 23 and 24 November 2026.</sub></p>
 
 | Out of | Claude | Deep32 | Gemini | ChatGPT |
 |---|:---:|:---:|:---:|:---:|
@@ -601,8 +601,10 @@ clarity (10), spot-checking citations against the texts.
 All four got every core result right, so the order comes from evidence, completeness and caution. Every citation the
 graders checked in a Deep32 answer matched the corpus text at the cited lines. Claude's answers were the most complete,
 and Claude was the only one to catch a flaw in one of the questions. Deep32 lost points for configuration left as
-templates and for working notes left in its answers. Three problems, one answer each and one grader per benchmark is a
-small sample, and the graders were Claude models, so I read the top two as even. [[D32-TR-2]](#references) has the
+templates and for working notes left in its answers. A second rater, a different Claude model working
+from the same key without the first scores, put the top two at 270 and 268.5; the two raters differ by 2.3 points per
+answer on average. Three problems with one answer each is a small sample, and both raters were Claude models, so I
+read the top two as even. [[D32-TR-2]](#references) has the
 method, the telemetry of each run and the threats to validity.
 
 ## 9. Hardware and performance
