@@ -50,7 +50,7 @@ hosted, so the question, the queries the agent writes and the passages it gets b
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/figures/tr2-hero-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="docs/figures/tr2-hero-light.svg">
-  <img alt="Deep32 against three web-research assistants on three routing problems, scored by three graders. Checkable evidence out of 75 (Mythos 5.2, blind): Deep32 69, Claude 56, Gemini 40, ChatGPT 25. Total out of 300 from Mythos 5.2, blind: Deep32 268.5, Claude 270, Gemini 226, ChatGPT 211.5. From Opus 5.5, blind: Deep32 272, Claude 276, Gemini 226, ChatGPT 220. From GPT-6 with the names visible: Deep32 293, Claude 288, Gemini 290, ChatGPT 285. Deep32 answered from its local corpus with web search off; its headend model was gpt-6.2-sol at effort ultra." src="docs/figures/tr2-hero-light.svg" width="100%">
+  <img alt="Deep32 against three web-research assistants on three routing problems, scored by three graders. Checkable evidence out of 75 (Mythos 5.2, blind): Deep32 69, Claude 56, Gemini 40, ChatGPT 25. Total out of 300 from Mythos 5.2, blind: Deep32 268.5, Claude 270, Gemini 226, ChatGPT 211.5. From Opus 5.5, blind: Deep32 272, Claude 276, Gemini 226, ChatGPT 220. From GPT-6 with the names visible: Deep32 293, Claude 288, Gemini 290, ChatGPT 285. Minutes per answer: Deep32 8.5 measured, Claude about 10 to 15, Gemini about 30, ChatGPT about 5 to 10, the last three estimated. Deep32 answered from its local corpus with web search off; its headend model was gpt-6.2-sol at effort ultra." src="docs/figures/tr2-hero-light.svg" width="100%">
 </picture>
 <p align="center"><sub>Three hard routing problems, one answer per system, three graders. <a href="#81-answers-a-blind-comparison">Section 8.1</a> and <a href="https://hellobpdu.github.io/deep32/tr/d32-tr-2.html">D32-TR-2</a> have the method and its limits.</sub></p>
 
@@ -323,7 +323,7 @@ passage ranked well by both lists ends up near the top.
 The reranker is a second, slower model. It reads the question together with the whole list of candidates in one pass
 and scores how well each passage answers it, so a passage's score also depends on the other passages in that call.
 It's too slow to run over the whole corpus, so it only sees the top 15 of the fused list. It's the biggest gain in the
-pipeline, and also most of the search time (Figure 9).
+pipeline, and also most of the search time (Figure 10).
 
 | Stage | What happens | Setting |
 |---|---|---|
@@ -619,6 +619,20 @@ templates and for working notes left in its answers. The two blind raters differ
 and put Deep32 and Claude within 4 points of each other, in an order that changes between them on two of the three
 problems, so I read the top two as even. Deep32 is the only system that all three graders placed first or second.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/figures/tr2-speed-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="docs/figures/tr2-speed-light.svg">
+  <img alt="Headline blind score out of 300 against minutes per answer. Deep32: 268.5 points in 8.5 minutes, measured from its logs. Claude: 270 points in about 10 to 15 minutes, estimate. ChatGPT: 211.5 points in about 5 to 10 minutes, estimate. Gemini: 226 points in about 30 minutes, estimate." src="docs/figures/tr2-speed-light.svg" width="100%">
+</picture>
+<p align="center"><sub><b>Figure 9.</b> Headline score against minutes per answer. Deep32's times are measured; the others are my estimates of the same runs.</sub></p>
+
+Deep32 took 458.5, 567.9 and 495.8 seconds on the three problems, 8.5 minutes on average, measured from its logs. I
+didn't time the other three. From watching the runs, ChatGPT took about 5 to 10 minutes, Claude about 10 to 15 and
+Gemini about 30. Those estimates are rough. The vendors state 5 to 30 minutes for ChatGPT's deep research, 5 to 15 for
+most Claude Research reports and usually 5 to 10 for Gemini's Deep Research, longer for complex reports; none of them
+publishes a figure for a particular model and effort. On those numbers Deep32 answered about as fast as the fastest of
+the three and scored with the best.
+
 ChatGPT, a model from the same vendor as Deep32's headend, scored 57 points below Deep32 under the headline rater, most
 of it on evidence. They are different models with different instructions, so that gap is not a controlled measure of
 what the corpus and tools add; the matched-model evaluation planned for the beta is meant to measure it. Three problems
@@ -636,7 +650,7 @@ card with 11 GB or more of memory. Supported cards and layouts are in [docs/HARD
   <source media="(prefers-color-scheme: light)" srcset="docs/figures/latency-light.svg">
   <img alt="Approximate timeline of a median reranked search: keyword leg about 125 ms and vector leg about 122 ms in parallel, fusion and folding to about 140 ms, reranking of the top 15 to about 542 ms." src="docs/figures/latency-light.svg" width="100%">
 </picture>
-<p align="center"><sub><b>Figure 9.</b> Where a median reranked search spends its time. Approximate, derived from the medians of separate runs.</sub></p>
+<p align="center"><sub><b>Figure 10.</b> Where a median reranked search spends its time. Approximate, derived from the medians of separate runs.</sub></p>
 
 Latency on my development setup, measured through the gateway with one client on 2 November 2026. A search leg takes
 about 125 ms including the gateway round trip, and the reranker adds about 400 ms.
@@ -724,8 +738,8 @@ non-commercial reference; Deep32 is free and is not affiliated with or endorsed 
     <td width="50%"><img alt="The Pinpointer search panel with the query ospf: a list of matching RFCs, Internet-Drafts and local glossary entries with scope, type and sort controls." src="docs/screenshots/library-search.png"></td>
   </tr>
   <tr>
-    <td><sub><b>Figure 10.</b> The Deep32 Library from the content image, open at Border Gateway Protocol (article text from Wikipedia, CC BY-SA 4.0).</sub></td>
-    <td><sub><b>Figure 11.</b> Pinpointer search for "ospf" across the RFCs, Internet-Drafts and the local glossary.</sub></td>
+    <td><sub><b>Figure 11.</b> The Deep32 Library from the content image, open at Border Gateway Protocol (article text from Wikipedia, CC BY-SA 4.0).</sub></td>
+    <td><sub><b>Figure 12.</b> Pinpointer search for "ospf" across the RFCs, Internet-Drafts and the local glossary.</sub></td>
   </tr>
 </table>
 

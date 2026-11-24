@@ -202,20 +202,20 @@
       <figure>
         <picture>
           <source media="(prefers-color-scheme: dark)" srcset="figures/tr2-hero-dark.svg">
-          <img src="figures/tr2-hero-light.svg" width="1000" height="344" loading="lazy" alt="Deep32 against three web-research assistants on three routing problems, scored by three graders. Checkable evidence out of 75 (Mythos 5.2, blind): Deep32 69, Claude 56, Gemini 40, ChatGPT 25. Total out of 300 from Mythos 5.2, blind: Deep32 268.5, Claude 270, Gemini 226, ChatGPT 211.5. From Opus 5.5, blind: Deep32 272, Claude 276, Gemini 226, ChatGPT 220. From GPT-6 with the names visible: Deep32 293, Claude 288, Gemini 290, ChatGPT 285. Deep32 answered from its local corpus with web search off; its headend model was gpt-6.2-sol at effort ultra.">
+          <img src="figures/tr2-hero-light.svg" width="1000" height="362" loading="lazy" alt="Deep32 against three web-research assistants on three routing problems, scored by three graders. Checkable evidence out of 75 (Mythos 5.2, blind): Deep32 69, Claude 56, Gemini 40, ChatGPT 25. Total out of 300 from Mythos 5.2, blind: Deep32 268.5, Claude 270, Gemini 226, ChatGPT 211.5. From Opus 5.5, blind: Deep32 272, Claude 276, Gemini 226, ChatGPT 220. From GPT-6 with the names visible: Deep32 293, Claude 288, Gemini 290, ChatGPT 285. Minutes per answer: Deep32 8.5 measured, Claude about 10 to 15, Gemini about 30, ChatGPT about 5 to 10, the last three estimated. Deep32 answered from its local corpus with web search off; its headend model was gpt-6.2-sol at effort ultra.">
         </picture>
         <figcaption><b>Figure 3.</b> Evidence and total scores by grader. Deep32 is the only system that every grader
         placed first or second, and it leads on evidence under both blind graders. The top two are within 4 points
-        under either blind grader, so read them as even.</figcaption>
+        under either blind grader, so read them as even. The last column is time per answer.</figcaption>
       </figure>
       <figure>
         <picture>
-          <source media="(prefers-color-scheme: dark)" srcset="figures/tr2-compare-dark.svg">
-          <img src="figures/tr2-compare-light.svg" width="1000" height="316" loading="lazy" alt="Blind scores by benchmark from the headline rater, out of 300: Claude 270 (91, 89, 90), Deep32 268.5 (90, 90.5, 88), Gemini 226 (76, 77, 73), ChatGPT 211.5 (67, 74.5, 70).">
+          <source media="(prefers-color-scheme: dark)" srcset="figures/tr2-speed-dark.svg">
+          <img src="figures/tr2-speed-light.svg" width="1000" height="430" loading="lazy" alt="Headline blind score out of 300 against minutes per answer. Deep32: 268.5 points in 8.5 minutes, measured from its logs. Claude: 270 points in about 10 to 15 minutes, estimate. ChatGPT: 211.5 points in about 5 to 10 minutes, estimate. Gemini: 226 points in about 30 minutes, estimate.">
         </picture>
-        <figcaption><b>Figure 4.</b> The headline rater's scores by benchmark. All four got the core results right;
-        evidence, completeness and caution decided the order. <a href="tr/d32-tr-2.html">D32-TR-2</a> has the method,
-        the telemetry of each run and the limits of the comparison.</figcaption>
+        <figcaption><b>Figure 4.</b> Score against minutes per answer. Deep32's times are measured from its logs; the
+        others are my estimates of the same runs, which I didn't time. <a href="tr/d32-tr-2.html">D32-TR-2</a> has the
+        method, the telemetry of each run and the limits of the comparison.</figcaption>
       </figure>
       </div>
     </section>

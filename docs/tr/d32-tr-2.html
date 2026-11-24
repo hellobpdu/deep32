@@ -16,7 +16,8 @@
       headline rater against 270 for Claude with web research, and its answers carried the most checkable evidence
       (69 of 75); Gemini and ChatGPT scored 226 and 211.5. A second blind rater agreed within 2.3 points per answer,
       and an earlier grading with the names visible is listed beside them. Deep32 is the only system that every
-      grader placed first or second. The comparison is small and its limits are stated with it. 
+      grader placed first or second, and it answered in 8.5 minutes on average. The comparison is small and its
+      limits are stated with it. 
        Every number in this report is labelled by where it comes from: the source code, a log or build record, a
       calculation on recorded values, or the author's judgement. Where the record is missing, the report says so.
       The limits of the evidence, and the evaluation still to be run before a beta, are stated in full. 
@@ -1275,7 +1276,8 @@ li > p:last-of-type:only-child {
       headline rater against 270 for Claude with web research, and its answers carried the most checkable evidence
       (69 of 75); Gemini and ChatGPT scored 226 and 211.5. A second blind rater agreed within 2.3 points per answer,
       and an earlier grading with the names visible is listed beside them. Deep32 is the only system that every
-      grader placed first or second. The comparison is small and its limits are stated with it.<a href="#section-abstract-2" class="pilcrow">¶</a></p>
+      grader placed first or second, and it answered in 8.5 minutes on average. The comparison is small and its
+      limits are stated with it.<a href="#section-abstract-2" class="pilcrow">¶</a></p>
 <p id="section-abstract-3">Every number in this report is labelled by where it comes from: the source code, a log or build record, a
       calculation on recorded values, or the author's judgement. Where the record is missing, the report says so.
       The limits of the evidence, and the evaluation still to be run before a beta, are stated in full.<a href="#section-abstract-3" class="pilcrow">¶</a></p>
@@ -1360,7 +1362,10 @@ li > p:last-of-type:only-child {
                 <p id="section-toc.1-1.6.2.6.1"><a href="#section-6.6" class="auto internal xref">6.6</a>.  <a href="#name-the-headend-model" class="internal xref">The Headend Model</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.7">
-                <p id="section-toc.1-1.6.2.7.1"><a href="#section-6.7" class="auto internal xref">6.7</a>.  <a href="#name-threats-to-validity" class="internal xref">Threats to Validity</a></p>
+                <p id="section-toc.1-1.6.2.7.1"><a href="#section-6.7" class="auto internal xref">6.7</a>.  <a href="#name-time-to-answer" class="internal xref">Time to Answer</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.8">
+                <p id="section-toc.1-1.6.2.8.1"><a href="#section-6.8" class="auto internal xref">6.8</a>.  <a href="#name-threats-to-validity" class="internal xref">Threats to Validity</a></p>
 </li>
             </ul>
 </li>
@@ -2348,34 +2353,119 @@ li > p:last-of-type:only-child {
         [Calc] [Judgement]<a href="#section-6.6-2" class="pilcrow">¶</a></p>
 </section>
 </div>
-<div id="validity">
+<div id="speed">
 <section id="section-6.7">
+        <h3 id="name-time-to-answer">
+<a href="#section-6.7" class="section-number selfRef">6.7. </a><a href="#name-time-to-answer" class="section-name selfRef">Time to Answer</a>
+        </h3>
+<p id="section-6.7-1">Deep32's times are recorded (<a href="#tab-time" class="auto internal xref">Table 3</a>): 458.5, 567.9 and 495.8 seconds for the three
+        benchmarks, a mean of 507 seconds, or 8.5 minutes from submitting the question to the end of the answer. The
+        other systems' runs were not timed. The figures given for them are my estimates from watching the runs, and
+        they are rough. [Record] [Judgement]<a href="#section-6.7-1" class="pilcrow">¶</a></p>
+<span id="name-time-per-answer-and-headlin"></span><div id="tab-speed">
+<table class="center" id="table-11">
+          <caption>
+<a href="#table-11" class="selfRef">Table 11</a>:
+<a href="#name-time-per-answer-and-headlin" class="selfRef">Time per Answer and Headline Score</a>
+          </caption>
+<thead>
+            <tr>
+              <th class="text-left" rowspan="1" colspan="1">System</th>
+              <th class="text-left" rowspan="1" colspan="1">Time per answer</th>
+              <th class="text-left" rowspan="1" colspan="1">Vendor's stated time</th>
+              <th class="text-left" rowspan="1" colspan="1">Score /300</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Deep32</td>
+              <td class="text-left" rowspan="1" colspan="1">8.5 min, measured</td>
+              <td class="text-left" rowspan="1" colspan="1"></td>
+              <td class="text-left" rowspan="1" colspan="1">268.5</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">ChatGPT</td>
+              <td class="text-left" rowspan="1" colspan="1">about 5 to 10 min</td>
+              <td class="text-left" rowspan="1" colspan="1">5 to 30 min</td>
+              <td class="text-left" rowspan="1" colspan="1">211.5</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Claude</td>
+              <td class="text-left" rowspan="1" colspan="1">about 10 to 15 min</td>
+              <td class="text-left" rowspan="1" colspan="1">5 to 15 min, up to 45</td>
+              <td class="text-left" rowspan="1" colspan="1">270</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Gemini</td>
+              <td class="text-left" rowspan="1" colspan="1">about 30 min</td>
+              <td class="text-left" rowspan="1" colspan="1">5 to 10 min, or longer</td>
+              <td class="text-left" rowspan="1" colspan="1">226</td>
+            </tr>
+          </tbody>
+        </table>
+</div>
+<span id="name-headline-score-and-minutes-"></span><div id="fig-speed">
+<figure id="figure-4">
+          <div class="alignLeft art-ascii-art art-text artwork" id="section-6.7-3.1">
+<pre>
+                    0    5   10   15   20   25   30   35  min
+  Claude   270      |         ......
+  Deep32   268.5    |       ##
+  Gemini   226      |                             o
+  ChatGPT  211.5    |    ......
+
+  ## measured    ...... estimated range    o estimate
+</pre>
+</div>
+<figcaption><a href="#figure-4" class="selfRef">Figure 4</a>:
+<a href="#name-headline-score-and-minutes-" class="selfRef">Headline Score and Minutes per Answer</a>
+          </figcaption></figure>
+</div>
+<p id="section-6.7-4">The vendors' figures are those of OpenAI for deep research <span>[<a href="#OAI-DR" class="cite xref">OAI-DR</a>]</span>, of Anthropic for
+        Research, where most reports take 5 to 15 minutes <span>[<a href="#ANT-RES" class="cite xref">ANT-RES</a>]</span>, and of Google for Deep Research,
+        which usually takes 5 to 10 minutes and longer for complex reports <span>[<a href="#GOO-DR" class="cite xref">GOO-DR</a>]</span>. They describe
+        each research mode in general and predate the models used here. None of the
+        three publishes a time for a particular model and effort setting, so there is no published average to set
+        beside these runs. My estimates fall inside OpenAI's and Anthropic's ranges and above Google's usual figure,
+        which Google qualifies for complex reports.<a href="#section-6.7-4" class="pilcrow">¶</a></p>
+<p id="section-6.7-5">Read with those limits, Deep32 answered about as fast as the fastest system and scored with the best.
+        ChatGPT took a similar time and scored 57 points lower. Claude scored 1.5 points higher and, by my estimate,
+        took a few minutes longer. Gemini took about three times as long and scored 42.5 points lower. Deep32's time
+        is at effort ultra with deep search, and <a href="#time" class="auto internal xref">Section 5.1</a> shows that most of it is the model thinking
+        between tool calls. [Judgement]<a href="#section-6.7-5" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="validity">
+<section id="section-6.8">
         <h3 id="name-threats-to-validity">
-<a href="#section-6.7" class="section-number selfRef">6.7. </a><a href="#name-threats-to-validity" class="section-name selfRef">Threats to Validity</a>
+<a href="#section-6.8" class="section-number selfRef">6.8. </a><a href="#name-threats-to-validity" class="section-name selfRef">Threats to Validity</a>
         </h3>
 <ul class="normal">
-<li class="normal" id="section-6.7-1.1">Both blind raters are Claude models, and one of the systems compared is Claude. Names were masked, but
-          style can identify a model. Deep32's headend model, gpt-6.2-sol, is not from Anthropic.<a href="#section-6.7-1.1" class="pilcrow">¶</a>
+<li class="normal" id="section-6.8-1.1">Both blind raters are Claude models, and one of the systems compared is Claude. Names were masked, but
+          style can identify a model. Deep32's headend model, gpt-6.2-sol, is not from Anthropic.<a href="#section-6.8-1.1" class="pilcrow">¶</a>
 </li>
-          <li class="normal" id="section-6.7-1.2">Each family of grader placed first a system whose answers a model of its own vendor wrote: the Claude
+          <li class="normal" id="section-6.8-1.2">Each family of grader placed first a system whose answers a model of its own vendor wrote: the Claude
           raters placed Claude first, and the GPT grader placed Deep32 first. Only the blind raters scored against a
-          key.<a href="#section-6.7-1.2" class="pilcrow">¶</a>
+          key.<a href="#section-6.8-1.2" class="pilcrow">¶</a>
 </li>
-          <li class="normal" id="section-6.7-1.3">Masking was weaker for Deep32 than for the others: its answers end with the list of sections read and
-          cite corpus documents by key, which a rater can recognise.<a href="#section-6.7-1.3" class="pilcrow">¶</a>
+          <li class="normal" id="section-6.8-1.3">Masking was weaker for Deep32 than for the others: its answers end with the list of sections read and
+          cite corpus documents by key, which a rater can recognise.<a href="#section-6.8-1.3" class="pilcrow">¶</a>
 </li>
-          <li class="normal" id="section-6.7-1.4">Evidence was checked against the RFC and Cisco texts that Deep32 indexes. Answers that cite those texts
+          <li class="normal" id="section-6.8-1.4">Evidence was checked against the RFC and Cisco texts that Deep32 indexes. Answers that cite those texts
           by line are easier to confirm, and web sources outside them could only be marked unverifiable. This favours
-          Deep32's evidence score, although an unverifiable source was not counted against an answer.<a href="#section-6.7-1.4" class="pilcrow">¶</a>
+          Deep32's evidence score, although an unverifiable source was not counted against an answer.<a href="#section-6.8-1.4" class="pilcrow">¶</a>
 </li>
-          <li class="normal" id="section-6.7-1.5">Capture lowered ChatGPT's evidence and Gemini's clarity scores (<a href="#systems" class="auto internal xref">Section 6.2</a>). Their totals
-          should be read with that in mind; their correctness and caution scores are not affected.<a href="#section-6.7-1.5" class="pilcrow">¶</a>
+          <li class="normal" id="section-6.8-1.5">Capture lowered ChatGPT's evidence and Gemini's clarity scores (<a href="#systems" class="auto internal xref">Section 6.2</a>). Their totals
+          should be read with that in mind; their correctness and caution scores are not affected.<a href="#section-6.8-1.5" class="pilcrow">¶</a>
 </li>
-          <li class="normal" id="section-6.7-1.6">Two blind raters, one answer per system, three benchmarks. The second rater scored against the first
+          <li class="normal" id="section-6.8-1.6">Two blind raters, one answer per system, three benchmarks. The second rater scored against the first
           rater's key, so the two are independent in scoring and not in the key. The difference between the top two
-          is smaller than the difference between the raters.<a href="#section-6.7-1.6" class="pilcrow">¶</a>
+          is smaller than the difference between the raters.<a href="#section-6.8-1.6" class="pilcrow">¶</a>
 </li>
-          <li class="normal" id="section-6.7-1.7">Deep32's result is that of one headend model at one effort setting (<a href="#headend" class="auto internal xref">Section 6.6</a>).<a href="#section-6.7-1.7" class="pilcrow">¶</a>
+          <li class="normal" id="section-6.8-1.7">Deep32's result is that of one headend model at one effort setting (<a href="#headend" class="auto internal xref">Section 6.6</a>).<a href="#section-6.8-1.7" class="pilcrow">¶</a>
+</li>
+          <li class="normal" id="section-6.8-1.8">Only Deep32's answer times are measured. The other three are estimates
+          (<a href="#speed" class="auto internal xref">Section 6.7</a>).<a href="#section-6.8-1.8" class="pilcrow">¶</a>
 </li>
         </ul>
 </section>
@@ -2428,9 +2518,9 @@ li > p:last-of-type:only-child {
 <p id="section-8-1">Deep32 splits its guarantees between code and instructions. The split matters for any claim about answer
       quality, because instructed behaviour depends on the model following it.<a href="#section-8-1" class="pilcrow">¶</a></p>
 <span id="name-enforced-and-instructed-beh"></span><div id="tab-enforced">
-<table class="center" id="table-11">
+<table class="center" id="table-12">
         <caption>
-<a href="#table-11" class="selfRef">Table 11</a>:
+<a href="#table-12" class="selfRef">Table 12</a>:
 <a href="#name-enforced-and-instructed-beh" class="selfRef">Enforced and Instructed Behaviour</a>
         </caption>
 <thead>
@@ -2563,6 +2653,10 @@ li > p:last-of-type:only-child {
 <a href="#section-13.1" class="section-number selfRef">13.1. </a><a href="#name-informative-references" class="section-name selfRef">Informative References</a>
         </h3>
 <dl class="references">
+<dt id="ANT-RES">[ANT-RES]</dt>
+        <dd>
+<span class="refAuthor">Anthropic</span>, <span class="refTitle">"Claude can now connect to your world"</span>, <time datetime="2025-05" class="refDate">May 2025</time>, <span>&lt;<a href="https://www.anthropic.com/news/integrations">https://www.anthropic.com/news/integrations</a>&gt;</span>. </dd>
+<dd class="break"></dd>
 <dt id="D32-TR-1">[D32-TR-1]</dt>
         <dd>
 <span class="refAuthor">Cummings, J. A.</span>, <span class="refTitle">"Deep32: Design of a Local Retrieval System for Agentic Network Research"</span>, <span class="refContent">Deep32 Technical Report 1</span>, <span class="seriesInfo">DOI 10.5281/zenodo.24326998</span>, <time datetime="2026-11" class="refDate">November 2026</time>, <span>&lt;<a href="https://hellobpdu.github.io/deep32/tr/d32-tr-1.html">https://hellobpdu.github.io/deep32/tr/d32-tr-1.html</a>&gt;</span>. </dd>
@@ -2570,6 +2664,14 @@ li > p:last-of-type:only-child {
 <dt id="DEEP32">[DEEP32]</dt>
         <dd>
 <span class="refAuthor">Cummings, J. A.</span>, <span class="refTitle">"Deep32: Retrieval-augmented question answering for network and security engineering"</span>, <span class="refContent">Version 0.1.0-alpha.3</span>, <time datetime="2026" class="refDate">2026</time>, <span>&lt;<a href="https://github.com/hellobpdu/deep32">https://github.com/hellobpdu/deep32</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="GOO-DR">[GOO-DR]</dt>
+        <dd>
+<span class="refAuthor">Google</span>, <span class="refTitle">"Use Deep Research in Gemini Apps"</span>, <span class="refContent">Gemini Apps Help, read 24 November 2026</span>, <time datetime="2026" class="refDate">2026</time>, <span>&lt;<a href="https://support.google.com/gemini/answer/15719111">https://support.google.com/gemini/answer/15719111</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="OAI-DR">[OAI-DR]</dt>
+        <dd>
+<span class="refAuthor">OpenAI</span>, <span class="refTitle">"Introducing deep research"</span>, <time datetime="2025-02" class="refDate">February 2025</time>, <span>&lt;<a href="https://openai.com/index/introducing-deep-research/">https://openai.com/index/introducing-deep-research/</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="RFC2328">[RFC2328]</dt>
         <dd>

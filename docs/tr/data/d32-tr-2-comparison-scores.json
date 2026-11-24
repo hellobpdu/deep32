@@ -84,6 +84,20 @@
      99,
      96
     ]
+   },
+   "time_per_answer": {
+    "basis": "measured",
+    "seconds": [
+     458.532,
+     567.893,
+     495.826
+    ],
+    "minutes": [
+     7.64,
+     9.46,
+     8.26
+    ],
+    "mean_minutes": 8.46
    }
   },
   {
@@ -157,6 +171,13 @@
      97,
      97,
      94
+    ]
+   },
+   "time_per_answer": {
+    "basis": "author estimate, not recorded",
+    "minutes_range": [
+     10,
+     15
     ]
    }
   },
@@ -232,6 +253,10 @@
      97,
      95
     ]
+   },
+   "time_per_answer": {
+    "basis": "author estimate, not recorded",
+    "minutes_about": 30
    }
   },
   {
@@ -306,6 +331,13 @@
      97,
      92
     ]
+   },
+   "time_per_answer": {
+    "basis": "author estimate, not recorded",
+    "minutes_range": [
+     5,
+     10
+    ]
    }
   }
  ],
@@ -313,5 +345,11 @@
   "mythos_opus": 2.33,
   "mythos_gpt6": 15.0,
   "opus_gpt6": 13.5
+ },
+ "vendor_stated_research_time": {
+  "ChatGPT deep research": "5 to 30 minutes (OpenAI, Introducing deep research, February 2025)",
+  "Claude Research": "most reports 5 to 15 minutes, up to 45 (Anthropic, Claude can now connect to your world, May 2025)",
+  "Gemini Deep Research": "usually about 5-10 minutes, longer for complex reports (Google, Gemini Apps Help)",
+  "note": "product-level statements; none is specific to a model or effort setting"
  }
 }

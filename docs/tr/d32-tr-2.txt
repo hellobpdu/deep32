@@ -28,8 +28,9 @@ Abstract
    75); Gemini and ChatGPT scored 226 and 211.5.  A second blind rater
    agreed within 2.3 points per answer, and an earlier grading with the
    names visible is listed beside them.  Deep32 is the only system that
-   every grader placed first or second.  The comparison is small and its
-   limits are stated with it.
+   every grader placed first or second, and it answered in 8.5 minutes
+   on average.  The comparison is small and its limits are stated with
+   it.
 
    Every number in this report is labelled by where it comes from: the
    source code, a log or build record, a calculation on recorded values,
@@ -48,7 +49,6 @@ Status of This Document
    has not yet been deposited with a DOI.
 
 Copyright Notice
-
 
 
 
@@ -82,19 +82,20 @@ Table of Contents
      6.4.  Results . . . . . . . . . . . . . . . . . . . . . . . . .  11
      6.5.  What Decided the Scores . . . . . . . . . . . . . . . . .  14
      6.6.  The Headend Model . . . . . . . . . . . . . . . . . . . .  15
-     6.7.  Threats to Validity . . . . . . . . . . . . . . . . . . .  15
-   7.  Evidence in the Answers . . . . . . . . . . . . . . . . . . .  16
-     7.1.  One Answer in Detail  . . . . . . . . . . . . . . . . . .  16
-     7.2.  What "Verified" Means . . . . . . . . . . . . . . . . . .  16
-   8.  What the Code Enforces and What the Model Is Asked To Do  . .  16
-   9.  Limitations . . . . . . . . . . . . . . . . . . . . . . . . .  17
-   10. Evaluation Plan for the Beta  . . . . . . . . . . . . . . . .  18
-   11. Security Considerations . . . . . . . . . . . . . . . . . . .  19
-   12. IANA Considerations . . . . . . . . . . . . . . . . . . . . .  19
-   13. References  . . . . . . . . . . . . . . . . . . . . . . . . .  19
-     13.1.  Informative References . . . . . . . . . . . . . . . . .  19
-   Data and Provenance . . . . . . . . . . . . . . . . . . . . . . .  20
-   Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .  20
+     6.7.  Time to Answer  . . . . . . . . . . . . . . . . . . . . .  15
+     6.8.  Threats to Validity . . . . . . . . . . . . . . . . . . .  16
+   7.  Evidence in the Answers . . . . . . . . . . . . . . . . . . .  17
+     7.1.  One Answer in Detail  . . . . . . . . . . . . . . . . . .  17
+     7.2.  What "Verified" Means . . . . . . . . . . . . . . . . . .  17
+   8.  What the Code Enforces and What the Model Is Asked To Do  . .  18
+   9.  Limitations . . . . . . . . . . . . . . . . . . . . . . . . .  19
+   10. Evaluation Plan for the Beta  . . . . . . . . . . . . . . . .  19
+   11. Security Considerations . . . . . . . . . . . . . . . . . . .  20
+   12. IANA Considerations . . . . . . . . . . . . . . . . . . . . .  20
+   13. References  . . . . . . . . . . . . . . . . . . . . . . . . .  20
+     13.1.  Informative References . . . . . . . . . . . . . . . . .  20
+   Data and Provenance . . . . . . . . . . . . . . . . . . . . . . .  21
+   Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .  21
 
 1.  Introduction
 
@@ -105,7 +106,6 @@ Table of Contents
 
    *  How well does the retrieval pipeline put the right passage in
       front of the model?
-
 
 
 
@@ -804,7 +804,73 @@ Cummings                      Informational                    [Page 14]
    planned in Section 10 are designed to measure that.  [Calc]
    [Judgement]
 
-6.7.  Threats to Validity
+6.7.  Time to Answer
+
+   Deep32's times are recorded (Table 3): 458.5, 567.9 and 495.8 seconds
+   for the three benchmarks, a mean of 507 seconds, or 8.5 minutes from
+   submitting the question to the end of the answer.  The other systems'
+   runs were not timed.  The figures given for them are my estimates
+   from watching the runs, and they are rough.  [Record] [Judgement]
+
+   +=========+====================+=======================+============+
+   | System  | Time per answer    | Vendor's stated time  | Score /300 |
+   +=========+====================+=======================+============+
+   | Deep32  | 8.5 min, measured  |                       | 268.5      |
+   +---------+--------------------+-----------------------+------------+
+   | ChatGPT | about 5 to 10 min  | 5 to 30 min           | 211.5      |
+   +---------+--------------------+-----------------------+------------+
+   | Claude  | about 10 to 15 min | 5 to 15 min, up to    | 270        |
+   |         |                    | 45                    |            |
+   +---------+--------------------+-----------------------+------------+
+   | Gemini  | about 30 min       | 5 to 10 min, or       | 226        |
+   |         |                    | longer                |            |
+   +---------+--------------------+-----------------------+------------+
+
+                Table 11: Time per Answer and Headline Score
+
+
+
+
+
+
+
+
+
+
+Cummings                      Informational                    [Page 15]
+
+                           Deep32 Measurements             November 2026
+
+
+                       0    5   10   15   20   25   30   35  min
+     Claude   270      |         ......
+     Deep32   268.5    |       ##
+     Gemini   226      |                             o
+     ChatGPT  211.5    |    ......
+
+     ## measured    ...... estimated range    o estimate
+
+              Figure 4: Headline Score and Minutes per Answer
+
+   The vendors' figures are those of OpenAI for deep research [OAI-DR],
+   of Anthropic for Research, where most reports take 5 to 15 minutes
+   [ANT-RES], and of Google for Deep Research, which usually takes 5 to
+   10 minutes and longer for complex reports [GOO-DR].  They describe
+   each research mode in general and predate the models used here.  None
+   of the three publishes a time for a particular model and effort
+   setting, so there is no published average to set beside these runs.
+   My estimates fall inside OpenAI's and Anthropic's ranges and above
+   Google's usual figure, which Google qualifies for complex reports.
+
+   Read with those limits, Deep32 answered about as fast as the fastest
+   system and scored with the best.  ChatGPT took a similar time and
+   scored 57 points lower.  Claude scored 1.5 points higher and, by my
+   estimate, took a few minutes longer.  Gemini took about three times
+   as long and scored 42.5 points lower.  Deep32's time is at effort
+   ultra with deep search, and Section 5.1 shows that most of it is the
+   model thinking between tool calls.  [Judgement]
+
+6.8.  Threats to Validity
 
    *  Both blind raters are Claude models, and one of the systems
       compared is Claude.  Names were masked, but style can identify a
@@ -819,6 +885,18 @@ Cummings                      Informational                    [Page 14]
    *  Masking was weaker for Deep32 than for the others: its answers end
       with the list of sections read and cite corpus documents by key,
       which a rater can recognise.
+
+
+
+
+
+
+
+
+Cummings                      Informational                    [Page 16]
+
+                           Deep32 Measurements             November 2026
+
 
    *  Evidence was checked against the RFC and Cisco texts that Deep32
       indexes.  Answers that cite those texts by line are easier to
@@ -835,15 +913,11 @@ Cummings                      Informational                    [Page 14]
       independent in scoring and not in the key.  The difference between
       the top two is smaller than the difference between the raters.
 
-
-
-Cummings                      Informational                    [Page 15]
-
-                           Deep32 Measurements             November 2026
-
-
    *  Deep32's result is that of one headend model at one effort setting
       (Section 6.6).
+
+   *  Only Deep32's answer times are measured.  The other three are
+      estimates (Section 6.7).
 
 7.  Evidence in the Answers
 
@@ -873,6 +947,13 @@ Cummings                      Informational                    [Page 15]
    hyphen runs.  It returns where it matched, by section and source
    line.  [Code]
 
+
+
+Cummings                      Informational                    [Page 17]
+
+                           Deep32 Measurements             November 2026
+
+
    A label of exact or normalized therefore proves that the words exist
    in the source, and where.  It does not prove that the passage
    supports the sentence it is attached to, and most claims in an answer
@@ -887,16 +968,6 @@ Cummings                      Informational                    [Page 15]
    Deep32 splits its guarantees between code and instructions.  The
    split matters for any claim about answer quality, because instructed
    behaviour depends on the model following it.
-
-
-
-
-
-
-Cummings                      Informational                    [Page 16]
-
-                           Deep32 Measurements             November 2026
-
 
       +=====================================+=======================+
       | Behaviour                           | How it is assured     |
@@ -927,7 +998,17 @@ Cummings                      Informational                    [Page 16]
       |                                     | to the question       |
       +-------------------------------------+-----------------------+
 
-                Table 11: Enforced and Instructed Behaviour
+                Table 12: Enforced and Instructed Behaviour
+
+
+
+
+
+
+Cummings                      Informational                    [Page 18]
+
+                           Deep32 Measurements             November 2026
+
 
    The four recorded runs show the instructions being followed: section
    reads and command checks dominate the tool mix, and the one answer on
@@ -943,16 +1024,6 @@ Cummings                      Informational                    [Page 16]
    *  The benchmark answers of the other systems were produced in their
       own applications with web access; their models, settings and dates
       were not recorded with the same care as Deep32's.
-
-
-
-
-
-
-Cummings                      Informational                    [Page 17]
-
-                           Deep32 Measurements             November 2026
-
 
    *  No answer was tested on a router.  Correctness was judged against
       an answer key derived from the questions' own data and the RFC and
@@ -984,6 +1055,17 @@ Cummings                      Informational                    [Page 17]
       same chunks; and ablations of reranking, section reads and
       quotation checks.
 
+
+
+
+
+
+
+Cummings                      Informational                    [Page 19]
+
+                           Deep32 Measurements             November 2026
+
+
    *  Scores for correctness, support of each claim by its cited
       passage, citation precision, release qualification and calibrated
       refusal; graded blind by two judges, with disagreements and a
@@ -995,20 +1077,6 @@ Cummings                      Informational                    [Page 17]
 
    The gates set for the beta are at most 2 % fabricated claims, every
    out-of-corpus probe refused, and every printed citation exact.
-
-
-
-
-
-
-
-
-
-
-Cummings                      Informational                    [Page 18]
-
-                           Deep32 Measurements             November 2026
-
 
 11.  Security Considerations
 
@@ -1028,6 +1096,9 @@ Cummings                      Informational                    [Page 18]
 
 13.1.  Informative References
 
+   [ANT-RES]  Anthropic, "Claude can now connect to your world", May
+              2025, <https://www.anthropic.com/news/integrations>.
+
    [D32-TR-1] Cummings, J. A., "Deep32: Design of a Local Retrieval
               System for Agentic Network Research", Deep32 Technical
               Report 1, DOI 10.5281/zenodo.24326998, November 2026,
@@ -1037,6 +1108,22 @@ Cummings                      Informational                    [Page 18]
               answering for network and security engineering", Version
               0.1.0-alpha.3, 2026,
               <https://github.com/hellobpdu/deep32>.
+
+   [GOO-DR]   Google, "Use Deep Research in Gemini Apps", Gemini Apps
+              Help, read 24 November 2026, 2026,
+              <https://support.google.com/gemini/answer/15719111>.
+
+
+
+
+
+Cummings                      Informational                    [Page 20]
+
+                           Deep32 Measurements             November 2026
+
+
+   [OAI-DR]   OpenAI, "Introducing deep research", February 2025,
+              <https://openai.com/index/introducing-deep-research/>.
 
    [RFC2328]  Moy, J., "OSPF Version 2", STD 54, RFC 2328,
               DOI 10.17487/RFC2328, April 1998,
@@ -1053,18 +1140,6 @@ Cummings                      Informational                    [Page 18]
    [RRF]      Cormack, G. V., "Reciprocal Rank Fusion Outperforms
               Condorcet and Individual Rank Learning Methods", SIGIR
               2009, 2009.
-
-
-
-
-
-
-
-
-Cummings                      Informational                    [Page 19]
-
-                           Deep32 Measurements             November 2026
-
 
 Data and Provenance
 
@@ -1098,23 +1173,4 @@ Author's Address
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-Cummings                      Informational                    [Page 20]
+Cummings                      Informational                    [Page 21]

@@ -26,7 +26,8 @@
       headline rater against 270 for Claude with web research, and its answers carried the most checkable evidence
       (69 of 75); Gemini and ChatGPT scored 226 and 211.5. A second blind rater agreed within 2.3 points per answer,
       and an earlier grading with the names visible is listed beside them. Deep32 is the only system that every
-      grader placed first or second. The comparison is small and its limits are stated with it.</t>
+      grader placed first or second, and it answered in 8.5 minutes on average. The comparison is small and its
+      limits are stated with it.</t>
       <t>Every number in this report is labelled by where it comes from: the source code, a log or build record, a
       calculation on recorded values, or the author's judgement. Where the record is missing, the report says so.
       The limits of the evidence, and the evaluation still to be run before a beta, are stated in full.</t>
@@ -440,6 +441,47 @@
         and the tools add. The matched-model arms planned in <xref target="plan"/> are designed to measure that.
         [Calc] [Judgement]</t>
       </section>
+      <section anchor="speed">
+        <name>Time to Answer</name>
+        <t>Deep32's times are recorded (<xref target="tab-time"/>): 458.5, 567.9 and 495.8 seconds for the three
+        benchmarks, a mean of 507 seconds, or 8.5 minutes from submitting the question to the end of the answer. The
+        other systems' runs were not timed. The figures given for them are my estimates from watching the runs, and
+        they are rough. [Record] [Judgement]</t>
+        <table anchor="tab-speed">
+          <name>Time per Answer and Headline Score</name>
+          <thead><tr><th>System</th><th>Time per answer</th><th>Vendor's stated time</th><th>Score /300</th></tr></thead>
+          <tbody>
+            <tr><td>Deep32</td><td>8.5 min, measured</td><td></td><td>268.5</td></tr>
+            <tr><td>ChatGPT</td><td>about 5 to 10 min</td><td>5 to 30 min</td><td>211.5</td></tr>
+            <tr><td>Claude</td><td>about 10 to 15 min</td><td>5 to 15 min, up to 45</td><td>270</td></tr>
+            <tr><td>Gemini</td><td>about 30 min</td><td>5 to 10 min, or longer</td><td>226</td></tr>
+          </tbody>
+        </table>
+        <figure anchor="fig-speed">
+          <name>Headline Score and Minutes per Answer</name>
+          <artwork type="ascii-art"><![CDATA[
+                    0    5   10   15   20   25   30   35  min
+  Claude   270      |         ......
+  Deep32   268.5    |       ##
+  Gemini   226      |                             o
+  ChatGPT  211.5    |    ......
+
+  ## measured    ...... estimated range    o estimate
+]]></artwork>
+        </figure>
+        <t>The vendors' figures are those of OpenAI for deep research <xref target="OAI-DR"/>, of Anthropic for
+        Research, where most reports take 5 to 15 minutes <xref target="ANT-RES"/>, and of Google for Deep Research,
+        which usually takes 5 to 10 minutes and longer for complex reports <xref target="GOO-DR"/>. They describe
+        each research mode in general and predate the models used here. None of the
+        three publishes a time for a particular model and effort setting, so there is no published average to set
+        beside these runs. My estimates fall inside OpenAI's and Anthropic's ranges and above Google's usual figure,
+        which Google qualifies for complex reports.</t>
+        <t>Read with those limits, Deep32 answered about as fast as the fastest system and scored with the best.
+        ChatGPT took a similar time and scored 57 points lower. Claude scored 1.5 points higher and, by my estimate,
+        took a few minutes longer. Gemini took about three times as long and scored 42.5 points lower. Deep32's time
+        is at effort ultra with deep search, and <xref target="time"/> shows that most of it is the model thinking
+        between tool calls. [Judgement]</t>
+      </section>
       <section anchor="validity">
         <name>Threats to Validity</name>
         <ul>
@@ -459,6 +501,8 @@
           rater's key, so the two are independent in scoring and not in the key. The difference between the top two
           is smaller than the difference between the raters.</li>
           <li>Deep32's result is that of one headend model at one effort setting (<xref target="headend"/>).</li>
+          <li>Only Deep32's answer times are measured. The other three are estimates
+          (<xref target="speed"/>).</li>
         </ul>
       </section>
     </section>
@@ -599,6 +643,16 @@
         <reference anchor="RFC4364" target="https://www.rfc-editor.org/info/rfc4364">
           <front><title>BGP/MPLS IP Virtual Private Networks (VPNs)</title><author initials="E." surname="Rosen" fullname="E. Rosen"/><date year="2006" month="February"/></front>
           <seriesInfo name="RFC" value="4364"/><seriesInfo name="DOI" value="10.17487/RFC4364"/>
+        </reference>
+        <reference anchor="OAI-DR" target="https://openai.com/index/introducing-deep-research/">
+          <front><title>Introducing deep research</title><author><organization>OpenAI</organization></author><date year="2025" month="February"/></front>
+        </reference>
+        <reference anchor="ANT-RES" target="https://www.anthropic.com/news/integrations">
+          <front><title>Claude can now connect to your world</title><author><organization>Anthropic</organization></author><date year="2025" month="May"/></front>
+        </reference>
+        <reference anchor="GOO-DR" target="https://support.google.com/gemini/answer/15719111">
+          <front><title>Use Deep Research in Gemini Apps</title><author><organization>Google</organization></author><date year="2026"/></front>
+          <refcontent>Gemini Apps Help, read 24 November 2026</refcontent>
         </reference>
         <reference anchor="RRF">
           <front><title>Reciprocal Rank Fusion Outperforms Condorcet and Individual Rank Learning Methods</title><author initials="G. V." surname="Cormack" fullname="G. V. Cormack"/><date year="2009"/></front>
