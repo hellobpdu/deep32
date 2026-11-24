@@ -1,106 +1,20 @@
 {
- "graded": "2026-11-24, blind. First rater: Claude Opus 5.5, key solved first. Second rater: Claude Mythos 5.2, same masked answers and key, first scores not shown. Rubric correctness 40 / evidence 25 / completeness 15 / caution 10 / clarity 10",
- "desc": "Totals: Claude (Opus) 276, Deep32 272, Gemini 226, ChatGPT 220. Deep32 answered from its local corpus with web search disabled; the other three used the open web.",
- "desc_evidence": "Totals: Deep32 71, Claude (Opus) 61, Gemini 41, ChatGPT 31.",
+ "benchmarks": [
+  "001",
+  "002",
+  "003"
+ ],
+ "graders": {
+  "mythos": "Claude Mythos 5.2; blind; scored against the key; headline",
+  "opus": "Claude Opus 5.5; blind; solved the key first, then scored",
+  "gpt6": "ChatGPT (GPT-6); system names visible; its own criteria; totals only"
+ },
+ "rubric": "correctness 40, evidence 25, completeness 15, caution 10, clarity 10 (mythos and opus)",
+ "deep32_headend": "gpt-6.2-sol, effort ultra, web search disabled",
  "rows": [
   {
-   "system": "Claude (Opus)",
-   "totals": [
-    91,
-    92,
-    93
-   ],
-   "evidence": [
-    19,
-    20,
-    22
-   ],
-   "correctness": [
-    38,
-    39,
-    38
-   ],
-   "completeness": [
-    15,
-    15,
-    14
-   ],
-   "caution": [
-    10,
-    9,
-    10
-   ],
-   "clarity": [
-    9,
-    9,
-    9
-   ],
-   "second_rater": {
-    "totals": [
-     91,
-     89,
-     90
-    ],
-    "correctness": [
-     39,
-     39,
-     38
-    ],
-    "evidence": [
-     19,
-     17,
-     20
-    ],
-    "completeness": [
-     15,
-     15,
-     14
-    ],
-    "caution": [
-     9,
-     9,
-     9
-    ],
-    "clarity": [
-     9,
-     9,
-     9
-    ]
-   }
-  },
-  {
    "system": "Deep32",
-   "totals": [
-    92,
-    91,
-    89
-   ],
-   "evidence": [
-    23,
-    24,
-    24
-   ],
-   "correctness": [
-    38,
-    38,
-    37
-   ],
-   "completeness": [
-    14,
-    12,
-    12
-   ],
-   "caution": [
-    9,
-    9,
-    9
-   ],
-   "clarity": [
-    8,
-    8,
-    7
-   ],
-   "second_rater": {
+   "mythos": {
     "totals": [
      90,
      90.5,
@@ -131,41 +45,124 @@
      7.5,
      7
     ]
+   },
+   "opus": {
+    "totals": [
+     92,
+     91,
+     89
+    ],
+    "correctness": [
+     38,
+     38,
+     37
+    ],
+    "evidence": [
+     23,
+     24,
+     24
+    ],
+    "completeness": [
+     14,
+     12,
+     12
+    ],
+    "caution": [
+     9,
+     9,
+     9
+    ],
+    "clarity": [
+     8,
+     8,
+     7
+    ]
+   },
+   "gpt6": {
+    "totals": [
+     98,
+     99,
+     96
+    ]
+   }
+  },
+  {
+   "system": "Claude",
+   "mythos": {
+    "totals": [
+     91,
+     89,
+     90
+    ],
+    "correctness": [
+     39,
+     39,
+     38
+    ],
+    "evidence": [
+     19,
+     17,
+     20
+    ],
+    "completeness": [
+     15,
+     15,
+     14
+    ],
+    "caution": [
+     9,
+     9,
+     9
+    ],
+    "clarity": [
+     9,
+     9,
+     9
+    ]
+   },
+   "opus": {
+    "totals": [
+     91,
+     92,
+     93
+    ],
+    "correctness": [
+     38,
+     39,
+     38
+    ],
+    "evidence": [
+     19,
+     20,
+     22
+    ],
+    "completeness": [
+     15,
+     15,
+     14
+    ],
+    "caution": [
+     10,
+     9,
+     10
+    ],
+    "clarity": [
+     9,
+     9,
+     9
+    ]
+   },
+   "gpt6": {
+    "totals": [
+     97,
+     97,
+     94
+    ]
    }
   },
   {
    "system": "Gemini",
-   "totals": [
-    75,
-    78,
-    73
-   ],
-   "evidence": [
-    14,
-    14,
-    13
-   ],
-   "correctness": [
-    35,
-    37,
-    35
-   ],
-   "completeness": [
-    15,
-    15,
-    14
-   ],
-   "caution": [
-    6,
-    7,
-    6
-   ],
-   "clarity": [
-    5,
-    5,
-    5
-   ],
-   "second_rater": {
+   "mythos": {
     "totals": [
      76,
      77.0,
@@ -196,41 +193,50 @@
      4.5,
      4
     ]
+   },
+   "opus": {
+    "totals": [
+     75,
+     78,
+     73
+    ],
+    "correctness": [
+     35,
+     37,
+     35
+    ],
+    "evidence": [
+     14,
+     14,
+     13
+    ],
+    "completeness": [
+     15,
+     15,
+     14
+    ],
+    "caution": [
+     6,
+     7,
+     6
+    ],
+    "clarity": [
+     5,
+     5,
+     5
+    ]
+   },
+   "gpt6": {
+    "totals": [
+     98,
+     97,
+     95
+    ]
    }
   },
   {
    "system": "ChatGPT",
-   "totals": [
-    63,
-    83,
-    74
-   ],
-   "evidence": [
-    5,
-    15,
-    11
-   ],
-   "correctness": [
-    33,
-    37,
-    36
-   ],
-   "completeness": [
-    11,
-    13,
-    12
-   ],
-   "caution": [
-    6,
-    9,
-    8
-   ],
-   "clarity": [
-    8,
-    9,
-    7
-   ],
-   "second_rater": {
+   "mythos": {
     "totals": [
      67,
      74.5,
@@ -261,12 +267,51 @@
      8,
      7
     ]
+   },
+   "opus": {
+    "totals": [
+     63,
+     83,
+     74
+    ],
+    "correctness": [
+     33,
+     37,
+     36
+    ],
+    "evidence": [
+     5,
+     15,
+     11
+    ],
+    "completeness": [
+     11,
+     13,
+     12
+    ],
+    "caution": [
+     6,
+     9,
+     8
+    ],
+    "clarity": [
+     8,
+     9,
+     7
+    ]
+   },
+   "gpt6": {
+    "totals": [
+     96,
+     97,
+     92
+    ]
    }
   }
  ],
- "agreement": {
-  "mean_abs_difference_per_answer": 2.33,
-  "max_abs_difference": 8.5,
-  "answers": 12
+ "agreement_mean_abs_difference_per_answer": {
+  "mythos_opus": 2.33,
+  "mythos_gpt6": 15.0,
+  "opus_gpt6": 13.5
  }
 }

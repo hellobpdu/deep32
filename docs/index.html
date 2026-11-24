@@ -195,26 +195,27 @@
       <h2 id="measured-title" class="tb">Measured answers</h2>
       <div class="pane">
       <p class="sub">I gave Deep32 and three general assistants the same three hard routing problems, on OSPF external
-      routes, BGP route reflection and an MPLS VPN escalation, and had every answer graded blind against a key worked out
-      first from the RFCs and Cisco documents. Deep32 answered from its own corpus with web search off; the others
-      searched the web.</p>
+      routes, BGP route reflection and an MPLS VPN escalation. Deep32 answered from its own corpus with web search off,
+      with gpt-6.2-sol at effort ultra as its headend model; the others searched the web. Two models graded the answers
+      blind against a key worked out first from the RFCs and Cisco documents, and a third had graded them earlier with
+      the names visible.</p>
       <figure>
         <picture>
-          <source media="(prefers-color-scheme: dark)" srcset="figures/tr2-compare-dark.svg">
-          <img src="figures/tr2-compare-light.svg" width="1000" height="316" loading="lazy" alt="Blind scores out of 300 over three benchmarks: Claude (Opus) 276 (91, 92, 93), Deep32 272 (92, 91, 89), Gemini 226 (75, 78, 73), ChatGPT 220 (63, 83, 74).">
+          <source media="(prefers-color-scheme: dark)" srcset="figures/tr2-hero-dark.svg">
+          <img src="figures/tr2-hero-light.svg" width="1000" height="344" loading="lazy" alt="Deep32 against three web-research assistants on three routing problems, scored by three graders. Checkable evidence out of 75 (Mythos 5.2, blind): Deep32 69, Claude 56, Gemini 40, ChatGPT 25. Total out of 300 from Mythos 5.2, blind: Deep32 268.5, Claude 270, Gemini 226, ChatGPT 211.5. From Opus 5.5, blind: Deep32 272, Claude 276, Gemini 226, ChatGPT 220. From GPT-6 with the names visible: Deep32 293, Claude 288, Gemini 290, ChatGPT 285. Deep32 answered from its local corpus with web search off; its headend model was gpt-6.2-sol at effort ultra.">
         </picture>
-        <figcaption><b>Figure 3.</b> Blind scores over three benchmarks. All four got the core results right; evidence,
-        completeness and caution decided the order. These are the first rater's scores; a second rater put the top two
-        1.5 points apart, so read them as even.</figcaption>
+        <figcaption><b>Figure 3.</b> Evidence and total scores by grader. Deep32 is the only system that every grader
+        placed first or second, and it leads on evidence under both blind graders. The top two are within 4 points
+        under either blind grader, so read them as even.</figcaption>
       </figure>
       <figure>
         <picture>
-          <source media="(prefers-color-scheme: dark)" srcset="figures/tr2-evidence-dark.svg">
-          <img src="figures/tr2-evidence-light.svg" width="1000" height="316" loading="lazy" alt="Evidence scores out of 75 from the same grading: Deep32 71 (23, 24, 24), Claude (Opus) 61 (19, 20, 22), Gemini 41 (14, 14, 13), ChatGPT 31 (5, 15, 11).">
+          <source media="(prefers-color-scheme: dark)" srcset="figures/tr2-compare-dark.svg">
+          <img src="figures/tr2-compare-light.svg" width="1000" height="316" loading="lazy" alt="Blind scores by benchmark from the headline rater, out of 300: Claude 270 (91, 89, 90), Deep32 268.5 (90, 90.5, 88), Gemini 226 (76, 77, 73), ChatGPT 211.5 (67, 74.5, 70).">
         </picture>
-        <figcaption><b>Figure 4.</b> The evidence part of the same grading: whether each cited passage exists and says
-        what the answer claims. <a href="tr/d32-tr-2.html">D32-TR-2</a> has the method, the telemetry of each run and
-        the limits of the comparison.</figcaption>
+        <figcaption><b>Figure 4.</b> The headline rater's scores by benchmark. All four got the core results right;
+        evidence, completeness and caution decided the order. <a href="tr/d32-tr-2.html">D32-TR-2</a> has the method,
+        the telemetry of each run and the limits of the comparison.</figcaption>
       </figure>
       </div>
     </section>

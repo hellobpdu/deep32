@@ -22,12 +22,14 @@ Abstract
 
    In the blind comparison all four systems derived the core results
    correctly.  Deep32, answering from its local corpus with web search
-   disabled, scored 272 of 300 against 276 for Claude with web research,
-   and its answers carried the most checkable evidence (71 of 75);
-   Gemini and ChatGPT scored 226 and 220.  A second rater put the top
-   two at 270 and 268.5 and differed from the first by 2.3 points per
-   answer on average.  The comparison is small and its limits are stated
-   with it.
+   disabled and with gpt-6.2-sol as its headend model, scored 268.5 of
+   300 under the headline rater against 270 for Claude with web
+   research, and its answers carried the most checkable evidence (69 of
+   75); Gemini and ChatGPT scored 226 and 211.5.  A second blind rater
+   agreed within 2.3 points per answer, and an earlier grading with the
+   names visible is listed beside them.  Deep32 is the only system that
+   every grader placed first or second.  The comparison is small and its
+   limits are stated with it.
 
    Every number in this report is labelled by where it comes from: the
    source code, a log or build record, a calculation on recorded values,
@@ -46,8 +48,6 @@ Status of This Document
    has not yet been deposited with a DOI.
 
 Copyright Notice
-
-
 
 
 
@@ -80,20 +80,21 @@ Table of Contents
      6.2.  Systems and Conditions  . . . . . . . . . . . . . . . . .  10
      6.3.  Grading . . . . . . . . . . . . . . . . . . . . . . . . .  10
      6.4.  Results . . . . . . . . . . . . . . . . . . . . . . . . .  11
-     6.5.  What Decided the Scores . . . . . . . . . . . . . . . . .  13
-     6.6.  Threats to Validity . . . . . . . . . . . . . . . . . . .  14
-   7.  Evidence in the Answers . . . . . . . . . . . . . . . . . . .  14
-     7.1.  One Answer in Detail  . . . . . . . . . . . . . . . . . .  15
-     7.2.  What "Verified" Means . . . . . . . . . . . . . . . . . .  15
-   8.  What the Code Enforces and What the Model Is Asked To Do  . .  15
-   9.  Limitations . . . . . . . . . . . . . . . . . . . . . . . . .  16
-   10. Evaluation Plan for the Beta  . . . . . . . . . . . . . . . .  17
-   11. Security Considerations . . . . . . . . . . . . . . . . . . .  18
-   12. IANA Considerations . . . . . . . . . . . . . . . . . . . . .  18
-   13. References  . . . . . . . . . . . . . . . . . . . . . . . . .  18
-     13.1.  Informative References . . . . . . . . . . . . . . . . .  18
-   Data and Provenance . . . . . . . . . . . . . . . . . . . . . . .  19
-   Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .  19
+     6.5.  What Decided the Scores . . . . . . . . . . . . . . . . .  14
+     6.6.  The Headend Model . . . . . . . . . . . . . . . . . . . .  15
+     6.7.  Threats to Validity . . . . . . . . . . . . . . . . . . .  15
+   7.  Evidence in the Answers . . . . . . . . . . . . . . . . . . .  16
+     7.1.  One Answer in Detail  . . . . . . . . . . . . . . . . . .  16
+     7.2.  What "Verified" Means . . . . . . . . . . . . . . . . . .  16
+   8.  What the Code Enforces and What the Model Is Asked To Do  . .  16
+   9.  Limitations . . . . . . . . . . . . . . . . . . . . . . . . .  17
+   10. Evaluation Plan for the Beta  . . . . . . . . . . . . . . . .  18
+   11. Security Considerations . . . . . . . . . . . . . . . . . . .  19
+   12. IANA Considerations . . . . . . . . . . . . . . . . . . . . .  19
+   13. References  . . . . . . . . . . . . . . . . . . . . . . . . .  19
+     13.1.  Informative References . . . . . . . . . . . . . . . . .  19
+   Data and Provenance . . . . . . . . . . . . . . . . . . . . . . .  20
+   Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .  20
 
 1.  Introduction
 
@@ -104,7 +105,6 @@ Table of Contents
 
    *  How well does the retrieval pipeline put the right passage in
       front of the model?
-
 
 
 
@@ -553,7 +553,7 @@ Cummings                      Informational                     [Page 9]
    1.  Masking.  Each benchmark's four answers were given the letters A
        to D in a different order, system names were replaced, and the
        Deep32 question line was removed.  The key to the letters was
-       held apart from the graders.
+       held apart from the raters.
 
 
 
@@ -562,9 +562,9 @@ Cummings                      Informational                    [Page 10]
                            Deep32 Measurements             November 2026
 
 
-   2.  Key first.  One grader per benchmark solved the benchmark from
-       its question alone, with the derivation, the governing rule and
-       its source line for each item, before opening any answer.
+   2.  Key first.  The first rater solved each benchmark from its
+       question alone, with the derivation, the governing rule and its
+       source line for each item, before opening any answer.
 
    3.  Sources.  Facts could come only from the question, the RFC and
        Cisco texts of the corpus (read as plain files, not through
@@ -573,43 +573,43 @@ Cummings                      Informational                    [Page 10]
        unverifiable and neither rewarded nor penalised.
 
    4.  Scoring.  Correctness 40 (agreement with the key), evidence 25
-       (primary, specific citations that say what the answer claims; at
-       least five spot-checked per answer against the texts),
-       completeness 15, caution 10 (assumptions, release qualification,
-       labelled inference) and clarity 10.
+       (primary, specific citations that say what the answer claims,
+       spot-checked against the texts), completeness 15, caution 10
+       (assumptions, release qualification, labelled inference) and
+       clarity 10.
 
-   5.  Re-check.  The grader then tried to refute its own key on every
-       point where the answers differed.  No key item changed.
+   5.  Re-check.  The first rater then tried to refute its own key on
+       every point where the answers differed.  No key item changed.
 
-   6.  Second rater.  A second grader, a different model, then scored
-       the same masked answers on the same rubric against the same key,
-       without seeing the first scores, and was asked to show any key
-       item wrong from the RFC text.  It upheld every item.
+   6.  Second rater.  A second rater, a different model, scored the same
+       masked answers on the same rubric against the same key, without
+       seeing the first scores, and was asked to show any key item wrong
+       from the RFC text.  It upheld every item.
 
-   The first raters were instances of Claude Opus 5.5 and the second
-   raters instances of Claude Mythos 5.2, all working from files;
-   Section 6.6 discusses what that implies.  Table 7, Table 8 and
-   Figure 3 give the first rater's scores, and Table 9 the second
-   rater's.
+   The first rater was Claude Opus 5.5 and the second Claude Mythos 5.2,
+   each run as a separate instance per benchmark, working from files.  I
+   take the second rater's scores as the headline: it is the stronger
+   model, and it scored against a key that had by then been solved, re-
+   checked and upheld.  The first rater's scores are given beside them.
+
+   A third set of scores predates this grading.  ChatGPT (GPT-6) scored
+   the same twelve answers with the system names visible, by its own
+   criteria and without the key.  Those scores are listed in Table 9 for
+   comparison.  They are not blind and carry no weight in the
+   conclusions.
 
 6.4.  Results
 
-         +=========+=====+=====+=====+============+==============+
-         | System  | 001 | 002 | 003 | Total /300 | Evidence /75 |
-         +=========+=====+=====+=====+============+==============+
-         | Claude  | 91  | 92  | 93  | 276        | 61           |
-         +---------+-----+-----+-----+------------+--------------+
-         | Deep32  | 92  | 91  | 89  | 272        | 71           |
-         +---------+-----+-----+-----+------------+--------------+
-         | Gemini  | 75  | 78  | 73  | 226        | 41           |
-         +---------+-----+-----+-----+------------+--------------+
-         | ChatGPT | 63  | 83  | 74  | 220        | 31           |
-         +---------+-----+-----+-----+------------+--------------+
-
-              Table 7: Blind Scores (out of 100 per Benchmark)
-
-
-
+        +=========+=====+======+=====+============+==============+
+        | System  | 001 | 002  | 003 | Total /300 | Evidence /75 |
+        +=========+=====+======+=====+============+==============+
+        | Claude  | 91  | 89   | 90  | 270        | 56           |
+        +---------+-----+------+-----+------------+--------------+
+        | Deep32  | 90  | 90.5 | 88  | 268.5      | 69           |
+        +---------+-----+------+-----+------------+--------------+
+        | Gemini  | 76  | 77   | 73  | 226        | 40           |
+        +---------+-----+------+-----+------------+--------------+
+        | ChatGPT | 67  | 74.5 | 70  | 211.5      | 25           |
 
 
 
@@ -618,51 +618,51 @@ Cummings                      Informational                    [Page 11]
                            Deep32 Measurements             November 2026
 
 
-     Claude   |##############################################     276
-     Deep32   |#############################################      272
+        +---------+-----+------+-----+------------+--------------+
+
+          Table 7: Blind Scores from the Headline Rater (out of
+                            100 per Benchmark)
+
+     Claude   |#############################################      270
+     Deep32   |#############################################      268.5
      Gemini   |######################################             226
-     ChatGPT  |#####################################              220
+     ChatGPT  |###################################                211.5
               +--------------------------------------------------+
               0                                               300
 
-             Figure 3: Total Blind Score over Three Benchmarks
+     Figure 3: Total Blind Score over Three Benchmarks, Headline Rater
 
         +===================+========+========+========+=========+
         | Part (maximum)    | Claude | Deep32 | Gemini | ChatGPT |
         +===================+========+========+========+=========+
-        | Correctness (120) | 115    | 113    | 107    | 106     |
+        | Correctness (120) | 116    | 111    | 111    | 104     |
         +-------------------+--------+--------+--------+---------+
-        | Evidence (75)     | 61     | 71     | 41     | 31      |
+        | Evidence (75)     | 56     | 69     | 40     | 25      |
         +-------------------+--------+--------+--------+---------+
-        | Completeness (45) | 44     | 38     | 44     | 36      |
+        | Completeness (45) | 44     | 40     | 44     | 38      |
         +-------------------+--------+--------+--------+---------+
-        | Caution (30)      | 29     | 27     | 19     | 23      |
+        | Caution (30)      | 27     | 27     | 18.5   | 22.5    |
         +-------------------+--------+--------+--------+---------+
-        | Clarity (30)      | 27     | 23     | 15     | 24      |
+        | Clarity (30)      | 27     | 21.5   | 12.5   | 22      |
         +-------------------+--------+--------+--------+---------+
 
-         Table 8: Score by Part, Summed over the Three Benchmarks
+          Table 8: Score by Part from the Headline Rater, Summed
+                        over the Three Benchmarks
 
-   Deep32 placed first on Benchmark 001, second on 002 by one point and
-   second on 003 by four.  On each benchmark the grader rated its
-   confidence in the order of the top two as low or moderate, and on 001
-   and 002 called them tied.  Claude and Deep32 lead the other two by
-   about 50 points.  [Judgement]
+   Under the headline rater Deep32 placed second on Benchmark 001 by one
+   point, first on 002 by 1.5 and second on 003 by two.  In total it is
+   1.5 points behind Claude and more than 40 ahead of the other two, and
+   it has the highest evidence score.  [Judgement]
 
-   +=========+=====+======+=====+============+==========+=============+
-   | System  | 001 | 002  | 003 | Total /300 | Evidence | Mean of     |
-   |         |     |      |     |            | /75      | both totals |
-   +=========+=====+======+=====+============+==========+=============+
-   | Claude  | 91  | 89   | 90  | 270        | 56       | 273         |
-   +---------+-----+------+-----+------------+----------+-------------+
-   | Deep32  | 90  | 90.5 | 88  | 268.5      | 69       | 270.25      |
-   +---------+-----+------+-----+------------+----------+-------------+
-   | Gemini  | 76  | 77   | 73  | 226        | 40       | 226         |
-   +---------+-----+------+-----+------------+----------+-------------+
-   | ChatGPT | 67  | 74.5 | 70  | 211.5      | 25       | 215.75      |
-   +---------+-----+------+-----+------------+----------+-------------+
 
-                      Table 9: Second Rater's Scores
+
+
+
+
+
+
+
+
 
 
 
@@ -674,14 +674,61 @@ Cummings                      Informational                    [Page 12]
                            Deep32 Measurements             November 2026
 
 
-   Over the twelve answers the two raters differ by 2.3 points on
-   average and by 8.5 at most (ChatGPT on 002, where the second rater
-   gave less for citations that cannot be resolved).  Both raters put
-   Claude and Deep32 first and second on every benchmark and more than
-   40 points ahead of the other two in total.  The order of those two
-   differs between the raters on Benchmarks 001 and 002, and the second
-   rater has them 1.5 points apart.  Both raters give Deep32 the highest
-   evidence score.  [Judgement] [Calc]
+    +=========+====================+==================+===============+
+    | System  | Mythos 5.2 (blind) | Opus 5.5 (blind) | GPT-6 (named) |
+    +=========+====================+==================+===============+
+    | Deep32  | 268.5              | 272              | 293           |
+    +---------+--------------------+------------------+---------------+
+    | Claude  | 270                | 276              | 288           |
+    +---------+--------------------+------------------+---------------+
+    | Gemini  | 226                | 226              | 290           |
+    +---------+--------------------+------------------+---------------+
+    | ChatGPT | 211.5              | 220              | 285           |
+    +---------+--------------------+------------------+---------------+
+
+                Table 9: Total Score by Grader (out of 300)
+
+        +=========+==========+=====+=====+===========+=====+=====+
+        | System  | Opus 001 | 002 | 003 | GPT-6 001 | 002 | 003 |
+        +=========+==========+=====+=====+===========+=====+=====+
+        | Deep32  | 92       | 91  | 89  | 98        | 99  | 96  |
+        +---------+----------+-----+-----+-----------+-----+-----+
+        | Claude  | 91       | 92  | 93  | 97        | 97  | 94  |
+        +---------+----------+-----+-----+-----------+-----+-----+
+        | Gemini  | 75       | 78  | 73  | 98        | 97  | 95  |
+        +---------+----------+-----+-----+-----------+-----+-----+
+        | ChatGPT | 63       | 83  | 74  | 96        | 97  | 92  |
+        +---------+----------+-----+-----+-----------+-----+-----+
+
+         Table 10: Scores by Benchmark from the Other Two Graders
+
+   "Named" in Table 9 means that the grader saw the system names.  The
+   first rater's evidence scores, out of 75, were Deep32 71, Claude 61,
+   Gemini 41 and ChatGPT 31.
+
+   The two blind raters agree closely.  Over the twelve answers they
+   differ by 2.3 points on average and by 8.5 at most (ChatGPT on 002,
+   where the headline rater gave less for citations that cannot be
+   resolved).  Both put Claude and Deep32 first and second on every
+   benchmark, in an order that differs between them on 001 and 002, and
+   both give Deep32 the highest evidence score, 69 and 71 of 75.  [Calc]
+
+   The unblinded grader differs from the blind raters by 15 and 13.5
+   points per answer on average.  It placed all four systems within
+   eight points of each other, with Deep32 first and Gemini second.
+   Deep32 is the only system that every grader placed first or second.
+   [Calc]
+
+
+
+
+
+
+
+Cummings                      Informational                    [Page 13]
+
+                           Deep32 Measurements             November 2026
+
 
 6.5.  What Decided the Scores
 
@@ -690,19 +737,19 @@ Cummings                      Informational                    [Page 12]
    of a stable state and the threshold of 002, the cost ranges, the TTL
    trace of the micro-loop and the minimum set of false reports of 003.
    None fell into the planted traps, such as using the reflector's
-   router ID in the tie-break of 002.  Correctness spans only nine
-   points of 120.  The scores were decided by evidence, by errors
-   outside the core results, and by completeness.  [Judgement]
+   router ID in the tie-break of 002.  Correctness spans 12 points of
+   120 under the headline rater and nine under the first.  The scores
+   were decided by evidence, by errors outside the core results, and by
+   completeness.  [Judgement]
 
-   Evidence.  Every citation the graders checked in a Deep32 answer, 10
-   to 16 per benchmark, matched the corpus text at the cited document
-   and lines; one in Benchmark 001 pointed at a neighbouring section.
-   Claude quoted RFC and Cisco text exactly by section, without line
-   numbers, and every checkable quotation matched; a few rested on
-   documents outside the corpus, such as RFC 3345.  Gemini mixed primary
-   sources with forums, blogs and links its export left as
-   "unknown_url".  ChatGPT's citations could not be resolved from the
-   text.  [Judgement]
+   Evidence.  Every citation the two raters checked in a Deep32 answer
+   matched the corpus text at the cited document and lines; a few
+   pointed at passages that fit the claim only loosely.  Claude quoted
+   RFC and Cisco text exactly by section, without line numbers, and
+   every checkable quotation matched; some rested on documents outside
+   the corpus, such as RFC 3345.  Gemini mixed primary sources with
+   forums, blogs and links its export left as "unknown_url".  ChatGPT's
+   citations could not be resolved from the text.  [Judgement]
 
    Errors outside the core results, by system:
 
@@ -720,35 +767,58 @@ Cummings                      Informational                    [Page 12]
       out that Benchmark 003 contains an equal-cost tie that contradicts
       its own "no ECMP" premise.
 
-
-
-
-
-
-Cummings                      Informational                    [Page 13]
-
-                           Deep32 Measurements             November 2026
-
-
    *  Deep32: none affecting a result.  It lost points for configuration
       given as templates, a thin treatment of the operational effects in
       002, and leftovers of its working process in the answer text
       ("Full search, deep mode.", "I'll verify ...").
 
-   Removing clarity from the totals leaves Claude and Deep32 at 249
-   each.  Removing evidence leaves Claude at 215 and Deep32 at 201:
-   Deep32's place at the top depends on its evidence, and its shortfall
-   against Claude is in completeness and clarity.  [Calc]
+   Leaving clarity out of the headline totals puts Deep32 ahead of
+   Claude, 247 to 243.  Leaving evidence out puts Claude ahead, 214 to
+   199.5.  Deep32's place at the top rests on its evidence, and its
+   shortfall against Claude is in detail of correctness, completeness
+   and clarity.  [Calc]
 
-6.6.  Threats to Validity
 
-   *  Both raters are Claude models, and one of the systems compared is
-      Claude.  Names were masked, but style can identify a model.
-      Deep32's own model, gpt-6.2-sol, is not from Anthropic.
+
+
+Cummings                      Informational                    [Page 14]
+
+                           Deep32 Measurements             November 2026
+
+
+6.6.  The Headend Model
+
+   Deep32 does not write its answers; its headend model does.  In these
+   runs the headend was gpt-6.2-sol at effort ultra, so the Deep32
+   scores are those of that model working through Deep32's tools and
+   corpus.  Another headend would give other answers and other scores.
+   [Record]
+
+   ChatGPT, a model of the same vendor researching on the open web,
+   scored 57 points lower than Deep32 under the headline rater (211.5
+   against 268.5) and 52 lower under the first rater.  Most of the
+   difference is evidence, 25 against 69, and part of that is the
+   capture effect described in Section 6.2.  The two are different
+   models with different instructions, so the gap is not a controlled
+   measure of what the corpus and the tools add.  The matched-model arms
+   planned in Section 10 are designed to measure that.  [Calc]
+   [Judgement]
+
+6.7.  Threats to Validity
+
+   *  Both blind raters are Claude models, and one of the systems
+      compared is Claude.  Names were masked, but style can identify a
+      model.  Deep32's headend model, gpt-6.2-sol, is not from
+      Anthropic.
+
+   *  Each family of grader placed first a system whose answers a model
+      of its own vendor wrote: the Claude raters placed Claude first,
+      and the GPT grader placed Deep32 first.  Only the blind raters
+      scored against a key.
 
    *  Masking was weaker for Deep32 than for the others: its answers end
       with the list of sections read and cite corpus documents by key,
-      which a grader can recognise.
+      which a rater can recognise.
 
    *  Evidence was checked against the RFC and Cisco texts that Deep32
       indexes.  Answers that cite those texts by line are easier to
@@ -760,31 +830,22 @@ Cummings                      Informational                    [Page 13]
       (Section 6.2).  Their totals should be read with that in mind;
       their correctness and caution scores are not affected.
 
-   *  Two raters, one answer per system, three benchmarks.  The second
-      rater scored against the first rater's key, so the two are
-      independent in scoring and not in the key, and both are from one
-      model family.  The difference between the top two is smaller than
-      the difference between the raters.
-
-   *  An earlier grading of the same twelve answers, done once with the
-      system names visible, placed all four within eight points with
-      Deep32 first.  It is superseded by this one and is not used.
-
-7.  Evidence in the Answers
+   *  Two blind raters, one answer per system, three benchmarks.  The
+      second rater scored against the first rater's key, so the two are
+      independent in scoring and not in the key.  The difference between
+      the top two is smaller than the difference between the raters.
 
 
 
-
-
-
-
-
-
-
-Cummings                      Informational                    [Page 14]
+Cummings                      Informational                    [Page 15]
 
                            Deep32 Measurements             November 2026
 
+
+   *  Deep32's result is that of one headend model at one effort setting
+      (Section 6.6).
+
+7.  Evidence in the Answers
 
 7.1.  One Answer in Detail
 
@@ -832,12 +893,7 @@ Cummings                      Informational                    [Page 14]
 
 
 
-
-
-
-
-
-Cummings                      Informational                    [Page 15]
+Cummings                      Informational                    [Page 16]
 
                            Deep32 Measurements             November 2026
 
@@ -871,7 +927,7 @@ Cummings                      Informational                    [Page 15]
       |                                     | to the question       |
       +-------------------------------------+-----------------------+
 
-                Table 10: Enforced and Instructed Behaviour
+                Table 11: Enforced and Instructed Behaviour
 
    The four recorded runs show the instructions being followed: section
    reads and command checks dominate the tool mix, and the one answer on
@@ -893,7 +949,7 @@ Cummings                      Informational                    [Page 15]
 
 
 
-Cummings                      Informational                    [Page 16]
+Cummings                      Informational                    [Page 17]
 
                            Deep32 Measurements             November 2026
 
@@ -949,7 +1005,7 @@ Cummings                      Informational                    [Page 16]
 
 
 
-Cummings                      Informational                    [Page 17]
+Cummings                      Informational                    [Page 18]
 
                            Deep32 Measurements             November 2026
 
@@ -1005,7 +1061,7 @@ Cummings                      Informational                    [Page 17]
 
 
 
-Cummings                      Informational                    [Page 18]
+Cummings                      Informational                    [Page 19]
 
                            Deep32 Measurements             November 2026
 
@@ -1061,4 +1117,4 @@ Author's Address
 
 
 
-Cummings                      Informational                    [Page 19]
+Cummings                      Informational                    [Page 20]

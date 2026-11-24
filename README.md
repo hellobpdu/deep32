@@ -47,6 +47,13 @@ hosted, so the question, the queries the agent writes and the passages it gets b
   <img alt="At a glance: hit@1 0.955, a relevant passage first; hit@8 0.991, one in the top 8; 854 documents (365 RFCs, 489 Cisco); 11 MCP tools for Claude Code and Codex; median search 542 ms with hybrid search and reranking." src="docs/figures/glance-light.svg" width="100%">
 </picture>
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/figures/tr2-hero-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="docs/figures/tr2-hero-light.svg">
+  <img alt="Deep32 against three web-research assistants on three routing problems, scored by three graders. Checkable evidence out of 75 (Mythos 5.2, blind): Deep32 69, Claude 56, Gemini 40, ChatGPT 25. Total out of 300 from Mythos 5.2, blind: Deep32 268.5, Claude 270, Gemini 226, ChatGPT 211.5. From Opus 5.5, blind: Deep32 272, Claude 276, Gemini 226, ChatGPT 220. From GPT-6 with the names visible: Deep32 293, Claude 288, Gemini 290, ChatGPT 285. Deep32 answered from its local corpus with web search off; its headend model was gpt-6.2-sol at effort ultra." src="docs/figures/tr2-hero-light.svg" width="100%">
+</picture>
+<p align="center"><sub>Three hard routing problems, one answer per system, three graders. <a href="#81-answers-a-blind-comparison">Section 8.1</a> and <a href="https://hellobpdu.github.io/deep32/tr/d32-tr-2.html">D32-TR-2</a> have the method and its limits.</sub></p>
+
 ## Status of this release
 
 This is an alpha, and it assumes you're comfortable installing an OS in a VM and running Docker. The numbers on this
@@ -579,32 +586,43 @@ values, so it can't score a run yet, and until it can, a public install has no c
 
 I gave Deep32 and three general assistants (Claude, ChatGPT and Gemini, each in its research mode with web search) the
 same three hard routing problems: OSPF external route selection, BGP route-reflection oscillation and an MPLS L3VPN
-escalation. Deep32 answered through Ask with gpt-6.2-sol at effort ultra, from its own corpus with web search off. The
-answers were graded blind. With the names masked, a grader solved each problem first from the question and the RFC and
-Cisco texts, then scored the four answers on correctness (40), evidence (25), completeness (15), caution (10) and
-clarity (10), spot-checking citations against the texts.
+escalation. Deep32 answered through Ask from its own corpus with web search off. Its headend model, the one that does
+the research and writes the answer, was gpt-6.2-sol at effort ultra.
+
+The answers were graded blind by two raters. With the names masked, Claude Opus 5.5 solved each problem first from the
+question and the RFC and Cisco texts, then scored the four answers on correctness (40), evidence (25), completeness
+(15), caution (10) and clarity (10), spot-checking citations against the texts. Claude Mythos 5.2 then scored the same
+masked answers against the same key without seeing the first scores, and upheld the key. I use the Mythos scores as the
+headline because it is the stronger model. An earlier grading by ChatGPT (GPT-6), done with the names visible and
+without the key, is listed beside them.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/figures/tr2-compare-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="docs/figures/tr2-compare-light.svg">
-  <img alt="Blind scores out of 300 over three benchmarks: Claude (Opus) 276 (91, 92, 93), Deep32 272 (92, 91, 89), Gemini 226 (75, 78, 73), ChatGPT 220 (63, 83, 74)." src="docs/figures/tr2-compare-light.svg" width="100%">
+  <img alt="Blind scores by benchmark from the headline rater, out of 300: Claude 270 (91, 89, 90), Deep32 268.5 (90, 90.5, 88), Gemini 226 (76, 77, 73), ChatGPT 211.5 (67, 74.5, 70)." src="docs/figures/tr2-compare-light.svg" width="100%">
 </picture>
-<p align="center"><sub><b>Figure 8.</b> Blind scores over three benchmarks from the first of two raters, one answer per system, 23 and 24 November 2026.</sub></p>
+<p align="center"><sub><b>Figure 8.</b> Blind scores by benchmark from the headline rater, one answer per system, 23 and 24 November 2026.</sub></p>
 
-| Out of | Claude | Deep32 | Gemini | ChatGPT |
+| Out of | Deep32 | Claude | Gemini | ChatGPT |
 |---|:---:|:---:|:---:|:---:|
-| Total (300) | **276** | 272 | 226 | 220 |
-| Correctness (120) | **115** | 113 | 107 | 106 |
-| Evidence (75) | 61 | **71** | 41 | 31 |
-| Completeness (45) | **44** | 38 | **44** | 36 |
+| Total (300), Mythos 5.2, blind | 268.5 | **270** | 226 | 211.5 |
+| Total (300), Opus 5.5, blind | 272 | **276** | 226 | 220 |
+| Total (300), GPT-6, names visible | **293** | 288 | 290 | 285 |
+| Evidence (75), Mythos 5.2 | **69** | 56 | 40 | 25 |
+| Correctness (120), Mythos 5.2 | 111 | **116** | 111 | 104 |
+| Completeness (45), Mythos 5.2 | 40 | **44** | **44** | 38 |
 
 All four got every core result right, so the order comes from evidence, completeness and caution. Every citation the
-graders checked in a Deep32 answer matched the corpus text at the cited lines. Claude's answers were the most complete,
+raters checked in a Deep32 answer matched the corpus text at the cited lines. Claude's answers were the most complete,
 and Claude was the only one to catch a flaw in one of the questions. Deep32 lost points for configuration left as
-templates and for working notes left in its answers. A second rater, a different Claude model working
-from the same key without the first scores, put the top two at 270 and 268.5; the two raters differ by 2.3 points per
-answer on average. Three problems with one answer each is a small sample, and both raters were Claude models, so I
-read the top two as even. [[D32-TR-2]](#references) has the
+templates and for working notes left in its answers. The two blind raters differ by 2.3 points per answer on average
+and put Deep32 and Claude within 4 points of each other, in an order that changes between them on two of the three
+problems, so I read the top two as even. Deep32 is the only system that all three graders placed first or second.
+
+ChatGPT, a model from the same vendor as Deep32's headend, scored 57 points below Deep32 under the headline rater, most
+of it on evidence. They are different models with different instructions, so that gap is not a controlled measure of
+what the corpus and tools add; the matched-model evaluation planned for the beta is meant to measure it. Three problems
+with one answer each is a small sample, and both blind raters were Claude models. [[D32-TR-2]](#references) has the
 method, the telemetry of each run and the threats to validity.
 
 ## 9. Hardware and performance
